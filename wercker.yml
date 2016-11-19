@@ -1,0 +1,30 @@
+box: kiks/build-env
+
+build:
+  steps:
+    - script:
+      name: initialize git submodules
+      code: |
+        git submodule update --init --recursive
+
+    - script:
+      name: build
+      code: |
+        mkdir -p build && cd $_
+        cmake .. -G Ninja -DCMAKE_BUILD_TYPE=Debug -DENABLE_SANITIZERS=ON -DENABLE_CODE_COVERAGE=ON
+        ninja-build -v
+
+    - script:
+      name: unit test
+      code: |
+        cd build
+        ctest --output-on-failure
+
+  after-steps:
+    - script:
+      name: code coverage
+      code: |
+        bash <(curl -s https://codecov.io/bash) -x ./tools/llvm-cov.sh -g './build/3rd/*'
+
+    - wantedly/pretty-slack-notify:
+      webhook_url: $SLACK_WEBHOOK_URL
