@@ -72,3 +72,5 @@ include_directories(
   ${Boost_INCLUDE_DIRS}
   ${Protobuf_INCLUDE_DIRS}
 )
+
+add_subdirectory(3rd)
