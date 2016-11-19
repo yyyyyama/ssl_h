@@ -74,3 +74,5 @@ include_directories(
 )
 
 add_subdirectory(3rd)
+add_subdirectory(src)
+add_subdirectory(test)
