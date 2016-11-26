@@ -8,6 +8,11 @@ build:
         git submodule update --init --recursive
 
     - script:
+      name: static validations
+      code: |
+        ./tools/validate/format.sh
+
+    - script:
       name: build
       code: |
         mkdir -p build && cd $_
