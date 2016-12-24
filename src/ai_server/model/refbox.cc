@@ -5,7 +5,10 @@ namespace ai_server{
 namespace model{
 
     refbox::refbox(){
-        
+        packet_timestamp_ = 0;
+        stage_time_left_ = 0;
+        stage_ = static_cast<int>(refbox::stage_name::NORMAL_FIRST_HALF_PRE);
+        command_ = static_cast<int>(refbox::game_command::HALF);
     }
 
     int refbox::packet_timestamp(){
@@ -58,6 +61,13 @@ namespace model{
 
     refbox::team_info::team_info(std::string name){
         name_ = name;
+        score_ = 0;
+        goalie_ = 0;
+        red_cards_ = 0;
+        yellow_cards_ = 0;
+        yellow_card_times_ = 0;
+        timeouts_ = 0;
+        timeout_time_ = 0;
     }
 
     int refbox::team_info::score(){

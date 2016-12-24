@@ -45,7 +45,8 @@ namespace model{
                                 TIMEOUT_YELLOW, TIMEOUT_BLUE,
                                 GOAL_YELLOW, GOAL_BLUE,
                                 BALL_PLACEMENT_YELLOW, BALL_PLACEMENT_BLUE};
-     
+        const int NORMAL_FIRST_HALF_PRE = 0;
+        const int HALF = 0;
         int packet_timestamp_, stage_time_left_;
         int stage_;
         int command_;
