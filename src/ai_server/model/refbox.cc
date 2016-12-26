@@ -50,11 +50,11 @@ void refbox::set_command(refbox::game_command value) {
   command_ = value;
 }
 
-void refbox::set_team_yellow(refbox::team_info value) {
+void refbox::set_team_yellow(const refbox::team_info value) {
   team_yellow_ = value;
 }
 
-void refbox::set_team_blue(refbox::team_info value) {
+void refbox::set_team_blue(const refbox::team_info value) {
   team_blue_ = value;
 }
 

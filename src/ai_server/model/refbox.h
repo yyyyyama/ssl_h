@@ -1,6 +1,6 @@
+#ifndef AI_SERVER_MODEL_REFBOX_H
+#define AI_SERVER_MODEL_REFBOX_H
 #include <string>
-#ifndef _AI_SERVER_MODEL_REFBOX_H
-#define _AI_SERVER_MODEL_REFBOX_H
 
 namespace ai_server {
 namespace model {
