@@ -6,6 +6,7 @@ namespace ai_server {
 namespace model {
 
 class refbox {
+public:
   class team_info {
     std::string name_;
     int score_;
@@ -34,14 +35,6 @@ class refbox {
     void set_timeouts(int value);
     void set_timeout_time(int value);
   };
-
-  int packet_timestamp_;
-  int stage_time_left_;
-
-  team_info team_yellow_;
-  team_info team_blue_;
-
-public:
   enum class stage_name {
     normal_first_half_pre,
     normal_first_half,
@@ -78,7 +71,6 @@ public:
     ball_placement_yellow,
     ball_placement_blue
   };
-
   refbox();
   int packet_timestamp() const;
   int stage_time_left() const;
@@ -90,12 +82,16 @@ public:
   void set_stage_time_left(int value);
   void set_stage(stage_name value);
   void set_command(game_command value);
-  void set_team_yellow(team_info value);
-  void set_team_blue(team_info value);
+  void set_team_yellow(const team_info value);
+  void set_team_blue(const team_info value);
 
 private:
+  int packet_timestamp_;
+  int stage_time_left_;
   stage_name stage_;
   game_command command_;
+  team_info team_yellow_;
+  team_info team_blue_;
 };
 }
 }
