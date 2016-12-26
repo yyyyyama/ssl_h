@@ -60,8 +60,5 @@ void ball::set_ax(int ax) {
 void ball::set_ay(int ay) {
   ay_ = ay;
 }
-
 }
-
 }
-
