@@ -13,14 +13,14 @@ private:
   int penalty_line_length_;
 
 public:
-  field(int length=0, int width=0, int center_radius=0, int goal_width=0, int penalty_radius=0,
-        int penalty_line_length=0);
-  int length()const;
-  int width()const;
-  int center_radius()const;
-  int goal_width()const;
-  int penalty_radius()const;
-  int penalty_line_length()const;
+  field(int length = 0, int width = 0, int center_radius = 0, int goal_width = 0,
+        int penalty_radius = 0, int penalty_line_length = 0);
+  int length() const;
+  int width() const;
+  int center_radius() const;
+  int goal_width() const;
+  int penalty_radius() const;
+  int penalty_line_length() const;
   void set_length(int length);
   void set_width(int width);
   void set_center_radius(int center_radius);

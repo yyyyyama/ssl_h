@@ -10,22 +10,22 @@ field::field(int length, int width, int center_radius, int goal_width, int penal
       goal_width_(goal_width),
       penalty_radius_(penalty_radius),
       penalty_line_length_(penalty_line_length) {}
-int field::length()const {
+int field::length() const {
   return length_;
 }
-int field::width() const{
+int field::width() const {
   return width_;
 }
-int field::center_radius() const{
+int field::center_radius() const {
   return center_radius_;
 }
-int field::goal_width()const {
+int field::goal_width() const {
   return goal_width_;
 }
-int field::penalty_radius()const {
+int field::penalty_radius() const {
   return penalty_radius_;
 }
-int field::penalty_line_length()const {
+int field::penalty_line_length() const {
   return penalty_line_length_;
 }
 void field::set_length(int length) {
