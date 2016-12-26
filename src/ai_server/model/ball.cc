@@ -62,4 +62,3 @@ void ball::set_ay(int ay) {
 }
 }
 }
-
