@@ -1,6 +1,6 @@
 #include <string>
-#ifndef INCLUDE_GUARD_REFBOX
-#define INCLUDE_GUARD_REFBOX
+#ifndef _AI_SERVER_MODEL_REFBOX_H
+#define _AI_SERVER_MODEL_REFBOX_H
 
 namespace ai_server {
 namespace model {
@@ -35,6 +35,13 @@ class refbox {
     void set_timeout_time(int value);
   };
 
+  int packet_timestamp_;
+  int stage_time_left_;
+
+  team_info team_yellow_;
+  team_info team_blue_;
+
+public:
   enum class stage_name {
     normal_first_half_pre,
     normal_first_half,
@@ -71,16 +78,7 @@ class refbox {
     ball_placement_yellow,
     ball_placement_blue
   };
-  const int normal_first_half_pre = 0;
-  const int half = 0;
-  int packet_timestamp_;
-  int stage_time_left_;
-  stage_name stage_;
-  game_command command_;
-  team_info team_yellow_;
-  team_info team_blue_;
 
-public:
   refbox();
   int packet_timestamp() const;
   int stage_time_left() const;
@@ -94,9 +92,12 @@ public:
   void set_command(game_command value);
   void set_team_yellow(team_info value);
   void set_team_blue(team_info value);
+
+private:
+  stage_name stage_;
+  game_command command_;
 };
 }
 }
 
 #endif
-
