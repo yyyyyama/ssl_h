@@ -1,130 +1,93 @@
-#include <iostream>
-#include "refbox.h"
+#define BOOST_TEST_DYN_LINK
+#define BOOST_TEST_MODULE refbox_test
+#include <boost/test/unit_test.hpp>
+#include "ai_server/model/refbox.h"
 
-namespace ai_server{
-    namespace model{
+BOOST_AUTO_TEST_SUITE(refbox)
 
-        refbox::refbox(){
-            packet_timestamp_ = 0;
-            stage_time_left_ = 0;
-            stage_ = static_cast<int>(refbox::stage_name::NORMAL_FIRST_HALF_PRE);
-            command_ = static_cast<int>(refbox::game_command::HALF);
-        }
+// getter and initialization check
+BOOST_AUTO_TEST_CASE(test01) {
+  ai_server::model::refbox ref{};
 
-        int refbox::packet_timestamp(){
-            return packet_timestamp_;
-        }
-
-        int refbox::stage_time_left(){
-            return stage_time_left_;
-        }
-
-        int refbox::stage(){
-            return stage_;
-        }
-
-        int refbox::command(){
-            return command_;
-        }
-
-        refbox::team_info refbox::team_yellow(){
-            return team_yellow_;
-        }
-
-        refbox::team_info refbox::team_blue(){
-            return team_blue_;
-        }
-
-        void refbox::set_packet_timestamp(int value){
-            packet_timestamp_ = value;
-        }
-
-        void refbox::set_stage_time_left(int value){
-            stage_time_left_ = value;
-        }
-
-        void refbox::set_stage(int value){
-            stage_ = value;
-        }
-
-        void refbox::set_command(int value){
-            command_ = value;
-        }
-
-        void refbox::set_team_yellow(refbox::team_info value){
-            team_yellow_ = value;
-        }
-
-        void refbox::set_team_blue(refbox::team_info value){
-            team_blue_ = value;
-        }
-
-        refbox::team_info::team_info(std::string name){
-            name_ = name;
-            score_ = 0;
-            goalie_ = 0;
-            red_cards_ = 0;
-            yellow_cards_ = 0;
-            yellow_card_times_ = 0;
-            timeouts_ = 0;
-            timeout_time_ = 0;
-        }
-
-        int refbox::team_info::score(){
-            return score_;
-        }
-
-        int refbox::team_info::goalie(){
-            return goalie_;
-        }
-
-        int refbox::team_info::red_cards(){
-            return red_cards_;
-        }
-
-        int refbox::team_info::yellow_cards(){
-            return yellow_cards_;
-        }
-
-        int refbox::team_info::yellow_card_times(){
-            return yellow_card_times_;
-        }
-
-        int refbox::team_info::timeouts(){
-            return timeouts_;
-        }
-
-        int refbox::team_info::timeout_time(){
-            return timeout_time_;
-        }
-
-        void refbox::team_info::set_score(int value){
-            score_ = value;
-        }
-
-        void refbox::team_info::set_goalie(int value){
-            goalie_ = value;
-        }
-
-        void refbox::team_info::set_red_cards(int value){
-            red_cards_ = value;
-        }
-
-        void refbox::team_info::set_yellow_cards(int value){
-            yellow_cards_ = value;
-        }
-
-        void refbox::team_info::set_yellow_card_times(int value){
-            yellow_card_times_ = value;
-        }
-
-        void refbox::team_info::set_timeouts(int value){
-            timeouts_ = value;
-        }
-
-        void refbox::team_info::set_timeout_time(int value){
-            timeout_time_ = value;
-        }
-
-    }
+  BOOST_TEST(ref.packet_timestamp() == 0);
+  switch (ref.stage()) {
+    case (ai_server::model::refbox::stage_name::normal_first_half_pre):
+      BOOST_TEST(1);
+      break;
+    default:
+      BOOST_TEST(0);
+      break;
+  }
+  BOOST_TEST(ref.stage_time_left() == 0);
+  switch (ref.command()) {
+    case (ai_server::model::refbox::game_command::half):
+      BOOST_TEST(1);
+      break;
+    default:
+      BOOST_TEST(0);
+      break;
+  }
+  BOOST_TEST(ref.team_yellow().name() == "yellow");
+  BOOST_TEST(ref.team_yellow().score() == 0);
+  BOOST_TEST(ref.team_yellow().goalie() == 0);
+  BOOST_TEST(ref.team_yellow().red_cards() == 0);
+  BOOST_TEST(ref.team_yellow().yellow_cards() == 0);
+  BOOST_TEST(ref.team_yellow().yellow_card_times() == 0);
+  BOOST_TEST(ref.team_yellow().timeouts() == 0);
+  BOOST_TEST(ref.team_yellow().timeout_time() == 0);
+  BOOST_TEST(ref.team_blue().name() == "blue");
 }
+
+// setter check
+BOOST_AUTO_TEST_CASE(test02) {
+  ai_server::model::refbox ref{};
+
+  ref.set_packet_timestamp(1);
+  BOOST_TEST(ref.packet_timestamp() == 1);
+
+  ref.set_stage(ai_server::model::refbox::stage_name::normal_first_half);
+  switch (ref.stage()) {
+    case (ai_server::model::refbox::stage_name::normal_first_half):
+      BOOST_TEST(1);
+      break;
+    default:
+      BOOST_TEST(0);
+      break;
+  }
+
+  ref.set_stage_time_left(1);
+  BOOST_TEST(ref.stage_time_left() == 1);
+
+  ref.set_command(ai_server::model::refbox::game_command::stop);
+  switch (ref.command()) {
+    case (ai_server::model::refbox::game_command::stop):
+      BOOST_TEST(1);
+      break;
+    default:
+      BOOST_TEST(0);
+      break;
+  }
+
+  ref.team_yellow().set_score(1);
+  BOOST_TEST(ref.team_yellow().score() == 1);
+
+  ref.team_yellow().set_goalie(1);
+  BOOST_TEST(ref.team_yellow().goalie() == 1);
+
+  ref.team_yellow().set_red_cards(1);
+  BOOST_TEST(ref.team_yellow().red_cards() == 1);
+
+  ref.team_yellow().set_yellow_cards(1);
+  BOOST_TEST(ref.team_yellow().yellow_cards() == 1);
+
+  ref.team_yellow().set_yellow_card_times(1);
+  BOOST_TEST(ref.team_yellow().yellow_card_times() == 1);
+
+  ref.team_yellow().set_timeouts(1);
+  BOOST_TEST(ref.team_yellow().timeouts() == 1);
+
+  ref.team_yellow().set_timeout_time(1);
+  BOOST_TEST(ref.team_yellow().timeout_time() == 1);
+}
+
+BOOST_AUTO_TEST_SUITE_END()
