@@ -1,5 +1,5 @@
-#ifndef _AI_SERVER_MODEL_FIELD_H
-#define _AI_SERVER_MODEL_FIELD_H
+#ifndef AI_SERVER_MODEL_FIELD_H
+#define AI_SERVER_MODEL_FIELD_H
 
 namespace ai_server {
 namespace model {
@@ -33,4 +33,4 @@ public:
 }
 }
 
-#endif //_AI_SERVER_MODEL_FIELD_H
+#endif //AI_SERVER_MODEL_FIELD_H
