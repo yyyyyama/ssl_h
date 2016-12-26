@@ -2,6 +2,7 @@
 #define AI_SERVER_MODEL_BALL_H
 namespace ai_server {
 namespace model {
+
 class ball {
 private:
   int x_;
@@ -14,6 +15,7 @@ private:
 
 public:
   ball(int x, int y, int z);
+  ball();
   int x() const;
   int y() const;
   int z() const;
@@ -21,6 +23,7 @@ public:
   int vy() const;
   int ax() const;
   int ay() const;
+
   void set_x(int x);
   void set_y(int y);
   void set_z(int z);
@@ -32,3 +35,4 @@ public:
 }
 }
 #endif
+
