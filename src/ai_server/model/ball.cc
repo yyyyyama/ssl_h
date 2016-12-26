@@ -2,62 +2,61 @@
 namespace ai_server {
 namespace model {
 
-ball::ball(int x, int y, int z) : x_(x), y_(y), z_(z){};
-ball::ball(){};
+ball::ball(double x, double y, double z) : x_(x), y_(y), z_(z){};
 
-int ball::x() const {
+double ball::x() const {
   return x_;
 }
 
-int ball::y() const {
+double ball::y() const {
   return y_;
 }
 
-int ball::z() const {
+double ball::z() const {
   return z_;
 }
 
-int ball::vx() const {
+double ball::vx() const {
   return vx_;
 }
 
-int ball::vy() const {
+double ball::vy() const {
   return vy_;
 }
 
-int ball::ax() const {
+double ball::ax() const {
   return ax_;
 }
 
-int ball::ay() const {
+double ball::ay() const {
   return ay_;
 }
 
-void ball::set_x(int x) {
+void ball::set_x(double x) {
   x_ = x;
 }
 
-void ball::set_y(int y) {
+void ball::set_y(double y) {
   y_ = y;
 }
 
-void ball::set_z(int z) {
+void ball::set_z(double z) {
   z_ = z;
 }
 
-void ball::set_vx(int vx) {
+void ball::set_vx(double vx) {
   vx_ = vx;
 }
 
-void ball::set_vy(int vy) {
+void ball::set_vy(double vy) {
   vy_ = vy;
 }
 
-void ball::set_ax(int ax) {
+void ball::set_ax(double ax) {
   ax_ = ax;
 }
 
-void ball::set_ay(int ay) {
+void ball::set_ay(double ay) {
   ay_ = ay;
 }
 }

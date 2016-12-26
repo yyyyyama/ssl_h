@@ -5,32 +5,31 @@ namespace model {
 
 class ball {
 private:
-  int x_;
-  int y_;
-  int z_;
-  int vx_;
-  int vy_;
-  int ax_;
-  int ay_;
+  double x_;
+  double y_;
+  double z_;
+  double vx_;
+  double vy_;
+  double ax_;
+  double ay_;
 
 public:
-  ball(int x, int y, int z);
-  ball();
-  int x() const;
-  int y() const;
-  int z() const;
-  int vx() const;
-  int vy() const;
-  int ax() const;
-  int ay() const;
+  ball(double x = 0.0, double y = 0.0, double z = 0.0);
+  double x() const;
+  double y() const;
+  double z() const;
+  double vx() const;
+  double vy() const;
+  double ax() const;
+  double ay() const;
 
-  void set_x(int x);
-  void set_y(int y);
-  void set_z(int z);
-  void set_vx(int vx);
-  void set_vy(int vy);
-  void set_ax(int ax);
-  void set_ay(int ay);
+  void set_x(double x);
+  void set_y(double y);
+  void set_z(double z);
+  void set_vx(double vx);
+  void set_vy(double vy);
+  void set_ax(double ax);
+  void set_ay(double ay);
 };
 }
 }
