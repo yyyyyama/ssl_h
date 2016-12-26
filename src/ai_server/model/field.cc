@@ -2,14 +2,6 @@
 
 namespace ai_server {
 namespace model {
-field::field(int length, int width, int center_radius, int goal_width, int penalty_radius,
-             int penalty_line_length)
-    : length_(length),
-      width_(width),
-      center_radius_(center_radius),
-      goal_width_(goal_width),
-      penalty_radius_(penalty_radius),
-      penalty_line_length_(penalty_line_length) {}
 int field::length() const {
   return length_;
 }
@@ -46,16 +38,16 @@ void field::set_penalty_radius(int penalty_radius) {
 void field::set_penalty_line_length(int penalty_line_length) {
   penalty_line_length_ = penalty_line_length;
 }
-int field::x_max() {
+double field::x_max() const {
   return (length_ / 2);
 }
-int field::y_max() {
+double field::y_max() const {
   return (width_ / 2);
 }
-int field::x_min() {
+double field::x_min() const {
   return (-length_ / 2);
 }
-int field::y_min() {
+double field::y_min() const {
   return (-width_ / 2);
 }
 }

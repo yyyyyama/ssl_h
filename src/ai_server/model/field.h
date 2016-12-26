@@ -13,8 +13,6 @@ private:
   int penalty_line_length_;
 
 public:
-  field(int length = 0, int width = 0, int center_radius = 0, int goal_width = 0,
-        int penalty_radius = 0, int penalty_line_length = 0);
   int length() const;
   int width() const;
   int center_radius() const;
@@ -27,10 +25,10 @@ public:
   void set_goal_width(int goal_width);
   void set_penalty_radius(int penalty_radius);
   void set_penalty_line_length(int penalty_line_length);
-  int x_max();
-  int x_min();
-  int y_max();
-  int y_min();
+  double x_max() const;
+  double x_min() const;
+  double y_max() const;
+  double y_min() const;
 };
 }
 }
