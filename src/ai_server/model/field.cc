@@ -1,50 +1,62 @@
-#include"field.h"
+#include "ai_server/model/field.h"
 
-				int length(){
-					return length;
-				}
-				int width(){
-					return width;
-				}
-				int center_radius(){
-					return center_radius;
-				}
-				int goal_width(){
-					return goal_width;
-				}
-				int penalty_radius(){
-					return penalty_radius;
-				}
-				int penalty_line_length(){
-					return penalty_line_length
-				}
-				void set_length(int length){
-					length_=length;	
-				}
-				void set_width(int width){
-					width_=width;
-				}
-				void set_center_radius(int center_radius){
-					center_radius_=center_radius;
-				}
-				void set_goal_width(int goal_width){
-					goal_widthi_=goal_width;
-				}
-				void penalty_radius(int penalty_radius){
-					penalty_radius_=penalty_radius;
-				}
-				void penalty_line_length(int penalty_line_length){
-					penalty_line_length_=penalty_line_length;
-				}
-				int x_max(){
-					return (length/2);
-				}
-				int x_min(){
-					return (-length/2);
-				}
-				int y_max(){
-					return (width/2);
-				}
-				int y_min(){
-					return (-width/2);
-				}
+namespace ai_server {
+namespace model {
+field::field(int length, int width, int center_radius, int goal_width, int penalty_radius,
+             int penalty_line_length)
+    : length_(length),
+      width_(width),
+      center_radius_(center_radius),
+      goal_width_(goal_width),
+      penalty_radius_(penalty_radius),
+      penalty_line_length_(penalty_line_length) {}
+int field::length() {
+  return length_;
+}
+int field::width() {
+  return width_;
+}
+int field::center_radius() {
+  return center_radius_;
+}
+int field::goal_width() {
+  return goal_width_;
+}
+int field::penalty_radius() {
+  return penalty_radius_;
+}
+int field::penalty_line_length() {
+  return penalty_line_length_;
+}
+void field::set_length(int length) {
+  length_ = length;
+}
+void field::set_width(int width) {
+  width_ = width;
+}
+void field::set_center_radius(int center_radius) {
+  center_radius_ = center_radius;
+}
+void field::set_goal_width(int goal_width) {
+  goal_width_ = goal_width;
+}
+void field::penalty_radius(int penalty_radius) {
+  penalty_radius_ = penalty_radius;
+}
+void field::penalty_line_length(int penalty_line_length) {
+  penalty_line_length_ = penalty_line_length;
+}
+int field::x_max() {
+  return (length_ / 2);
+}
+int field::y_max() {
+  return (length_ / 2);
+}
+int field::x_min() {
+  return (-length_ / 2);
+}
+int field::y_min() {
+  return (-length_ / 2);
+}
+}
+}
