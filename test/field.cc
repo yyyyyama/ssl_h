@@ -36,7 +36,10 @@ BOOST_AUTO_TEST_CASE(test002) {
 }
 
 BOOST_AUTO_TEST_CASE(test003) {
-  ai_server::model::field f{100, 90, 80, 70, 60, 50};
+  ai_server::model::field f{};
+
+  f.set_length(100);
+  f.set_width(90);
 
   BOOST_TEST(f.x_max() == 50);
   BOOST_TEST(f.x_min() == -50);
@@ -45,9 +48,16 @@ BOOST_AUTO_TEST_CASE(test003) {
 }
 
 BOOST_AUTO_TEST_CASE(test004) {
-  ai_server::model::field f{1, 2, 3, 4, 5, 6};
+  ai_server::model::field f{};
 
-  const ai_server::model::fiedld& fc = f;
+  f.set_length(1);
+  f.set_width(2);
+  f.set_center_radius(3);
+  f.set_goal_width(4);
+  f.set_penalty_radius(5);
+  f.set_penalty_line_length(6);
+
+  const ai_server::model::field& fc = f;
   BOOST_TEST(fc.length() == 1);
   BOOST_TEST(fc.width() == 2);
   BOOST_TEST(fc.center_radius() == 3);

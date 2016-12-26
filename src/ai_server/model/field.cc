@@ -2,15 +2,6 @@
 
 namespace ai_server {
 namespace model {
-field::field(int length, int width, int center_radius, int goal_width, int penalty_radius,
-             int penalty_line_length)
-    : length_(length),
-      width_(width),
-      center_radius_(center_radius),
-      goal_width_(goal_width),
-      penalty_radius_(penalty_radius),
-      penalty_line_length_(penalty_line_length) {}
-
 int field::length() const {
   return length_;
 }
