@@ -61,7 +61,7 @@ void ball::set_ay(int ay) {
   ay_ = ay;
 }
 
-} // namespace model
+}
 
-} // namespace ai_server
+}
 
