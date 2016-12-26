@@ -13,6 +13,8 @@ private:
   int penalty_line_length_;
 
 public:
+  field(int length, int width, int center_radius, int goal_width, int penalty_radius,
+        int penalty_line_length);
   int length() const;
   int width() const;
   int center_radius() const;
