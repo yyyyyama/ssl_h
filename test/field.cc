@@ -17,8 +17,7 @@ BOOST_AUTO_TEST_CASE(test001) {
   BOOST_TEST(f.penalty_radius() == 0);
   BOOST_TEST(f.penalty_line_length() == 0);
 }
-
-BOOST_AUTO_TEST_CASE(test003) {
+BOOST_AUTO_TEST_CASE(test002) {
   ai_server::model::field f{};
 
   f.set_length(1);
