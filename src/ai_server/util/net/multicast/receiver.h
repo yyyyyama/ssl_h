@@ -15,6 +15,7 @@ namespace multicast {
 /// @class   receiver
 /// @brief   UDP multicastを受信するクラス
 class receiver {
+public:
   /// 受信したデータを格納するバッファのサイス
   constexpr static std::size_t buffer_size = 4096;
 
@@ -25,7 +26,6 @@ class receiver {
   // エラー時に呼ぶシグナルの型
   using error_signal_t = boost::signals2::signal<void(const boost::system::error_code&)>;
 
-public:
   /// @brief                  コンストラクタ
   /// @param listen_addr      通信に使うインターフェースのIPアドレス
   /// @param multicast_addr   マルチキャストアドレス
