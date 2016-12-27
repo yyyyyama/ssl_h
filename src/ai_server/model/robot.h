@@ -17,7 +17,7 @@ private:
   robot(int, double);
 
 public:
-  robot(unsigned int id, double x, double y);
+  robot(unsigned int id, double x = 0.0, double y = 0.0);
 
   int id() const;
   double x() const;
