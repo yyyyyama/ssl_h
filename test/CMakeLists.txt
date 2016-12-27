@@ -1,3 +1,5 @@
+include_directories(${CMAKE_BINARY_DIR}/3rd)
+
 file(GLOB_RECURSE SOURCES ./*.cc)
 
 foreach(TEST_SOURCE_FILE ${SOURCES})
@@ -10,9 +12,11 @@ foreach(TEST_SOURCE_FILE ${SOURCES})
     add_executable(${TEST_EXECUTABLE_NAME} ${TEST_SOURCE_FILE})
     target_link_libraries(${TEST_EXECUTABLE_NAME}
       ai-server-lib
+      ssl-protos
       ${Boost_COROUTINE_LIBRARY}
       ${Boost_SYSTEM_LIBRARY}
       ${Boost_UNIT_TEST_FRAMEWORK_LIBRARY}
+      ${Protobuf_LIBRARY}
       ${CMAKE_THREAD_LIBS_INIT}
     )
     add_test(${TEST_EXECUTABLE_NAME} ${EXECUTABLE_OUTPUT_PATH}/${TEST_EXECUTABLE_NAME})
