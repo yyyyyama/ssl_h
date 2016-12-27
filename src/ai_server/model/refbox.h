@@ -82,8 +82,8 @@ public:
   void set_stage_time_left(int value);
   void set_stage(stage_name value);
   void set_command(game_command value);
-  void set_team_yellow(const team_info value);
-  void set_team_blue(const team_info value);
+  void set_team_yellow(const team_info& value);
+  void set_team_blue(const team_info& value);
 
 private:
   int packet_timestamp_;
