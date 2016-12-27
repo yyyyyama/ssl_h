@@ -1,5 +1,3 @@
-#include<iostream>
-
 #ifndef INCLUDED_ROBOT_H
 #define INCLUDED_ROBOT_H
 
@@ -43,6 +41,5 @@ namespace model{
 	
 }
 }
-
 
 #endif

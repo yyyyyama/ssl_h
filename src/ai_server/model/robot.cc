@@ -4,8 +4,7 @@
 namespace ai_server{
 namespace model{
 	
-	robot::robot(unsigned int id, double x = 0, double y = 0) : id_(id), x_(x), y_(y){};
-
+	robot::robot(unsigned int id, double x = 0.0, double y = 0.0) : id_(id), x_(x), y_(y){};
 
 
 	int robot::id(){
