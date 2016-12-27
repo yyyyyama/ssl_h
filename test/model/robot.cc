@@ -11,7 +11,7 @@ BOOST_AUTO_TEST_CASE(test001) {
 	
 	// constructor test
   ai_server::model::robot rob{1,2,3};
-  
+ 
   // get value test
   BOOST_TEST(rob.id() == 1);
   BOOST_TEST(rob.x() == 2);
