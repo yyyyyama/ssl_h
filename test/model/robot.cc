@@ -2,7 +2,7 @@
 #define BOOST_TEST_MODULE robotdata_Test
 
 #include <boost/test/unit_test.hpp>
-#include "src/ai_server/model/robot.h"
+#include "ai_server/model/robot.h"
 
 
 BOOST_AUTO_TEST_SUITE(robotdata)
@@ -10,8 +10,8 @@ BOOST_AUTO_TEST_SUITE(robotdata)
 BOOST_AUTO_TEST_CASE(test001) {
 	
 	// constructor test
-  ai_server::model::robot rob{1,2,3};
- 
+  ai_server::model::robot rob(1,2,3);
+
   // get value test
   BOOST_TEST(rob.id() == 1);
   BOOST_TEST(rob.x() == 2);
