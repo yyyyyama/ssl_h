@@ -16,10 +16,12 @@ namespace model{
 		double vy_;
 		double theta_;
 		double omega_;
-		
+					
+		robot(int,double);
+
+			
 		
 	public:
-		robot(unsigned int id);
 		robot(unsigned int id, double x, double y);
 		
 		int id();
