@@ -23,12 +23,12 @@ namespace model{
 		robot(unsigned int id, double x, double y);
 		
 		int id();
-		double x();
-		double y();
-		double vx();
-		double vy();
-		double theta();
-		double omega();
+		double x() const;
+		double y() const;
+		double vx() const;
+		double vy() const;
+		double theta() const;
+		double omega() const;
 		
 		void set_x(double x);
 		void set_y(double y);
