@@ -16,7 +16,7 @@ namespace multicast {
 /// @brief   UDP multicastを受信するクラス
 class receiver {
 public:
-  /// 受信したデータを格納するバッファのサイス
+  /// 受信したデータを格納するバッファのサイズ
   constexpr static std::size_t buffer_size = 4096;
 
   /// バッファの型
