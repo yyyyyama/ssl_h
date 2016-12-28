@@ -39,8 +39,8 @@ public:
 private:
   void parse_packet(const util::net::multicast::receiver::buffer_t& buffer, std::size_t size);
 
-  receive_signal_t on_receive_;
-  error_signal_t on_error_;
+  receive_signal_t received_;
+  error_signal_t errored_;
 
   util::net::multicast::receiver receiver_;
 };

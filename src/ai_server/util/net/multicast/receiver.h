@@ -55,8 +55,8 @@ private:
   boost::asio::ip::udp::socket socket_;
   boost::asio::ip::udp::endpoint endpoint_;
 
-  receive_signal_t on_receive_;
-  error_signal_t on_error_;
+  receive_signal_t received_;
+  error_signal_t errored_;
 };
 
 } // namespace multicast

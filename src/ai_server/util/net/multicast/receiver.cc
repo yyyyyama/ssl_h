@@ -31,11 +31,11 @@ receiver::receiver(boost::asio::io_service& io_service,
 }
 
 boost::signals2::connection receiver::on_receive(const receive_signal_t::slot_type& slot) {
-  return on_receive_.connect(slot);
+  return received_.connect(slot);
 }
 
 boost::signals2::connection receiver::on_error(const error_signal_t::slot_type& slot) {
-  return on_error_.connect(slot);
+  return errored_.connect(slot);
 }
 
 void receiver::receive_data(boost::asio::yield_context yield) {
@@ -47,9 +47,9 @@ void receiver::receive_data(boost::asio::yield_context yield) {
         socket_.async_receive_from(boost::asio::buffer(data), endpoint_, yield[ec]);
 
     if (ec) {
-      on_error_(ec);
+      errored_(ec);
     } else {
-      on_receive_(data, recieved);
+      received_(data, recieved);
     }
   }
 }
