@@ -77,7 +77,7 @@ int refbox::team_info::score() const {
   return score_;
 }
 
-unsigned int refbox::team_info::goalie() const {
+int refbox::team_info::goalie() const {
   return goalie_;
 }
 
@@ -105,7 +105,7 @@ void refbox::team_info::set_score(int value) {
   score_ = value;
 }
 
-void refbox::team_info::set_goalie(unsigned int value) {
+void refbox::team_info::set_goalie(int value) {
   goalie_ = value;
 }
 
