@@ -34,20 +34,20 @@ BOOST_AUTO_TEST_CASE(test02) {
 }
 
 // team_info getter and initialization check
-BOOST_AUTO_TEST_CASE(test03){
+BOOST_AUTO_TEST_CASE(test03) {
   ai_server::model::refbox ref{};
 
-  BOOST_TEST(team_test.score() == 0);
-  BOOST_TEST(team_test.goalie() == 0);
-  BOOST_TEST(team_test.red_cards() == 0);
-  BOOST_TEST(team_test.yellow_cards() == 0);
-  BOOST_TEST(team_test.yellow_cards_times() == 0);
-  BOOST_TEST(team_test.timeouts() == 0);
-  BOOST_TEST(team_test.timeouts_time() == 0);
+  BOOST_TEST(ref.team_yellow().score() == 0);
+  BOOST_TEST(ref.team_yellow().goalie() == 0);
+  BOOST_TEST(ref.team_yellow().red_cards() == 0);
+  BOOST_TEST(ref.team_yellow().yellow_cards() == 0);
+  BOOST_TEST(ref.team_yellow().yellow_card_times() == 0);
+  BOOST_TEST(ref.team_yellow().timeouts() == 0);
+  BOOST_TEST(ref.team_yellow().timeout_time() == 0);
 }
 
 // team_info setter check
-BOOST_AUTO_TEST_CASE(test034 {
+BOOST_AUTO_TEST_CASE(test04) {
   ai_server::model::refbox ref{};
   ai_server::model::refbox::team_info team_test{"t"};
 
