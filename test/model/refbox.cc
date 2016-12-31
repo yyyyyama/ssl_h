@@ -11,6 +11,7 @@ BOOST_AUTO_TEST_SUITE(refbox)
 BOOST_AUTO_TEST_CASE(test01) {
   ai_server::model::refbox::team_info team_test{"t"};
 
+  BOOST_TEST(team_test.name() == "t");
   BOOST_TEST(team_test.score() == 0);
   BOOST_TEST(team_test.goalie() == 0);
   BOOST_TEST(team_test.red_cards() == 0);
@@ -22,7 +23,6 @@ BOOST_AUTO_TEST_CASE(test01) {
 
 // team_info setter check
 BOOST_AUTO_TEST_CASE(test02) {
-  ai_server::model::refbox ref{};
   ai_server::model::refbox::team_info team_test{"t"};
 
   team_test.set_score(1);
@@ -56,20 +56,21 @@ BOOST_AUTO_TEST_CASE(test03) {
 // refbox setter check
 BOOST_AUTO_TEST_CASE(test04) {
   ai_server::model::refbox ref{};
-  ai_server::model::refbox::team_info team_test{"t"};
 
   ref.set_packet_timestamp(1);
   BOOST_TEST(ref.packet_timestamp() == 1);
   ref.set_stage(ai_server::model::refbox::stage_name::normal_first_half);
   BOOST_TEST(ref.stage() == ai_server::model::refbox::stage_name::normal_first_half);
-  ref.set_stage_time_left(1);
-  BOOST_TEST(ref.stage_time_left() == 1);
+  ref.set_stage_time_left(2);
+  BOOST_TEST(ref.stage_time_left() == 2);
   ref.set_command(ai_server::model::refbox::game_command::stop);
   BOOST_TEST(ref.command() == ai_server::model::refbox::game_command::stop);
-  ref.set_team_yellow(team_test);
-  BOOST_TEST(ref.team_yellow().name() == team_test.name());
-  ref.set_team_blue(team_test);
-  BOOST_TEST(ref.team_blue().name() == team_test.name());
+  ai_server::model::refbox::team_info test_yellow{"test_yellow"};
+  ref.set_team_yellow(test_yellow);
+  BOOST_TEST(ref.team_yellow().name() == test_yellow.name());
+  ai_server::model::refbox::team_info test_blue{"test_blue"};
+  ref.set_team_blue(test_blue);
+  BOOST_TEST(ref.team_blue().name() == test_blue.name());
 }
 
 BOOST_AUTO_TEST_SUITE_END()
