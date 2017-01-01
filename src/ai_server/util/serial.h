@@ -16,6 +16,17 @@ public:
   /// @param device           利用するシリアルポートのデバイス名
   serial(boost::asio::io_service& io_service, const std::string& device);
 
+  /// @brief                  ボーレートを設定する
+  void set_baud_rate(unsigned int value);
+
+  /// @brief                  データビット(1バイトのビット数)を設定する
+  void set_character_size(unsigned int value);
+
+  // TODO:
+  // void set_flow_control();
+  // void set_parity();
+  // void set_stop_bits();
+
   /// @brief                  buffer を送信する
   /// @param buffer           送信するデータ
   template <class Buffer>
