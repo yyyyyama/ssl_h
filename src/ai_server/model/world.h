@@ -24,6 +24,9 @@ class world {
   std::unordered_map<unsigned int, model::robot> robots_blue_;
   std::unordered_map<unsigned int, model::robot> robots_yellow_;
 
+  /// カメラ台数分の最新のdetectionパケットを保持する
+  std::unordered_map<unsigned int, ssl_protos::vision::Frame> detection_packets_;
+
 public:
   model::field field() const;
   model::ball ball() const;
@@ -33,6 +36,11 @@ public:
   /// @brief                  内部の状態を更新する
   /// @param packet           SSL-Visionのパース済みパケット
   void update(const ssl_protos::vision::Packet& packet);
+
+private:
+  /// @brief                  ボールやロボットの状態を更新する
+  /// @param detection        SSL-Visionのdetectionパケット
+  void update_detection(const ssl_protos::vision::Frame& detection);
 };
 
 } // namespace model
