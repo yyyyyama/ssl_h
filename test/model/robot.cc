@@ -64,4 +64,12 @@ BOOST_AUTO_TEST_CASE(test002) {
   BOOST_TEST(rob2.omega() == 45.0);
 }
 
+BOOST_AUTO_TEST_CASE(test003) {
+  ai_server::model::robot r;
+
+  BOOST_TEST(r.id() == 0);
+  BOOST_TEST(r.x() == 0.0);
+  BOOST_TEST(r.y() == 0.0);
+}
+
 BOOST_AUTO_TEST_SUITE_END()
