@@ -104,13 +104,13 @@ BOOST_AUTO_TEST_CASE(detection) {
     // 検出された黃ロボは2台
     BOOST_TEST(w.robots_yellow().size() == 2);
 
-    // ID5の青ロボが存在
+    // ID5の黃ロボが存在
     BOOST_CHECK_NO_THROW(r = w.robots_yellow().at(5));
     BOOST_TEST(r.id() == 5);
     BOOST_TEST(r.x() == 100);
     BOOST_TEST(r.y() == 200);
 
-    // ID7の青ロボが存在
+    // ID7の黃ロボが存在
     BOOST_CHECK_NO_THROW(r = w.robots_yellow().at(7));
     BOOST_TEST(r.id() == 7);
     BOOST_TEST(r.x() == 300);
@@ -198,13 +198,13 @@ BOOST_AUTO_TEST_CASE(detection) {
     // 検出された黃ロボは3台
     BOOST_TEST(w.robots_yellow().size() == 3);
 
-    // ID5の青ロボが存在, 値の変化なし
+    // ID5の黃ロボが存在, 値の変化なし
     BOOST_CHECK_NO_THROW(r = w.robots_yellow().at(5));
     BOOST_TEST(r.id() == 5);
     BOOST_TEST(r.x() == 100);
     BOOST_TEST(r.y() == 200);
 
-    // ID6の青ロボが存在
+    // ID6の黃ロボが存在
     BOOST_CHECK_NO_THROW(r = w.robots_yellow().at(6));
     BOOST_TEST(r.id() == 6);
     BOOST_TEST(r.x() == 500);
@@ -256,10 +256,10 @@ BOOST_AUTO_TEST_CASE(detection) {
     // 検出された黃ロボは2台
     BOOST_TEST(w.robots_yellow().size() == 2);
 
-    // ID5の青ロボが存在しない
+    // ID5の黃ロボが存在しない
     BOOST_CHECK_THROW(r = w.robots_yellow().at(5), std::out_of_range);
 
-    // ID6の青ロボが存在
+    // ID6の黃ロボが存在
     BOOST_CHECK_NO_THROW(r = w.robots_yellow().at(6));
     BOOST_TEST(r.id() == 6);
     BOOST_TEST(r.x() == 500);
