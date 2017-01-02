@@ -38,7 +38,7 @@ public:
   void update(const ssl_protos::vision::Packet& packet);
 
 private:
-  /// @brief                  ボールやロボットの状態を更新する
+  /// @brief                  detectionパケットを処理し, ボールやロボットの情報を更新する
   /// @param detection        SSL-Visionのdetectionパケット
   void update_detection(const ssl_protos::vision::Frame& detection);
 };

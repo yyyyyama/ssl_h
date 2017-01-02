@@ -13,4 +13,4 @@ static auto confidence_comparator = [](const auto& a, const auto& b) {
 } // namespace model
 } // namespace ai_server
 
-#endif // AI_SERVER_MODEL_WORLD_H
+#endif // AI_SERVER_MODEL_DETAIL_CONFIDENCE_COMPARATOR_H
