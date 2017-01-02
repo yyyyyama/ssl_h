@@ -2,7 +2,9 @@
 namespace ai_server {
 namespace model {
 
-ball::ball(double x, double y, double z) : x_(x), y_(y), z_(z){};
+ball::ball() : x_(0), y_(0), z_(0) {}
+
+ball::ball(double x, double y, double z) : x_(x), y_(y), z_(z) {}
 
 double ball::x() const {
   return x_;
