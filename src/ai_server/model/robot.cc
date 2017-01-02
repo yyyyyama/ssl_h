@@ -3,7 +3,9 @@
 namespace ai_server {
 namespace model {
 
-robot::robot(unsigned int id, double x, double y) : id_(id), x_(x), y_(y){};
+robot::robot() : id_(0), x_(0), y_(0) {}
+
+robot::robot(unsigned int id, double x, double y) : id_(id), x_(x), y_(y) {}
 
 int robot::id() const {
   return id_;
