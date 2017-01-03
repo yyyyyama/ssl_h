@@ -40,7 +40,7 @@ public:
 private:
   /// @brief                  detectionパケットを処理し, ボールやロボットの情報を更新する
   /// @param detection        SSL-Visionのdetectionパケット
-  void update_detection(const ssl_protos::vision::Frame& detection);
+  void process_packet(const ssl_protos::vision::Frame& detection);
 };
 
 } // namespace model

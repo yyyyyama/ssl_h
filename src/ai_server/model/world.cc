@@ -29,11 +29,11 @@ std::unordered_map<unsigned int, model::robot> world::robots_yellow() const {
 
 void world::update(const ssl_protos::vision::Packet& packet) {
   if (packet.has_detection()) {
-    update_detection(packet.detection());
+    process_packet(packet.detection());
   }
 }
 
-void world::update_detection(const ssl_protos::vision::Frame& detection) {
+void world::process_packet(const ssl_protos::vision::Frame& detection) {
   using namespace ssl_protos::vision;
 
   // 取得したIDのdetectionパケットを更新
