@@ -1,3 +1,4 @@
+#include <cmath>
 #include <queue>
 #include <vector>
 
@@ -30,6 +31,10 @@ std::unordered_map<unsigned int, model::robot> world::robots_yellow() const {
 void world::update(const ssl_protos::vision::Packet& packet) {
   if (packet.has_detection()) {
     process_packet(packet.detection());
+  }
+
+  if (packet.has_geometry()) {
+    process_packet(packet.geometry());
   }
 }
 
@@ -96,6 +101,30 @@ void world::process_packet(const ssl_protos::vision::Frame& detection) {
     robots_yellow_[top.robot_id()] = {top.robot_id(), top.x(), top.y()};
     robots_yellow_[top.robot_id()].set_theta(top.orientation());
     ryq.pop();
+  }
+}
+
+void world::process_packet(const ssl_protos::vision::Geometry& geometry) {
+  std::lock_guard<std::mutex> lock(mutex_);
+
+  const auto& f = geometry.field();
+  field_.set_length(f.field_length());
+  field_.set_width(f.field_width());
+  field_.set_goal_width(f.goal_width());
+
+  for (const auto& arc : f.field_arcs()) {
+    if (arc.name() == "CenterCircle") {
+      field_.set_center_radius(arc.radius());
+    } else if (arc.name() == "LeftFieldLeftPenaltyArc") {
+      field_.set_penalty_radius(arc.radius());
+    }
+  }
+
+  for (const auto& line : f.field_lines()) {
+    if (line.name() == "LeftPenaltyStretch") {
+      field_.set_penalty_line_length(
+          std::abs(std::hypotf(line.p2().x() - line.p1().x(), line.p2().y() - line.p1().y())));
+    }
   }
 }
 

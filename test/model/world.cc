@@ -274,4 +274,92 @@ BOOST_AUTO_TEST_CASE(detection) {
   }
 }
 
+BOOST_AUTO_TEST_CASE(geometry) {
+  ai_server::model::world w{};
+
+  {
+    ssl_protos::vision::Packet p;
+
+    auto mf = p.mutable_geometry()->mutable_field();
+    mf->set_field_length(9000);
+    mf->set_field_width(6000);
+    mf->set_goal_width(1000);
+
+    auto cca = mf->add_field_arcs();
+    cca->set_name("CenterCircle");
+    cca->set_radius(200);
+
+    auto lpa = mf->add_field_arcs();
+    lpa->set_name("LeftFieldLeftPenaltyArc");
+    lpa->set_radius(500);
+
+    auto lpl = mf->add_field_lines();
+    lpl->set_name("LeftPenaltyStretch");
+    auto mp1 = lpl->mutable_p1();
+    mp1->set_x(-4000);
+    mp1->set_y(-150);
+    auto mp2 = lpl->mutable_p2();
+    mp2->set_x(-4000);
+    mp2->set_y(150);
+
+    w.update(p);
+  }
+
+  {
+    const auto f = w.field();
+    BOOST_TEST(f.length() == 9000);
+    BOOST_TEST(f.width() == 6000);
+    BOOST_TEST(f.goal_width() == 1000);
+    BOOST_TEST(f.center_radius() == 200);
+    BOOST_TEST(f.penalty_radius() == 500);
+    BOOST_TEST(f.penalty_line_length() == 300);
+
+    // ボールやロボットは検出されていない
+    const auto b = w.ball();
+    BOOST_TEST(b.x() == 0);
+    BOOST_TEST(b.y() == 0);
+    BOOST_TEST(b.z() == 0);
+    BOOST_TEST(w.robots_blue().size() == 0);
+    BOOST_TEST(w.robots_yellow().size() == 0);
+  }
+
+  {
+    ssl_protos::vision::Packet p;
+
+    auto mf = p.mutable_geometry()->mutable_field();
+    mf->set_field_length(6000);
+    mf->set_field_width(4500);
+    mf->set_goal_width(800);
+
+    auto cca = mf->add_field_arcs();
+    cca->set_name("CenterCircle");
+    cca->set_radius(100);
+
+    auto lpa = mf->add_field_arcs();
+    lpa->set_name("LeftFieldLeftPenaltyArc");
+    lpa->set_radius(250);
+
+    auto lpl = mf->add_field_lines();
+    lpl->set_name("LeftPenaltyStretch");
+    auto mp1 = lpl->mutable_p1();
+    mp1->set_x(-2750);
+    mp1->set_y(-250);
+    auto mp2 = lpl->mutable_p2();
+    mp2->set_x(-2750);
+    mp2->set_y(250);
+
+    w.update(p);
+  }
+
+  {
+    const auto f = w.field();
+    BOOST_TEST(f.length() == 6000);
+    BOOST_TEST(f.width() == 4500);
+    BOOST_TEST(f.goal_width() == 800);
+    BOOST_TEST(f.center_radius() == 100);
+    BOOST_TEST(f.penalty_radius() == 250);
+    BOOST_TEST(f.penalty_line_length() == 500);
+  }
+}
+
 BOOST_AUTO_TEST_SUITE_END()

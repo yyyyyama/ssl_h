@@ -41,6 +41,10 @@ private:
   /// @brief                  detectionパケットを処理し, ボールやロボットの情報を更新する
   /// @param detection        SSL-Visionのdetectionパケット
   void process_packet(const ssl_protos::vision::Frame& detection);
+
+  /// @brief                  geometryパケットを処理し, フィールドの情報を更新する
+  /// @param geometry         SSL-Visionのgeometryパケット
+  void process_packet(const ssl_protos::vision::Geometry& geometry);
 };
 
 } // namespace model
