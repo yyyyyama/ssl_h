@@ -53,25 +53,29 @@ BOOST_AUTO_TEST_CASE(detection) {
     auto rb1 = md->add_robots_blue();
     rb1->set_robot_id(1);
     rb1->set_x(10);
-    rb1->set_y(20);
+    rb1->set_y(11);
+    rb1->set_orientation(12);
     rb1->set_confidence(94.0);
 
     auto rb3 = md->add_robots_blue();
     rb3->set_robot_id(3);
     rb3->set_x(30);
-    rb3->set_y(40);
+    rb3->set_y(31);
+    rb3->set_orientation(32);
     rb3->set_confidence(95.0);
 
     auto ry5 = md->add_robots_yellow();
     ry5->set_robot_id(5);
-    ry5->set_x(100);
-    ry5->set_y(200);
+    ry5->set_x(500);
+    ry5->set_y(501);
+    ry5->set_orientation(502);
     ry5->set_confidence(96.0);
 
     auto ry7 = md->add_robots_yellow();
     ry7->set_robot_id(7);
-    ry7->set_x(300);
-    ry7->set_y(400);
+    ry7->set_x(700);
+    ry7->set_y(701);
+    ry7->set_orientation(702);
     ry7->set_confidence(97.0);
 
     w.update(p);
@@ -93,13 +97,15 @@ BOOST_AUTO_TEST_CASE(detection) {
     BOOST_CHECK_NO_THROW(r = w.robots_blue().at(1));
     BOOST_TEST(r.id() == 1);
     BOOST_TEST(r.x() == 10);
-    BOOST_TEST(r.y() == 20);
+    BOOST_TEST(r.y() == 11);
+    BOOST_TEST(r.theta() == 12);
 
     // ID3の青ロボが存在
     BOOST_CHECK_NO_THROW(r = w.robots_blue().at(3));
     BOOST_TEST(r.id() == 3);
     BOOST_TEST(r.x() == 30);
-    BOOST_TEST(r.y() == 40);
+    BOOST_TEST(r.y() == 31);
+    BOOST_TEST(r.theta() == 32);
 
     // 検出された黃ロボは2台
     BOOST_TEST(w.robots_yellow().size() == 2);
@@ -107,14 +113,16 @@ BOOST_AUTO_TEST_CASE(detection) {
     // ID5の黃ロボが存在
     BOOST_CHECK_NO_THROW(r = w.robots_yellow().at(5));
     BOOST_TEST(r.id() == 5);
-    BOOST_TEST(r.x() == 100);
-    BOOST_TEST(r.y() == 200);
+    BOOST_TEST(r.x() == 500);
+    BOOST_TEST(r.y() == 501);
+    BOOST_TEST(r.theta() == 502);
 
     // ID7の黃ロボが存在
     BOOST_CHECK_NO_THROW(r = w.robots_yellow().at(7));
     BOOST_TEST(r.id() == 7);
-    BOOST_TEST(r.x() == 300);
-    BOOST_TEST(r.y() == 400);
+    BOOST_TEST(r.x() == 700);
+    BOOST_TEST(r.y() == 701);
+    BOOST_TEST(r.theta() == 702);
 
     // fieldは変更されていない (初期値のまま)
     const auto f = w.field();
@@ -140,26 +148,30 @@ BOOST_AUTO_TEST_CASE(detection) {
 
     auto rb1 = md->add_robots_blue();
     rb1->set_robot_id(1);
-    rb1->set_x(50);
-    rb1->set_y(60);
+    rb1->set_x(13);
+    rb1->set_y(14);
+    rb1->set_orientation(15);
     rb1->set_confidence(99.0);
 
     auto rb2 = md->add_robots_blue();
     rb2->set_robot_id(2);
-    rb2->set_x(70);
-    rb2->set_y(80);
+    rb2->set_x(20);
+    rb2->set_y(21);
+    rb2->set_orientation(22);
     rb2->set_confidence(98.0);
 
     auto ry6 = md->add_robots_yellow();
     ry6->set_robot_id(6);
-    ry6->set_x(500);
-    ry6->set_y(600);
+    ry6->set_x(600);
+    ry6->set_y(601);
+    ry6->set_orientation(602);
     ry6->set_confidence(97.0);
 
     auto ry7 = md->add_robots_yellow();
     ry7->set_robot_id(7);
-    ry7->set_x(700);
-    ry7->set_y(800);
+    ry7->set_x(703);
+    ry7->set_y(704);
+    ry7->set_orientation(705);
     ry7->set_confidence(96.0);
 
     w.update(p);
@@ -180,20 +192,23 @@ BOOST_AUTO_TEST_CASE(detection) {
     // cam1で検出されたID1の青ロボ(50, 60)のほうがconfidenceが高い
     BOOST_CHECK_NO_THROW(r = w.robots_blue().at(1));
     BOOST_TEST(r.id() == 1);
-    BOOST_TEST(r.x() == 50);
-    BOOST_TEST(r.y() == 60);
+    BOOST_TEST(r.x() == 13);
+    BOOST_TEST(r.y() == 14);
+    BOOST_TEST(r.theta() == 15);
 
     // ID2の青ロボが存在
     BOOST_CHECK_NO_THROW(r = w.robots_blue().at(2));
     BOOST_TEST(r.id() == 2);
-    BOOST_TEST(r.x() == 70);
-    BOOST_TEST(r.y() == 80);
+    BOOST_TEST(r.x() == 20);
+    BOOST_TEST(r.y() == 21);
+    BOOST_TEST(r.theta() == 22);
 
     // ID3の青ロボが存在, 値の変化なし
     BOOST_CHECK_NO_THROW(r = w.robots_blue().at(3));
     BOOST_TEST(r.id() == 3);
     BOOST_TEST(r.x() == 30);
-    BOOST_TEST(r.y() == 40);
+    BOOST_TEST(r.y() == 31);
+    BOOST_TEST(r.theta() == 32);
 
     // 検出された黃ロボは3台
     BOOST_TEST(w.robots_yellow().size() == 3);
@@ -201,20 +216,23 @@ BOOST_AUTO_TEST_CASE(detection) {
     // ID5の黃ロボが存在, 値の変化なし
     BOOST_CHECK_NO_THROW(r = w.robots_yellow().at(5));
     BOOST_TEST(r.id() == 5);
-    BOOST_TEST(r.x() == 100);
-    BOOST_TEST(r.y() == 200);
+    BOOST_TEST(r.x() == 500);
+    BOOST_TEST(r.y() == 501);
+    BOOST_TEST(r.theta() == 502);
 
     // ID6の黃ロボが存在
     BOOST_CHECK_NO_THROW(r = w.robots_yellow().at(6));
     BOOST_TEST(r.id() == 6);
-    BOOST_TEST(r.x() == 500);
-    BOOST_TEST(r.y() == 600);
+    BOOST_TEST(r.x() == 600);
+    BOOST_TEST(r.y() == 601);
+    BOOST_TEST(r.theta() == 602);
 
     // cam0で検出されたID7の黃ロボのほうがconfidenceが高いので値の変化なし
     BOOST_CHECK_NO_THROW(r = w.robots_yellow().at(7));
     BOOST_TEST(r.id() == 7);
-    BOOST_TEST(r.x() == 300);
-    BOOST_TEST(r.y() == 400);
+    BOOST_TEST(r.x() == 700);
+    BOOST_TEST(r.y() == 701);
+    BOOST_TEST(r.theta() == 702);
   }
 
   {
@@ -241,14 +259,16 @@ BOOST_AUTO_TEST_CASE(detection) {
     // cam1で検出されたID1の青ロボが存在
     BOOST_CHECK_NO_THROW(r = w.robots_blue().at(1));
     BOOST_TEST(r.id() == 1);
-    BOOST_TEST(r.x() == 50);
-    BOOST_TEST(r.y() == 60);
+    BOOST_TEST(r.x() == 13);
+    BOOST_TEST(r.y() == 14);
+    BOOST_TEST(r.theta() == 15);
 
     // cam1で検出されたID2の青ロボが存在
     BOOST_CHECK_NO_THROW(r = w.robots_blue().at(2));
     BOOST_TEST(r.id() == 2);
-    BOOST_TEST(r.x() == 70);
-    BOOST_TEST(r.y() == 80);
+    BOOST_TEST(r.x() == 20);
+    BOOST_TEST(r.y() == 21);
+    BOOST_TEST(r.theta() == 22);
 
     // ID3の青ロボが存在しない (ID3の要素を参照するとstd::out_of_range例外が飛ぶ)
     BOOST_CHECK_THROW(r = w.robots_blue().at(3), std::out_of_range);
@@ -262,15 +282,17 @@ BOOST_AUTO_TEST_CASE(detection) {
     // ID6の黃ロボが存在
     BOOST_CHECK_NO_THROW(r = w.robots_yellow().at(6));
     BOOST_TEST(r.id() == 6);
-    BOOST_TEST(r.x() == 500);
-    BOOST_TEST(r.y() == 600);
+    BOOST_TEST(r.x() == 600);
+    BOOST_TEST(r.y() == 601);
+    BOOST_TEST(r.theta() == 602);
 
     // cam0で検出されていたID7の黃ロボが消えたので,
     // cam1で検出された黄ロボ(700, 800)の値が出てくる
     BOOST_CHECK_NO_THROW(r = w.robots_yellow().at(7));
     BOOST_TEST(r.id() == 7);
-    BOOST_TEST(r.x() == 700);
-    BOOST_TEST(r.y() == 800);
+    BOOST_TEST(r.x() == 703);
+    BOOST_TEST(r.y() == 704);
+    BOOST_TEST(r.theta() == 705);
   }
 }
 
