@@ -26,6 +26,15 @@ public:
   /// @brief                  データビット(1バイトのビット数)を取得する
   unsigned int character_size();
 
+  /// @brief                  フロー制御のタイプを取得する
+  flow_control_t flow_control();
+
+  /// @brief                  パリティビットを取得する
+  parity_t parity();
+
+  /// @brief                  ストップビットを取得する
+  stop_bits_t stop_bits();
+
   /// @brief                  ボーレートを設定する
   void set_baud_rate(unsigned int value);
 
@@ -33,10 +42,6 @@ public:
   void set_character_size(unsigned int value);
 
   // TODO:
-  // boost::asio::serial_port::flow_control::type flow_control();
-  // boost::asio::serial_port::parity::type parity();
-  // boost::asio::serial_port::stop_bits::type stop_bits();
-  //
   // void set_flow_control();
   // void set_parity();
   // void set_stop_bits();
