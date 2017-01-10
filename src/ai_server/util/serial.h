@@ -41,10 +41,14 @@ public:
   /// @brief                  データビット(1バイトのビット数)を設定する
   void set_character_size(unsigned int value);
 
-  // TODO:
-  // void set_flow_control();
-  // void set_parity();
-  // void set_stop_bits();
+  /// @brief                  フロー制御のタイプを設定する
+  void set_flow_control(flow_control_t value);
+
+  /// @brief                  パリティビットを設定する
+  void set_parity(parity_t value);
+
+  /// @brief                  ストップビットを設定する
+  void set_stop_bits(stop_bits_t value);
 
   /// @brief                  buffer を送信する
   /// @param buffer           送信するデータ

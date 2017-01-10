@@ -46,5 +46,17 @@ void serial::set_character_size(unsigned int value) {
   serial_.set_option(boost::asio::serial_port::character_size(value));
 }
 
+void serial::set_flow_control(serial::flow_control_t value) {
+  serial_.set_option(boost::asio::serial_port::flow_control(value));
+}
+
+void serial::set_parity(serial::parity_t value) {
+  serial_.set_option(boost::asio::serial_port::parity(value));
+}
+
+void serial::set_stop_bits(serial::stop_bits_t value) {
+  serial_.set_option(boost::asio::serial_port::stop_bits(value));
+}
+
 } // namespace util
 } // namespace ai_server
