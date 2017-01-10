@@ -13,8 +13,8 @@ namespace util {
 class serial {
 public:
   using flow_control_t = boost::asio::serial_port::flow_control::type;
-  using parity_t = boost::asio::serial_port::parity::type;
-  using stop_bits_t = boost::asio::serial_port::stop_bits::type;
+  using parity_t       = boost::asio::serial_port::parity::type;
+  using stop_bits_t    = boost::asio::serial_port::stop_bits::type;
 
   /// @brief                  コンストラクタ
   /// @param device           利用するシリアルポートのデバイス名
