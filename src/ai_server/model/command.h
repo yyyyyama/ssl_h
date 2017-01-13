@@ -1,7 +1,7 @@
 #ifndef AI_SERVER_MODEL_COMMAND_H
 #define AI_SERVER_MODEL_COMMAND_H
 #include <tuple>
-#include "boost/variant.hpp"
+#include <boost/variant.hpp>
 
 namespace ai_server {
 namespace model {

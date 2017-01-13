@@ -5,7 +5,7 @@ namespace model {
 
 command::command(unsigned int id)
     : kick_flag_(command::kick_type_t::none, 0.0),
-      setpoint_(command::position_t{0.0, 0.0, 0.0}) {
+      setpoint_(command::velocity_t{0.0, 0.0, 0.0}) {
   id_      = id;
   dribble_ = 0;
 }
