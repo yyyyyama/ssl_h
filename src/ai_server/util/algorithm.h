@@ -13,7 +13,7 @@ namespace util {
 /// @param f 適用させたい関数
 template <class Container, class Function,
           // Container がメンバ関数 front() を持っていたらこっちを呼び出す
-          std::enable_if_t<detail::has_front<Container>::value>* = nullptr>
+          std::enable_if_t<detail::has_front_v<Container>>* = nullptr>
 inline void pop_each(Container&& c, Function f) {
   while (!c.empty()) {
     decltype(auto) front = c.front();
@@ -27,7 +27,7 @@ inline void pop_each(Container&& c, Function f) {
 /// @param f 適用させたい関数
 template <class Container, class Function,
           // Container がメンバ関数 top() を持っていたらこっちを呼び出す
-          std::enable_if_t<detail::has_top<Container>::value>* = nullptr>
+          std::enable_if_t<detail::has_top_v<Container>>* = nullptr>
 inline void pop_each(Container&& c, Function f) {
   while (!c.empty()) {
     decltype(auto) top = c.top();

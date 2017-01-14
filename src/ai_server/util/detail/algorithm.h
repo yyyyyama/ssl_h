@@ -21,6 +21,9 @@ public:
   static constexpr bool value = decltype(check<T>(std::declval<T>()))::value;
 };
 
+template <class T>
+static constexpr bool has_front_v = has_front<T>::value;
+
 /// @class   has_top
 /// @brief   T がメンバ関数 top() を持っているか調べるメタ関数
 template <class T>
@@ -34,6 +37,9 @@ class has_top {
 public:
   static constexpr bool value = decltype(check<T>(std::declval<T>()))::value;
 };
+
+template <class T>
+static constexpr bool has_top_v = has_top<T>::value;
 
 } // namespace detail
 } // namespace util
