@@ -1,5 +1,5 @@
-#ifndef AI_SERVER_UTIL_DEATIL_ALGORITHM_H
-#define AI_SERVER_UTIL_DEATIL_ALGORITHM_H
+#ifndef AI_SERVER_UTIL_DETAIL_ALGORITHM_H
+#define AI_SERVER_UTIL_DETAIL_ALGORITHM_H
 
 #include <type_traits>
 
@@ -35,4 +35,4 @@ class has_top : public decltype(has_top_impl::check<T>(std::declval<T>())) {};
 } // namespace util
 } // namespace ai_server
 
-#endif // AI_SERVER_UTIL_DEATIL_ALGORITHM_H
+#endif // AI_SERVER_UTIL_DETAIL_ALGORITHM_H
