@@ -7,29 +7,33 @@ namespace ai_server {
 namespace util {
 namespace detail {
 
-struct has_front_impl {
-  template <class T>
-  static auto check(T&& x) -> decltype(x.front(), std::true_type{});
-  template <class T>
-  static auto check(...) -> std::false_type;
-};
-
 /// @class   has_front
 /// @brief   T がメンバ関数 front() を持っているか調べるメタ関数
 template <class T>
-class has_front : public decltype(has_front_impl::check<T>(std::declval<T>())) {};
+class has_front {
+  template <class U>
+  static auto check(U&& x) -> decltype(x.front(), std::true_type{});
 
-struct has_top_impl {
-  template <class T>
-  static auto check(T&& x) -> decltype(x.top(), std::true_type{});
-  template <class T>
+  template <class U>
   static auto check(...) -> std::false_type;
+
+public:
+  static constexpr bool value = decltype(check<T>(std::declval<T>()))::value;
 };
 
 /// @class   has_top
 /// @brief   T がメンバ関数 top() を持っているか調べるメタ関数
 template <class T>
-class has_top : public decltype(has_top_impl::check<T>(std::declval<T>())) {};
+class has_top {
+  template <class U>
+  static auto check(U&& x) -> decltype(x.top(), std::true_type{});
+
+  template <class U>
+  static auto check(...) -> std::false_type;
+
+public:
+  static constexpr bool value = decltype(check<T>(std::declval<T>()))::value;
+};
 
 } // namespace detail
 } // namespace util
