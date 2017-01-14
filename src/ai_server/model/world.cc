@@ -2,6 +2,7 @@
 #include <queue>
 #include <vector>
 
+#include "ai_server/util/algorithm.h"
 #include "world.h"
 #include "detail/confidence_comparator.h"
 
@@ -73,35 +74,26 @@ void world::process_packet(const ssl_protos::vision::Frame& detection) {
   // IDが重複している場合はconfidenceの高いもので上書きされる
   std::lock_guard<std::mutex> lock(mutex_);
 
+  using ai_server::util::pop_each;
+
   // TODO:
   // 現在の実装は, フィールドにボールが1つしかないと仮定し,
   // 検出されたconfidenceの最も高いものを選んでいる.
   // 今後, フィールドにボールが複数存在する場合の処理を検討する必要がある.
   // https://github.com/kiksworks/ai-server/projects/1#card-1115932
-  while (!bq.empty()) {
-    const auto& top = bq.top();
-
-    ball_ = {top.x(), top.y(), top.z()};
-    bq.pop();
-  }
+  pop_each(bq, [this](auto&& top) { ball_ = {top.x(), top.y(), top.z()}; });
 
   robots_blue_.clear();
-  while (!rbq.empty()) {
-    const auto& top = rbq.top();
-
+  pop_each(rbq, [this](auto&& top) {
     robots_blue_[top.robot_id()] = {top.robot_id(), top.x(), top.y()};
     robots_blue_[top.robot_id()].set_theta(top.orientation());
-    rbq.pop();
-  }
+  });
 
   robots_yellow_.clear();
-  while (!ryq.empty()) {
-    const auto& top = ryq.top();
-
+  pop_each(ryq, [this](auto&& top) {
     robots_yellow_[top.robot_id()] = {top.robot_id(), top.x(), top.y()};
     robots_yellow_[top.robot_id()].set_theta(top.orientation());
-    ryq.pop();
-  }
+  });
 }
 
 void world::process_packet(const ssl_protos::vision::Geometry& geometry) {
