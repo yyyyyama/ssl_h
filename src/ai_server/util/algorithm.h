@@ -11,9 +11,10 @@ namespace util {
 /// @brief   キューやスタックの全ての要素に f を適用する
 /// @param c キューやスタックのコンテナ
 /// @param f 適用させたい関数
-template <class Container, class Function,
-          // Container がメンバ関数 front() を持っていたらこっちを呼び出す
-          std::enable_if_t<detail::has_front_v<Container>>* = nullptr>
+template <
+    class Container, class Function,
+    // Container がメンバ関数 front() と pop() を持っていたらこっちを呼び出す
+    std::enable_if_t<detail::has_front_v<Container> && detail::has_pop_v<Container>>* = nullptr>
 inline void pop_each(Container&& c, Function f) {
   while (!c.empty()) {
     decltype(auto) front = c.front();
@@ -25,9 +26,10 @@ inline void pop_each(Container&& c, Function f) {
 /// @brief   キューやスタックの全ての要素に f を適用する
 /// @param c キューやスタックのコンテナ
 /// @param f 適用させたい関数
-template <class Container, class Function,
-          // Container がメンバ関数 top() を持っていたらこっちを呼び出す
-          std::enable_if_t<detail::has_top_v<Container>>* = nullptr>
+template <
+    class Container, class Function,
+    // Container がメンバ関数 top() と pop() を持っていたらこっちを呼び出す
+    std::enable_if_t<detail::has_top_v<Container> && detail::has_pop_v<Container>>* = nullptr>
 inline void pop_each(Container&& c, Function f) {
   while (!c.empty()) {
     decltype(auto) top = c.top();
