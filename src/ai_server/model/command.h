@@ -8,7 +8,7 @@ namespace model {
 
 class command {
 public:
-  enum class kick_type_t { none, line, backspin };
+  enum class kick_type_t { none, line, chip, backspin };
 
   struct position_t {
     double x;
