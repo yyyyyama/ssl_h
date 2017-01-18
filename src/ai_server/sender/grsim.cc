@@ -4,7 +4,9 @@ namespace ai_server {
 namespace sender {
 
 grsim::grsim(boost::asio::io_service& io_service, const std::string& grsim_addr, short port)
-    : udp_sender_(io_service, grsim_addr, port) {}
+    : udp_sender_(io_service, grsim_addr, port) {
+  GOOGLE_PROTOBUF_VERIFY_VERSION;
+}
 
 void grsim::send_command(const model::command& command) {
   ssl_protos::grsim::Packet packet{};
