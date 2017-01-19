@@ -14,8 +14,6 @@ private:
   double theta_;
   double omega_;
 
-  robot(int, double);
-
 public:
   robot();
   robot(unsigned int id, double x = 0.0, double y = 0.0);
