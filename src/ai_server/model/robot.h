@@ -6,7 +6,7 @@ namespace model {
 
 class robot {
 private:
-  int id_;
+  unsigned int id_;
   double x_;
   double y_;
   double vx_;
@@ -18,7 +18,7 @@ public:
   robot();
   robot(unsigned int id, double x = 0.0, double y = 0.0);
 
-  int id() const;
+  unsigned int id() const;
   double x() const;
   double y() const;
   double vx() const;

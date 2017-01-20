@@ -10,7 +10,7 @@ public:
   class team_info {
     std::string name_;
     int score_;
-    int goalie_;
+    unsigned int goalie_;
     int red_cards_;
     int yellow_cards_;
     int yellow_card_times_;
@@ -21,14 +21,14 @@ public:
     team_info(std::string name);
     std::string name() const;
     int score() const;
-    int goalie() const;
+    unsigned int goalie() const;
     int red_cards() const;
     int yellow_cards() const;
     int yellow_card_times() const;
     int timeouts() const;
     int timeout_time() const;
     void set_score(int value);
-    void set_goalie(int value);
+    void set_goalie(unsigned int value);
     void set_red_cards(int value);
     void set_yellow_cards(int value);
     void set_yellow_card_times(int value);
