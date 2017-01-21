@@ -25,13 +25,21 @@ void grsim::send_command(const model::command& command) {
 
   grcommand->set_id(command.id());
 
-  const auto& kick_flag = std::get<0>(command.kick_flag());
-  if (kick_flag == model::command::kick_type_t::line)
-    grcommand->set_kickspeedx(std::get<1>(command.kick_flag()));
+  const auto& kick_flag  = std::get<0>(command.kick_flag());
+  const auto& kick_power = std::get<1>(command.kick_flag());
 
-  if (kick_flag == model::command::kick_type_t::chip ||
-      kick_flag == model::command::kick_type_t::backspin)
-    grcommand->set_kickspeedz(std::get<1>(command.kick_flag()));
+  using kick_type_t = model::command::kick_type_t;
+
+  if (kick_flag == kick_type_t::line) {
+    grcommand->set_kickspeedx(kick_power);
+    grcommand->set_kickspeedz(0);
+  } else if (kick_flag == kick_type_t::chip || kick_flag == kick_type_t::backspin) {
+    grcommand->set_kickspeedx(0);
+    grcommand->set_kickspeedz(kick_power);
+  } else {
+    grcommand->set_kickspeedx(0);
+    grcommand->set_kickspeedz(0);
+  }
 
   const auto& setpoint = command.setpoint();
   if (const auto velocity = boost::get<model::command::velocity_t>(&setpoint)) {
