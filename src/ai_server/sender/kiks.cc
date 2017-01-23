@@ -1,4 +1,5 @@
 #include <boost/math/constants/constants.hpp>
+#include <cmath>
 
 #include "ai_server/sender/kiks.h"
 #include "ai_server/util/math.h"
@@ -54,7 +55,7 @@ kiks::data_t kiks::to_data_t(const model::command& command) {
     data[6]         = (omega_calc & 0x00ff);
   }
   // dribble
-  data[7] = static_cast<uint8_t>(command.dribble());
+  data[7] = static_cast<uint8_t>(std::abs(command.dribble()));
   // kick_power
   data[8] = static_cast<uint8_t>(std::get<1>(command.kick_flag()));
   return data;
