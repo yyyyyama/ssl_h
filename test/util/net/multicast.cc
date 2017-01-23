@@ -53,6 +53,25 @@ BOOST_AUTO_TEST_CASE(send_and_receive) {
     BOOST_TEST(s2 == s1);
   }
 
+  {
+    receiver_wrapper wrapper{&receiver::on_receive, r};
+
+    // receiverのバッファサイズ分(4096byte)の文字列を送信
+    const auto s1 = std::string(receiver::buffer_size / 4, 'a') +
+                    std::string(receiver::buffer_size / 4, 'b') +
+                    std::string(receiver::buffer_size / 4, 'c') +
+                    std::string(receiver::buffer_size / 4, 'd');
+    s.send(boost::asio::buffer(s1));
+
+    // 受信したデータを取得
+    const auto result = wrapper.result();
+
+    // 受信したデータが送信したものと一致するか
+    BOOST_TEST(std::get<1>(result) == s1.length());
+    const auto s2 = std::string(std::cbegin(std::get<0>(result)), std::get<1>(result));
+    BOOST_TEST(s2 == s1);
+  }
+
   // 受信の終了
   io_service.stop();
   t.join();
