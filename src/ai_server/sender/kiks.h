@@ -3,9 +3,6 @@
 
 #include <boost/asio.hpp>
 
-#define _USE_MATH_DEFINES
-#include <cmath>
-
 #include "ai_server/model/command.h"
 #include "ai_server/util/serial.h"
 #include "ai_server/sender/base.h"
@@ -23,7 +20,7 @@ public:
 #else
 private:
 #endif
-  kiks::data_t change_command(const model::command& command);
+  kiks::data_t to_data_t(const model::command& command);
 
 private:
   util::serial serial_;
