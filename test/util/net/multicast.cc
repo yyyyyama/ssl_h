@@ -2,11 +2,12 @@
 #define BOOST_TEST_MODULE multicast_test
 
 #include <chrono>
-#include <future>
 #include <string>
 #include <thread>
 #include <boost/asio.hpp>
 #include <boost/test/unit_test.hpp>
+
+#include "../slot_testing_helper.h"
 
 #include "ai_server/util/net/multicast/receiver.h"
 #include "ai_server/util/net/multicast/sender.h"
@@ -14,6 +15,8 @@
 using namespace std::chrono_literals;
 using namespace std::string_literals;
 using namespace ai_server::util::net::multicast;
+
+using receiver_wrapper = slot_testing_helper<receiver::buffer_t, std::size_t>;
 
 BOOST_AUTO_TEST_SUITE(multicast)
 
@@ -23,10 +26,6 @@ BOOST_AUTO_TEST_CASE(send_and_receive) {
   // 受信クラスの初期化
   // listen_addr = 0.0.0.0, multicast_addr = 224.5.23.2, port = 10006
   receiver r(io_service, "0.0.0.0", "224.5.23.2", 10006);
-
-  // 何か受信したらpromiseに値をセットする
-  std::promise<std::string> p;
-  r.on_receive([&p](const auto& buf, auto size) { p.set_value({buf.cbegin(), size}); });
 
   // 送信クラスの初期化
   // multicast_addr = 224.5.23.2, port = 10006
@@ -38,12 +37,21 @@ BOOST_AUTO_TEST_CASE(send_and_receive) {
   // 念の為少し待つ
   std::this_thread::sleep_for(50ms);
 
-  // "Hello!" を送信
-  s.send(boost::asio::buffer("Hello!"s));
+  {
+    receiver_wrapper wrapper{&receiver::on_receive, r};
 
-  auto f = p.get_future();
-  // 受信されるのを待ち, 結果が "Hello!" なのをチェックする
-  BOOST_TEST(f.get() == "Hello!"s);
+    // std::string("Hello!") を送信
+    const auto s1 = "Hello!"s;
+    s.send(boost::asio::buffer(s1));
+
+    // 受信したデータを取得
+    const auto result = wrapper.result();
+
+    // 受信したデータが送信したものと一致するか
+    BOOST_TEST(std::get<1>(result) == s1.length());
+    const auto s2 = std::string(std::cbegin(std::get<0>(result)), std::get<1>(result));
+    BOOST_TEST(s2 == s1);
+  }
 
   // 受信の終了
   io_service.stop();
