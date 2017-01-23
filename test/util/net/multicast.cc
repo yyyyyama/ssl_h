@@ -11,6 +11,7 @@
 #include "ai_server/util/net/multicast/receiver.h"
 #include "ai_server/util/net/multicast/sender.h"
 
+using namespace std::chrono_literals;
 using namespace std::string_literals;
 using namespace ai_server::util::net::multicast;
 
@@ -35,7 +36,7 @@ BOOST_AUTO_TEST_CASE(send_and_receive) {
   std::thread t([&] { io_service.run(); });
 
   // 念の為少し待つ
-  std::this_thread::sleep_for(std::chrono::milliseconds(250));
+  std::this_thread::sleep_for(50ms);
 
   // "Hello!" を送信
   s.send(boost::asio::buffer("Hello!"s));
