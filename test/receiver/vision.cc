@@ -20,7 +20,7 @@ using namespace ai_server::util::net::multicast;
 
 BOOST_AUTO_TEST_SUITE(vision_receiver)
 
-BOOST_AUTO_TEST_CASE(send_and_receive) {
+BOOST_AUTO_TEST_CASE(send_and_receive, *boost::unit_test::timeout(15)) {
   // ダミーパケットの作成
   ssl_protos::vision::Frame dummy_frame;
   dummy_frame.set_frame_number(1);
@@ -76,7 +76,7 @@ BOOST_AUTO_TEST_CASE(send_and_receive) {
   t.join();
 }
 
-BOOST_AUTO_TEST_CASE(non_protobuf_data) {
+BOOST_AUTO_TEST_CASE(non_protobuf_data, *boost::unit_test::timeout(15)) {
   boost::asio::io_service io_service;
 
   // SSL-Vision受信クラスの初期化
