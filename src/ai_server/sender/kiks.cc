@@ -46,7 +46,7 @@ kiks::data_t kiks::to_data_t(const model::command& command) {
     data[1]  = (vec & 0xff00) >> 8;
     data[2]  = (vec & 0x00ff);
     // dir
-    auto dir = wrap_to_2pi(atan2(velocity->vy, velocity->vx));
+    auto dir = ai_server::util::wrap_to_2pi(atan2(velocity->vy, velocity->vx));
     data[3]  = (static_cast<uint16_t>((dir / two_pi<double>()) * 0xffff) & 0xff00) >> 8;
     data[4]  = (static_cast<uint16_t>((dir / two_pi<double>()) * 0xffff) & 0x00ff);
     // mrad/s

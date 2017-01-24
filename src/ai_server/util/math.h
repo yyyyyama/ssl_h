@@ -4,8 +4,9 @@
 #include <boost/math/constants/constants.hpp>
 #include <cmath>
 
+namespace ai_server {
+namespace util {
 template <class T>
-
 T wrap_to_2pi(T r) {
   using boost::math::constants::two_pi;
 
@@ -16,5 +17,6 @@ T wrap_to_2pi(T r) {
   }
   return wrapped;
 }
-
+}
+}
 #endif
