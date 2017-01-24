@@ -76,4 +76,37 @@ BOOST_AUTO_TEST_CASE(send_and_receive) {
   t.join();
 }
 
+BOOST_AUTO_TEST_CASE(non_protobuf_data) {
+  boost::asio::io_service io_service;
+
+  // SSL-Vision受信クラスの初期化
+  // listen_addr = 0.0.0.0, multicast_addr = 224.5.23.4, port = 10010
+  vision v(io_service, "0.0.0.0", "224.5.23.4", 10010);
+
+  // 送信クラスの初期化
+  // multicast_addr = 224.5.23.4, port = 10010
+  sender s(io_service, "224.5.23.4", 10010);
+
+  // 受信を開始する
+  std::thread t([&] { io_service.run(); });
+
+  // 念の為少し待つ
+  std::this_thread::sleep_for(50ms);
+
+  {
+    slot_testing_helper<> wrapper{&vision::on_error, v};
+
+    // protobufじゃないデータを送信
+    s.send(boost::asio::buffer("non protobuf data"s));
+
+    // on_errorに設定したハンドラが呼ばれるまで待つ
+    static_cast<void>(wrapper.result());
+    BOOST_TEST(true);
+  }
+
+  // 受信の終了
+  io_service.stop();
+  t.join();
+}
+
 BOOST_AUTO_TEST_SUITE_END()
