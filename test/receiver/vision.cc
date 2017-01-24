@@ -13,6 +13,7 @@
 #include "ai_server/receiver/vision.h"
 #include "ai_server/util/net/multicast/sender.h"
 
+using namespace std::chrono_literals;
 using namespace std::string_literals;
 using namespace ai_server::receiver;
 using namespace ai_server::util::net::multicast;
@@ -45,7 +46,7 @@ BOOST_AUTO_TEST_CASE(send_and_receive) {
   std::thread t([&] { io_service.run(); });
 
   // 念の為少し待つ
-  std::this_thread::sleep_for(std::chrono::milliseconds(250));
+  std::this_thread::sleep_for(50ms);
 
   {
     slot_testing_helper<ssl_protos::vision::Packet> wrapper{&vision::on_receive, v};
