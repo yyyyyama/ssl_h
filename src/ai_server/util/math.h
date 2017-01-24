@@ -1,3 +1,6 @@
+#ifndef AI_SERVER_UTIL_MATH_H
+#define AI_SERVER_UTIL_MATH_H
+
 #include <boost/math/constants/constants.hpp>
 #include <cmath>
 
@@ -13,3 +16,5 @@ T wrap_to_2pi(T r) {
   }
   return wrapped;
 }
+
+#endif
