@@ -21,9 +21,9 @@ using namespace ai_server::util::net::multicast;
 
 using receiver_wrapper = slot_testing_helper<receiver::buffer_t, std::size_t>;
 
-BOOST_AUTO_TEST_SUITE(multicast, *boost::unit_test::timeout(15))
+BOOST_AUTO_TEST_SUITE(multicast)
 
-BOOST_AUTO_TEST_CASE(send_and_receive) {
+BOOST_AUTO_TEST_CASE(send_and_receive, *boost::unit_test::timeout(15)) {
   boost::asio::io_service io_service;
 
   // 受信クラスの初期化
