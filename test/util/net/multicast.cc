@@ -76,7 +76,7 @@ BOOST_AUTO_TEST_CASE(send_and_receive) {
   }
 
   // 乱数生成機を初期化
-  std::mt19937 mt{std::random_device{}()};
+  std::mt19937 mt{0x12345678};
 
   for (auto i = 0u; i < 1024; ++i) {
     receiver_wrapper wrapper{&receiver::on_receive, r};
