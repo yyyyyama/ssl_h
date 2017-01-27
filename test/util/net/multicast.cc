@@ -27,12 +27,12 @@ BOOST_AUTO_TEST_CASE(send_and_receive, *boost::unit_test::timeout(30)) {
   boost::asio::io_service io_service;
 
   // 受信クラスの初期化
-  // listen_addr = 0.0.0.0, multicast_addr = 224.5.23.2, port = 10006
-  receiver r(io_service, "0.0.0.0", "224.5.23.2", 10006);
+  // listen_addr = 0.0.0.0, multicast_addr = 224.5.23.2, port = 10000
+  receiver r(io_service, "0.0.0.0", "224.5.23.2", 10000);
 
   // 送信クラスの初期化
-  // multicast_addr = 224.5.23.2, port = 10006
-  sender s(io_service, "224.5.23.2", 10006);
+  // multicast_addr = 224.5.23.2, port = 10000
+  sender s(io_service, "224.5.23.2", 10000);
 
   // 受信を開始する
   std::thread t([&] { io_service.run(); });
@@ -75,6 +75,28 @@ BOOST_AUTO_TEST_CASE(send_and_receive, *boost::unit_test::timeout(30)) {
     BOOST_TEST(s2 == s1);
   }
 
+  // 受信の終了
+  io_service.stop();
+  t.join();
+}
+
+BOOST_AUTO_TEST_CASE(random_data1, *boost::unit_test::timeout(30)) {
+  boost::asio::io_service io_service;
+
+  // 受信クラスの初期化
+  // listen_addr = 0.0.0.0, multicast_addr = 224.5.23.2, port = 10001
+  receiver r(io_service, "0.0.0.0", "224.5.23.2", 10001);
+
+  // 送信クラスの初期化
+  // multicast_addr = 224.5.23.2, port = 10001
+  sender s(io_service, "224.5.23.2", 10001);
+
+  // 受信を開始する
+  std::thread t([&] { io_service.run(); });
+
+  // 念の為少し待つ
+  std::this_thread::sleep_for(50ms);
+
   // 乱数生成器を初期化
   std::mt19937 mt{0x12345678};
 
@@ -106,8 +128,30 @@ BOOST_AUTO_TEST_CASE(send_and_receive, *boost::unit_test::timeout(30)) {
     BOOST_TEST(v2 == v1, boost::test_tools::per_element());
   }
 
-  // 再び乱数生成器を初期化
-  mt.seed(0x12345678);
+  // 受信の終了
+  io_service.stop();
+  t.join();
+}
+
+BOOST_AUTO_TEST_CASE(random_data2, *boost::unit_test::timeout(30)) {
+  boost::asio::io_service io_service;
+
+  // 受信クラスの初期化
+  // listen_addr = 0.0.0.0, multicast_addr = 224.5.23.2, port = 10002
+  receiver r(io_service, "0.0.0.0", "224.5.23.2", 10002);
+
+  // 送信クラスの初期化
+  // multicast_addr = 224.5.23.2, port = 10002
+  sender s(io_service, "224.5.23.2", 10002);
+
+  // 受信を開始する
+  std::thread t([&] { io_service.run(); });
+
+  // 念の為少し待つ
+  std::this_thread::sleep_for(50ms);
+
+  // 乱数生成器を初期化
+  std::mt19937 mt{0x12345678};
 
   for (auto i = 0u; i < 1024; ++i) {
     receiver_wrapper wrapper{&receiver::on_receive, r};
