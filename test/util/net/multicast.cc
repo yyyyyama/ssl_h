@@ -104,6 +104,37 @@ BOOST_AUTO_TEST_CASE(send_and_receive, *boost::unit_test::timeout(30)) {
     BOOST_TEST(v2 == v1, boost::test_tools::per_element());
   }
 
+  // 再び乱数生成器を初期化
+  mt.seed(0x12345678);
+
+  for (auto i = 0u; i < 1024; ++i) {
+    receiver_wrapper wrapper{&receiver::on_receive, r};
+
+    using value_type = typename receiver::buffer_t::value_type;
+
+    // ランダムな長さ[1, 4096]のランダムなデータの入った配列を生成
+    const auto size = std::uniform_int_distribution<std::size_t>(1, receiver::buffer_size)(mt);
+    const auto v1   = [&mt, size] {
+      std::vector<value_type> v(size);
+      std::uniform_int_distribution<value_type> d(std::numeric_limits<value_type>::min(),
+                                                  std::numeric_limits<value_type>::max());
+      std::generate(v.begin(), v.end(), [&mt, &d] { return d(mt); });
+      return v;
+    }();
+
+    // 送信サイズを指定するsend
+    s.send(v1, size);
+
+    // 受信したデータを取得
+    const auto result = wrapper.result();
+
+    // 受信したデータが送信したものと一致するか
+    BOOST_TEST(std::get<1>(result) == v1.size());
+    const auto& buf = std::get<0>(result);
+    const std::vector<value_type> v2(buf.cbegin(), buf.cbegin() + v1.size());
+    BOOST_TEST(v2 == v1, boost::test_tools::per_element());
+  }
+
   // 受信の終了
   io_service.stop();
   t.join();
