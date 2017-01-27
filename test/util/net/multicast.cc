@@ -45,7 +45,7 @@ BOOST_AUTO_TEST_CASE(send_and_receive, *boost::unit_test::timeout(30)) {
 
     // std::string("Hello!") を送信
     const auto s1 = "Hello!"s;
-    s.send(boost::asio::buffer(s1));
+    s.send(s1);
 
     // 受信したデータを取得
     const auto result = wrapper.result();
@@ -64,7 +64,7 @@ BOOST_AUTO_TEST_CASE(send_and_receive, *boost::unit_test::timeout(30)) {
                     std::string(receiver::buffer_size / 4, 'b') +
                     std::string(receiver::buffer_size / 4, 'c') +
                     std::string(receiver::buffer_size / 4, 'd');
-    s.send(boost::asio::buffer(s1));
+    s.send(s1);
 
     // 受信したデータを取得
     const auto result = wrapper.result();
@@ -92,7 +92,9 @@ BOOST_AUTO_TEST_CASE(send_and_receive, *boost::unit_test::timeout(30)) {
       std::generate(v.begin(), v.end(), [&mt, &d] { return d(mt); });
       return v;
     }();
-    s.send(boost::asio::buffer(v1));
+
+    // 送信サイズを指定しないsend
+    s.send(v1);
 
     // 受信したデータを取得
     const auto result = wrapper.result();
