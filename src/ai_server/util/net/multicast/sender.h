@@ -28,17 +28,17 @@ public:
   /// @brief                  buffer を送信する
   /// @param buffer           送信するデータ
   template <class Buffer>
-  void send(const Buffer& buffer) {
+  void send(Buffer&& buffer) {
     // TODO: 送信できたデータサイズをちゃんと確認する
-    socket_.send_to(buffer, endpoint_);
+    socket_.send_to(boost::asio::buffer(std::forward<Buffer>(buffer)), endpoint_);
   }
 
   /// @brief                  buffer を size だけ送信する
   /// @param buffer           送信するデータ
   /// @param size             送信するデータのサイズ
   template <class Buffer>
-  void send(const Buffer& buffer, std::size_t size) {
-    send(boost::asio::buffer(buffer, size), endpoint_);
+  void send(Buffer&& buffer, std::size_t size) {
+    socket_.send_to(boost::asio::buffer(std::forward<Buffer>(buffer), size), endpoint_);
   }
 
 private:
