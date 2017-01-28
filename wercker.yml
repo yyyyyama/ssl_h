@@ -29,7 +29,8 @@ build:
     - script:
       name: code coverage
       code: |
-        bash <(curl -s https://codecov.io/bash) -x ./tools/llvm-cov.sh -g './build/3rd/*'
+        cd build
+        bash <(curl -s https://codecov.io/bash) -x ../tools/llvm-cov.sh
 
     - wantedly/pretty-slack-notify:
       webhook_url: $SLACK_WEBHOOK_URL
