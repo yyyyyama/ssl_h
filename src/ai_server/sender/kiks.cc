@@ -14,7 +14,7 @@ kiks::kiks(boost::asio::io_service& io_service, const std::string& device)
 
 void kiks::send_command(const model::command& command) {
   auto data = to_data_t(command);
-  serial_.send(boost::asio::buffer(data));
+  serial_.send(data);
 }
 
 kiks::data_t kiks::to_data_t(const model::command& command) {

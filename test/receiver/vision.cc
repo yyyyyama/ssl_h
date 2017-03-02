@@ -97,7 +97,7 @@ BOOST_AUTO_TEST_CASE(non_protobuf_data, *boost::unit_test::timeout(30)) {
     slot_testing_helper<> wrapper{&vision::on_error, v};
 
     // protobufじゃないデータを送信
-    s.send(boost::asio::buffer("non protobuf data"s));
+    s.send("non protobuf data"s);
 
     // on_errorに設定したハンドラが呼ばれるまで待つ
     static_cast<void>(wrapper.result());
