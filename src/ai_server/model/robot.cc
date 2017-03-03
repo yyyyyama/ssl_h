@@ -5,7 +5,8 @@ namespace model {
 
 robot::robot() : id_(0), x_(0), y_(0) {}
 
-robot::robot(unsigned int id, double x, double y) : id_(id), x_(x), y_(y) {}
+robot::robot(unsigned int id, double x, double y, double theta)
+    : id_(id), x_(x), y_(y), theta_(theta) {}
 
 unsigned int robot::id() const {
   return id_;
