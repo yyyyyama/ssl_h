@@ -43,7 +43,7 @@ kiks::data_t kiks::to_data_t(const model::command& command) {
     // rotate
     data[0] |= ((velocity->omega >= 0) ? 0b00000000 : 0b10000000);
     // vec
-    auto vec = static_cast<uint16_t>(std::hypot(velocity->vx, velocity->vy) * 1000);
+    auto vec = static_cast<uint16_t>(std::hypot(velocity->vx, velocity->vy));
     data[1]  = (vec & 0xff00) >> 8;
     data[2]  = (vec & 0x00ff);
     // dir

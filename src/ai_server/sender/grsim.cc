@@ -44,8 +44,8 @@ void grsim::send_command(const model::command& command) {
   const auto& setpoint = command.setpoint();
   if (const auto velocity = boost::get<model::command::velocity_t>(&setpoint)) {
     // velocity_tへのキャストが成功した時
-    grcommand->set_veltangent(velocity->vx);
-    grcommand->set_velnormal(velocity->vy);
+    grcommand->set_veltangent(velocity->vx / 1000);
+    grcommand->set_velnormal(velocity->vy / 1000);
     grcommand->set_velangular(velocity->omega);
   } else {
     // velocity_tへのキャストが失敗した時
