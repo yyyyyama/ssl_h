@@ -85,14 +85,12 @@ void world::process_packet(const ssl_protos::vision::Frame& detection) {
 
   robots_blue_.clear();
   pop_each(rbq, [this](auto&& top) {
-    robots_blue_[top.robot_id()] = {top.robot_id(), top.x(), top.y()};
-    robots_blue_[top.robot_id()].set_theta(top.orientation());
+    robots_blue_[top.robot_id()] = {top.robot_id(), top.x(), top.y(), top.orientation()};
   });
 
   robots_yellow_.clear();
   pop_each(ryq, [this](auto&& top) {
-    robots_yellow_[top.robot_id()] = {top.robot_id(), top.x(), top.y()};
-    robots_yellow_[top.robot_id()].set_theta(top.orientation());
+    robots_yellow_[top.robot_id()] = {top.robot_id(), top.x(), top.y(), top.orientation()};
   });
 }
 
