@@ -1,28 +1,31 @@
 #ifndef AI_SERVER_CONTROLLER_PID_CONTROLLER_H
 #define AI_SERVER_CONTROLLER_PID_CONTROLLER_H
 
-#include"base.h"
+#include "base.h"
 
-namespace ai_server{
-namespace controller{
+namespace ai_server {
+namespace controller {
 
-class pid_controller:public base{
+class pid_controller : public base {
 private:
-	double cycle_;
-	double kp_;
-	double ki_;
-	double kd_;
+  double cycle_;     //制御周期
+  double kp_;        //比例ゲイン
+  double ki_;        //積分ゲイン
+  double kd_;        //微分ゲイン
+  velocity_t up_[2]; //操作量(比例,1フレーム前まで)
+  velocity_t ui_[2]; //操作量(積分,1フレーム前まで)
+  velocity_t ud_[2]; //操作量(微分,1フレーム前まで)
+  velocity_t u_;     //操作量
+  velocity_t e_[2];  //偏差(1フレーム前まで)
 
 public:
-	pid_controller(double cycle) : cycle_(cycle){};
-	~pid_controller();
+  pid_controller(double cycle);
 
-	velocity_t update(const model::robot& robot, const position_t& setpoint);
-	velocity_t update(const model::robot& robot, const velocity_t& setpoint);
-	void calculate();
-
+  velocity_t update(const model::robot& robot, const position_t& setpoint);
+  velocity_t update(const model::robot& robot, const velocity_t& setpoint);
+  void calculate();
 };
-}	//controller
-}	//ai_server
+} // controller
+} // ai_server
 
-#endif	//AI_SERVER_CONTROLLER_PID_CONTROLLER_H
+#endif // AI_SERVER_CONTROLLER_PID_CONTROLLER_H
