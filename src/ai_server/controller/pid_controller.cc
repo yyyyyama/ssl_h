@@ -1,5 +1,4 @@
 #include "pid_controller.h"
-#include <fstream>
 
 namespace ai_server {
 namespace controller {
@@ -65,9 +64,45 @@ void pid_controller::calculate() {
   ui_[1] = ui_[0];
   ud_[1] = ud_[0];
   e_[1]  = e_[0];
-  std::ofstream out("out_vel.csv", std::ios::app);
-  out << u_.vx << "," << u_.vy << "," << u_.omega << std::endl;
 }
 
 } // controller
+
+//以下，model::command::velocityの四則演算のオーバロード
+const model::command::velocity_t operator+(const model::command::velocity_t& vel1,
+                                           const model::command::velocity_t& vel2) {
+  model::command::velocity_t ret;
+  ret.vx    = vel1.vx + vel2.vx;
+  ret.vy    = vel1.vy + vel2.vy;
+  ret.omega = vel1.omega + vel2.omega;
+  return ret;
+}
+
+const model::command::velocity_t operator-(const model::command::velocity_t& vel1,
+                                           const model::command::velocity_t& vel2) {
+  model::command::velocity_t ret;
+  ret.vx    = vel1.vx - vel2.vx;
+  ret.vy    = vel1.vy - vel2.vy;
+  ret.omega = vel1.omega - vel2.omega;
+  return ret;
+}
+
+const model::command::velocity_t operator*(const double& c,
+                                           const model::command::velocity_t& vel) {
+  model::command::velocity_t ret;
+  ret.vx    = c * vel.vx;
+  ret.vy    = c * vel.vy;
+  ret.omega = c * vel.omega;
+  return ret;
+}
+
+const model::command::velocity_t operator/(const model::command::velocity_t& vel,
+                                           const double& c) {
+  model::command::velocity_t ret;
+  ret.vx    = vel.vx / c;
+  ret.vy    = vel.vy / c;
+  ret.omega = vel.omega / c;
+  return ret;
+}
+
 } // ai_server
