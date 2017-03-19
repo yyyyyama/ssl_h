@@ -33,16 +33,6 @@ public:
 };
 
 } // controller
-
-//以下，model::command::velocityの四則演算のオーバロード
-const model::command::velocity_t operator+(const model::command::velocity_t& vel1,
-                                           const model::command::velocity_t& vel2);
-const model::command::velocity_t operator-(const model::command::velocity_t& vel1,
-                                           const model::command::velocity_t& vel2);
-const model::command::velocity_t operator*(const double& c,
-                                           const model::command::velocity_t& vel);
-const model::command::velocity_t operator/(const model::command::velocity_t& vel,
-                                           const double& c);
 } // ai_server
 
 #endif // AI_SERVER_CONTROLLER_PID_CONTROLLER_H

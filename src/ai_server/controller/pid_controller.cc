@@ -7,6 +7,23 @@ const double pid_controller::kp_ = 1.0;
 const double pid_controller::ki_ = 0.1;
 const double pid_controller::kd_ = 0.0;
 
+// model::command::velocityの四則演算のオーバロード
+const velocity_t operator+(const velocity_t& vel1, const velocity_t& vel2) {
+  return {vel1.vx + vel2.vx, vel1.vy + vel2.vy, vel1.omega + vel2.omega};
+}
+
+const velocity_t operator-(const velocity_t& vel1, const velocity_t& vel2) {
+  return {vel1.vx - vel2.vx, vel1.vy - vel2.vy, vel1.omega - vel2.omega};
+}
+
+const velocity_t operator*(const double& c, const velocity_t& vel) {
+  return {c * vel.vx, c * vel.vy, c * vel.omega};
+}
+
+const velocity_t operator/(const velocity_t& vel, const double& c) {
+  return {vel.vx / c, vel.vy / c, vel.omega / c};
+}
+
 pid_controller::pid_controller(double cycle) {
   cycle_ = cycle;
   for (int i = 0; i < 2; i++) {
@@ -68,42 +85,4 @@ void pid_controller::calculate() {
 }
 
 } // controller
-
-//以下，model::command::velocityの四則演算のオーバロード
-const model::command::velocity_t operator+(const model::command::velocity_t& vel1,
-                                           const model::command::velocity_t& vel2) {
-  model::command::velocity_t ret;
-  ret.vx    = vel1.vx + vel2.vx;
-  ret.vy    = vel1.vy + vel2.vy;
-  ret.omega = vel1.omega + vel2.omega;
-  return ret;
-}
-
-const model::command::velocity_t operator-(const model::command::velocity_t& vel1,
-                                           const model::command::velocity_t& vel2) {
-  model::command::velocity_t ret;
-  ret.vx    = vel1.vx - vel2.vx;
-  ret.vy    = vel1.vy - vel2.vy;
-  ret.omega = vel1.omega - vel2.omega;
-  return ret;
-}
-
-const model::command::velocity_t operator*(const double& c,
-                                           const model::command::velocity_t& vel) {
-  model::command::velocity_t ret;
-  ret.vx    = c * vel.vx;
-  ret.vy    = c * vel.vy;
-  ret.omega = c * vel.omega;
-  return ret;
-}
-
-const model::command::velocity_t operator/(const model::command::velocity_t& vel,
-                                           const double& c) {
-  model::command::velocity_t ret;
-  ret.vx    = vel.vx / c;
-  ret.vy    = vel.vy / c;
-  ret.omega = vel.omega / c;
-  return ret;
-}
-
 } // ai_server
