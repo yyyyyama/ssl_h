@@ -34,36 +34,36 @@ pid_controller::pid_controller(double cycle) : cycle_(cycle) {
 }
 
 velocity_t pid_controller::update(const model::robot& robot, const position_t& setpoint) {
-  //位置偏差
+  // 位置偏差
   position_t ep;
   ep.x     = setpoint.x - robot.x();
   ep.y     = setpoint.y - robot.y();
   ep.theta = setpoint.theta - robot.theta();
 
-  //目標速度
+  // 目標速度
   velocity_t set_velocity;
   set_velocity.vx    = ep.x / cycle_;
   set_velocity.vy    = ep.y / cycle_;
   set_velocity.omega = ep.theta - cycle_;
 
-  //速度偏差
+  // 速度偏差
   e_[0].vx    = set_velocity.vx - robot.vx();
   e_[0].vy    = set_velocity.vy - robot.vy();
   e_[0].omega = set_velocity.omega - robot.omega();
 
-  //制御計算
+  // 制御計算
   calculate();
 
   return u_;
 }
 
 velocity_t pid_controller::update(const model::robot& robot, const velocity_t& setpoint) {
-  //現在偏差
+  // 現在偏差
   e_[0].vx    = setpoint.vx - robot.vx();
   e_[0].vy    = setpoint.vy - robot.vy();
   e_[0].omega = setpoint.omega - robot.omega();
 
-  //制御計算
+  // 制御計算
   calculate();
 
   return u_;
