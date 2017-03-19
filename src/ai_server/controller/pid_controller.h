@@ -20,6 +20,9 @@ private:
   double max_velocity_;     //最大速度
   double max_acceleration_; //最大加速度
 
+  //制御計算関数
+  void calculate();
+
 public:
   //コンストラクタ
   pid_controller(double cycle);
@@ -27,10 +30,8 @@ public:
   //制御入力更新関数
   velocity_t update(const model::robot& robot, const position_t& setpoint);
   velocity_t update(const model::robot& robot, const velocity_t& setpoint);
-
-  //制御計算関数
-  void calculate();
 };
+
 } // controller
 
 //以下，model::command::velocityの四則演算のオーバロード
