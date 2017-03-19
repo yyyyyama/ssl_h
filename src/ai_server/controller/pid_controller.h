@@ -9,9 +9,9 @@ namespace controller {
 class pid_controller : public base {
 private:
   double cycle_;            //制御周期
-  double kp_;               //比例ゲイン
-  double ki_;               //積分ゲイン
-  double kd_;               //微分ゲイン
+  const static double kp_;  //比例ゲイン
+  const static double ki_;  //積分ゲイン
+  const static double kd_;  //微分ゲイン
   velocity_t up_[2];        //操作量(比例,1フレーム前まで)
   velocity_t ui_[2];        //操作量(積分,1フレーム前まで)
   velocity_t ud_[2];        //操作量(微分,1フレーム前まで)

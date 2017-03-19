@@ -3,11 +3,12 @@
 namespace ai_server {
 namespace controller {
 
+const double pid_controller::kp_ = 1.0;
+const double pid_controller::ki_ = 0.1;
+const double pid_controller::kd_ = 0.0;
+
 pid_controller::pid_controller(double cycle) {
   cycle_ = cycle;
-  kp_    = 1;
-  ki_    = 0.1;
-  kd_    = 0.0;
   for (int i = 0; i < 2; i++) {
     up_[i] = {0.0, 0.0, 0.0};
     ui_[i] = {0.0, 0.0, 0.0};
