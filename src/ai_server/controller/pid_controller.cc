@@ -24,8 +24,7 @@ const velocity_t operator/(const velocity_t& vel, const double& c) {
   return {vel.vx / c, vel.vy / c, vel.omega / c};
 }
 
-pid_controller::pid_controller(double cycle) {
-  cycle_ = cycle;
+pid_controller::pid_controller(double cycle) : cycle_(cycle) {
   for (int i = 0; i < 2; i++) {
     up_[i] = {0.0, 0.0, 0.0};
     ui_[i] = {0.0, 0.0, 0.0};

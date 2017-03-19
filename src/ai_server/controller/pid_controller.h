@@ -25,7 +25,7 @@ private:
 
 public:
   //コンストラクタ
-  pid_controller(double cycle);
+  explicit pid_controller(double cycle);
 
   //制御入力更新関数
   velocity_t update(const model::robot& robot, const position_t& setpoint);
