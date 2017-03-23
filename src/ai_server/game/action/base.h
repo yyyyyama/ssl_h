@@ -15,8 +15,8 @@ public:
   /// @param id               操作するロボットのID
   base(const model::world& world, bool is_yellow, unsigned int id);
 
-  /// @brief                  呼び出されたループでの目標値を返す
-  virtual model::command::setpoint_t execute() = 0;
+  /// @brief                  呼び出されたループでのロボットの命令を取得する
+  virtual model::command execute() = 0;
 
   /// @brief                  Actionが完了したか
   virtual bool finished() const = 0;
