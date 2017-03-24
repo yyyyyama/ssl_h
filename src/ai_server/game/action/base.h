@@ -15,6 +15,8 @@ public:
   /// @param id               操作するロボットのID
   base(const model::world& world, bool is_yellow, unsigned int id);
 
+  virtual ~base() = default;
+
   /// @brief                  呼び出されたループでのロボットの命令を取得する
   virtual model::command execute() = 0;
 
