@@ -29,6 +29,7 @@ pid_controller::pid_controller(double cycle) : cycle_(cycle) {
     up_[i] = {0.0, 0.0, 0.0};
     ui_[i] = {0.0, 0.0, 0.0};
     ud_[i] = {0.0, 0.0, 0.0};
+    u_[i]  = {0.0, 0.0, 0.0};
     e_[i]  = {0.0, 0.0, 0.0};
   }
 }
@@ -54,32 +55,35 @@ velocity_t pid_controller::update(const model::robot& robot, const position_t& s
   // 制御計算
   calculate();
 
-  return u_;
+  return u_[0];
 }
 
 velocity_t pid_controller::update(const model::robot& robot, const velocity_t& setpoint) {
   // 現在偏差
-  e_[0].vx    = setpoint.vx - robot.vx();
-  e_[0].vy    = setpoint.vy - robot.vy();
-  e_[0].omega = setpoint.omega - robot.omega();
+  e_[0].vx    = setpoint.vx - u_[1].vx;
+  e_[0].vy    = setpoint.vy - u_[1].vy;
+  e_[0].omega = setpoint.omega - u_[1].omega;
 
   // 制御計算
   calculate();
 
-  return u_;
+  return u_[0];
 }
 
 void pid_controller::calculate() {
+  // 双一次変換
   // s=(2/T)*(Z-1)/(Z+1)としてPIDcontrollerを離散化
   // C=Kp+Ki/s+Kds
   up_[0] = kp_ * e_[0];
   ui_[0] = ki_ * cycle_ * (e_[0] + e_[1]) / 2 + ui_[1];
   ud_[0] = 2 * kd_ * (e_[0] - e_[1]) / cycle_ - ud_[1];
-  u_     = up_[0] + ui_[0] + ud_[0];
+  u_[0]  = u_[1] + cycle_ * (up_[0] + ui_[0] + ud_[0]);
 
+  // 値の更新
   up_[1] = up_[0];
   ui_[1] = ui_[0];
   ud_[1] = ud_[0];
+  u_[1]  = u_[0];
   e_[1]  = e_[0];
 }
 
