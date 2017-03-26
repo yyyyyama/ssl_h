@@ -12,14 +12,13 @@ private:
   const static double kp_;  // 比例ゲイン
   const static double ki_;  // 積分ゲイン
   const static double kd_;  // 微分ゲイン
+  double max_velocity_;     // 最大速度
+  double max_acceleration_; // 最大加速度
   velocity_t up_[2];        // 操作量(比例,1フレーム前まで)
   velocity_t ui_[2];        // 操作量(積分,1フレーム前まで)
   velocity_t ud_[2];        // 操作量(微分,1フレーム前まで)
-  velocity_t u_;            // 操作量
+  velocity_t u_[2];         // 操作量(1フレーム前まで)
   velocity_t e_[2];         // 偏差(1フレーム前まで)
-  double max_velocity_;     // 最大速度
-  double max_acceleration_; // 最大加速度
-
   // 制御計算関数
   void calculate();
 
