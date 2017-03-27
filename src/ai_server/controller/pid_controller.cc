@@ -25,6 +25,8 @@ const velocity_t operator/(const velocity_t& vel, const double& c) {
 }
 
 pid_controller::pid_controller(double cycle) : cycle_(cycle) {
+  max_velocity_     = 3000.0;
+  max_acceleration_ = 3000.0;
   for (int i = 0; i < 2; i++) {
     up_[i] = {0.0, 0.0, 0.0};
     ui_[i] = {0.0, 0.0, 0.0};
@@ -78,6 +80,24 @@ void pid_controller::calculate() {
   ui_[0] = ki_ * cycle_ * (e_[0] + e_[1]) / 2 + ui_[1];
   ud_[0] = 2 * kd_ * (e_[0] - e_[1]) / cycle_ - ud_[1];
   u_[0]  = u_[1] + cycle_ * (up_[0] + ui_[0] + ud_[0]);
+
+  // 加速度，速度制限
+  double u_angle = atan2(u_[0].vy, u_[0].vx);                 // 今回指令速度の方向
+  double u_speed = sqrt(pow(u_[0].vx, 2) + pow(u_[0].vy, 2)); // 今回指令速度の大きさ
+  double preceding_speed = sqrt(pow(u_[1].vx, 2) + pow(u_[1].vy, 2)); // 前回指令速度の大きさ
+  // 加速度制限
+  if ((u_speed - preceding_speed) / cycle_ > max_acceleration_) { // 加速時で最大加速度超過
+    u_speed = preceding_speed + (max_acceleration_ * cycle_);
+  } else if ((preceding_speed - u_speed) / cycle_ <
+             -max_acceleration_) { // 減速時で最大加速度超過
+    u_speed = preceding_speed - (max_acceleration_ * cycle_);
+  }
+  // 速度制限
+  if (u_speed > max_velocity_) { // 最大速度超過
+    u_speed = max_velocity_;
+  }
+  u_[0].vx = u_speed * cos(u_angle); // 成分速度再計算
+  u_[0].vy = u_speed * sin(u_angle);
 
   // 値の更新
   up_[1] = up_[0];
