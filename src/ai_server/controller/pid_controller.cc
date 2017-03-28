@@ -20,6 +20,10 @@ const velocity_t operator*(const double& c, const velocity_t& vel) {
   return {c * vel.vx, c * vel.vy, c * vel.omega};
 }
 
+const velocity_t operator*(const velocity_t& vel1, const velocity_t& vel2) {
+  return {vel1.vx * vel2.vx, vel1.vy * vel2.vy, vel1.omega * vel2.omega};
+}
+
 const velocity_t operator/(const velocity_t& vel, const double& c) {
   return {vel.vx / c, vel.vy / c, vel.omega / c};
 }
