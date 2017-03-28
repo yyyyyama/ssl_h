@@ -13,17 +13,22 @@ template <class T>
 class velocity_calculator : public base<T> {
 private:
   std::chrono::high_resolution_clock::time_point prev_time_;
-  ai_server::model::ball prev_ball_;
-  ai_server::model::robot prev_robot_;
+  T prev_state_;
 
 public:
   velocity_calculator();
   void apply(T&, std::chrono::high_resolution_clock::time_point) override;
-  void reset() override; 
-
+  void reset() override;
 };
+
+template <class T>
+velocity_calculator<T>::velocity_calculator() : prev_state_(T{}) {}
+
+template <class T>
+void velocity_calculator<T>::reset() {
+  prev_state_ = T{};
+}
 }
 }
 
 #endif
-
