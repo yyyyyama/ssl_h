@@ -45,3 +45,4 @@ template class velocity_calculator<model::robot>;
 
 }
 }
+

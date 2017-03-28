@@ -89,4 +89,7 @@ BOOST_AUTO_TEST_CASE(test03){
   BOOST_TEST(test_ball.vy() > 1.95);
 
 }
+
 BOOST_AUTO_TEST_SUITE_END()
+
+
