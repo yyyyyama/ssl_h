@@ -33,6 +33,26 @@ public:
   std::unordered_map<unsigned int, model::robot> robots_blue() const;
   std::unordered_map<unsigned int, model::robot> robots_yellow() const;
 
+  template <class T>
+  void set_field(T&& field) {
+    field_ = std::forward<T>(field);
+  }
+
+  template <class T>
+  void set_ball(T&& ball) {
+    ball_ = std::forward<T>(ball);
+  }
+
+  template <class T>
+  void set_robots_blue(T&& robots_blue) {
+    robots_blue_ = std::forward<T>(robots_blue);
+  }
+
+  template <class T>
+  void set_robots_yellow(T&& robots_yellow) {
+    robots_yellow_ = std::forward<T>(robots_yellow);
+  }
+
   /// @brief                  内部の状態を更新する
   /// @param packet           SSL-Visionのパース済みパケット
   void update(const ssl_protos::vision::Packet& packet);
