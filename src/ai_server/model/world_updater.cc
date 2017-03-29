@@ -1,6 +1,5 @@
 #include <algorithm>
 #include <cmath>
-#include <queue>
 #include <vector>
 
 #include "ai_server/util/algorithm.h"
@@ -32,19 +31,15 @@ void world_updater::process_packet(const ssl_protos::vision::Frame& detection) {
   // 取得したIDのdetectionパケットを更新
   detection_packets_[detection.camera_id()] = detection;
 
-  // Ball::confidence()が低い順にソートされるpriority_queue
-  using ball_queue =
-      std::priority_queue<Ball, std::vector<Ball>, decltype(detail::confidence_comparator)>;
-  ball_queue bq(detail::confidence_comparator);
-
+  std::vector<ball_with_camera_id_t> balls{};
   robots_table_t robots_blue_table{};
   robots_table_t robots_yellow_table{};
 
   for (const auto& dp : detection_packets_) {
     const auto& d = dp.second;
 
-    for (auto&& b : dp.second.balls()) {
-      bq.emplace(b);
+    for (auto it = d.balls().cbegin(); it != d.balls().cend(); ++it) {
+      balls.emplace_back(d.camera_id(), it);
     }
 
     // カメラIDをKeyに, 各カメラの最新のパケットを保持しているdetection_packets_から
@@ -63,17 +58,7 @@ void world_updater::process_packet(const ssl_protos::vision::Frame& detection) {
     add_robots_to_table(robots_yellow_table, d.camera_id(), d.robots_yellow());
   }
 
-  using ai_server::util::pop_each;
-
-  // TODO:
-  // 現在の実装は, フィールドにボールが1つしかないと仮定し,
-  // 検出されたconfidenceの最も高いものを選んでいる.
-  // 今後, フィールドにボールが複数存在する場合の処理を検討する必要がある.
-  // https://github.com/kiksworks/ai-server/projects/1#card-1115932
-  model::ball ball{};
-  pop_each(bq, [&ball](auto&& top) { ball = {top.x(), top.y(), top.z()}; });
-
-  world_.set_ball(std::move(ball));
+  world_.set_ball(build_ball_data(balls, world_.ball()));
   world_.set_robots_blue(build_robot_list(robots_blue_table, world_.robots_blue()));
   world_.set_robots_yellow(build_robot_list(robots_yellow_table, world_.robots_yellow()));
 }
@@ -102,6 +87,28 @@ void world_updater::process_packet(const ssl_protos::vision::Geometry& geometry)
   }
 
   world_.set_field(std::move(field));
+}
+
+model::ball world_updater::build_ball_data(const std::vector<ball_with_camera_id_t>& balls,
+                                           const model::ball& prev_data) {
+  auto ret = prev_data;
+
+  // TODO:
+  // 現在の実装は, フィールドにボールが1つしかないと仮定し,
+  // 検出されたconfidenceの最も高いものを選んでいる.
+  // 今後, フィールドにボールが複数存在する場合の処理を検討する必要がある.
+  // https://github.com/kiksworks/ai-server/projects/1#card-1115932
+  const auto reliable_element =
+      std::max_element(balls.cbegin(), balls.cend(), [](auto& a, auto& b) {
+        return std::get<1>(a)->confidence() < std::get<1>(b)->confidence();
+      });
+
+  const auto& ball_data = std::get<1>(*reliable_element);
+  ret.set_x(ball_data->x());
+  ret.set_y(ball_data->y());
+  ret.set_z(ball_data->z());
+
+  return ret;
 }
 
 void world_updater::add_robots_to_table(

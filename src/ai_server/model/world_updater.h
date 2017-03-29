@@ -13,6 +13,10 @@ namespace ai_server {
 namespace model {
 
 class world_updater {
+  /// <camera id, Ball>
+  using ball_with_camera_id_t =
+      std::tuple<unsigned int,
+                 google::protobuf::RepeatedPtrField<ssl_protos::vision::Ball>::const_iterator>;
   /// <camera id, Robot>
   using robot_with_camera_id_t =
       std::tuple<unsigned int,
@@ -43,6 +47,12 @@ private:
   /// @brief                  geometryパケットを処理し, フィールドの情報を更新する
   /// @param geometry         SSL-Visionのgeometryパケット
   void process_packet(const ssl_protos::vision::Geometry& geometry);
+
+  /// @brief                  ballsから最終的なボールの情報を生成する
+  /// @param balls            検出されたボールのリスト
+  /// @param prev_data        前のデータ
+  static model::ball build_ball_data(const std::vector<ball_with_camera_id_t>& balls,
+                                     const model::ball& prev_data);
 
   /// @brief                  tableにrobotsを追加する
   /// @param table            ロボットのデータ更新用のハッシュテーブル
