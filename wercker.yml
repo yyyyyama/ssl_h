@@ -3,6 +3,11 @@ box: kiks/build-env
 build:
   steps:
     - script:
+      name: create build directory
+      code: |
+        mkdir -p build
+
+    - script:
       name: initialize git submodules
       code: |
         git submodule update --init --recursive
@@ -15,7 +20,7 @@ build:
     - script:
       name: build
       code: |
-        mkdir -p build && cd $_
+        cd build
         cmake .. -G Ninja -DCMAKE_BUILD_TYPE=Debug -DENABLE_SANITIZERS=ON -DENABLE_CODE_COVERAGE=ON
         ninja-build -v
 
