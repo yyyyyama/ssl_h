@@ -35,21 +35,25 @@ public:
 
   template <class T>
   void set_field(T&& field) {
+    std::lock_guard<std::mutex> lock(mutex_);
     field_ = std::forward<T>(field);
   }
 
   template <class T>
   void set_ball(T&& ball) {
+    std::lock_guard<std::mutex> lock(mutex_);
     ball_ = std::forward<T>(ball);
   }
 
   template <class T>
   void set_robots_blue(T&& robots_blue) {
+    std::lock_guard<std::mutex> lock(mutex_);
     robots_blue_ = std::forward<T>(robots_blue);
   }
 
   template <class T>
   void set_robots_yellow(T&& robots_yellow) {
+    std::lock_guard<std::mutex> lock(mutex_);
     robots_yellow_ = std::forward<T>(robots_yellow);
   }
 
