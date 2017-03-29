@@ -26,6 +26,8 @@ void world_updater::update(const ssl_protos::vision::Packet& packet) {
 void world_updater::process_packet(const ssl_protos::vision::Frame& detection) {
   using namespace ssl_protos::vision;
 
+  std::lock_guard<std::mutex> lock(mutex_);
+
   // 取得したIDのdetectionパケットを更新
   detection_packets_[detection.camera_id()] = detection;
 

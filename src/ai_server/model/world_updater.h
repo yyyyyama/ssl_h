@@ -1,6 +1,7 @@
 #ifndef AI_SERVER_MODEL_WORLD_UPDATER_H
 #define AI_SERVER_MODEL_WORLD_UPDATER_H
 
+#include <mutex>
 #include <unordered_map>
 
 #include "world.h"
@@ -11,6 +12,8 @@ namespace ai_server {
 namespace model {
 
 class world_updater {
+  mutable std::mutex mutex_;
+
   model::world world_;
 
   /// カメラ台数分の最新のdetectionパケットを保持する
