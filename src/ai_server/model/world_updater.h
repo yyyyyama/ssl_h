@@ -1,6 +1,7 @@
 #ifndef AI_SERVER_MODEL_WORLD_UPDATER_H
 #define AI_SERVER_MODEL_WORLD_UPDATER_H
 
+#include <tuple>
 #include <mutex>
 #include <unordered_map>
 
@@ -12,6 +13,13 @@ namespace ai_server {
 namespace model {
 
 class world_updater {
+  /// <camera id, Robot>
+  using robot_with_camera_id_t =
+      std::tuple<unsigned int,
+                 google::protobuf::RepeatedPtrField<ssl_protos::vision::Robot>::const_iterator>;
+  /// ロボットのデータ更新用のハッシュテーブルの型 <robot_id, <camera_id, Robot>>
+  using robots_table_t = std::unordered_multimap<unsigned int, robot_with_camera_id_t>;
+
   mutable std::mutex mutex_;
 
   model::world world_;
@@ -35,6 +43,21 @@ private:
   /// @brief                  geometryパケットを処理し, フィールドの情報を更新する
   /// @param geometry         SSL-Visionのgeometryパケット
   void process_packet(const ssl_protos::vision::Geometry& geometry);
+
+  /// @brief                  tableにrobotsを追加する
+  /// @param table            ロボットのデータ更新用のハッシュテーブル
+  /// @param camera_id        robotsが検出されたカメラのID
+  /// @param robots           tableに追加したいロボットのデータ
+  static void add_robots_to_table(
+      robots_table_t& table, unsigned int camera_id,
+      const google::protobuf::RepeatedPtrField<ssl_protos::vision::Robot>& robots);
+
+  /// @brief                  tableから最終的なロボットのリストを生成する
+  /// @param table            ロボットのデータ更新用のハッシュテーブル
+  /// @param prev_data        前のデータ
+  static std::unordered_map<unsigned int, model::robot> build_robot_list(
+      const robots_table_t& table,
+      const std::unordered_map<unsigned int, model::robot>& prev_data);
 };
 
 } // namespace model

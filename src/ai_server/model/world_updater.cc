@@ -1,3 +1,4 @@
+#include <algorithm>
 #include <cmath>
 #include <queue>
 #include <vector>
@@ -36,28 +37,32 @@ void world_updater::process_packet(const ssl_protos::vision::Frame& detection) {
       std::priority_queue<Ball, std::vector<Ball>, decltype(detail::confidence_comparator)>;
   ball_queue bq(detail::confidence_comparator);
 
-  // Robot::confidence()が低い順にソートされるpriority_queue
-  using robot_queue =
-      std::priority_queue<Robot, std::vector<Robot>, decltype(detail::confidence_comparator)>;
-  robot_queue rbq(detail::confidence_comparator); // robots_blue
-  robot_queue ryq(detail::confidence_comparator); // robots_yellow
+  robots_table_t robots_blue_table{};
+  robots_table_t robots_yellow_table{};
 
-  // 保持しているパケットに含まれるball, robotを全てキューに追加
   for (const auto& dp : detection_packets_) {
+    const auto& d = dp.second;
+
     for (auto&& b : dp.second.balls()) {
       bq.emplace(b);
     }
-    for (auto&& r : dp.second.robots_blue()) {
-      rbq.emplace(r);
-    }
-    for (auto&& r : dp.second.robots_yellow()) {
-      ryq.emplace(r);
-    }
+
+    // カメラIDをKeyに, 各カメラの最新のパケットを保持しているdetection_packets_から
+    // | Key(cam_id) | Value(Packet)                    |
+    // | ----------- | -------------------------------- |
+    // |           0 | Packet({Robot(ID0), Robot(ID1)}) |
+    // |           1 | Packet({Robot(ID1), Robot(ID2)}) |
+    // ロボットIDをKeyに,
+    // 1つ以上のロボットの情報をカメラIDとともに保持するハッシュテーブルを作る
+    // | Key(robo_id)  | Value({cam_id, Robot})                       |
+    // | ------------- | -------------------------------------------- |
+    // |             0 | {{cam_id, Robot(ID0)}}                       |
+    // |             1 | {{cam_id, Robot(ID1)}, {cam_id, Robot(ID1)}} |
+    // |             2 | {{cam_id, Robot(ID2)}}                       |
+    add_robots_to_table(robots_blue_table, d.camera_id(), d.robots_blue());
+    add_robots_to_table(robots_yellow_table, d.camera_id(), d.robots_yellow());
   }
 
-  // 内部データを更新する
-  // 更新に使うキューはconfidenceの低い順にソートされているので,
-  // IDが重複している場合はconfidenceの高いもので上書きされる
   using ai_server::util::pop_each;
 
   // TODO:
@@ -68,19 +73,9 @@ void world_updater::process_packet(const ssl_protos::vision::Frame& detection) {
   model::ball ball{};
   pop_each(bq, [&ball](auto&& top) { ball = {top.x(), top.y(), top.z()}; });
 
-  std::unordered_map<unsigned int, model::robot> robots_blue{};
-  pop_each(rbq, [&robots_blue](auto&& top) {
-    robots_blue[top.robot_id()] = {top.robot_id(), top.x(), top.y(), top.orientation()};
-  });
-
-  std::unordered_map<unsigned int, model::robot> robots_yellow{};
-  pop_each(ryq, [&robots_yellow](auto&& top) {
-    robots_yellow[top.robot_id()] = {top.robot_id(), top.x(), top.y(), top.orientation()};
-  });
-
   world_.set_ball(std::move(ball));
-  world_.set_robots_blue(std::move(robots_blue));
-  world_.set_robots_yellow(std::move(robots_yellow));
+  world_.set_robots_blue(build_robot_list(robots_blue_table, world_.robots_blue()));
+  world_.set_robots_yellow(build_robot_list(robots_yellow_table, world_.robots_yellow()));
 }
 
 void world_updater::process_packet(const ssl_protos::vision::Geometry& geometry) {
@@ -107,6 +102,49 @@ void world_updater::process_packet(const ssl_protos::vision::Geometry& geometry)
   }
 
   world_.set_field(std::move(field));
+}
+
+void world_updater::add_robots_to_table(
+    robots_table_t& table, unsigned int camera_id,
+    const google::protobuf::RepeatedPtrField<ssl_protos::vision::Robot>& robots) {
+  for (auto it = robots.cbegin(); it != robots.cend(); ++it) {
+    table.emplace(it->robot_id(), std::forward_as_tuple(camera_id, it));
+  }
+}
+
+std::unordered_map<unsigned int, model::robot> world_updater::build_robot_list(
+    const robots_table_t& table,
+    const std::unordered_map<unsigned int, model::robot>& prev_data) {
+  std::unordered_map<unsigned int, model::robot> ret{};
+
+  for (auto it = table.cbegin(); it != table.cend();) {
+    const auto robot_id = it->first;
+
+    // tableに格納されたIDがrobot_idのロボットの中で, 最もconfidenceの高い要素を選択する
+    const auto range = table.equal_range(robot_id);
+    const auto reliable_element =
+        std::max_element(range.first, range.second, [](auto& a, auto& b) {
+          return std::get<1>(a.second)->confidence() < std::get<1>(b.second)->confidence();
+        });
+
+    const auto& robot_data = std::get<1>(reliable_element->second);
+    if (prev_data.count(robot_id)) {
+      // 前のデータにIDがrobot_idの要素があれば, それをコピーしてから各情報を更新する
+      ret.emplace(robot_id, prev_data.at(robot_id));
+      ret[robot_id].set_x(robot_data->x());
+      ret[robot_id].set_y(robot_data->y());
+      ret[robot_id].set_theta(robot_data->orientation());
+    } else {
+      // なければ新たに要素を作成する
+      ret.emplace(robot_id, model::robot{robot_id, robot_data->x(), robot_data->y(),
+                                         robot_data->orientation()});
+    }
+
+    // イテレータを次のロボットIDの位置まで進める
+    it = range.second;
+  }
+
+  return ret;
 }
 
 } // namespace model
