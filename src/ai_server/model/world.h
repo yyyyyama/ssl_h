@@ -19,19 +19,16 @@ namespace model {
 class world {
   mutable std::mutex mutex_;
 
-  model::field field_;
-  model::ball ball_;
-  std::unordered_map<unsigned int, model::robot> robots_blue_;
-  std::unordered_map<unsigned int, model::robot> robots_yellow_;
-
   /// カメラ台数分の最新のdetectionパケットを保持する
   std::unordered_map<unsigned int, ssl_protos::vision::Frame> detection_packets_;
 
 public:
+  using robots_list = std::unordered_map<unsigned int, model::robot>;
+
   model::field field() const;
   model::ball ball() const;
-  std::unordered_map<unsigned int, model::robot> robots_blue() const;
-  std::unordered_map<unsigned int, model::robot> robots_yellow() const;
+  robots_list robots_blue() const;
+  robots_list robots_yellow() const;
 
   template <class T>
   void set_field(T&& field) {
@@ -69,6 +66,11 @@ private:
   /// @brief                  geometryパケットを処理し, フィールドの情報を更新する
   /// @param geometry         SSL-Visionのgeometryパケット
   void process_packet(const ssl_protos::vision::Geometry& geometry);
+
+  model::field field_;
+  model::ball ball_;
+  robots_list robots_blue_;
+  robots_list robots_yellow_;
 };
 
 } // namespace model

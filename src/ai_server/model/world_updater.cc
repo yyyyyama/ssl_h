@@ -2,8 +2,6 @@
 #include <cmath>
 #include <vector>
 
-#include "ai_server/util/algorithm.h"
-#include "detail/confidence_comparator.h"
 #include "world_updater.h"
 
 namespace ai_server {
@@ -24,16 +22,14 @@ void world_updater::update(const ssl_protos::vision::Packet& packet) {
 }
 
 void world_updater::process_packet(const ssl_protos::vision::Frame& detection) {
-  using namespace ssl_protos::vision;
-
   std::lock_guard<std::mutex> lock(mutex_);
 
   // 取得したIDのdetectionパケットを更新
   detection_packets_[detection.camera_id()] = detection;
 
-  std::vector<ball_with_camera_id_t> balls{};
-  robots_table_t robots_blue_table{};
-  robots_table_t robots_yellow_table{};
+  std::vector<ball_with_camera_id> balls{};
+  robots_table robots_blue_table{};
+  robots_table robots_yellow_table{};
 
   for (const auto& dp : detection_packets_) {
     const auto& d = dp.second;
@@ -59,8 +55,8 @@ void world_updater::process_packet(const ssl_protos::vision::Frame& detection) {
   }
 
   world_.set_ball(build_ball_data(balls, world_.ball()));
-  world_.set_robots_blue(build_robot_list(robots_blue_table, world_.robots_blue()));
-  world_.set_robots_yellow(build_robot_list(robots_yellow_table, world_.robots_yellow()));
+  world_.set_robots_blue(build_robots_list(robots_blue_table, world_.robots_blue()));
+  world_.set_robots_yellow(build_robots_list(robots_yellow_table, world_.robots_yellow()));
 }
 
 void world_updater::process_packet(const ssl_protos::vision::Geometry& geometry) {
@@ -89,7 +85,7 @@ void world_updater::process_packet(const ssl_protos::vision::Geometry& geometry)
   world_.set_field(std::move(field));
 }
 
-model::ball world_updater::build_ball_data(const std::vector<ball_with_camera_id_t>& balls,
+model::ball world_updater::build_ball_data(const std::vector<ball_with_camera_id>& balls,
                                            const model::ball& prev_data) {
   auto ret = prev_data;
 
@@ -112,17 +108,16 @@ model::ball world_updater::build_ball_data(const std::vector<ball_with_camera_id
 }
 
 void world_updater::add_robots_to_table(
-    robots_table_t& table, unsigned int camera_id,
+    robots_table& table, unsigned int camera_id,
     const google::protobuf::RepeatedPtrField<ssl_protos::vision::Robot>& robots) {
   for (auto it = robots.cbegin(); it != robots.cend(); ++it) {
     table.emplace(it->robot_id(), std::forward_as_tuple(camera_id, it));
   }
 }
 
-std::unordered_map<unsigned int, model::robot> world_updater::build_robot_list(
-    const robots_table_t& table,
-    const std::unordered_map<unsigned int, model::robot>& prev_data) {
-  std::unordered_map<unsigned int, model::robot> ret{};
+model::world::robots_list world_updater::build_robots_list(
+    const robots_table& table, const model::world::robots_list& prev_data) {
+  model::world::robots_list ret{};
 
   for (auto it = table.cbegin(); it != table.cend();) {
     const auto robot_id = it->first;

@@ -45,10 +45,10 @@ BOOST_AUTO_TEST_CASE(setter) {
   ai_server::model::ball ball{123, 456, 789};
   w.set_ball(ball);
 
-  std::unordered_map<unsigned int, ai_server::model::robot> robots_blue{{1, {1}}, {3, {3}}};
+  ai_server::model::world::robots_list robots_blue{{1, {1}}, {3, {3}}};
   w.set_robots_blue(robots_blue);
 
-  std::unordered_map<unsigned int, ai_server::model::robot> robots_yellow{{2, {2}}, {4, {4}}};
+  ai_server::model::world::robots_list robots_yellow{{2, {2}}, {4, {4}}};
   w.set_robots_yellow(robots_yellow);
 
   BOOST_TEST(w.field().length() == 1);
