@@ -29,27 +29,27 @@ BOOST_AUTO_TEST_CASE(test02, *boost::unit_test::tolerance(0.0005)) {
   ai_server::filter::velocity_calculator<ai_server::model::robot> test_calculator;
   using namespace std::chrono_literals;
   //(0,0)から(3,6)へ1秒で移動、thetaが0.0から1.0へ1秒で変化
-  ai_server::model::robot test_robot{0, 3.0, 6.0, 1.0};
+  ai_server::model::robot test_robot{0, 3.0, 6.0, 3.0};
   const auto t1 = std::chrono::high_resolution_clock::time_point{};
   const auto t2 = t1 + 1s;
   test_calculator.apply(test_robot, t2);
   BOOST_TEST(test_robot.vx() == 3.0);
   BOOST_TEST(test_robot.vy() == 6.0);
-  BOOST_TEST(test_robot.omega() == 1.0);
-  //(3,6)から(-3,9)へ3秒で移動、thetaが1.0から-3.0へ3秒で変化
-  test_robot    = ai_server::model::robot{0, -3.0, 9.0, -3.0};
+  BOOST_TEST(test_robot.omega() == 3.0);
+  //(3,6)から(-3,9)へ3秒で移動、thetaが0.0から0.0へ3秒で変化
+  test_robot    = ai_server::model::robot{0, -3.0, 9.0, 0.0};
   const auto t3 = t2 + 3s;
   test_calculator.apply(test_robot, t3);
   BOOST_TEST(test_robot.vx() == -2.0);
   BOOST_TEST(test_robot.vy() == 1.0);
-  BOOST_TEST(test_robot.omega() == 0.7610);
-  //(-3,9)から(-3,9)へ1秒で移動、thetaが-3.0から3.0へ3秒で変化
-  test_robot    = ai_server::model::robot{0, -3.0, 9.0, 3.0};
+  BOOST_TEST(test_robot.omega() == -1.0);
+  //(-3,9)から(-3,9)へ1秒で移動、thetaが2.0から6.0へ1秒で変化
+  test_robot    = ai_server::model::robot{0, -3.0, 9.0, 4.0};
   const auto t4 = t3 + 1s;
   test_calculator.apply(test_robot, t4);
   BOOST_TEST(test_robot.vx() == 0.0);
   BOOST_TEST(test_robot.vy() == 0.0);
-  BOOST_TEST(test_robot.omega() == -0.2831);
+  BOOST_TEST(test_robot.omega() == -2.2831);
 }
 
 // reset()のテスト

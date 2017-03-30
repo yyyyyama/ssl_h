@@ -25,10 +25,10 @@ void velocity_calculator<model::robot>::apply(
   if(std::abs(robot.theta() - prev_state_.theta()) <= pi<double>())
     robot.set_omega((robot.theta() - prev_state_.theta()) / elapsed_time.count());
   else{
-    if(prev_state_.theta() < 0)
-      robot.set_omega(-(two_pi<double>() - std::fabs(robot.theta()) - std::fabs(prev_state_.theta())) / elapsed_time.count());
+    if((robot.theta() - prev_state_.theta()) < 0)
+      robot.set_omega((two_pi<double>() - std::fabs(robot.theta() - prev_state_.theta())) / elapsed_time.count());
     else
-      robot.set_omega((two_pi<double>() - std::fabs(robot.theta()) - std::fabs(prev_state_.theta())) / elapsed_time.count());
+      robot.set_omega(-(two_pi<double>() - std::fabs(robot.theta() - prev_state_.theta())) / elapsed_time.count());
   }
   prev_state_ = robot;
   prev_time_  = time;
