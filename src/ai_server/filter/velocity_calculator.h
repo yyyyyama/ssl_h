@@ -5,6 +5,7 @@
 #include "ai_server/model/ball.h"
 #include "ai_server/model/robot.h"
 #include <chrono>
+#include <cmath>
 
 namespace ai_server {
 namespace filter {

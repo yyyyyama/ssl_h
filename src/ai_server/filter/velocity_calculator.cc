@@ -20,8 +20,14 @@ void velocity_calculator<model::robot>::apply(
   const auto elapsed_time = std::chrono::duration<double>(time - prev_time_);
   robot.set_vx((robot.x() - prev_state_.x()) / elapsed_time.count());
   robot.set_vy((robot.y() - prev_state_.y()) / elapsed_time.count());
-  robot.set_omega((robot.theta() - prev_state_.theta()) / elapsed_time.count());
-
+  if(std::abs(robot.theta() - prev_state_.theta()) <= M_PI)
+    robot.set_omega((robot.theta() - prev_state_.theta()) / elapsed_time.count());
+  else{
+    if(prev_state_.theta() < 0)
+      robot.set_omega(-(2 * M_PI - std::fabs(robot.theta()) - std::fabs(prev_state_.theta())) / elapsed_time.count());
+    else
+      robot.set_omega((2 * M_PI - std::fabs(robot.theta()) - std::fabs(prev_state_.theta())) / elapsed_time.count());
+  }
   prev_state_ = robot;
   prev_time_  = time;
 }
