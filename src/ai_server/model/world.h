@@ -56,7 +56,7 @@ public:
 
   /// @brief                  内部の状態を更新する
   /// @param packet           SSL-Visionのパース済みパケット
-  void update(const ssl_protos::vision::Packet& packet);
+  [[deprecated]] void update(const ssl_protos::vision::Packet& packet);
 
 private:
   /// @brief                  detectionパケットを処理し, ボールやロボットの情報を更新する
