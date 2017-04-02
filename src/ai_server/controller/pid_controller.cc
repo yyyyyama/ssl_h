@@ -1,4 +1,6 @@
 #include "pid_controller.h"
+#include <boost/math/constants/constants.hpp>
+#include <cmath>
 
 namespace ai_server {
 namespace controller {
@@ -29,27 +31,32 @@ pid_controller::pid_controller(double cycle) : cycle_(cycle) {
     up_[i] = {0.0, 0.0, 0.0};
     ui_[i] = {0.0, 0.0, 0.0};
     ud_[i] = {0.0, 0.0, 0.0};
+    u_[i]  = {0.0, 0.0, 0.0};
     e_[i]  = {0.0, 0.0, 0.0};
   }
 }
 
 velocity_t pid_controller::update(const model::robot& robot, const position_t& setpoint) {
+  auto normalize_angle = [](double angle) {
+    double pi = boost::math::constants::pi<double>();
+    if (angle > pi)
+      return angle -= 2 * pi;
+    else if (angle < -pi)
+      return angle += 2 * pi;
+    else
+      return angle;
+  };
   // 位置偏差
   position_t ep;
   ep.x     = setpoint.x - robot.x();
   ep.y     = setpoint.y - robot.y();
-  ep.theta = setpoint.theta - robot.theta();
+  ep.theta = normalize_angle(setpoint.theta - robot.theta());
 
-  // 目標速度
-  velocity_t set_velocity;
-  set_velocity.vx    = ep.x / cycle_;
-  set_velocity.vy    = ep.y / cycle_;
-  set_velocity.omega = ep.theta - cycle_;
-
-  // 速度偏差
-  e_[0].vx    = set_velocity.vx - robot.vx();
-  e_[0].vy    = set_velocity.vy - robot.vy();
-  e_[0].omega = set_velocity.omega - robot.omega();
+  double speed     = std::hypot(ep.x, ep.y);
+  double vel_theta = normalize_angle(atan2(ep.y, ep.x) - robot.theta());
+  e_[0].vx         = speed * cos(vel_theta);
+  e_[0].vy         = speed * sin(vel_theta);
+  e_[0].omega      = ep.theta;
 
   // 制御計算
   calculate();
