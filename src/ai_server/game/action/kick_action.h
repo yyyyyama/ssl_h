@@ -1,7 +1,7 @@
 #ifndef AI_SERVER_GAME_ACTION_KICK_ACTION_H
 #define AI_SERVER_GAME_ACTION_KICK_ACTION_H
-#include"ai_server/model/command.h"
-#include"base.h"
+#include "ai_server/model/command.h"
+#include "base.h"
 namespace ai_server {
 namespace game {
 namespace action {
@@ -19,11 +19,11 @@ public:
   bool finished() const;
 
 private:
-  double ball_x_,ball_y_;
-  double x_,y_;
-  double dx_,dy_;
+  double ball_x_, ball_y_;
+  double x_, y_;
+  double dx_, dy_;
   model::command::position_t robot_pos_;
-  model::command::kick_flag_t& kick_type_;
+  model::command::kick_flag_t kick_type_;
   bool exeflag_ = false;
   int count_    = 0;
 };
