@@ -9,8 +9,8 @@ namespace action {
 void marking::mark_robot(unsigned int enemy_id) {
   enemy_id_ = enemy_id;
 }
-void marking::mark_mode(unsigned int mode){
-	mode_ = mode;
+void marking::mark_mode(unsigned int mode) {
+  mode_ = mode;
 }
 model::command marking::execute() {
   //それぞれ自機と敵機を生成
@@ -18,15 +18,31 @@ model::command marking::execute() {
   const auto enemy_robots  = is_yellow_ ? world_.robots_blue() : world_.robots_yellow();
   const auto& enemy_robot_ = enemy_robots.at(enemy_id_);
   /*必要なパラメータ*/
-  const auto ball_x  = world_.ball().x();
-  const auto ball_y  = world_.ball().y();
+  auto opponent_x = 0.0;
+  auto opponent_y = 0.0;
+  auto radius     = 0.0;
+  switch (mode_) {
+    case 0:
+      /*敵機とボールをマーク*/
+      opponent_x = world_.ball().x();
+      opponent_y = world_.ball().y();
+      radius     = 180.0;
+      break;
+    case 1:
+      /*敵機のシュートをマーク
+       * 座標>0が敵陣地			*/
+      opponent_x = -4500.0;
+      opponent_y = 0.0;
+      radius     = 1000.0;
+      break;
+  }
   const auto enemy_x = enemy_robot_.x();
   const auto enemy_y = enemy_robot_.y();
-  const auto radius  = 180;
   /*計算過程で使用する定数と係数*/
-  const auto constant_1 = (-ball_x * (enemy_y - ball_x) + ball_y * (enemy_x - ball_x)) /
-                          (enemy_x - enemy_x - ball_x);
-  const auto constant_2 = (enemy_y - ball_y) / (enemy_x - ball_x);
+  const auto constant_1 =
+      (-opponent_x * (enemy_y - opponent_x) + opponent_y * (enemy_x - opponent_x)) /
+      (enemy_x - enemy_x - opponent_x);
+  const auto constant_2 = (enemy_y - opponent_y) / (enemy_x - opponent_x);
 
   const auto coefficient_1 = 1 + std::pow(constant_2, 2);
   const auto coefficient_2 =
@@ -40,7 +56,7 @@ model::command marking::execute() {
                  (2 * coefficient_1);
   const auto y = x * constant_2 + constant_1;
   /*向きをボールの方へ*/
-  const auto theta = ai_server::util::wrap_to_2pi(std::atan2(ball_x - x, ball_y - y));
+  const auto theta = ai_server::util::wrap_to_2pi(std::atan2(opponent_x - x, opponent_y - y));
   /*計算した値を自機にセット*/
   ally_robot.set_position({x, y, theta});
 
