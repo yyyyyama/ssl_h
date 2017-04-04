@@ -86,7 +86,7 @@ void pid_controller::calculate() {
   u_[0]  = u_[1] + cycle_ * (up_[0] + ui_[0] + ud_[0]);
 
   // 加速度，速度制限
-  double u_angle         = atan2(u_[0].vy, u_[0].vx);      // 今回指令速度の方向
+  double u_angle         = std::atan2(u_[0].vy, u_[0].vx); // 今回指令速度の方向
   double u_speed         = std::hypot(u_[0].vx, u_[0].vy); // 今回指令速度の大きさ
   double preceding_speed = std::hypot(u_[1].vx, u_[1].vy); // 前回指令速度の大きさ
   double delta_speed = u_speed - preceding_speed; // 速さ偏差(今回速さと前回速さの差)
@@ -100,18 +100,18 @@ void pid_controller::calculate() {
   }
   // 加速度制限
   if (delta_speed / cycle_ > optimized_accel &&
-      fabs(u_speed) > fabs(preceding_speed)) { // +制限加速度超過
+      std::abs(u_speed) > std::abs(preceding_speed)) { // +制限加速度超過
     u_speed = preceding_speed + (optimized_accel * cycle_);
   } else if (delta_speed / cycle_ < -optimized_accel &&
-             fabs(u_speed) > fabs(preceding_speed)) { // -制限加速度超過
+             std::abs(u_speed) > std::abs(preceding_speed)) { // -制限加速度超過
     u_speed = preceding_speed - (optimized_accel * cycle_);
   }
   // 速度制限
   if (u_speed > max_velocity_) { // 最大速度超過
     u_speed = max_velocity_;
   }
-  u_[0].vx = u_speed * cos(u_angle); // 成分速度再計算
-  u_[0].vy = u_speed * sin(u_angle);
+  u_[0].vx = u_speed * std::cos(u_angle); // 成分速度再計算
+  u_[0].vy = u_speed * std::sin(u_angle);
 
   // 値の更新
   up_[1] = up_[0];
