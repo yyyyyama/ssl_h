@@ -9,10 +9,13 @@ namespace action {
 void marking::mark_robot(unsigned int enemy_id) {
   enemy_id_ = enemy_id;
 }
+void marking::mark_mode(unsigned int mode){
+	mode_ = mode;
+}
 model::command marking::execute() {
-	//それぞれ自機と敵機を生成
+  //それぞれ自機と敵機を生成
   model::command ally_robot(id_);
-	const auto enemy_robots = is_yellow_ ? world_.robots_blue() : world_.robots_yellow();
+  const auto enemy_robots  = is_yellow_ ? world_.robots_blue() : world_.robots_yellow();
   const auto& enemy_robot_ = enemy_robots.at(enemy_id_);
   /*必要なパラメータ*/
   const auto ball_x  = world_.ball().x();
@@ -37,8 +40,8 @@ model::command marking::execute() {
                  (2 * coefficient_1);
   const auto y = x * constant_2 + constant_1;
   /*向きをボールの方へ*/
-  const auto theta = ai_server::util::wrap_to_2pi(std::atan2(ball_x - x , ball_y - y));
-/*計算した値を自機にセット*/
+  const auto theta = ai_server::util::wrap_to_2pi(std::atan2(ball_x - x, ball_y - y));
+  /*計算した値を自機にセット*/
   ally_robot.set_position({x, y, theta});
 
   return ally_robot;
@@ -49,4 +52,3 @@ bool marking::finished() const {
 }
 }
 }
-
