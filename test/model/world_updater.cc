@@ -1,68 +1,18 @@
 #define BOOST_TEST_DYN_LINK
-#define BOOST_TEST_MODULE world_model_test
+#define BOOST_TEST_MODULE world_updater_test
 
 #include <stdexcept>
 #include <boost/test/unit_test.hpp>
 
-#include "ai_server/model/detail/confidence_comparator.h"
-#include "ai_server/model/world.h"
+#include "ai_server/model/world_updater.h"
 
 #include "ssl-protos/vision/detection.pb.h"
 
-BOOST_AUTO_TEST_SUITE(confidence_comparator)
-
-BOOST_AUTO_TEST_CASE(ball) {
-  ssl_protos::vision::Ball ball1;
-  ball1.set_confidence(98.0f);
-  ssl_protos::vision::Ball ball2;
-  ball2.set_confidence(95.0f);
-
-  // ball1.confidence() > ball2.confidence()
-  BOOST_TEST(ai_server::model::detail::confidence_comparator(ball1, ball2));
-}
-
-BOOST_AUTO_TEST_CASE(robot) {
-  ssl_protos::vision::Robot robot1;
-  robot1.set_confidence(98.0f);
-  ssl_protos::vision::Robot robot2;
-  robot2.set_confidence(95.0f);
-
-  // robot1.confidence() > robot2.confidence()
-  BOOST_TEST(ai_server::model::detail::confidence_comparator(robot1, robot2));
-}
-
-BOOST_AUTO_TEST_SUITE_END()
-
-BOOST_AUTO_TEST_SUITE(world_model)
-
-BOOST_AUTO_TEST_CASE(setter) {
-  ai_server::model::world w{};
-
-  ai_server::model::field field{};
-  field.set_length(1);
-  w.set_field(field);
-
-  ai_server::model::ball ball{123, 456, 789};
-  w.set_ball(ball);
-
-  ai_server::model::world::robots_list robots_blue{{1, {1}}, {3, {3}}};
-  w.set_robots_blue(robots_blue);
-
-  ai_server::model::world::robots_list robots_yellow{{2, {2}}, {4, {4}}};
-  w.set_robots_yellow(robots_yellow);
-
-  BOOST_TEST(w.field().length() == 1);
-  BOOST_TEST(w.ball().x() = 123);
-  BOOST_TEST(w.robots_blue().size() == 2);
-  BOOST_TEST(w.robots_blue().count(1) == 1);
-  BOOST_TEST(w.robots_blue().count(3) == 1);
-  BOOST_TEST(w.robots_yellow().size() == 2);
-  BOOST_TEST(w.robots_yellow().count(2) == 1);
-  BOOST_TEST(w.robots_yellow().count(4) == 1);
-}
+BOOST_AUTO_TEST_SUITE(world_updater)
 
 BOOST_AUTO_TEST_CASE(detection) {
-  ai_server::model::world w{};
+  ai_server::model::world_updater wu{};
+  const auto& w = wu.world_model();
 
   {
     ssl_protos::vision::Packet p;
@@ -104,7 +54,7 @@ BOOST_AUTO_TEST_CASE(detection) {
     ry7->set_orientation(702);
     ry7->set_confidence(97.0);
 
-    w.update(p);
+    wu.update(p);
   }
 
   {
@@ -200,7 +150,7 @@ BOOST_AUTO_TEST_CASE(detection) {
     ry7->set_orientation(705);
     ry7->set_confidence(96.0);
 
-    w.update(p);
+    wu.update(p);
   }
 
   {
@@ -267,7 +217,7 @@ BOOST_AUTO_TEST_CASE(detection) {
     auto md = p.mutable_detection();
     md->set_camera_id(0);
 
-    w.update(p);
+    wu.update(p);
   }
 
   {
@@ -323,7 +273,8 @@ BOOST_AUTO_TEST_CASE(detection) {
 }
 
 BOOST_AUTO_TEST_CASE(geometry) {
-  ai_server::model::world w{};
+  ai_server::model::world_updater wu{};
+  const auto& w = wu.world_model();
 
   {
     ssl_protos::vision::Packet p;
@@ -350,7 +301,7 @@ BOOST_AUTO_TEST_CASE(geometry) {
     mp2->set_x(-4000);
     mp2->set_y(150);
 
-    w.update(p);
+    wu.update(p);
   }
 
   {
@@ -396,7 +347,7 @@ BOOST_AUTO_TEST_CASE(geometry) {
     mp2->set_x(-2750);
     mp2->set_y(250);
 
-    w.update(p);
+    wu.update(p);
   }
 
   {
