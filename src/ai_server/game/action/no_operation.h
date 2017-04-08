@@ -4,20 +4,18 @@
 #include "base.h"
 #include <iostream>
 
-namespace ai_server{
-namespace game{
-namespace action{
+namespace ai_server {
+namespace game {
+namespace action {
 
 class no_operation : public base {
-    public:
-    using base::base;
+public:
+  using base::base;
 
-    model::command execute() override;
+  model::command execute() override;
 
-    bool finished() const override;
-
+  bool finished() const override;
 };
-
 }
 }
 }
