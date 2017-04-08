@@ -27,12 +27,12 @@ static constexpr bool is_yellow = true;
 
 // Vision の設定
 static constexpr char vision_address[] = "224.5.23.2";
-static constexpr short vision_port     = 10006;
+static constexpr short vision_port     = 10020;
 
 // Sender の設定
-static constexpr bool is_grsim            = false;
+static constexpr bool is_grsim            = true;
 static constexpr char xbee_path[]         = "/dev/ttyUSB0";
-static constexpr char grsim_address[]     = "10.2.0.1";
+static constexpr char grsim_address[]     = "192.168.24.60";
 static constexpr short grsim_command_port = 20011;
 
 // 制御周期の設定
@@ -72,6 +72,7 @@ auto main() -> int {
     const auto& robots = is_yellow ? w.robots_yellow() : w.robots_blue();
     // ロボットが見えているか
     if (robots.count(id)) {
+			std::cout << "nyan" << std::endl;
       // このループでの命令を計算
       auto cmd = action.execute();
 
