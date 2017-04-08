@@ -17,6 +17,22 @@ T wrap_to_2pi(T r) {
   }
   return wrapped;
 }
+
+/// @brief	-pi<r<=piに正規化
+template <class T>
+T wrap_to_pi(T r) {
+  using boost::math::constants::two_pi;
+  using boost::math::constants::pi;
+
+  auto wrapped = std::fmod(r, two_pi<T>());
+
+  if (wrapped > pi<T>()) {
+    wrapped -= two_pi<T>();
+  } else if (wrapped <= -pi<T>()) {
+    wrapped += two_pi<T>();
+  }
+  return wrapped;
+}
 }
 }
 #endif
