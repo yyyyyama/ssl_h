@@ -2,7 +2,6 @@
 #define AI_SERVER_GAME_ACTION_NO_OPERATION_H
 
 #include "base.h"
-#include <iostream>
 
 namespace ai_server {
 namespace game {
