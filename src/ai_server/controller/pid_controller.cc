@@ -1,4 +1,5 @@
 #include "pid_controller.h"
+#include <boost/algorithm/clamp.hpp>
 #include <cmath>
 
 namespace ai_server {
@@ -86,6 +87,7 @@ void pid_controller::calculate() {
   u_[0]  = u_[1] + cycle_ * (up_[0] + ui_[0] + ud_[0]);
 
   // 加速度，速度制限
+  using boost::algorithm::clamp;
   double u_angle         = std::atan2(u_[0].vy, u_[0].vx); // 今回指令速度の方向
   double u_speed         = std::hypot(u_[0].vx, u_[0].vy); // 今回指令速度の大きさ
   double preceding_speed = std::hypot(u_[1].vx, u_[1].vy); // 前回指令速度の大きさ
@@ -95,9 +97,7 @@ void pid_controller::calculate() {
   double optimized_accel =
       preceding_speed * (max_acceleration_ - min_acceleration_) / reach_speed_ +
       min_acceleration_;
-  if (optimized_accel > max_acceleration_) {
-    optimized_accel = max_acceleration_;
-  }
+  optimized_accel = clamp(optimized_accel, min_acceleration_, max_acceleration_);
   // 加速度制限
   if (delta_speed / cycle_ > optimized_accel &&
       std::abs(u_speed) > std::abs(preceding_speed)) { // +制限加速度超過
@@ -107,9 +107,8 @@ void pid_controller::calculate() {
     u_speed = preceding_speed - (optimized_accel * cycle_);
   }
   // 速度制限
-  if (u_speed > max_velocity_) { // 最大速度超過
-    u_speed = max_velocity_;
-  }
+  u_speed = clamp(u_speed, 0.0, max_velocity_);
+
   u_[0].vx = u_speed * std::cos(u_angle); // 成分速度再計算
   u_[0].vy = u_speed * std::sin(u_angle);
 
