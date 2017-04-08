@@ -19,12 +19,12 @@ model::ball world::ball() const {
   return ball_;
 }
 
-std::unordered_map<unsigned int, model::robot> world::robots_blue() const {
+world::robots_list world::robots_blue() const {
   std::lock_guard<std::mutex> lock(mutex_);
   return robots_blue_;
 }
 
-std::unordered_map<unsigned int, model::robot> world::robots_yellow() const {
+world::robots_list world::robots_yellow() const {
   std::lock_guard<std::mutex> lock(mutex_);
   return robots_yellow_;
 }

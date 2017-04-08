@@ -9,9 +9,9 @@ namespace controller {
 class pid_controller : public base {
 private:
   double cycle_;                         // 制御周期
-  const static double kp_;               // 比例ゲイン(xy,rotate)
-  const static double ki_;               // 積分ゲイン(xy,rotate)
-  const static double kd_;               // 微分ゲイン(xy,rotate)
+  const static double kp_[2];            // 比例ゲイン(xy,rotate)
+  const static double ki_[2];            // 積分ゲイン(xy,rotate)
+  const static double kd_[2];            // 微分ゲイン(xy,rotate)
   const static double max_velocity_;     // 最大速度
   const static double max_acceleration_; // 最大加速度
   const static double min_acceleration_; // 最小加速度
