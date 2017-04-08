@@ -19,13 +19,12 @@ public:
   bool finished() const;
 
 private:
-  double ball_x_, ball_y_;
-  double x_, y_;
-  double dx_, dy_;
-  model::command::position_t robot_pos_;
+  double x_;
+  double y_;
+  double old_ball_x;
+  double old_ball_y;
   model::command::kick_flag_t kick_type_;
   bool exeflag_ = false;
-  int count_    = 0;
 };
 } // namespace action
 } // namespace game
