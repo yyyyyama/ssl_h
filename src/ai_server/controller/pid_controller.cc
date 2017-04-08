@@ -33,7 +33,6 @@ pid_controller::pid_controller(double cycle) : cycle_(cycle) {
     up_[i] = {0.0, 0.0, 0.0};
     ui_[i] = {0.0, 0.0, 0.0};
     ud_[i] = {0.0, 0.0, 0.0};
-    u_[i]  = {0.0, 0.0, 0.0};
     e_[i]  = {0.0, 0.0, 0.0};
   }
 }
