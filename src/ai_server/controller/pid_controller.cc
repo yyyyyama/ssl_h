@@ -2,6 +2,8 @@
 #include <boost/math/constants/constants.hpp>
 #include <cmath>
 
+#include "../util/math.h"
+
 namespace ai_server {
 namespace controller {
 
@@ -37,23 +39,14 @@ pid_controller::pid_controller(double cycle) : cycle_(cycle) {
 }
 
 velocity_t pid_controller::update(const model::robot& robot, const position_t& setpoint) {
-  auto normalize_angle = [](double angle) {
-    double pi = boost::math::constants::pi<double>();
-    if (angle > pi)
-      return angle -= 2 * pi;
-    else if (angle < -pi)
-      return angle += 2 * pi;
-    else
-      return angle;
-  };
   // 位置偏差
   position_t ep;
   ep.x     = setpoint.x - robot.x();
   ep.y     = setpoint.y - robot.y();
-  ep.theta = normalize_angle(setpoint.theta - robot.theta());
+  ep.theta = util::wrap_to_pi(setpoint.theta - robot.theta());
 
   double speed     = std::hypot(ep.x, ep.y);
-  double vel_theta = normalize_angle(std::atan2(ep.y, ep.x) - robot.theta());
+  double vel_theta = util::wrap_to_pi(std::atan2(ep.y, ep.x) - robot.theta());
   e_[0].vx         = speed * std::cos(vel_theta);
   e_[0].vy         = speed * std::sin(vel_theta);
   e_[0].omega      = ep.theta;
