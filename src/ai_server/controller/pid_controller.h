@@ -8,19 +8,17 @@ namespace controller {
 
 class pid_controller : public base {
 private:
-  double cycle_;                         // 制御周期
-  const static double kp_[2];            // 比例ゲイン
-  const static double ki_[2];            // 積分ゲイン
-  const static double kd_[2];            // 微分ゲイン
-  velocity_t up_[2];                     // 操作量(比例,1フレーム前まで)
-  velocity_t ui_[2];                     // 操作量(積分,1フレーム前まで)
-  velocity_t ud_[2];                     // 操作量(微分,1フレーム前まで)
-  velocity_t u_[2];                      // 操作量
-  velocity_t e_[2];                      // 偏差(1フレーム前まで)
-  const static double max_velocity_;     // 最大速度
-  const static double max_acceleration_; // 最大加速度
-  const static double min_acceleration_;
-  const static double reach_speed_;
+  double cycle_;            // 制御周期
+  const static double kp_;  // 比例ゲイン
+  const static double ki_;  // 積分ゲイン
+  const static double kd_;  // 微分ゲイン
+  velocity_t up_[2];        // 操作量(比例,1フレーム前まで)
+  velocity_t ui_[2];        // 操作量(積分,1フレーム前まで)
+  velocity_t ud_[2];        // 操作量(微分,1フレーム前まで)
+  velocity_t u_;            // 操作量
+  velocity_t e_[2];         // 偏差(1フレーム前まで)
+  double max_velocity_;     // 最大速度
+  double max_acceleration_; // 最大加速度
 
   // 制御計算関数
   void calculate();
