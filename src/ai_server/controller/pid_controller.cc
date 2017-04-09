@@ -45,9 +45,9 @@ velocity_t pid_controller::update(const model::robot& robot, const position_t& s
   ep.theta = util::wrap_to_pi(setpoint.theta - robot.theta());
 
   double speed     = std::hypot(ep.x, ep.y);
-  double vel_theta = util::wrap_to_pi(std::atan2(ep.y, ep.x) - robot.theta());
-  e_[0].vx         = speed * std::cos(vel_theta);
-  e_[0].vy         = speed * std::sin(vel_theta);
+  double direction = util::wrap_to_pi(std::atan2(ep.y, ep.x) - robot.theta());
+  e_[0].vx         = speed * std::cos(direction);
+  e_[0].vy         = speed * std::sin(direction);
   e_[0].omega      = ep.theta;
 
   // 制御計算
