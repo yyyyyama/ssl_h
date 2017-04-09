@@ -8,11 +8,16 @@ namespace ai_server {
 namespace game {
 namespace action {
 
+kick_action::kick_action(const model::world& world, bool is_yellow, unsigned int id)
+    : base(world, is_yellow, id) {
+  const auto ball = world.ball();
+  old_ball_x      = ball.x();
+  old_ball_y      = ball.y();
+}
+
 void kick_action::kick_to(double x, double y) {
-  x_         = x;
-  y_         = y;
-  old_ball_x = x;
-  old_ball_y = y;
+  x_ = x;
+  y_ = y;
 }
 
 void kick_action::set_kick_type(const model::command::kick_flag_t& kick_type) {
@@ -36,17 +41,17 @@ model::command kick_action::execute() {
   const double ball_y = ball.y();
 
   // ボールから目標位置のx成分
-  const double dx1 = x_ - ball_x;
+  const double to_target_x = x_ - ball_x;
   // ボールから目標位置のy成分
-  const double dy1 = y_ - ball_y;
+  const double to_target_y = y_ - ball_y;
   // ボールから目標位置のx成分
-  const double dx2 = robot_x - ball_x;
+  const double to_robot_x = robot_x - ball_x;
   // ボールからロボットのy成分
-  const double dy2 = robot_y - ball_y;
+  const double to_robot_y = robot_y - ball_y;
   // ボールから目標位置の角度 0から2π
-  const double atand1 = util::wrap_to_2pi(std::atan2(dy1, dx1));
+  const double atand1 = util::wrap_to_2pi(std::atan2(to_target_y, to_target_x));
   // ボールからロボットの角度 0から2π
-  const double atand2 = util::wrap_to_2pi(std::atan2(dy2, dx2));
+  const double atand2 = util::wrap_to_2pi(std::atan2(to_robot_y, to_robot_x));
   const double dth    = std::abs(atand1 - atand2) - pi<double>();
 
   model::command command(id_);
@@ -55,19 +60,19 @@ model::command kick_action::execute() {
   // 角度を調整するときの許容誤差(rad)
   const double margin = 0.02;
   // executeが呼ばれる間にボールがこれだけ移動したら蹴ったと判定する長さ(mm)
-  const double kick_decision = 5;
+  const double kick_decision = 15;
 
   if (std::hypot(old_ball_x - ball_x, old_ball_y - ball_y) > kick_decision) {
     // executeが呼ばれる間の時間でボールが一定以上移動していたら蹴ったと判定
     robot_pos = {robot_x, robot_y, robot_theta};
     exeflag_  = true;
-  } else if (std::hypot(dx2, dy2) > 200) {
+  } else if (std::hypot(to_robot_x, to_robot_y) > 200) {
     // ロボットがボールから200mm以上離れていればボールに近づく処理
     robot_pos = {ball_x, ball_y, robot_theta};
-  } else if (dth < -margin || dth > +margin) {
+  } else if (std::abs(dth) > margin) {
     // ロボット、ボール、蹴りたい位置が一直線に並んでいなければボールを中心にまわる処理
-    if ((atand1 > atand2 && (atand1 - atand2 <= pi<double>())) ||
-        (atand1 < atand2 && (atand2 - atand1 >= pi<double>()))) {
+
+    if (util::wrap_to_pi(atand1 - atand2) > 0) {
       // 時計回り
       robot_pos = {robot_x + std::abs(dth) * 300 * std::sin(atand2),
                    robot_y - std::abs(dth) * 300 * std::cos(atand2), robot_theta};
