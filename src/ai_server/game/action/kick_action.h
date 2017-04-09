@@ -1,7 +1,9 @@
 #ifndef AI_SERVER_GAME_ACTION_KICK_ACTION_H
 #define AI_SERVER_GAME_ACTION_KICK_ACTION_H
+
 #include "ai_server/model/command.h"
 #include "base.h"
+
 namespace ai_server {
 namespace game {
 namespace action {
@@ -14,9 +16,9 @@ public:
 
   void set_kick_type(const model::command::kick_flag_t& kick_type);
 
-  model::command execute();
+  model::command execute() override;
 
-  bool finished() const;
+  bool finished() const override;
 
 private:
   double x_;
