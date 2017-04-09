@@ -65,7 +65,7 @@ auto main() -> int {
   // Actionの初期化
   game::action::marking action{w, is_yellow, id};
   action.mark_robot(3);
-	action.mark_mode(0);
+  action.mark_mode(0);
 
   std::thread vth([&io_service] { io_service.run(); });
 
