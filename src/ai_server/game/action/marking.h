@@ -17,9 +17,9 @@ public:
   bool finished() const override;
 
 private:
-  unsigned int enemy_id_; //指定された敵ロボットのidを保持
-	mark_mode mode_ = mark_mode::pass_block; //マーキングの種類変更
-  bool flag                = false;                 //終了判定のフラグ
+  unsigned int enemy_id_;                  //指定された敵ロボットのidを保持
+  mark_mode mode_ = mark_mode::pass_block; //マーキングの種類変更
+  bool flag       = false;                 //終了判定のフラグ
 };
 }
 }
