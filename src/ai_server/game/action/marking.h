@@ -10,15 +10,16 @@ namespace action {
 class marking : public base {
 public:
   using base::base;
+  enum class mark_mode { pass_block, kick_block, shoot_block };
   void mark_robot(unsigned int enemy_id);
-  void mark_mode(unsigned int mode);
-  model::command execute();
-  bool finished() const;
+  void mode_choose(action::marking::mark_mode mode);
+  model::command execute() override;
+  bool finished() const override;
 
 private:
-  unsigned int enemy_id_;     //指定された敵ロボットのidを保持
-  unsigned int mode_ = 0;     //マーキングの種類変更
-  bool flag          = false; //終了判定のフラグ
+  unsigned int enemy_id_; //指定された敵ロボットのidを保持
+	mark_mode mode_ = mark_mode::pass_block; //マーキングの種類変更
+  bool flag                = false;                 //終了判定のフラグ
 };
 }
 }

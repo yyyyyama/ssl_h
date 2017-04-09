@@ -9,8 +9,16 @@ namespace action {
 void marking::mark_robot(unsigned int enemy_id) {
   enemy_id_ = enemy_id;
 }
-void marking::mark_mode(unsigned int mode) {
-  mode_ = mode;
+void marking::mode_choose(mark_mode mode) {
+  switch (mode) {
+		case mark_mode::pass_block:  //ボールを受け取るのを阻止(内分点)
+		case mark_mode::kick_block:  //ボールを蹴るのを阻止(外分点)
+		case mark_mode::shoot_block: //シュートを阻止
+      mode_ = mode;
+      break;
+    default:
+      break;
+  }
 }
 model::command marking::execute() {
   using boost::math::constants::pi;
@@ -28,35 +36,34 @@ model::command marking::execute() {
   auto tmp_y         = 0.0;
   auto x             = 0.0;
   auto y             = 0.0;
-  auto m             = 0.0;
-  auto tmp           = 0.0;
+  auto ratio         = 0.0; //敵位置とボールの比
+  auto tmp           = 0.0; //敵位置 - 自位置の比
   switch (mode_) {
-    case 0: //ボールを受け取るのを阻止(内分点)
-      m     = 200.0 / std::hypot(enemy_x - ball_x, enemy_y - ball_y);
-      x     = (1 - m) * enemy_x + m * ball_x;
-      y     = (1 - m) * enemy_y + m * ball_y;
+		case mark_mode::pass_block: //ボールを受け取るのを阻止(内分点)
+      ratio = 200.0 / std::hypot(enemy_x - ball_x, enemy_y - ball_y);
+      x     = (1 - ratio) * enemy_x + ratio * ball_x;
+      y     = (1 - ratio) * enemy_y + ratio * ball_y;
       tmp_x = ball_x;
       tmp_y = ball_y;
       break;
-    case 1: //ボールを蹴るのを阻止(外分点)
+		case mark_mode::kick_block: //ボールを蹴るのを阻止(外分点)
       tmp   = std::hypot(enemy_x - ball_x, enemy_y - ball_y) / 300.0;
-      m     = 1 - tmp;
-      x     = (-m * enemy_x + ball_x) / tmp;
-      y     = (-m * enemy_y + ball_y) / tmp;
+      ratio = 1 - tmp;
+      x     = (-ratio * enemy_x + ball_x) / tmp;
+      y     = (-ratio * enemy_y + ball_y) / tmp;
       tmp_x = ball_x;
       tmp_y = ball_y;
       break;
-    case 2: //シュートを阻止
-      m     = 1500.0 / std::hypot(4500 - enemy_x, enemy_y);
-      x     = (1 - m) * 4500 + m * enemy_x;
-      y     = m * enemy_y;
+		case mark_mode::shoot_block: //シュートを阻止
+      ratio = 1500.0 / std::hypot(4500 - enemy_x, enemy_y);
+      x     = (1 - ratio) * 4500 + ratio * enemy_x;
+      y     = ratio * enemy_y;
       tmp_x = enemy_x;
       tmp_y = enemy_y;
   }
 
   //向きをボールの方へ
-  const auto theta =
-      ai_server::util::wrap_to_2pi(std::atan2(y - tmp_y, x - tmp_x) + pi<double>());
+  const auto theta = util::wrap_to_2pi(std::atan2(y - tmp_y, x - tmp_x) + pi<double>());
 
   //計算した値を自機にセット
   ally_robot.set_position({x, y, theta});
