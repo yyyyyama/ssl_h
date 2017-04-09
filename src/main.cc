@@ -22,7 +22,7 @@ using namespace ai_server;
 // --------------------------------
 
 // ロボットの設定
-static constexpr auto id        = 4u;
+static constexpr auto id        = 3u;
 static constexpr bool is_yellow = true;
 
 // Vision の設定
@@ -65,6 +65,7 @@ auto main() -> int {
   // Actionの初期化
   game::action::marking action{w, is_yellow, id};
   action.mark_robot(3);
+	action.mark_mode(2);
 
   std::thread vth([&io_service] { io_service.run(); });
 
@@ -72,7 +73,6 @@ auto main() -> int {
     const auto& robots = is_yellow ? w.robots_yellow() : w.robots_blue();
     // ロボットが見えているか
     if (robots.count(id)) {
-			std::cout << "nyan" << std::endl;
       // このループでの命令を計算
       auto cmd = action.execute();
 
