@@ -16,8 +16,8 @@ public:
   bool finished() const;
 
 private:
-  unsigned int enemy_id_; //指定された敵ロボットのidを保持
-  unsigned int mode_ = 0;
+  unsigned int enemy_id_;     //指定された敵ロボットのidを保持
+  unsigned int mode_ = 0;     //マーキングの種類変更
   bool flag          = false; //終了判定のフラグ
 };
 }

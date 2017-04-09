@@ -1,5 +1,4 @@
 #include <cmath>
-#include <iostream>
 
 #include "ai_server/game/action/marking.h"
 #include "ai_server/util/math.h"
@@ -20,7 +19,7 @@ model::command marking::execute() {
   model::command ally_robot(id_);
   const auto enemy_robots  = is_yellow_ ? world_.robots_blue() : world_.robots_yellow();
   const auto& enemy_robot_ = enemy_robots.at(enemy_id_);
-  /*必要なパラメータ*/
+  //必要なパラメータ
   const auto enemy_x = enemy_robot_.x();
   const auto enemy_y = enemy_robot_.y();
   const auto ball_x  = world_.ball().x();
@@ -55,11 +54,11 @@ model::command marking::execute() {
       tmp_y = enemy_y;
   }
 
-  /*向きをボールの方へ*/
+  //向きをボールの方へ
   const auto theta =
       ai_server::util::wrap_to_2pi(std::atan2(y - tmp_y, x - tmp_x) + pi<double>());
 
-  /*計算した値を自機にセット*/
+  //計算した値を自機にセット
   ally_robot.set_position({x, y, theta});
 
   return ally_robot;
