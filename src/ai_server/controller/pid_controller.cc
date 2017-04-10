@@ -1,3 +1,7 @@
+#include <boost/math/constants/constants.hpp>
+#include <cmath>
+
+#include "ai_server/util/math.h"
 #include "pid_controller.h"
 #include <boost/algorithm/clamp.hpp>
 #include <cmath>
@@ -50,18 +54,13 @@ velocity_t pid_controller::update(const model::robot& robot, const position_t& s
   position_t ep;
   ep.x     = setpoint.x - robot.x();
   ep.y     = setpoint.y - robot.y();
-  ep.theta = setpoint.theta - robot.theta();
+  ep.theta = util::wrap_to_pi(setpoint.theta - robot.theta());
 
-  // 目標速度
-  velocity_t set_velocity;
-  set_velocity.vx    = ep.x / cycle_;
-  set_velocity.vy    = ep.y / cycle_;
-  set_velocity.omega = ep.theta - cycle_;
-
-  // 速度偏差
-  e_[0].vx    = set_velocity.vx - robot.vx();
-  e_[0].vy    = set_velocity.vy - robot.vy();
-  e_[0].omega = set_velocity.omega - robot.omega();
+  double speed     = std::hypot(ep.x, ep.y);
+  double direction = util::wrap_to_pi(std::atan2(ep.y, ep.x) - robot.theta());
+  e_[0].vx         = speed * std::cos(direction);
+  e_[0].vy         = speed * std::sin(direction);
+  e_[0].omega      = ep.theta;
 
   // 制御計算
   calculate();
