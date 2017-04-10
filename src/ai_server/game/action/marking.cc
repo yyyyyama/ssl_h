@@ -40,10 +40,10 @@ model::command marking::execute() {
   auto x             = 0.0;
   auto y             = 0.0;
   auto ratio         = 0.0; //敵位置とボールの比
-  auto tmp           = 0.0; //敵位置 - 自位置の比
+  auto tmp           = 0.0; //どうでもいい一時的な数値に使う
   switch (mode_) {
     case mark_mode::kick_block: //ボールを蹴るのを阻止(外分点)
-      tmp   = std::hypot(enemy_x - ball_x, enemy_y - ball_y) / radius_;
+      tmp = std::hypot(enemy_x - ball_x, enemy_y - ball_y) / radius_; //敵位置 - 自位置の比
       ratio = 1 - tmp;
       x     = (-ratio * enemy_x + ball_x) / tmp;
       y     = (-ratio * enemy_y + ball_y) / tmp;
@@ -52,11 +52,14 @@ model::command marking::execute() {
       break;
     case mark_mode::shoot_block:                                //シュートを阻止
       const auto length = std::hypot(-4500 - enemy_x, enemy_y); //敵機とゴールの距離
-      ratio             = (length / 2 + radius_) / length;
-      x                 = (1 - ratio) * -4500 + ratio * enemy_x;
-      y                 = ratio * enemy_y;
-      tmp_x             = enemy_x;
-      tmp_y             = enemy_y;
+      tmp               = std::signbit(1200 - length / 2)
+                ? 0
+                : 1200 - length / 2; //敵機-ゴール中央の中間地点とゴールラインの差
+      ratio = (length / 2 + tmp) / length;
+      x     = (1 - ratio) * -4500 + ratio * enemy_x;
+      y     = ratio * enemy_y;
+      tmp_x = enemy_x;
+      tmp_y = enemy_y;
   }
 
   //向きをボールの方へ
