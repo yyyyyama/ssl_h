@@ -23,13 +23,16 @@ model::command marking::execute() {
   const auto enemy_robots = is_yellow_ ? world_.robots_blue() : world_.robots_yellow();
   //指定されたロボットが見えなかったらその位置で停止
   if (!enemy_robots.count(enemy_id_)) {
-    ally_robot.set_position({x_, y_, theta_});
+    //その場で停止するために現在の位置を取得したい
+    const auto my_robots = is_yellow_ ? world_.robots_yellow() : world_.robots_blue();
+    const auto& my_robot = my_robots.at(id_);
+    ally_robot.set_position({my_robot.x(), my_robot.y(), my_robot.theta()});
     return ally_robot;
   }
-  const auto& enemy_robot_ = enemy_robots.at(enemy_id_);
+  const auto& enemy_robot = enemy_robots.at(enemy_id_);
   //必要なパラメータ
-  const auto enemy_x = enemy_robot_.x();
-  const auto enemy_y = enemy_robot_.y();
+  const auto enemy_x = enemy_robot.x();
+  const auto enemy_y = enemy_robot.y();
   const auto ball_x  = world_.ball().x();
   const auto ball_y  = world_.ball().y();
   auto tmp_x         = 0.0;
@@ -61,11 +64,6 @@ model::command marking::execute() {
 
   //計算した値を自機にセット
   ally_robot.set_position({x, y, theta});
-
-  //例外処理のために前回の位置を保持
-  x_     = x;
-  y_     = y;
-  theta_ = theta;
 
   return ally_robot;
 }

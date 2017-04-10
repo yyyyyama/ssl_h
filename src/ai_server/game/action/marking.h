@@ -22,9 +22,6 @@ private:
   mark_mode mode_ = mark_mode::kick_block; //マーキングの種類変更
   bool flag       = false;                 //終了判定のフラグ
   double radius_  = 250.0;
-  double x_;     //前回のx
-  double y_;     //前回のy
-  double theta_; //前回のtheta
 };
 }
 }
