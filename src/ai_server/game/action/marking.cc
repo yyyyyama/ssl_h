@@ -12,15 +12,20 @@ void marking::mark_robot(unsigned int enemy_id) {
 void marking::mode_choose(mark_mode mode) {
   mode_ = mode;
 }
-void marking::set_radius(double radius){
-	radius_ = radius;
+void marking::set_radius(double radius) {
+  radius_ = radius;
 }
 model::command marking::execute() {
   using boost::math::constants::pi;
 
   //それぞれ自機と敵機を生成
   model::command ally_robot(id_);
-  const auto enemy_robots  = is_yellow_ ? world_.robots_blue() : world_.robots_yellow();
+  const auto enemy_robots = is_yellow_ ? world_.robots_blue() : world_.robots_yellow();
+  //指定されたロボットが見えなかったらその位置で停止
+  if (!enemy_robots.count(enemy_id_)) {
+    ally_robot.set_position({x_, y_, theta_});
+    return ally_robot;
+  }
   const auto& enemy_robot_ = enemy_robots.at(enemy_id_);
   //必要なパラメータ
   const auto enemy_x = enemy_robot_.x();
@@ -34,13 +39,6 @@ model::command marking::execute() {
   auto ratio         = 0.0; //敵位置とボールの比
   auto tmp           = 0.0; //敵位置 - 自位置の比
   switch (mode_) {
-    case mark_mode::pass_block: //ボールを受け取るのを阻止(内分点)
-      ratio = radius_ / std::hypot(enemy_x - ball_x, enemy_y - ball_y);
-      x     = (1 - ratio) * enemy_x + ratio * ball_x;
-      y     = (1 - ratio) * enemy_y + ratio * ball_y;
-      tmp_x = ball_x;
-      tmp_y = ball_y;
-      break;
     case mark_mode::kick_block: //ボールを蹴るのを阻止(外分点)
       tmp   = std::hypot(enemy_x - ball_x, enemy_y - ball_y) / radius_;
       ratio = 1 - tmp;
@@ -62,6 +60,11 @@ model::command marking::execute() {
 
   //計算した値を自機にセット
   ally_robot.set_position({x, y, theta});
+
+  //例外処理のために前回の位置を保持
+  x_     = x;
+  y_     = y;
+  theta_ = theta;
 
   return ally_robot;
 }
