@@ -3,6 +3,7 @@
 
 #include "ai_server/model/command.h"
 #include "base.h"
+#include <boost/math/constants/constants.hpp>
 
 namespace ai_server {
 namespace game {
@@ -10,10 +11,15 @@ namespace action {
 
 class kick_action : public base {
 public:
+  enum class mode { goal, ball } mode_ = mode::goal;
+
   kick_action(const model::world& world, bool is_yellow, unsigned int id);
   void kick_to(double x, double y);
 
   void set_kick_type(const model::command::kick_flag_t& kick_type);
+
+  // 蹴れる位置に移動するときに蹴る目標位置を見ているかボールを見ているか指定する関数
+  void set_mode(mode mod);
 
   model::command execute() override;
 
@@ -25,7 +31,9 @@ private:
   double old_ball_x;
   double old_ball_y;
   model::command::kick_flag_t kick_type_;
-  bool exeflag_ = false;
+  bool exeflag_    = false;
+  bool lastflag_   = false;
+  bool aroundflag_ = false;
 };
 } // namespace action
 } // namespace game
