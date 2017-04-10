@@ -48,8 +48,9 @@ model::command marking::execute() {
       tmp_y = ball_y;
       break;
     case mark_mode::shoot_block: //シュートを阻止
-      ratio = (1300.0 + radius_) / std::hypot(4500 - enemy_x, enemy_y);
-      x     = (1 - ratio) * 4500 + ratio * enemy_x;
+			const auto length = std::hypot( -4500 - enemy_x,enemy_y);//敵機とゴールの距離
+      ratio = (length/2 + radius_) / length;
+      x     = (1 - ratio) *  - 4500 + ratio * enemy_x;
       y     = ratio * enemy_y;
       tmp_x = enemy_x;
       tmp_y = enemy_y;
