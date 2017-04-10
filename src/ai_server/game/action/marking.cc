@@ -12,6 +12,9 @@ void marking::mark_robot(unsigned int enemy_id) {
 void marking::mode_choose(mark_mode mode) {
   mode_ = mode;
 }
+void marking::set_radius(double radius){
+	radius_ = radius;
+}
 model::command marking::execute() {
   using boost::math::constants::pi;
 
@@ -32,14 +35,14 @@ model::command marking::execute() {
   auto tmp           = 0.0; //敵位置 - 自位置の比
   switch (mode_) {
     case mark_mode::pass_block: //ボールを受け取るのを阻止(内分点)
-      ratio = 200.0 / std::hypot(enemy_x - ball_x, enemy_y - ball_y);
+      ratio = radius_ / std::hypot(enemy_x - ball_x, enemy_y - ball_y);
       x     = (1 - ratio) * enemy_x + ratio * ball_x;
       y     = (1 - ratio) * enemy_y + ratio * ball_y;
       tmp_x = ball_x;
       tmp_y = ball_y;
       break;
     case mark_mode::kick_block: //ボールを蹴るのを阻止(外分点)
-      tmp   = std::hypot(enemy_x - ball_x, enemy_y - ball_y) / 300.0;
+      tmp   = std::hypot(enemy_x - ball_x, enemy_y - ball_y) / radius_;
       ratio = 1 - tmp;
       x     = (-ratio * enemy_x + ball_x) / tmp;
       y     = (-ratio * enemy_y + ball_y) / tmp;
@@ -47,7 +50,7 @@ model::command marking::execute() {
       tmp_y = ball_y;
       break;
     case mark_mode::shoot_block: //シュートを阻止
-      ratio = 1500.0 / std::hypot(4500 - enemy_x, enemy_y);
+      ratio = (1300.0 + radius_) / std::hypot(4500 - enemy_x, enemy_y);
       x     = (1 - ratio) * 4500 + ratio * enemy_x;
       y     = ratio * enemy_y;
       tmp_x = enemy_x;
