@@ -10,14 +10,14 @@ void robot_position_move::move_to(double x, double y, double theta) {
   theta_ = theta;
 }
 
-model::command robot_position_move::execute() override {
+model::command robot_position_move::execute() {
   finished_ = false;
   model::command command(id_);
   command.set_position({x_, y_, theta_});
   finished_ = true;
 }
 
-bool robot_position_move::finished() const override {
+bool robot_position_move::finished() const {
   return finished_;
 }
 } // namespace action
