@@ -11,6 +11,7 @@ void robot_position_move::move_to(double x, double y, double theta) {
 }
 
 model::command robot_position_move::execute() {
+  model::command command(id_);
   next_robot_position_ = {x_, y_, theta_};
   command.set_position(next_robot_position_);
   finished_ = true;
