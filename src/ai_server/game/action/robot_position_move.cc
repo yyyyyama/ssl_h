@@ -4,20 +4,21 @@ namespace ai_server {
 namespace game {
 namespace action {
 
-//(3)
 void robot_position_move::move_to(double x, double y, double theta) {
   x_     = x;
   y_     = y;
   theta_ = theta;
 }
 
-//(4)
-model::command robot_position_move::execute() {}
+model::command robot_position_move::execute() {
+  next_robot_position_ = {x_, y_, theta_};
+  command.set_position(next_robot_position_);
+  finished_ = true;
+}
 
-//(5)
 bool robot_position_move::finished() const {
   return finished_;
 }
-}
-}
-}
+} // namespace action
+} // namespace game
+} // namespace ai_server

@@ -8,27 +8,23 @@ namespace ai_server {
 namespace game {
 namespace action {
 
-// (1)
 class robot_position_move : public base {
 public:
-  // (2)
   using base::base;
 
-  // (3)
   void move_to(double x, double y, double theta = 0.0);
 
-  // (4)
   model::command execute();
 
-  // (5)
   bool finished() const;
 
 private:
   double x_, y_, theta_;
   bool finished_ = false;
+  model::command::position_t next_robot_position_;
 };
-}
-}
-}
+} // namespace action
+} // namespace game
+} // namespace ai_server
 
 #endif
