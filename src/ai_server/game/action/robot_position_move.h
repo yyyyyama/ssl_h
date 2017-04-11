@@ -14,14 +14,15 @@ public:
 
   void move_to(double x, double y, double theta = 0.0);
 
-  model::command execute();
+  model::command execute() override;
 
-  bool finished() const;
+  bool finished() const override;
 
 private:
-  double x_, y_, theta_;
+  double x_;
+  double y_;
+  double theta_;
   bool finished_ = false;
-  model::command::position_t next_robot_position_;
 };
 } // namespace action
 } // namespace game
