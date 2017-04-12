@@ -1,6 +1,4 @@
-#include <algorithm>
 #include <cmath>
-#include <vector>
 
 #include "world_updater.h"
 

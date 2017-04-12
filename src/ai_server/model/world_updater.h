@@ -1,6 +1,7 @@
 #ifndef AI_SERVER_MODEL_WORLD_UPDATER_H
 #define AI_SERVER_MODEL_WORLD_UPDATER_H
 
+#include <algorithm>
 #include <functional>
 #include <memory>
 #include <mutex>
