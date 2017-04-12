@@ -272,6 +272,18 @@ BOOST_AUTO_TEST_CASE(detection) {
   }
 }
 
+BOOST_AUTO_TEST_CASE(detection_no_ball) {
+  ai_server::model::world_updater wu{};
+  const auto& w = wu.world_model();
+
+  ssl_protos::vision::Packet p;
+
+  auto md = p.mutable_detection();
+  md->set_camera_id(0);
+
+  BOOST_CHECK_NO_THROW(wu.update(p));
+}
+
 BOOST_AUTO_TEST_CASE(geometry) {
   ai_server::model::world_updater wu{};
   const auto& w = wu.world_model();

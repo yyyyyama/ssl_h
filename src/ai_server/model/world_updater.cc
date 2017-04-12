@@ -99,10 +99,13 @@ model::ball world_updater::build_ball_data(const std::vector<ball_with_camera_id
         return std::get<1>(a)->confidence() < std::get<1>(b)->confidence();
       });
 
-  const auto& ball_data = std::get<1>(*reliable_element);
-  ret.set_x(ball_data->x());
-  ret.set_y(ball_data->y());
-  ret.set_z(ball_data->z());
+  // フィールドにボールがあれば情報を更新する
+  if (reliable_element != balls.cend()) {
+    const auto& ball_data = std::get<1>(*reliable_element);
+    ret.set_x(ball_data->x());
+    ret.set_y(ball_data->y());
+    ret.set_z(ball_data->z());
+  }
 
   return ret;
 }
