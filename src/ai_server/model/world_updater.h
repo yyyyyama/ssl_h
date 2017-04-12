@@ -1,10 +1,14 @@
 #ifndef AI_SERVER_MODEL_WORLD_UPDATER_H
 #define AI_SERVER_MODEL_WORLD_UPDATER_H
 
-#include <tuple>
+#include <functional>
+#include <memory>
 #include <mutex>
+#include <tuple>
 #include <unordered_map>
+#include <vector>
 
+#include "ai_server/filter/base.h"
 #include "world.h"
 
 #include "ssl-protos/vision/wrapperpacket.pb.h"
@@ -30,6 +34,22 @@ class world_updater {
 
   /// カメラ台数分の最新のdetectionパケットを保持する
   std::unordered_map<unsigned int, ssl_protos::vision::Frame> detection_packets_;
+
+  /// ボール用のFilterを初期化するための関数オブジェクト
+  std::vector<std::function<std::unique_ptr<filter::base<model::ball>>()>>
+      ball_filter_initializers_;
+  /// ロボット用のFilterを初期化するための関数オブジェクト
+  std::vector<std::function<std::unique_ptr<filter::base<model::robot>>()>>
+      robot_filter_initializers_;
+
+  /// ボール用のFilter
+  std::vector<std::unique_ptr<filter::base<model::ball>>> ball_filters_;
+  /// 青ロボット用のFilter
+  std::unordered_map<unsigned int, std::vector<std::unique_ptr<filter::base<model::robot>>>>
+      robots_blue_filters_;
+  /// 黄ロボット用のFilter
+  std::unordered_map<unsigned int, std::vector<std::unique_ptr<filter::base<model::robot>>>>
+      robots_yellow_filters_;
 
 public:
   /// @brief                  WorldModelを取得する
