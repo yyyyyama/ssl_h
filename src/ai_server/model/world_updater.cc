@@ -39,8 +39,16 @@ void world_updater::update(const ssl_protos::vision::Packet& packet) {
 void world_updater::process_packet(const ssl_protos::vision::Frame& detection) {
   std::lock_guard<std::mutex> lock(mutex_);
 
+  // カメラIDを取得
+  const auto& camera_id = detection.camera_id();
+
+  // キャプチャされた時間を取得
+  const auto captured_time =
+      std::chrono::high_resolution_clock::time_point{std::chrono::microseconds{
+          static_cast<std::chrono::microseconds::rep>(detection.t_capture() * 1e6)}};
+
   // 取得したIDのdetectionパケットを更新
-  detection_packets_[detection.camera_id()] = detection;
+  detection_packets_[camera_id] = detection;
 
   std::vector<ball_with_camera_id> balls{};
   robots_table robots_blue_table{};
@@ -69,9 +77,11 @@ void world_updater::process_packet(const ssl_protos::vision::Frame& detection) {
     add_robots_to_table(robots_yellow_table, d.camera_id(), d.robots_yellow());
   }
 
-  world_.set_ball(build_ball_data(balls, world_.ball()));
-  world_.set_robots_blue(build_robots_list(robots_blue_table, world_.robots_blue()));
-  world_.set_robots_yellow(build_robots_list(robots_yellow_table, world_.robots_yellow()));
+  world_.set_ball(build_ball_data(camera_id, captured_time, balls, world_.ball()));
+  world_.set_robots_blue(build_robots_list(false, camera_id, captured_time, robots_blue_table,
+                                           world_.robots_blue()));
+  world_.set_robots_yellow(build_robots_list(true, camera_id, captured_time,
+                                             robots_yellow_table, world_.robots_yellow()));
 }
 
 void world_updater::process_packet(const ssl_protos::vision::Geometry& geometry) {
@@ -100,8 +110,9 @@ void world_updater::process_packet(const ssl_protos::vision::Geometry& geometry)
   world_.set_field(std::move(field));
 }
 
-model::ball world_updater::build_ball_data(const std::vector<ball_with_camera_id>& balls,
-                                           const model::ball& prev_data) {
+model::ball world_updater::build_ball_data(
+    unsigned int camera_id, std::chrono::high_resolution_clock::time_point captured_time,
+    const std::vector<ball_with_camera_id>& balls, const model::ball& prev_data) {
   auto ret = prev_data;
 
   // TODO:
@@ -119,6 +130,19 @@ model::ball world_updater::build_ball_data(const std::vector<ball_with_camera_id
   ret.set_y(ball_data->y());
   ret.set_z(ball_data->z());
 
+  // 選択したデータのカメラIDとdetectionのカメラIDが一致し,
+  // かつFilterが設定されていたらそれを適用する
+  if (std::get<0>(*reliable_element) == camera_id && !ball_filter_initializers_.empty()) {
+    // Filterが初期化されていなければ初期化する
+    if (ball_filters_.empty()) {
+      ball_filters_ = init_filters(ball_filter_initializers_);
+    }
+
+    for (auto&& f : ball_filters_) {
+      f->apply(ret, captured_time);
+    }
+  }
+
   return ret;
 }
 
@@ -131,7 +155,9 @@ void world_updater::add_robots_to_table(
 }
 
 model::world::robots_list world_updater::build_robots_list(
-    const robots_table& table, const model::world::robots_list& prev_data) {
+    bool is_yellow, unsigned int camera_id,
+    std::chrono::high_resolution_clock::time_point captured_time, const robots_table& table,
+    const model::world::robots_list& prev_data) {
   model::world::robots_list ret{};
 
   for (auto it = table.cbegin(); it != table.cend();) {
@@ -155,6 +181,22 @@ model::world::robots_list world_updater::build_robots_list(
       // なければ新たに要素を作成する
       ret.emplace(robot_id, model::robot{robot_id, robot_data->x(), robot_data->y(),
                                          robot_data->orientation()});
+    }
+
+    // 選択したデータのカメラIDとdetectionのカメラIDが一致し,
+    // かつFilterが設定されていたらそれを適用する
+    if (std::get<0>(reliable_element->second) == camera_id &&
+        !robot_filter_initializers_.empty()) {
+      auto& filters_ = is_yellow ? robots_yellow_filters_ : robots_blue_filters_;
+
+      // Filterが初期化されていなければ初期化する
+      if (filters_.count(robot_id) == 0) {
+        filters_.emplace(robot_id, init_filters(robot_filter_initializers_));
+      }
+
+      for (auto&& f : filters_[robot_id]) {
+        f->apply(ret[robot_id], captured_time);
+      }
     }
 
     // イテレータを次のロボットIDの位置まで進める

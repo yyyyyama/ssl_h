@@ -94,10 +94,14 @@ private:
   void process_packet(const ssl_protos::vision::Geometry& geometry);
 
   /// @brief                  ballsから最終的なボールの情報を生成する
+  /// @param camera_id        最新のパケットのカメラID
+  /// @param captured_time    最新のパケットのキャプチャされた時間
   /// @param balls            検出されたボールのリスト
   /// @param prev_data        前のデータ
-  static model::ball build_ball_data(const std::vector<ball_with_camera_id>& balls,
-                                     const model::ball& prev_data);
+  model::ball build_ball_data(unsigned int camera_id,
+                              std::chrono::high_resolution_clock::time_point captured_time,
+                              const std::vector<ball_with_camera_id>& balls,
+                              const model::ball& prev_data);
 
   /// @brief                  tableにrobotsを追加する
   /// @param table            ロボットのデータ更新用のハッシュテーブル
@@ -108,10 +112,27 @@ private:
       const google::protobuf::RepeatedPtrField<ssl_protos::vision::Robot>& robots);
 
   /// @brief                  tableから最終的なロボットのリストを生成する
+  /// @param is_yellow        ロボットは黄色か
+  /// @param camera_id        最新のパケットのカメラID
+  /// @param captured_time    最新のパケットのキャプチャされた時間
   /// @param table            ロボットのデータ更新用のハッシュテーブル
   /// @param prev_data        前のデータ
-  static model::world::robots_list build_robots_list(
-      const robots_table& table, const model::world::robots_list& prev_data);
+  model::world::robots_list build_robots_list(
+      bool is_yellow, unsigned int camera_id,
+      std::chrono::high_resolution_clock::time_point captured_time, const robots_table& table,
+      const model::world::robots_list& prev_data);
+
+  /// @brief                      Filterをすべて初期化する
+  /// @param filter_initializers  Filterを初期化するための関数オブジェクト
+  template <class T>
+  static std::vector<std::unique_ptr<filter::base<T>>> init_filters(
+      const std::vector<std::function<std::unique_ptr<filter::base<T>>()>>&
+          filter_initializers) {
+    std::vector<std::unique_ptr<filter::base<T>>> ret(filter_initializers.size());
+    std::transform(filter_initializers.cbegin(), filter_initializers.cend(), ret.begin(),
+                   [](auto& initializer) { return initializer(); });
+    return ret;
+  }
 };
 
 } // namespace model
