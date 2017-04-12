@@ -11,6 +11,21 @@ const model::world& world_updater::world_model() const {
   return world_;
 }
 
+void world_updater::clear_ball_filters() {
+  std::lock_guard<std::mutex> lock(mutex_);
+
+  ball_filters_.clear();
+  ball_filter_initializers_.clear();
+}
+
+void world_updater::clear_robot_filters() {
+  std::lock_guard<std::mutex> lock(mutex_);
+
+  robots_blue_filters_.clear();
+  robots_yellow_filters_.clear();
+  robot_filter_initializers_.clear();
+}
+
 void world_updater::update(const ssl_protos::vision::Packet& packet) {
   if (packet.has_detection()) {
     process_packet(packet.detection());

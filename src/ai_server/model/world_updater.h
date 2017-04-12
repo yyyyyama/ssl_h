@@ -55,6 +55,31 @@ public:
   /// @brief                  WorldModelを取得する
   const model::world& world_model() const;
 
+  /// @brief                  ボール用のFilterを追加する
+  /// @param args             Filterのコンストラクタの引数
+  template <class Filter, class... Args>
+  void add_ball_filter(Args... args) {
+    ball_filter_initializers_.emplace_back(
+        [args...] { return std::make_unique<Filter>(args...); });
+    ball_filters_.clear();
+  }
+
+  /// @brief                  ロボット用のFilterを追加する
+  /// @param args             Filterのコンストラクタの引数
+  template <class Filter, class... Args>
+  void add_robot_filter(Args... args) {
+    robot_filter_initializers_.emplace_back(
+        [args...] { return std::make_unique<Filter>(args...); });
+    robots_blue_filters_.clear();
+    robots_yellow_filters_.clear();
+  }
+
+  /// @brief                  ボール用に設定されたFilterを解除する
+  void clear_ball_filters();
+
+  /// @brief                  ロボット用に設定されたFilterを解除する
+  void clear_robot_filters();
+
   /// @brief                  内部の状態を更新する
   /// @param packet           SSL-Visionのパース済みパケット
   void update(const ssl_protos::vision::Packet& packet);
