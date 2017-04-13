@@ -31,9 +31,9 @@ private:
   double old_ball_x;
   double old_ball_y;
   model::command::kick_flag_t kick_type_;
-  bool exeflag_    = false;
-  bool lastflag_   = false;
-  bool aroundflag_ = false;
+  bool finishflag_  = false;
+  bool aroundflag_  = false;
+  bool advanceflag_ = false;
 };
 } // namespace action
 } // namespace game

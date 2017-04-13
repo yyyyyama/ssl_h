@@ -33,7 +33,7 @@ model::command kick_action::execute() {
   using boost::math::constants::pi;
   using boost::math::constants::two_pi;
 
-  exeflag_ = false;
+  finishflag_ = false;
 
   const auto our_robots    = is_yellow_ ? world_.robots_yellow() : world_.robots_blue();
   const auto& robot_me     = our_robots.at(id_);
@@ -71,11 +71,11 @@ model::command kick_action::execute() {
   const double direction1 = mode_ == mode::goal ? robot_theta : atand3;
   const double direction2 = mode_ == mode::goal ? atand1 : atand3;
 
-  if (std::hypot(old_ball_x - ball_x, old_ball_y - ball_y) > kick_decision && lastflag_) {
+  if (std::hypot(old_ball_x - ball_x, old_ball_y - ball_y) > kick_decision && advanceflag_) {
     // executeが呼ばれる間の時間でボールが一定以上移動していたら蹴ったと判定
-    robot_pos = {robot_x, robot_y, robot_theta};
-    exeflag_  = true;
-    lastflag_ = false;
+    robot_pos    = {robot_x, robot_y, robot_theta};
+    finishflag_  = true;
+    advanceflag_ = false;
   } else if (std::hypot(to_robot_x, to_robot_y) > 250 && !aroundflag_) {
     // ロボットがボールから250以上離れていればボールに近づく処理
     robot_pos = {ball_x, ball_y, direction1};
@@ -100,7 +100,7 @@ model::command kick_action::execute() {
     // キックフラグをセットし、ボールの位置まで移動する処理
     robot_pos = {ball_x, ball_y, atand1};
     command.set_kick_flag(kick_type_);
-    lastflag_ = true;
+    advanceflag_ = true;
   }
 
   // 前のボールの位置を更新
@@ -112,7 +112,7 @@ model::command kick_action::execute() {
 };
 
 bool kick_action::finished() const {
-  return exeflag_;
+  return finishflag_;
 }
 } // namespace action
 } // namespace game
