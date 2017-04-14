@@ -9,7 +9,7 @@ namespace action {
 void marking::mark_robot(unsigned int enemy_id) {
   enemy_id_ = enemy_id;
 }
-void marking::mode_choose(mark_mode mode) {
+void marking::set_mode(mark_mode mode) {
   mode_ = mode;
 }
 void marking::set_radius(double radius) {

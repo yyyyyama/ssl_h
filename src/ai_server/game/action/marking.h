@@ -12,7 +12,7 @@ public:
   using base::base;
   enum class mark_mode { kick_block, shoot_block };
   void mark_robot(unsigned int enemy_id);
-  void mode_choose(action::marking::mark_mode mode);
+  void set_mode(action::marking::mark_mode mode);
   void set_radius(double radius);
   model::command execute() override;
   bool finished() const override;
