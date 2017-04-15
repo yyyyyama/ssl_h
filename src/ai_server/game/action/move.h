@@ -1,5 +1,5 @@
-#ifndef AI_SERVER_GAME_ACTION_ROBOT_POSITION_MOVE_H
-#define AI_SERVER_GAME_ACTION_ROBOT_POSITION_MOVE_H
+#ifndef AI_SERVER_GAME_ACTION_MOVE_H
+#define AI_SERVER_GAME_ACTION_MOVE_H
 
 #include "base.h"
 #include "ai_server/model/command.h"
@@ -8,7 +8,7 @@ namespace ai_server {
 namespace game {
 namespace action {
 
-class robot_position_move : public base {
+class move : public base {
 public:
   using base::base;
 
