@@ -25,7 +25,6 @@ model::command move::execute() {
   } else {
     //ロボットが指定位置に存在しないとき
     finished_ = false;
-    std::printf("x:%f y:%f theta:%f\n", this_robot.x(), this_robot.y(), this_robot.theta());
     command.set_position({x_, y_, theta_});
   }
   return command;
