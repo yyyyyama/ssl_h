@@ -1,4 +1,6 @@
 #include "robot_position_move.h"
+#include <float.h>
+#include <math.h>
 
 namespace ai_server {
 namespace game {
@@ -14,7 +16,8 @@ model::command robot_position_move::execute() {
   const auto this_robot_team = is_yellow_ ? world_.robots_yellow() : world_.robots_blue();
   const auto& this_robot     = this_robot_team.at(id_);
 
-  if (this_robot.x() == x_ && this_robot.y() == y_ && this_robot.theta() == theta_) {
+  if (fabs(this_robot.x() - x_) < DBL_EPSILON && fabs(this_robot.y() - y_) < DBL_EPSILON &&
+      fabs(this_robot.theta() - theta_) < DBL_EPSILON) {
     //ロボットが指定位置に存在するとき
     finished_ = true;
   } else {
