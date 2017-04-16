@@ -129,18 +129,18 @@ model::ball world_updater::build_ball_data(
     ret.set_x(ball_data->x());
     ret.set_y(ball_data->y());
     ret.set_z(ball_data->z());
-  }
 
-  // 選択したデータのカメラIDとdetectionのカメラIDが一致し,
-  // かつFilterが設定されていたらそれを適用する
-  if (std::get<0>(*reliable_element) == camera_id && !ball_filter_initializers_.empty()) {
-    // Filterが初期化されていなければ初期化する
-    if (ball_filters_.empty()) {
-      ball_filters_ = init_filters(ball_filter_initializers_);
-    }
+    // 選択したデータのカメラIDとdetectionのカメラIDが一致し,
+    // かつFilterが設定されていたらそれを適用する
+    if (std::get<0>(*reliable_element) == camera_id && !ball_filter_initializers_.empty()) {
+      // Filterが初期化されていなければ初期化する
+      if (ball_filters_.empty()) {
+        ball_filters_ = init_filters(ball_filter_initializers_);
+      }
 
-    for (auto&& f : ball_filters_) {
-      f->apply(ret, captured_time);
+      for (auto&& f : ball_filters_) {
+        f->apply(ret, captured_time);
+      }
     }
   }
 
