@@ -169,31 +169,33 @@ model::world::robots_list world_updater::build_robots_list(
         });
 
     const auto& robot_data = std::get<1>(reliable_element->second);
-    if (prev_data.count(robot_id)) {
-      // 前のデータにIDがrobot_idの要素があれば, それをコピーしてから各情報を更新する
-      ret.emplace(robot_id, prev_data.at(robot_id));
+
+    // 前のデータにIDがrobot_idの要素があればそれをコピーし,
+    // なければ新たに作成する
+    ret.emplace(robot_id, prev_data.count(robot_id)
+                              ? prev_data.at(robot_id)
+                              : model::robot{robot_id, robot_data->x(), robot_data->y(),
+                                             robot_data->orientation()});
+
+    // 選択したデータのカメラIDとdetectionのカメラIDが一致したら情報を更新する
+    if (std::get<0>(reliable_element->second) == camera_id) {
       ret[robot_id].set_x(robot_data->x());
       ret[robot_id].set_y(robot_data->y());
       ret[robot_id].set_theta(robot_data->orientation());
-    } else {
-      // なければ新たに要素を作成する
-      ret.emplace(robot_id, model::robot{robot_id, robot_data->x(), robot_data->y(),
-                                         robot_data->orientation()});
-    }
 
-    // 選択したデータのカメラIDとdetectionのカメラIDが一致し,
-    // かつFilterが設定されていたらそれを適用する
-    if (std::get<0>(reliable_element->second) == camera_id &&
-        !robot_filter_initializers_.empty()) {
-      auto& filters_ = is_yellow ? robots_yellow_filters_ : robots_blue_filters_;
+      // Filterが設定されていたらそれを適用する
+      if (std::get<0>(reliable_element->second) == camera_id &&
+          !robot_filter_initializers_.empty()) {
+        auto& filters_ = is_yellow ? robots_yellow_filters_ : robots_blue_filters_;
 
-      // Filterが初期化されていなければ初期化する
-      if (filters_.count(robot_id) == 0) {
-        filters_.emplace(robot_id, init_filters(robot_filter_initializers_));
-      }
+        // Filterが初期化されていなければ初期化する
+        if (filters_.count(robot_id) == 0) {
+          filters_.emplace(robot_id, init_filters(robot_filter_initializers_));
+        }
 
-      for (auto&& f : filters_[robot_id]) {
-        f->apply(ret[robot_id], captured_time);
+        for (auto&& f : filters_[robot_id]) {
+          f->apply(ret[robot_id], captured_time);
+        }
       }
     }
 

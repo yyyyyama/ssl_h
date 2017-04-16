@@ -263,13 +263,14 @@ BOOST_AUTO_TEST_CASE(detection) {
     BOOST_TEST(r.y() == 601);
     BOOST_TEST(r.theta() == 602);
 
-    // cam0で検出されていたID7の黃ロボが消えたので,
-    // cam1で検出された黄ロボ(700, 800)の値が出てくる
+    // cam0で検出されていたID7の黃ロボの情報は消えたが,
+    // cam1にID7の黄ロボの値が残っているので,
+    // 値は変化しない
     BOOST_CHECK_NO_THROW(r = w.robots_yellow().at(7));
     BOOST_TEST(r.id() == 7);
-    BOOST_TEST(r.x() == 703);
-    BOOST_TEST(r.y() == 704);
-    BOOST_TEST(r.theta() == 705);
+    BOOST_TEST(r.x() == 700);
+    BOOST_TEST(r.y() == 701);
+    BOOST_TEST(r.theta() == 702);
   }
 }
 
@@ -387,7 +388,7 @@ BOOST_AUTO_TEST_CASE(detection_filters) {
     BOOST_CHECK_NO_THROW(r = w.robots_blue().at(1));
     // TODO: 現在の仕様ではFilterを適用した値が保持されないが,
     // これを解決するには更新アルゴリズムの変更が必要
-    // BOOST_TEST(r.x() == 30);
+    BOOST_TEST(r.x() == 30);
 
     // cam1で検出されたID1の黄ロボが存在
     // xが3倍されている
