@@ -21,7 +21,7 @@ BOOST_AUTO_TEST_CASE(test01, *boost::unit_test::tolerance(0.0005)) {
       200, 100, pi<double>()};
   const auto t1 = std::chrono::high_resolution_clock::time_point{};
 
-test_transformation1.apply(test_ball, t1);
+  test_transformation1.apply(test_ball, t1);
 
   BOOST_TEST(test_ball.x() == 100);
   BOOST_TEST(test_ball.y() == -100);
