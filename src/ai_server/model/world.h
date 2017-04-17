@@ -52,7 +52,6 @@ public:
   }
 
 private:
-
   model::field field_;
   model::ball ball_;
   robots_list robots_blue_;
