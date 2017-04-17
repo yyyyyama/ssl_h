@@ -15,8 +15,7 @@ class base {
 public:
   /// @param world            WorldModelの参照
   /// @param is_yellow        チームカラーは黄色か
-  /// @param ids              Agentに割り当てるロボットのID
-  base(const model::world& world, bool is_yellow, const std::vector<unsigned int>& ids);
+  base(const model::world& world, bool is_yellow);
 
   virtual ~base() = default;
 
@@ -34,7 +33,6 @@ protected:
 
   const model::world& world_;
   bool is_yellow_;
-  std::vector<unsigned int> ids_;
 };
 
 } // namespace agent
