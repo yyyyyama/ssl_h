@@ -2,7 +2,7 @@
 #include <boost/math/constants/constants.hpp>
 #include "move.h"
 
-using boost::math::constants::two_pi;
+using boost::math::constants::pi;
 
 namespace ai_server {
 namespace game {
@@ -17,7 +17,7 @@ void move::move_to(double x, double y, double theta) {
 model::command move::execute() {
   const double xy_allow = 10.0; //指定位置と取得した位置のズレの許容値[mm]
   const double theta_allow =
-      1.0 * two_pi<double>() / 180.0; //指定角度と取得した角度のズレの許容値[rad]
+      1.0 * pi<double>() / 180.0; //指定角度と取得した角度のズレの許容値[rad]
   const auto this_robot_team = is_yellow_ ? world_.robots_yellow() : world_.robots_blue();
   const auto& this_robot     = this_robot_team.at(id_);
   model::command command(id_);
