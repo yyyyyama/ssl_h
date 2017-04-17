@@ -22,13 +22,10 @@ public:
   void apply(T&, std::chrono::high_resolution_clock::time_point) override;
 };
 
-template <>
-void coordinate_transformation<model::ball>::apply(
-    model::ball& ball, std::chrono::high_resolution_clock::time_point);
+template <class T>
+coordinate_transformation<T>::coordinate_transformation(double x, double y, double theta)
+    : x_(x), y_(y), theta_(theta) {}
 
-template <>
-void coordinate_transformation<model::robot>::apply(
-    model::robot& robot, std::chrono::high_resolution_clock::time_point);
 } // filter
 } // ai_server
 
