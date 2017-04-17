@@ -1,6 +1,6 @@
 #include <cmath>
+#include "ai_server/util/math.h"
 #include "coordinate_transformation.h"
-#include "util/math.h"
 
 namespace ai_server {
 namespace filter {
@@ -9,7 +9,7 @@ coordinate_transformation::coordinate_transformation(double x, double y, double 
     : x_(x), y_(y), theta_(theta) {}
 
 void coordinate_transformation<model::ball>::apply(
-    model::ball& ball, std::chrono::high_resolution_ckock::time_point) {
+    model::ball& ball, std::chrono::high_resolution_clock::time_point) {
   const double ballx    = ball.x();
   const double bally    = ball.y();
   const double costheta = std::cos(theta_);
@@ -20,7 +20,7 @@ void coordinate_transformation<model::ball>::apply(
 }
 
 void coordinate_transformation<model::robot>::apply(
-    model::robot& robot, std::chrono::high_resolution_ckock::time_point) {
+    model::robot& robot, std::chrono::high_resolution_clock::time_point) {
   const double robotx   = robot.x();
   const double roboty   = robot.y();
   const double costheta = std::cos(theta_);
