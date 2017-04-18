@@ -19,9 +19,6 @@ namespace model {
 class world {
   mutable std::mutex mutex_;
 
-  /// カメラ台数分の最新のdetectionパケットを保持する
-  std::unordered_map<unsigned int, ssl_protos::vision::Frame> detection_packets_;
-
 public:
   using robots_list = std::unordered_map<unsigned int, model::robot>;
 
@@ -54,19 +51,7 @@ public:
     robots_yellow_ = std::forward<T>(robots_yellow);
   }
 
-  /// @brief                  内部の状態を更新する
-  /// @param packet           SSL-Visionのパース済みパケット
-  [[deprecated]] void update(const ssl_protos::vision::Packet& packet);
-
 private:
-  /// @brief                  detectionパケットを処理し, ボールやロボットの情報を更新する
-  /// @param detection        SSL-Visionのdetectionパケット
-  void process_packet(const ssl_protos::vision::Frame& detection);
-
-  /// @brief                  geometryパケットを処理し, フィールドの情報を更新する
-  /// @param geometry         SSL-Visionのgeometryパケット
-  void process_packet(const ssl_protos::vision::Geometry& geometry);
-
   model::field field_;
   model::ball ball_;
   robots_list robots_blue_;
