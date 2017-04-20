@@ -75,10 +75,8 @@ include_directories(
 )
 
 if(EIGEN3_VERSION_STRING VERSION_LESS 3.2.0)
-  message(STATUS "myon")
   include_directories(${EIGEN3_INCLUDE_DIR})
 else()
-  message(STATUS "nyan")
   include_directories(${EIGEN3_INCLUDE_DIRS})
 endif()
 
