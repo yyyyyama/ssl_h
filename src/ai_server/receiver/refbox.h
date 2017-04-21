@@ -1,7 +1,6 @@
 #ifndef AI_SERVER_RECEIVER_REFBOX_H
 #define AI_SERVER_RECEIVER_REFBOX_H
 
-#include <string>
 #include <boost/asio.hpp>
 #include <boost/signals2.hpp>
 

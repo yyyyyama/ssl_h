@@ -65,12 +65,12 @@ BOOST_AUTO_TEST_CASE(send_and_receive, *boost::unit_test::timeout(30)) {
   boost::asio::io_service io_service;
 
   // refbox受信クラスの初期化
-  // listen_addr = 0.0.0.0, multicast_addr = 224.5.23.1, port = 10003
-  refbox r(io_service, "0.0.0.0", "224.5.23.1", 10003);
+  // listen_addr = 0.0.0.0, multicast_addr = 224.5.23.1, port = 10088
+  refbox r(io_service, "0.0.0.0", "224.5.23.1", 10088);
 
   // 送信クラスの初期化
-  // multicast_addr = 224.5.23.1, port = 10003
-  sender s(io_service, "224.5.23.1", 10003);
+  // multicast_addr = 224.5.23.1, port = 10088
+  sender s(io_service, "224.5.23.1", 10088);
 
   // 受信を開始する
   std::thread t([&] { io_service.run(); });
@@ -165,10 +165,10 @@ BOOST_AUTO_TEST_CASE(non_protobuf_data, *boost::unit_test::timeout(30)) {
     slot_testing_helper<> referee{&refbox::on_error, r};
 
     // protobufじゃないデータを送信
-    s.send("non protobuf data");
+    s.send("non protobuf data"s);
 
     // on_errorに設定したハンドラが呼ばれるまで待つ
-    // static_cast<void>(referee.result());
+    static_cast<void>(referee.result());
     BOOST_TEST(true);
   }
 
