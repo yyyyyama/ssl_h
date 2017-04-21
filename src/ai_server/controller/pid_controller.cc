@@ -1,10 +1,9 @@
 #include <boost/math/constants/constants.hpp>
+#include <boost/algorithm/clamp.hpp>
 #include <cmath>
 
 #include "ai_server/util/math.h"
 #include "pid_controller.h"
-#include <boost/algorithm/clamp.hpp>
-#include <cmath>
 
 namespace ai_server {
 namespace controller {
