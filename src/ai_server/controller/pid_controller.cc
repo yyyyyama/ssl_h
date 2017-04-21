@@ -1,6 +1,7 @@
 #include <boost/math/constants/constants.hpp>
 #include <boost/algorithm/clamp.hpp>
 #include <cmath>
+#include <typeinfo>
 
 #include "ai_server/util/math.h"
 #include "pid_controller.h"
@@ -39,6 +40,7 @@ const velocity_t operator/(const velocity_t& vel, const double& c) {
 }
 
 pid_controller::pid_controller(double cycle) : cycle_(cycle) {
+  maintenance_ = true;
   for (int i = 0; i < 2; i++) {
     up_[i] = {0.0, 0.0, 0.0};
     ui_[i] = {0.0, 0.0, 0.0};
@@ -46,6 +48,10 @@ pid_controller::pid_controller(double cycle) : cycle_(cycle) {
     u_[i]  = {0.0, 0.0, 0.0};
     e_[i]  = {0.0, 0.0, 0.0};
   }
+}
+
+void pid_controller::set_maintenance_mode() {
+  maintenance_ = true;
 }
 
 velocity_t pid_controller::update(const model::robot& robot, const position_t& setpoint) {
@@ -63,13 +69,23 @@ velocity_t pid_controller::update(const model::robot& robot, const position_t& s
   e_[0].omega      = ep.theta;
 
   // 制御計算
-  calculate();
+  calculate(typeid(setpoint));
 
   return u_[0];
 }
 
 velocity_t pid_controller::update(const model::robot& robot, const velocity_t& setpoint) {
-  robot_ = robot;
+  robot_               = robot;
+  double set_direction = std::atan2(setpoint.vy, setpoint.vx);
+  double set_speed     = std::hypot(setpoint.vx, setpoint.vy);
+  velocity_t set_vel;
+  if (!maintenance_) {
+    set_vel.vx    = set_speed * std::cos(set_direction - robot_.theta());
+    set_vel.vy    = set_speed * std::sin(set_direction - robot_.theta());
+    set_vel.omega = setpoint.omega;
+  } else {
+    set_vel = setpoint;
+  }
 
   // 現在偏差
   e_[0].vx    = set_vel.vx - robot_.vx();
@@ -77,12 +93,12 @@ velocity_t pid_controller::update(const model::robot& robot, const velocity_t& s
   e_[0].omega = set_vel.omega - robot_.omega();
 
   // 制御計算
-  calculate();
+  calculate(typeid(setpoint));
 
   return u_[0];
 }
 
-void pid_controller::calculate() {
+void pid_controller::calculate(const std::type_info& setpoint_type) {
   // 計算用にゲイン再計算
   velocity_t kp = model::command::velocity_t{kp_[0], kp_[0], kp_[1]};
   velocity_t ki = model::command::velocity_t{ki_[0], ki_[0], ki_[1]};
@@ -93,7 +109,12 @@ void pid_controller::calculate() {
   up_[0] = kp * e_[0];
   ui_[0] = cycle_ * ki * (e_[0] + e_[1]) / 2 + ui_[1];
   ud_[0] = 2 * kd * (e_[0] - e_[1]) / cycle_ - ud_[1];
-  u_[0]  = u_[1] + cycle_ * (up_[0] + ui_[0] + ud_[0]);
+  velocity_t tmp;
+  if (setpoint_type == typeid(tmp)) {
+    u_[0] = u_[1] + cycle_ * (up_[0] + ui_[0] + ud_[0]);
+  } else {
+    u_[0] = up_[0] + ui_[0] + ud_[0];
+  }
 
   // 加速度，速度制限
   using boost::algorithm::clamp;
