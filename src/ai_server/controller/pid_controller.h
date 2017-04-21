@@ -9,6 +9,7 @@ namespace controller {
 class pid_controller : public base {
 private:
   double cycle_;                         // 制御周期
+  model::robot robot_;                   // ロボット
   const static double kp_[2];            // 比例ゲイン(xy,rotate)
   const static double ki_[2];            // 積分ゲイン(xy,rotate)
   const static double kd_[2];            // 微分ゲイン(xy,rotate)

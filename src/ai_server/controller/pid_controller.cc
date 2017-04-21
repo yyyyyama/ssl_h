@@ -49,14 +49,15 @@ pid_controller::pid_controller(double cycle) : cycle_(cycle) {
 }
 
 velocity_t pid_controller::update(const model::robot& robot, const position_t& setpoint) {
+  robot_ = robot;
   // 位置偏差
   position_t ep;
-  ep.x     = setpoint.x - robot.x();
-  ep.y     = setpoint.y - robot.y();
-  ep.theta = util::wrap_to_pi(setpoint.theta - robot.theta());
+  ep.x     = setpoint.x - robot_.x();
+  ep.y     = setpoint.y - robot_.y();
+  ep.theta = util::wrap_to_pi(setpoint.theta - robot_.theta());
 
   double speed     = std::hypot(ep.x, ep.y);
-  double direction = util::wrap_to_pi(std::atan2(ep.y, ep.x) - robot.theta());
+  double direction = util::wrap_to_pi(std::atan2(ep.y, ep.x) - robot_.theta());
   e_[0].vx         = speed * std::cos(direction);
   e_[0].vy         = speed * std::sin(direction);
   e_[0].omega      = ep.theta;
@@ -68,10 +69,12 @@ velocity_t pid_controller::update(const model::robot& robot, const position_t& s
 }
 
 velocity_t pid_controller::update(const model::robot& robot, const velocity_t& setpoint) {
+  robot_ = robot;
+
   // 現在偏差
-  e_[0].vx    = setpoint.vx - u_[1].vx;
-  e_[0].vy    = setpoint.vy - u_[1].vy;
-  e_[0].omega = setpoint.omega - u_[1].omega;
+  e_[0].vx    = set_vel.vx - robot_.vx();
+  e_[0].vy    = set_vel.vy - robot_.vy();
+  e_[0].omega = set_vel.omega - robot_.omega();
 
   // 制御計算
   calculate();
@@ -94,23 +97,22 @@ void pid_controller::calculate() {
 
   // 加速度，速度制限
   using boost::algorithm::clamp;
-  double u_angle         = std::atan2(u_[0].vy, u_[0].vx); // 今回指令速度の方向
-  double u_speed         = std::hypot(u_[0].vx, u_[0].vy); // 今回指令速度の大きさ
-  double preceding_speed = std::hypot(u_[1].vx, u_[1].vy); // 前回指令速度の大きさ
-  double delta_speed = u_speed - preceding_speed; // 速さ偏差(今回速さと前回速さの差)
+  double u_angle     = std::atan2(u_[0].vy, u_[0].vx); // 今回指令速度の方向
+  double u_speed     = std::hypot(u_[0].vx, u_[0].vy); // 今回指令速度の大きさ
+  double robot_speed = std::hypot(robot_.vx(), robot_.vy());
+  double delta_speed = u_speed - robot_speed; // 速さ偏差(今回指令とロボット速さの差)
   // 速度に応じて加速度を変化(初動でのスリップ防止)
   // 制限加速度計算
   double optimized_accel =
-      preceding_speed * (max_acceleration_ - min_acceleration_) / reach_speed_ +
-      min_acceleration_;
+      robot_speed * (max_acceleration_ - min_acceleration_) / reach_speed_ + min_acceleration_;
   optimized_accel = clamp(optimized_accel, min_acceleration_, max_acceleration_);
   // 加速度制限
   if (delta_speed / cycle_ > optimized_accel &&
-      std::abs(u_speed) > std::abs(preceding_speed)) { // +制限加速度超過
-    u_speed = preceding_speed + (optimized_accel * cycle_);
+      std::abs(u_speed) > std::abs(robot_speed)) { // +制限加速度超過
+    u_speed = robot_speed + (optimized_accel * cycle_);
   } else if (delta_speed / cycle_ < -optimized_accel &&
-             std::abs(u_speed) > std::abs(preceding_speed)) { // -制限加速度超過
-    u_speed = preceding_speed - (optimized_accel * cycle_);
+             std::abs(u_speed) > std::abs(robot_speed)) { // -制限加速度超過
+    u_speed = robot_speed - (optimized_accel * cycle_);
   }
   // 速度制限
   u_speed = clamp(u_speed, 0.0, max_velocity_);
