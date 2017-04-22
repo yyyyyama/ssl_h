@@ -25,10 +25,10 @@ private:
   double move_to_y_;
   double move_to_theta_;
 
-  double ball_goal_theta_; //ボール上を軸として、ゴール上を通る直線の角度 (度)
+  double ball_goal_theta_; //ボール上を軸としてゴール上を通る直線の角度 (rad)
 };
 
 } // namespace agent
 } // namespace game
 } // namespace ai_server
-#endif AI_SERVER_GAME_AGENT_KICK_OFF_H
+#endif
