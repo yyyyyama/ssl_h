@@ -148,12 +148,12 @@ BOOST_AUTO_TEST_CASE(non_protobuf_data, *boost::unit_test::timeout(30)) {
   boost::asio::io_service io_service;
 
   // refbox受信クラスの初期化
-  // listen_addr = 0.0.0.0, multicast_addr = 224.5.23.4, port = 10010
-  refbox r(io_service, "0.0.0.0", "224.5.23.4", 10010);
+  // listen_addr = 0.0.0.0, multicast_addr = 224.5.23.4, port = 10080
+  refbox r(io_service, "0.0.0.0", "224.5.23.4", 10080);
 
   // 送信クラスの初期化
-  // multicast_addr = 224.5.23.4, port = 10010
-  sender s(io_service, "224.5.23.4", 10010);
+  // multicast_addr = 224.5.23.4, port = 10080
+  sender s(io_service, "224.5.23.4", 10080);
 
   // 受信を開始する
   std::thread t([&] { io_service.run(); });
