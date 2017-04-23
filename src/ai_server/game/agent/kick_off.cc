@@ -16,6 +16,7 @@ kick_off::set_start_flag(bool start_flag) {
 kick_off::start_flag() const {
   return start_flag_;
 }
+
 kick_off::execute() {
   const double robot_r    = 85.0;  //ロボットの半径
   const double keep_out_r = 500.0; //キックオフ時の立ち入り禁止区域の半径
