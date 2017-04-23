@@ -40,7 +40,6 @@ const velocity_t operator/(const velocity_t& vel, const double& c) {
 }
 
 pid_controller::pid_controller(double cycle) : cycle_(cycle) {
-  maintenance_ = true;
   for (int i = 0; i < 2; i++) {
     up_[i] = {0.0, 0.0, 0.0};
     ui_[i] = {0.0, 0.0, 0.0};
@@ -48,10 +47,6 @@ pid_controller::pid_controller(double cycle) : cycle_(cycle) {
     u_[i]  = {0.0, 0.0, 0.0};
     e_[i]  = {0.0, 0.0, 0.0};
   }
-}
-
-void pid_controller::set_maintenance_mode() {
-  maintenance_ = true;
 }
 
 velocity_t pid_controller::update(const model::robot& robot, const position_t& setpoint) {
@@ -79,13 +74,9 @@ velocity_t pid_controller::update(const model::robot& robot, const velocity_t& s
   double set_direction = std::atan2(setpoint.vy, setpoint.vx);
   double set_speed     = std::hypot(setpoint.vx, setpoint.vy);
   velocity_t set_vel;
-  if (!maintenance_) {
     set_vel.vx    = set_speed * std::cos(set_direction - robot_.theta());
     set_vel.vy    = set_speed * std::sin(set_direction - robot_.theta());
     set_vel.omega = setpoint.omega;
-  } else {
-    set_vel = setpoint;
-  }
 
   // 現在偏差
   e_[0].vx    = set_vel.vx - robot_.vx();

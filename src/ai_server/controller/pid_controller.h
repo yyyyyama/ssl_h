@@ -22,7 +22,6 @@ private:
   velocity_t ud_[2];                     // 操作量(微分,1フレーム前まで)
   velocity_t u_[2];                      // 操作量(1フレーム前まで)
   velocity_t e_[2];                      // 偏差(1フレーム前まで)
-  bool maintenance_;                     // mode{true->maintenance,false->game}
   // 制御計算関数
   void calculate(const std::type_info& setpoint_type);
 
@@ -33,8 +32,6 @@ public:
   // 制御入力更新関数
   velocity_t update(const model::robot& robot, const position_t& setpoint);
   velocity_t update(const model::robot& robot, const velocity_t& setpoint);
-
-  void set_maintenance_mode(); // maintenance_modeではロボット座標系に対して制御
 };
 
 } // controller
