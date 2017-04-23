@@ -50,7 +50,7 @@ std::vector<std::shared_ptr<action::base>> defense::execute() {
   y_ = ratio * ball_y;
 	std::cout << "x_:" << x_ << " y_:" << y_ << std::endl;
   //基準点とボールを結んだ直線と垂直に交わる直線の傾き
-  const auto inclination = -((ball_y - y_) / (ball_x - x_));
+  const auto inclination = -1/((ball_y - y_) / (ball_x - x_));
   //基準点とボールを結んだ直線と垂直に交わる直線の切片
   const auto segment = y_ - inclination * x_;
   //基準点からボールへの向き
@@ -130,7 +130,7 @@ std::vector<std::shared_ptr<action::base>> defense::execute() {
                     theta); //置く場所をセット
   }
 	
-  //wall.push_back(keeper); //配列を返すためにキーパーも統合する
+  wall.push_back(keeper); //配列を返すためにキーパーも統合する
 	std::vector<std::shared_ptr<action::base>> re_wall{wall.begin(),wall.end()};
   return re_wall; //返す
 }
