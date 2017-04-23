@@ -18,31 +18,31 @@ void driver::register_robot(bool is_yellow, unsigned int id, controller_ptr cont
                             sender_ptr sender) {
   std::lock_guard<std::mutex> lock(mutex_);
 
-  auto& robots = is_yellow ? robots_yellow_ : robots_blue_;
-  robots.emplace(
+  auto& robot_params = is_yellow ? robots_yellow_params_ : robots_blue_params_;
+  robot_params.emplace(
       id, std::forward_as_tuple(model::command{id}, std::move(controller), std::move(sender)));
 }
 
 void driver::unregister_robot(bool is_yellow, unsigned int id) {
   std::lock_guard<std::mutex> lock(mutex_);
 
-  auto& robots = is_yellow ? robots_yellow_ : robots_blue_;
-  robots.erase(id);
+  auto& robot_params = is_yellow ? robots_yellow_params_ : robots_blue_params_;
+  robot_params.erase(id);
 }
 
 void driver::update_command(bool is_yellow, const model::command& command) {
   std::lock_guard<std::mutex> lock(mutex_);
 
-  auto& robots = is_yellow ? robots_yellow_ : robots_blue_;
+  auto& robot_params = is_yellow ? robots_yellow_params_ : robots_blue_params_;
 
   // ロボットが登録されていなかったらエラー
-  if (robots.count(command.id()) == 0) {
+  if (robot_params.count(command.id()) == 0) {
     throw std::runtime_error(
         boost::str(boost::format("driver: %1% robot id %2% is not registered") %
                    (is_yellow ? "yellow" : "blue") % command.id()));
   }
 
-  std::get<0>(robots.at(command.id())) = command;
+  std::get<0>(robot_params.at(command.id())) = command;
 }
 
 void driver::main_loop(const boost::system::error_code& error) {
@@ -55,16 +55,16 @@ void driver::main_loop(const boost::system::error_code& error) {
   std::lock_guard<std::mutex> lock(mutex_);
 
   // 登録されたロボットの命令をControllerを通してから送信する
-  for (auto&& r : robots_blue_) process_command(false, r.second);
-  for (auto&& r : robots_yellow_) process_command(true, r.second);
+  for (auto&& rp : robots_blue_params_) process(false, rp.second);
+  for (auto&& rp : robots_yellow_params_) process(true, rp.second);
 
   // 処理の開始刻からcycle_経過した後に再度main_loop()が呼び出されるように設定
   timer_.expires_at(start_time + cycle_);
   timer_.async_wait([this](auto&& error) { main_loop(std::forward<decltype(error)>(error)); });
 }
 
-void driver::process_command(bool is_yellow, value_type& value) {
-  auto command      = std::get<0>(value);
+void driver::process(bool is_yellow, driver_param_type& driver_param) {
+  auto command      = std::get<0>(driver_param);
   const auto id     = command.id();
   const auto robots = is_yellow ? world_.robots_yellow() : world_.robots_blue();
 
@@ -72,13 +72,13 @@ void driver::process_command(bool is_yellow, value_type& value) {
   if (robots.count(id) == 0) return;
 
   // commandの指令値をControllerに通す
-  auto controller = [ id, &c = std::get<1>(value), &r = robots.at(id) ](auto&& s) {
+  auto controller = [ id, &c = std::get<1>(driver_param), &r = robots.at(id) ](auto&& s) {
     return c->operator()(r, std::forward<decltype(s)>(s));
   };
   command.set_velocity(boost::apply_visitor(controller, command.setpoint()));
 
   // Senderで送信
-  std::get<2>(value)->send_command(command);
+  std::get<2>(driver_param)->send_command(command);
 }
 
 } // namespace ai_server

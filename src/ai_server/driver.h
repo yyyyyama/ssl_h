@@ -19,10 +19,13 @@ namespace ai_server {
 class driver {
   using controller_ptr = std::unique_ptr<controller::base>;
   using sender_ptr     = std::shared_ptr<sender::base>;
-  using value_type     = std::tuple<model::command, controller_ptr, sender_ptr>;
+
+  /// Driverで行う処理で必要となる各ロボットの情報
+  using driver_param_type = std::tuple<model::command, controller_ptr, sender_ptr>;
 
   mutable std::mutex mutex_;
 
+  /// 制御部の処理を一定の周期で回すためのタイマ
   boost::asio::high_resolution_timer timer_;
 
   /// 制御周期
@@ -32,9 +35,9 @@ class driver {
   const model::world& world_;
 
   /// 登録された青ロボットの情報
-  std::unordered_map<unsigned int, value_type> robots_blue_;
+  std::unordered_map<unsigned int, driver_param_type> robots_blue_params_;
   /// 登録された黄ロボットの情報
-  std::unordered_map<unsigned int, value_type> robots_yellow_;
+  std::unordered_map<unsigned int, driver_param_type> robots_yellow_params_;
 
 public:
   /// @param cycle            制御周期
@@ -64,8 +67,8 @@ private:
   /// @brief                  cycle_毎に呼ばれる制御部のメインループ
   void main_loop(const boost::system::error_code& error);
 
-  /// @brief                  valueに登録されたcommandをControllerを通してから送信する
-  void process_command(bool is_yellow, value_type& value);
+  /// @brief                  ロボットへの命令をControllerを通してから送信する
+  void process(bool is_yellow, driver_param_type& driver_param);
 };
 
 } // namespace ai_server
