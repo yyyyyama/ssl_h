@@ -9,9 +9,7 @@ namespace game {
 namespace agent {
 
 kick_off::kick_off(const model::world& world, bool is_yellow, unsigned int kicker_id)
-    : base(world, is_yellow) {
-  kicker_id_ = kicker_id;
-}
+    : base(world, is_yellow), kicker_id_(kicker_id) {}
 kick_off::set_start_flag(bool start_flag) {
   start_flag_ = start_flag;
 }
@@ -22,12 +20,13 @@ kick_off::execute() {
   const double robot_r    = 85.0;  //ロボットの半径
   const double keep_out_r = 500.0; //キックオフ時の立ち入り禁止区域の半径
 
-  if (kick_finished_ == true) {
+  if (kick_finished_) {
     //ボールを蹴り終わった時
     game::action::no_operation no_op{world_, is_yellow_, kicker_id_};
     no_op.execute();
+    return no_op;
   } else {
-    if (move_finished_ == true && start_flag_ == true) {
+    if (move_finished_ && start_flag_) {
       // StartGameが指定され、所定の位置に移動済みの時
       game::action::kick_action kick{world_, is_yellow_, kicker_id_};
       kick.kick_to(world_.field().x_max(), 0.0);
@@ -36,9 +35,10 @@ kick_off::execute() {
       kick.execute();
 
       kick_finished_ = kick.finished();
+      return kick;
 
     } else {
-      // StartGameが指定されていないか、所定の位置に移動していない時
+      // StartGameが指定されていない、または所定の位置に移動していない時
       const auto ball = world_.ball();
 
       //ボールとゴールを結んだライン上で、ボールから半径keep_out_r+ロボット半径離れたところに移動
@@ -52,6 +52,7 @@ kick_off::execute() {
       move.execute();
 
       move_finished_ = move.finished();
+      return move;
     }
   }
 }
