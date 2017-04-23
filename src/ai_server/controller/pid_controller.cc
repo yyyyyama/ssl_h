@@ -63,8 +63,21 @@ velocity_t pid_controller::update(const model::robot& robot, const position_t& s
   e_[0].vy         = speed * std::sin(direction);
   e_[0].omega      = ep.theta;
 
-  // 制御計算
-  calculate(typeid(setpoint));
+  // 計算用にゲイン再計算
+  velocity_t kp = model::command::velocity_t{kp_[0], kp_[0], kp_[1]};
+  velocity_t ki = model::command::velocity_t{ki_[0], ki_[0], ki_[1]};
+  velocity_t kd = model::command::velocity_t{kd_[0], kd_[0], kd_[1]};
+
+  // 双一次変換
+  // s=(2/T)*(Z-1)/(Z+1)としてPIDcontrollerを離散化
+  // C=Kp+Ki/s+Kds
+  up_[0] = kp * e_[0];
+  ui_[0] = cycle_ * ki * (e_[0] + e_[1]) / 2 + ui_[1];
+  ud_[0] = 2 * kd * (e_[0] - e_[1]) / cycle_ - ud_[1];
+  u_[0]  = up_[0] + ui_[0] + ud_[0];
+
+  // 入力制限計算
+  limitation();
 
   return u_[0];
 }
@@ -74,39 +87,35 @@ velocity_t pid_controller::update(const model::robot& robot, const velocity_t& s
   double set_direction = std::atan2(setpoint.vy, setpoint.vx);
   double set_speed     = std::hypot(setpoint.vx, setpoint.vy);
   velocity_t set_vel;
-    set_vel.vx    = set_speed * std::cos(set_direction - robot_.theta());
-    set_vel.vy    = set_speed * std::sin(set_direction - robot_.theta());
-    set_vel.omega = setpoint.omega;
+  set_vel.vx    = set_speed * std::cos(set_direction - robot_.theta());
+  set_vel.vy    = set_speed * std::sin(set_direction - robot_.theta());
+  set_vel.omega = setpoint.omega;
 
   // 現在偏差
   e_[0].vx    = set_vel.vx - robot_.vx();
   e_[0].vy    = set_vel.vy - robot_.vy();
   e_[0].omega = set_vel.omega - robot_.omega();
 
-  // 制御計算
-  calculate(typeid(setpoint));
-
-  return u_[0];
-}
-
-void pid_controller::calculate(const std::type_info& setpoint_type) {
   // 計算用にゲイン再計算
   velocity_t kp = model::command::velocity_t{kp_[0], kp_[0], kp_[1]};
   velocity_t ki = model::command::velocity_t{ki_[0], ki_[0], ki_[1]};
   velocity_t kd = model::command::velocity_t{kd_[0], kd_[0], kd_[1]};
+
   // 双一次変換
   // s=(2/T)*(Z-1)/(Z+1)としてPIDcontrollerを離散化
   // C=Kp+Ki/s+Kds
   up_[0] = kp * e_[0];
   ui_[0] = cycle_ * ki * (e_[0] + e_[1]) / 2 + ui_[1];
   ud_[0] = 2 * kd * (e_[0] - e_[1]) / cycle_ - ud_[1];
-  velocity_t tmp;
-  if (setpoint_type == typeid(tmp)) {
-    u_[0] = u_[1] + cycle_ * (up_[0] + ui_[0] + ud_[0]);
-  } else {
-    u_[0] = up_[0] + ui_[0] + ud_[0];
-  }
+  u_[0]  = u_[1] + cycle_ * (up_[0] + ui_[0] + ud_[0]);
 
+  // 入力制限計算
+  limitation();
+
+  return u_[0];
+}
+
+void pid_controller::limitation() {
   // 加速度，速度制限
   using boost::algorithm::clamp;
   double u_angle     = std::atan2(u_[0].vy, u_[0].vx); // 今回指令速度の方向

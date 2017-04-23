@@ -22,8 +22,8 @@ private:
   velocity_t ud_[2];                     // 操作量(微分,1フレーム前まで)
   velocity_t u_[2];                      // 操作量(1フレーム前まで)
   velocity_t e_[2];                      // 偏差(1フレーム前まで)
-  // 制御計算関数
-  void calculate(const std::type_info& setpoint_type);
+  // 入力制限
+  void limitation();
 
 public:
   // コンストラクタ
