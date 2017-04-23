@@ -63,6 +63,9 @@ public:
 private:
   /// @brief                  cycle_毎に呼ばれる制御部のメインループ
   void main_loop(const boost::system::error_code& error);
+
+  /// @brief                  valueに登録されたcommandをControllerを通してから送信する
+  void process_command(bool is_yellow, value_type& value);
 };
 
 } // namespace ai_server
