@@ -17,21 +17,24 @@ std::vector<std::shared_ptr<action::base>> defense::execute() {
   using boost::math::constants::pi;
 
   //キーパー用のaction
-  std::shared_ptr<action::base> keeper =
+  std::shared_ptr<action::move> keeper =
       std::make_shared<action::move>(world_, is_yellow_, keeper_id_);
-
+	
   //壁用のaction
-  std::vector<std::shared_ptr<action::base>> wall;
+  std::vector<std::shared_ptr<action::move>> wall;
   for (auto it = wall_ids_.begin(); it != wall_ids_.end(); ++it) {
     wall.push_back(std::make_shared<action::move>(world_, is_yellow_, *it));
   }
+
 
   //ボールの座標
   const auto ball_x = world_.ball().x();
   const auto ball_y = world_.ball().y();
   //ゴールの座標
-  const auto goal_x = -1 * world_.field().x_max();
-
+  const auto goal_x =world_.field().x_max();
+	
+	std::cout << "ball_x:" << ball_x << "ball_y" << ball_y << std::endl;
+	
   //比
   auto ratio  = 0.0;
   auto length = 0.0;
@@ -45,7 +48,7 @@ std::vector<std::shared_ptr<action::base>> defense::execute() {
                              //基準座標
   x_ = (1 - ratio) * goal_x + ratio * ball_x;
   y_ = ratio * ball_y;
-
+	std::cout << "x_:" << x_ << " y_:" << y_ << std::endl;
   //基準点とボールを結んだ直線と垂直に交わる直線の傾き
   const auto inclination = -((ball_y - y_) / (ball_x - x_));
   //基準点とボールを結んだ直線と垂直に交わる直線の切片
@@ -61,14 +64,14 @@ std::vector<std::shared_ptr<action::base>> defense::execute() {
   auto shift = 0.0;
 
   //壁の数が偶数奇数の判定
-  if (wall_ids_.size() % 2 == 0) { //偶数
-		std::dynamic_pointer_cast<action::move>(*wall_it)->move_to(x_, y_, theta);
+  if (wall_ids_.size() % 2 != 0) { //奇数
+		(*wall_it)->move_to(x_, y_, theta);
     ++wall_it;
     shift = 180.0;
   } else {
     shift = 90.0;
   }
-
+	
   //直線を引くための適当な点
   const auto tmp_x = 1000.0;
   const auto tmp_y = inclination * tmp_x + segment;
@@ -81,16 +84,18 @@ std::vector<std::shared_ptr<action::base>> defense::execute() {
     if (std::signbit(shift_real)) { //基準点より左側
       tmp   = length / (length + shift_real);
       ratio = 1 - tmp;
-      std::dynamic_pointer_cast<action::move>(*wall_it)->move_to((-ratio * tmp_x + x_) / tmp, (-ratio * tmp_y + y_) / tmp, theta);
+      (*wall_it)->move_to((-ratio * tmp_x + x_) / tmp, (-ratio * tmp_y + y_) / tmp, theta);
       shift_real -= shift;
     } else {                         //基準点より右側
       ratio = (shift_real) / length; //全体に対してのずらし具合の比
-      std::dynamic_pointer_cast<action::move>(*wall_it)->move_to((1 - ratio) * x_ + ratio * tmp_x, (1 - ratio) * y_ + ratio * tmp_y,
+      (*wall_it)->move_to((1 - ratio) * x_ + ratio * tmp_x, (1 - ratio) * y_ + ratio * tmp_y,
                           theta); //置く場所をセット
     }
   }
 
-  //ここからキーパーの処理
+	
+  
+	//ここからキーパーの処理
   //縄張りの大きさ
   const auto demarcation = 2250.0;
 
@@ -98,7 +103,7 @@ std::vector<std::shared_ptr<action::base>> defense::execute() {
       std::signbit(goal_x * (-1))) { //ボールは敵陣地なのでキーパーはさがる:A
     //ゴール直前でボールに併せて横移動
 
-    std::dynamic_pointer_cast<action::move>(keeper)->move_to(goal_x, ball_y,
+    keeper->move_to(goal_x, ball_y,
                     util::wrap_to_2pi(std::atan2(0, goal_x - ball_x) + pi<double>()));
 
   } else if (std::signbit(
@@ -108,7 +113,7 @@ std::vector<std::shared_ptr<action::base>> defense::execute() {
     length = std::hypot(x_ - ball_x, y_ - ball_y); //基準点<->ボール
     ratio  = (180) / length; //全体に対してのキーパー位置の比
 
-    std::dynamic_pointer_cast<action::move>(keeper)->move_to((1 - ratio) * x_ + ratio * tmp_x, (1 - ratio) * y_ + ratio * tmp_y,
+    keeper->move_to((1 - ratio) * x_ + ratio * tmp_x, (1 - ratio) * y_ + ratio * tmp_y,
                     theta); //置く場所をセット
 
     //もし支線の先にロボットがいたら
@@ -121,13 +126,13 @@ std::vector<std::shared_ptr<action::base>> defense::execute() {
     length = std::hypot(x_ - ball_x, y_ - ball_y); //基準点<->ボール
     ratio  = (800) / length; //全体に対してのキーパー位置の比
 
-    std::dynamic_pointer_cast<action::move>(keeper)->move_to((1 - ratio) * x_ + ratio * tmp_x, (1 - ratio) * y_ + ratio * tmp_y,
+    keeper->move_to((1 - ratio) * x_ + ratio * tmp_x, (1 - ratio) * y_ + ratio * tmp_y,
                     theta); //置く場所をセット
   }
-
-  wall.push_back(keeper); //配列を返すためにキーパーも統合する
-
-  return wall; //返す
+	
+  //wall.push_back(keeper); //配列を返すためにキーパーも統合する
+	std::vector<std::shared_ptr<action::base>> re_wall{wall.begin(),wall.end()};
+  return re_wall; //返す
 }
 }
 }
