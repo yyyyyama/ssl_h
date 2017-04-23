@@ -18,7 +18,7 @@ namespace ai_server {
 
 class driver {
   using controller_ptr = std::unique_ptr<controller::base>;
-  using sender_ptr     = std::unique_ptr<sender::base>;
+  using sender_ptr     = std::shared_ptr<sender::base>;
   using value_type     = std::tuple<model::command, controller_ptr, sender_ptr>;
 
   mutable std::mutex mutex_;
