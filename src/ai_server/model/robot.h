@@ -15,7 +15,7 @@ private:
   double omega_;
   double ax_;
   double ay_;
-  double alpha;
+  double alpha_;
 
 public:
   robot();

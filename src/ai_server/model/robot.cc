@@ -45,7 +45,7 @@ double robot::ay() const {
 }
 
 double robot::alpha() const {
-  return alpha;
+  return alpha_;
 }
 
 void robot::set_x(double x) {
