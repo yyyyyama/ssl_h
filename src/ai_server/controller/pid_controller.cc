@@ -1,7 +1,6 @@
 #include <boost/math/constants/constants.hpp>
 #include <boost/algorithm/clamp.hpp>
 #include <cmath>
-#include <typeinfo>
 
 #include "ai_server/util/math.h"
 #include "pid_controller.h"
