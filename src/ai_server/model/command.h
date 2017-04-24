@@ -22,6 +22,12 @@ public:
     double omega;
   };
 
+  struct acceleration_t {
+    double ax;
+    double ay;
+    double alpha;
+  };
+
   using setpoint_t  = boost::variant<position_t, velocity_t>;
   using kick_flag_t = std::tuple<kick_type_t, double>;
 
@@ -36,6 +42,7 @@ public:
   void set_kick_flag(const kick_flag_t& kick_flag);
   void set_position(const position_t& position);
   void set_velocity(const velocity_t& velocity);
+  void set_acceleration(const acceleration_t& acceleration);
 
 private:
   unsigned int id_;

@@ -40,5 +40,9 @@ void command::set_position(const command::position_t& position) {
 void command::set_velocity(const command::velocity_t& velocity) {
   setpoint_ = velocity;
 }
+
+void command::set_acceleration(const command::acceleration_t& accelerationi){
+  setpoint_=acceleration;
+}
 }
 }
