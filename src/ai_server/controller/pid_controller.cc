@@ -1,10 +1,9 @@
 #include <boost/math/constants/constants.hpp>
+#include <boost/algorithm/clamp.hpp>
 #include <cmath>
 
 #include "ai_server/util/math.h"
 #include "pid_controller.h"
-#include <boost/algorithm/clamp.hpp>
-#include <cmath>
 
 namespace ai_server {
 namespace controller {
@@ -50,41 +49,57 @@ pid_controller::pid_controller(double cycle) : cycle_(cycle) {
 }
 
 velocity_t pid_controller::update(const model::robot& robot, const position_t& setpoint) {
+  robot_ = robot;
   // 位置偏差
   position_t ep;
-  ep.x     = setpoint.x - robot.x();
-  ep.y     = setpoint.y - robot.y();
-  ep.theta = util::wrap_to_pi(setpoint.theta - robot.theta());
+  ep.x     = setpoint.x - robot_.x();
+  ep.y     = setpoint.y - robot_.y();
+  ep.theta = util::wrap_to_pi(setpoint.theta - robot_.theta());
 
   double speed     = std::hypot(ep.x, ep.y);
-  double direction = util::wrap_to_pi(std::atan2(ep.y, ep.x) - robot.theta());
+  double direction = util::wrap_to_pi(std::atan2(ep.y, ep.x) - robot_.theta());
   e_[0].vx         = speed * std::cos(direction);
   e_[0].vy         = speed * std::sin(direction);
   e_[0].omega      = ep.theta;
 
-  // 制御計算
-  calculate();
+  // 計算用にゲイン再計算
+  velocity_t kp = model::command::velocity_t{kp_[0], kp_[0], kp_[1]};
+  velocity_t ki = model::command::velocity_t{ki_[0], ki_[0], ki_[1]};
+  velocity_t kd = model::command::velocity_t{kd_[0], kd_[0], kd_[1]};
+
+  // 双一次変換
+  // s=(2/T)*(Z-1)/(Z+1)としてPIDcontrollerを離散化
+  // C=Kp+Ki/s+Kds
+  up_[0] = kp * e_[0];
+  ui_[0] = cycle_ * ki * (e_[0] + e_[1]) / 2 + ui_[1];
+  ud_[0] = 2 * kd * (e_[0] - e_[1]) / cycle_ - ud_[1];
+  u_[0]  = up_[0] + ui_[0] + ud_[0];
+
+  // 入力制限計算
+  limitation();
 
   return u_[0];
 }
 
 velocity_t pid_controller::update(const model::robot& robot, const velocity_t& setpoint) {
+  robot_               = robot;
+  double set_direction = std::atan2(setpoint.vy, setpoint.vx);
+  double set_speed     = std::hypot(setpoint.vx, setpoint.vy);
+  velocity_t set_vel;
+  set_vel.vx    = set_speed * std::cos(set_direction - robot_.theta());
+  set_vel.vy    = set_speed * std::sin(set_direction - robot_.theta());
+  set_vel.omega = setpoint.omega;
+
   // 現在偏差
-  e_[0].vx    = setpoint.vx - u_[1].vx;
-  e_[0].vy    = setpoint.vy - u_[1].vy;
-  e_[0].omega = setpoint.omega - u_[1].omega;
+  e_[0].vx    = set_vel.vx - robot_.vx();
+  e_[0].vy    = set_vel.vy - robot_.vy();
+  e_[0].omega = set_vel.omega - robot_.omega();
 
-  // 制御計算
-  calculate();
-
-  return u_[0];
-}
-
-void pid_controller::calculate() {
   // 計算用にゲイン再計算
   velocity_t kp = model::command::velocity_t{kp_[0], kp_[0], kp_[1]};
   velocity_t ki = model::command::velocity_t{ki_[0], ki_[0], ki_[1]};
   velocity_t kd = model::command::velocity_t{kd_[0], kd_[0], kd_[1]};
+
   // 双一次変換
   // s=(2/T)*(Z-1)/(Z+1)としてPIDcontrollerを離散化
   // C=Kp+Ki/s+Kds
@@ -93,25 +108,31 @@ void pid_controller::calculate() {
   ud_[0] = 2 * kd * (e_[0] - e_[1]) / cycle_ - ud_[1];
   u_[0]  = u_[1] + cycle_ * (up_[0] + ui_[0] + ud_[0]);
 
+  // 入力制限計算
+  limitation();
+
+  return u_[0];
+}
+
+void pid_controller::limitation() {
   // 加速度，速度制限
   using boost::algorithm::clamp;
-  double u_angle         = std::atan2(u_[0].vy, u_[0].vx); // 今回指令速度の方向
-  double u_speed         = std::hypot(u_[0].vx, u_[0].vy); // 今回指令速度の大きさ
-  double preceding_speed = std::hypot(u_[1].vx, u_[1].vy); // 前回指令速度の大きさ
-  double delta_speed = u_speed - preceding_speed; // 速さ偏差(今回速さと前回速さの差)
+  double u_angle     = std::atan2(u_[0].vy, u_[0].vx); // 今回指令速度の方向
+  double u_speed     = std::hypot(u_[0].vx, u_[0].vy); // 今回指令速度の大きさ
+  double robot_speed = std::hypot(robot_.vx(), robot_.vy());
+  double delta_speed = u_speed - robot_speed; // 速さ偏差(今回指令とロボット速さの差)
   // 速度に応じて加速度を変化(初動でのスリップ防止)
   // 制限加速度計算
   double optimized_accel =
-      preceding_speed * (max_acceleration_ - min_acceleration_) / reach_speed_ +
-      min_acceleration_;
+      robot_speed * (max_acceleration_ - min_acceleration_) / reach_speed_ + min_acceleration_;
   optimized_accel = clamp(optimized_accel, min_acceleration_, max_acceleration_);
   // 加速度制限
   if (delta_speed / cycle_ > optimized_accel &&
-      std::abs(u_speed) > std::abs(preceding_speed)) { // +制限加速度超過
-    u_speed = preceding_speed + (optimized_accel * cycle_);
+      std::abs(u_speed) > std::abs(robot_speed)) { // +制限加速度超過
+    u_speed = robot_speed + (optimized_accel * cycle_);
   } else if (delta_speed / cycle_ < -optimized_accel &&
-             std::abs(u_speed) > std::abs(preceding_speed)) { // -制限加速度超過
-    u_speed = preceding_speed - (optimized_accel * cycle_);
+             std::abs(u_speed) > std::abs(robot_speed)) { // -制限加速度超過
+    u_speed = robot_speed - (optimized_accel * cycle_);
   }
   // 速度制限
   u_speed = clamp(u_speed, 0.0, max_velocity_);
