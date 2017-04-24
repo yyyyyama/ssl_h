@@ -26,9 +26,9 @@ std::vector<std::shared_ptr<action::base>> defense::execute() {
     }
   }
 
-	const auto myrobot = is_yellow_?world_.robots_yellow():world_.robots_blue();
-  const auto nyan = myrobot.at(keeper_id_);
-	std::cout << "nyyyyyyyyyyan" << nyan.x() << "    " << nyan.y() << std::endl;
+  const auto myrobot = is_yellow_ ? world_.robots_yellow() : world_.robots_blue();
+  const auto nyan    = myrobot.at(keeper_id_);
+  std::cout << "nyyyyyyyyyyan" << nyan.x() << "    " << nyan.y() << std::endl;
 
   //ボールの座標
   const auto ball_x = world_.ball().x();
@@ -38,7 +38,7 @@ std::vector<std::shared_ptr<action::base>> defense::execute() {
       (world_.field().x_max() + (std::signbit(world_.field().x_max()) ? 200.0 : -200.0));
 
   std::cout << "ball_x:" << ball_x << "ball_y" << ball_y << std::endl;
-  std::cout << "goal_x:" << goal_x <<  std::endl;
+  std::cout << "goal_x:" << goal_x << std::endl;
 
   //比
   auto ratio  = 0.0;
@@ -75,7 +75,7 @@ std::vector<std::shared_ptr<action::base>> defense::execute() {
   if (wall_ids_.size() % 2 != 0) { //奇数
     (*wall_it)->move_to(x_, y_, theta);
     ++wall_it;
-    shift = 200.0;
+    shift = 500.0;
   } else {
     shift = 110.0;
   }
@@ -93,42 +93,42 @@ std::vector<std::shared_ptr<action::base>> defense::execute() {
   //縄張りの大きさ
   const auto demarcation = 2250.0;
 
-  //  if (std::signbit(ball_x) ==
-  //      std::signbit(goal_x * (-1))) { //ボールは敵陣地なのでキーパーはさがる:A
-  //ゴール直前でボールに併せて横移動
+  if (std::signbit(ball_x) ==
+      std::signbit(goal_x * (-1))) { //ボールは敵陣地なのでキーパーはさがる:A
+    //ゴール直前でボールに併せて横移動
 
-  auto keeper_y = ((ball_y >= -500 && ball_y <= 500)?ball_y:0);
-	keeper_->move_to(goal_x, keeper_y,
-                   util::wrap_to_2pi(std::atan2(0, goal_x - ball_x) + pi<double>()));
+    auto keeper_y = ((ball_y >= -500 && ball_y <= 500) ? ball_y : 0);
+    keeper_->move_to(goal_x, keeper_y,
+                     util::wrap_to_2pi(std::atan2(0, goal_x - ball_x) + pi<double>()));
 
-	//keeper_->move_to(0,0,0);
-  /*  } else if (std::signbit(
-                   std::pow(ball_x - world_.field().x_max(), 2) + std::pow(ball_y, 2) -
-                   std::pow(demarcation, 2))) { //ボールは縄張りのなかなので頑張れキーパー:C
-      //ゴール前で張ってるキーパの位置
-      length = std::hypot(x_ - ball_x, y_ - ball_y); //基準点<->ボール
-      ratio  = (180) / length; //全体に対してのキーパー位置の比
+    // keeper_->move_to(0,0,0);
+  } else if (std::signbit(
+                 std::pow(ball_x - world_.field().x_max(), 2) + std::pow(ball_y, 2) -
+                 std::pow(demarcation, 2))) { //ボールは縄張りのなかなので頑張れキーパー:C
+    //ゴール前で張ってるキーパの位置
+    length = std::hypot(goal_x - ball_x, ball_y); //基準点<->ボール
+    ratio  = (400) / length; //全体に対してのキーパー位置の比
 
-      keeper_->move_to((1 - ratio) * x_ + ratio * tmp_x, (1 - ratio) * y_ + ratio * tmp_y,
-                       theta); //置く場所をセット
+    keeper_->move_to((1 - ratio) * goal_x + ratio * ball_x, ratio * ball_y,
+                     theta); //置く場所をセット
 
-      //もし支線の先にロボットがいたら
-      //そのロボットの視線の先に移動
-      //セット仕直し
-    } else { //ボールはこっち陣地なので壁の補強:B
-      //壁のすぐ後ろで待機
+    //もし支線の先にロボットがいたら
+    //そのロボットの視線の先に移動
+    //セット仕直し
+  } else { //ボールはこっち陣地なので壁の補強:B
+    //壁のすぐ後ろで待機
 
-      //基準点からちょっと下がったキーパの位置
-      length = std::hypot(goal_x - ball_x, ball_y); //基準点<->ボール
-      ratio  = (800) / length; //全体に対してのキーパー位置の比
+    //基準点からちょっと下がったキーパの位置
+    length = std::hypot(goal_x - ball_x, ball_y); //基準点<->ボール
+    ratio  = (800) / length; //全体に対してのキーパー位置の比
 
-      auto tes_x = (1 - ratio) * goal_x + ratio * ball_x;
-      auto tes_y = ratio * ball_y;
-      std::cout << "tes_x : " << tes_x << "tes_y : " << tes_y << std::endl;
+    auto tes_x = (1 - ratio) * goal_x + ratio * ball_x;
+    auto tes_y = ratio * ball_y;
+    std::cout << "tes_x : " << tes_x << "tes_y : " << tes_y << std::endl;
 
-      keeper_->move_to(tes_x, tes_y, theta); //置く場所をセット
-    }
-  */
+    keeper_->move_to(tes_x, tes_y, theta); //置く場所をセット
+  }
+
   if (flag_ != true) {
     wall_.pop_back();
   }
