@@ -36,6 +36,18 @@ double robot::omega() const {
   return omega_;
 }
 
+double robot::ax() const {
+  return ax_;
+}
+
+double robot::ay() const {
+  return ay_;
+}
+
+double robot::alpha() const {
+  return alpha;
+}
+
 void robot::set_x(double x) {
   x_ = x;
 }
@@ -58,6 +70,18 @@ void robot::set_theta(double theta) {
 
 void robot::set_omega(double omega) {
   omega_ = omega;
+}
+
+void robot::set_ax(double ax) {
+  ax_ = ax;
+}
+
+void robot::set_ay(double ay) {
+  ay_ = ay;
+}
+
+void robot::set_alpha(double alpha) {
+  alpha_ = alpha;
 }
 }
 }

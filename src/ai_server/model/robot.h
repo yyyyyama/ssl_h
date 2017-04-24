@@ -13,6 +13,9 @@ private:
   double vy_;
   double theta_;
   double omega_;
+  double ax_;
+  double ay_;
+  double alpha;
 
 public:
   robot();
@@ -25,6 +28,9 @@ public:
   double vy() const;
   double theta() const;
   double omega() const;
+  double ax() const;
+  double ay() const;
+  double alpha() const;
 
   void set_x(double x);
   void set_y(double y);
@@ -32,6 +38,9 @@ public:
   void set_vy(double vy);
   void set_theta(double theta);
   void set_omega(double omega);
+  void set_ax(double ax);
+  void set_ay(double ay);
+  void set_alpha(double alpha);
 };
 }
 }
