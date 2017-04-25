@@ -33,7 +33,7 @@ double sliding_mode_controller::control(const double delta_p) {
     }
   }
 
-  if (state < a_max_ * cycle_ && state > -a_max_ * cycle_) {
+  if (std::abs(state) < a_max_ * cycle_) {
     v_target_ = -kp_ * delta_p; // stateが0になるように速度を保つ
   } else if (state < 0) {       // stateが-なら加速
     v_target_ += a_max_ * cycle_;
