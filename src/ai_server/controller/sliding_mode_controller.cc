@@ -25,11 +25,11 @@ double sliding_mode_controller::control(const double delta_p) {
     if (delta_p > 0) {
       double pm = a_max_ / std::pow(kp_, 2);
       double vm = -a_max_ / kp_;
-      state     = std::pow(delta_p - pm, 1 / 2.0) + (v_target_ - vm);
+      state     = std::sqrt(delta_p - pm) + (v_target_ - vm);
     } else {
       double pm = -a_max_ / std::pow(kp_, 2);
       double vm = a_max_ / kp_;
-      state     = -std::pow(-(delta_p - pm), 1 / 2.0) + (v_target_ - vm);
+      state     = -std::sqrt(-(delta_p - pm)) + (v_target_ - vm);
     }
   }
 
