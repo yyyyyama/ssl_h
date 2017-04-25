@@ -58,7 +58,7 @@ void driver::main_loop(const boost::system::error_code& error) {
   for (auto&& rp : robots_blue_params_) process(false, rp.second);
   for (auto&& rp : robots_yellow_params_) process(true, rp.second);
 
-  // 処理の開始刻からcycle_経過した後に再度main_loop()が呼び出されるように設定
+  // 処理の開始時刻からcycle_経過した後に再度main_loop()が呼び出されるように設定
   timer_.expires_at(start_time + cycle_);
   timer_.async_wait([this](auto&& error) { main_loop(std::forward<decltype(error)>(error)); });
 }
