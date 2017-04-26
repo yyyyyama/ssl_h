@@ -3,6 +3,7 @@
 
 namespace ai_server {
 namespace controller {
+namespace detail {
 
 /// @class  sliding mode control
 /// @brief  速度生成用コントローラ
@@ -23,6 +24,7 @@ public:
   double control(const double delta_p);
 };
 
+} // detail
 } // controller
 } // ai_server
 

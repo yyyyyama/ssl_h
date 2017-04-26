@@ -2,8 +2,10 @@
 #include <cmath>
 
 #include "sliding_mode_controller.h"
+
 namespace ai_server {
 namespace controller {
+namespace detail {
 
 const double sliding_mode_controller::a_max_ = 2000.0;
 const double sliding_mode_controller::kp_    = 1.0;
@@ -39,5 +41,6 @@ double sliding_mode_controller::control(const double delta_p) {
   return v_target_;
 }
 
+} // detail
 } // controller
 } // ai_server
