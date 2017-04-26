@@ -36,8 +36,8 @@ std::vector<std::shared_ptr<action::base>> defense::execute() {
   const auto ball_y = world_.ball().y();
 
   //ゴールの座標
-  const auto goal_x =
-      (world_.field().x_max() + (std::signbit(world_.field().x_max()) ? 200.0 : -200.0));
+  const auto goal_x = world_.field().x_max();
+      
 
   std::cout << "ball_x:" << ball_x << "ball_y" << ball_y << std::endl;
   std::cout << "goal_x:" << goal_x << std::endl;
@@ -61,19 +61,10 @@ std::vector<std::shared_ptr<action::base>> defense::execute() {
   y_ = ratio * ball_y;
 
   if (y_ >= -250 && y_ <= 250) { //もし基準座標が直線の範囲だったら直線に叩き込む
-    x_ = (goal_x + (std::signbit(goal_x) ? 1000 : -1000));
+    x_ = (goal_x + (std::signbit(goal_x) ? 1100 : -1100));
   }
 
   std::cout << "x_:" << x_ << " y_:" << y_ << std::endl;
-
-  //基準点とボールを結んだ直線と垂直に交わる直線の傾き
-  const auto inclination = -1 / ((ball_y - y_) / (ball_x - x_));
-
-  //基準点とボールを結んだ直線と垂直に交わる直線の切片
-  const auto segment = y_ - inclination * x_;
-
-  //基準点からボールへの向き
-  const auto theta = util::wrap_to_2pi(std::atan2(ball_y - y_, ball_x - x_));
 
   //ここから壁の処理
   //
@@ -82,31 +73,48 @@ std::vector<std::shared_ptr<action::base>> defense::execute() {
   //
   //
 
-  //壁のイテレータ
+  //基準点からボールへの向き
+  const auto theta = util::wrap_to_2pi(std::atan2(ball_y - y_, ball_x - x_));
+	
+	//壁のイテレータ
   auto wall_it = wall_.begin();
 
-  //基準点からどれだけずらすか
-  auto shift = 0.0;
 
-  //壁の数が偶数奇数の判定
-  if (wall_ids_.size() % 2 != 0) { //奇数
-    (*wall_it)->move_to(x_, y_, theta);
-    ++wall_it;
-    shift = 500.0;
-  } else {
-    shift = 110.0;
-  }
+	auto shift = 90.0;
 
-  auto damy_x = 2550.0;
-  auto damy_y = inclination * damy_x + segment;
+	//移動した量
+	auto move_x = ball_x;
+	auto move_y = ball_y;
 
-  for (int i = 1; wall_it != wall_.end(); ++i, shift *= i, ++wall_it) {
-    tmp   = std::hypot(x_ - damy_x, y_ - damy_y) / shift; //基準点 - 適当な点
-    ratio = 1 - tmp;
-    (*wall_it)->move_to((-ratio * x_ + damy_x) / tmp, (-ratio * y_ + damy_y) / tmp, theta);
-  }
+	//計算の為に中心にずらした場合の座標
+	auto after_ball_x = ball_x - move_x;
+	auto after_ball_y = ball_y - move_y;
 
-  //ここからキーパーの処理
+
+	auto after_base_x = x_ - move_x;
+	auto after_base_y = y_ - move_y;
+
+
+	//x軸から角度
+	auto alpha = util::wrap_to_2pi(std::atan2(after_base_y - after_ball_y, after_base_x - after_ball_x));
+	
+	after_base_x = std::hypot(after_base_x - after_ball_x,after_base_y - after_ball_y);
+	after_base_y = 0.0;
+	
+	auto tmp_x = after_base_x;
+	auto tmp_y1 = std::sqrt(std::pow(shift,2)+std::pow(after_base_x,2)-std::pow(after_base_x,2));
+	auto tmp_y2 = tmp_y1 * (-1);
+
+	const auto c_x1 = tmp_x*std::cos(alpha) - tmp_y1*std::sin(alpha) + move_x;
+	const auto c_y1 = tmp_x*std::sin(alpha) + tmp_y1*std::cos(alpha) + move_y;
+	const auto c_x2 = tmp_x*std::cos(alpha) - tmp_y2*std::sin(alpha) + move_x;
+	const auto c_y2 = tmp_x*std::sin(alpha) +	tmp_y2*std::cos(alpha) + move_y;
+
+	
+	(*wall_it)->move_to(c_x1,c_y1,theta);
+	wall_it++;
+	(*wall_it)->move_to(c_x2,c_y2,theta);
+	//ここからキーパーの処理
   //
   //キーパーはボールの位置によって動き方が3種類ある.
   //
@@ -117,12 +125,15 @@ std::vector<std::shared_ptr<action::base>> defense::execute() {
   //
   const auto demarcation = 2250.0; //縄張りの大きさ
 
+	auto keeper_y = 0.0;
+	auto keeper_x = 0.0;
+	auto keeper_theta = 0.0;
+
   if (std::signbit(ball_x) == std::signbit(goal_x * (-1))) { // A
     //ゴール直前でボールに併せて横移動
 
-    auto keeper_y = ((ball_y >= -500 && ball_y <= 500) ? ball_y : 0);
-    keeper_->move_to(goal_x, keeper_y,
-                     util::wrap_to_2pi(std::atan2(0, goal_x - ball_x) + pi<double>()));
+    keeper_x = goal_x + (std::signbit(world_.field().x_max()) ? 100.0 : -100.0);
+		keeper_y = ((ball_y >= -500 && ball_y <= 500) ? ball_y : 0);
 
   } else if (std::signbit(std::pow(ball_x - world_.field().x_max(), 2) + std::pow(ball_y, 2) -
                           std::pow(demarcation, 2))) { // C
@@ -131,9 +142,9 @@ std::vector<std::shared_ptr<action::base>> defense::execute() {
     //ゴール前で張ってるキーパの位置
     length = std::hypot(goal_x - ball_x, ball_y); //ゴール<->ボール
     ratio  = (400) / length; //全体に対してのキーパー位置の比
-
-    keeper_->move_to((1 - ratio) * goal_x + ratio * ball_x, ratio * ball_y,
-                     theta); //置く場所をセット
+		
+		keeper_x = ((1 - ratio) * goal_x + ratio * ball_x);	
+		keeper_y = ratio * ball_y;
 
     //もし支線の先にロボットがいたら
     //そのロボットの視線の先に移動
@@ -144,12 +155,16 @@ std::vector<std::shared_ptr<action::base>> defense::execute() {
     //基準点からちょっと下がったキーパの位置
     length = std::hypot(goal_x - ball_x, ball_y); //基準点<->ボール
     ratio  = (800) / length; //全体に対してのキーパー位置の比
-
-    keeper_->move_to((1 - ratio) * goal_x + ratio * ball_x, ratio * ball_y,
-                     theta); //置く場所をセット
+		
+		keeper_x = (1 - ratio) * goal_x + ratio * ball_x;
+		keeper_y = ratio * ball_y;
   }
+	keeper_theta = util::wrap_to_2pi(std::atan2(ball_y-keeper_y, ball_x-keeper_x));
 
-  if (flag_ != true) { //もし一回目のループではなかったら前回のキーパーを削除
+	keeper_->move_to(keeper_x,keeper_y,keeper_theta);//置く場所をセット
+
+
+	if (flag_ != true) { //もし一回目のループではなかったら前回のキーパーを削除
     wall_.pop_back();
   }
   flag_ = false; //一回でも呼ばれたらfalseにする
