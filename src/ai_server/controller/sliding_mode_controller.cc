@@ -1,3 +1,4 @@
+#include <boost/math/special_functions/sign.hpp>
 #include <cmath>
 
 #include "sliding_mode_controller.h"
@@ -21,16 +22,11 @@ double sliding_mode_controller::control(const double delta_p) {
     state = kp_ * delta_p + v_target_;
   } else {
     // bangbang制御をするための特別なstate関数
-    // 極度に非線形なため正か負かで場合分け。
-    if (delta_p > 0) {
-      double pm = a_max_ / std::pow(kp_, 2);
-      double vm = -a_max_ / kp_;
-      state     = std::sqrt(delta_p - pm) + (v_target_ - vm);
-    } else {
-      double pm = -a_max_ / std::pow(kp_, 2);
-      double vm = a_max_ / kp_;
-      state     = -std::sqrt(-(delta_p - pm)) + (v_target_ - vm);
-    }
+    // 極度に非線形なため正か負かでstate切り替え
+    int sgn   = boost::math::sign(delta_p);
+    double pm = sgn * a_max_ / std::pow(kp_, 2);
+    double vm = -sgn * a_max_ / kp_;
+    state     = sgn * std::sqrt(sgn * (delta_p - pm)) + (v_target_ - vm);
   }
 
   if (std::abs(state) < a_max_ * cycle_) {
