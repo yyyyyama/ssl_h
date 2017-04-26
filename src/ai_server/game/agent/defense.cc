@@ -55,7 +55,7 @@ std::vector<std::shared_ptr<action::base>> defense::execute() {
   //
   length = std::hypot(goal_x - ball_x, ball_y); //ボール<->ゴール
 
-  ratio = (1250.0) / length; //全体に対しての基準座標の比
+  ratio = (1340.0) / length; //全体に対しての基準座標の比
 
   x_ = (1 - ratio) * goal_x + ratio * ball_x;
   y_ = ratio * ball_y;
@@ -79,8 +79,16 @@ std::vector<std::shared_ptr<action::base>> defense::execute() {
 	//壁のイテレータ
   auto wall_it = wall_.begin();
 
+	//基準点からどれだけずらすか
+	auto shift_ = 0.0;
 
-	auto shift = 90.0;
+	if(wall_.size()%2 != 0){//奇数
+		(*wall_it)->move_to(x_,y_,theta);
+		wall_it++;
+		shift_ = 180.0;
+	}else{//偶数
+		shift_ = 90.0;
+	}
 
 	//移動した量
 	auto move_x = ball_x;
@@ -101,19 +109,31 @@ std::vector<std::shared_ptr<action::base>> defense::execute() {
 	after_base_x = std::hypot(after_base_x - after_ball_x,after_base_y - after_ball_y);
 	after_base_y = 0.0;
 	
-	auto tmp_x = after_base_x;
-	auto tmp_y1 = std::sqrt(std::pow(shift,2)+std::pow(after_base_x,2)-std::pow(after_base_x,2));
-	auto tmp_y2 = tmp_y1 * (-1);
+	//移動した先での仮の座標
+	auto tmp_x = 0.0;
+	auto tmp_y1 = 0.0;
+	auto tmp_y2 = 0.0;
+	//回転した後の正しい座標
+	auto c_x1 = 0.0;
+	auto c_y1 = 0.0;
+	auto c_x2 = 0.0;
+	auto c_y2 = 0.0;
 
-	const auto c_x1 = tmp_x*std::cos(alpha) - tmp_y1*std::sin(alpha) + move_x;
-	const auto c_y1 = tmp_x*std::sin(alpha) + tmp_y1*std::cos(alpha) + move_y;
-	const auto c_x2 = tmp_x*std::cos(alpha) - tmp_y2*std::sin(alpha) + move_x;
-	const auto c_y2 = tmp_x*std::sin(alpha) +	tmp_y2*std::cos(alpha) + move_y;
+	for(auto shift = shift_;wall_it!=wall_.end();shift+=shift_,wall_it++){
+		tmp_x = after_base_x;
+		tmp_y1 = std::sqrt(std::pow(shift,2)+std::pow(after_base_x,2)-std::pow(after_base_x,2));
+		tmp_y2 = tmp_y1 * (-1);
 
+		c_x1 = tmp_x*std::cos(alpha) - tmp_y1*std::sin(alpha) + move_x;
+		c_y1 = tmp_x*std::sin(alpha) + tmp_y1*std::cos(alpha) + move_y;
+		c_x2 = tmp_x*std::cos(alpha) - tmp_y2*std::sin(alpha) + move_x;
+		c_y2 = tmp_x*std::sin(alpha) +	tmp_y2*std::cos(alpha) + move_y;
 	
-	(*wall_it)->move_to(c_x1,c_y1,theta);
-	wall_it++;
-	(*wall_it)->move_to(c_x2,c_y2,theta);
+		(*wall_it)->move_to(c_x1,c_y1,theta);
+		wall_it++;
+		(*wall_it)->move_to(c_x2,c_y2,theta);
+	}
+
 	//ここからキーパーの処理
   //
   //キーパーはボールの位置によって動き方が3種類ある.
