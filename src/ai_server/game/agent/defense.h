@@ -19,6 +19,8 @@ public:
 private:
   unsigned int keeper_id_;
   const std::vector<unsigned int>& wall_ids_;
+	std::vector<double> target_x_;
+	std::vector<double> target_y_;
   std::vector<std::shared_ptr<action::move>> wall_;
   std::shared_ptr<action::move> keeper_;
   double x_  = 0.0;

@@ -28,6 +28,8 @@ std::vector<std::shared_ptr<action::base>> defense::execute() {
     //壁用のaction
     for (auto it = wall_ids_.begin(); it != wall_ids_.end(); ++it) {
       wall_.push_back(std::make_shared<action::move>(world_, is_yellow_, *it));
+			target_x_.push_back(0.0);
+			target_y_.push_back(0.0);
     }
   }
 
@@ -79,12 +81,21 @@ std::vector<std::shared_ptr<action::base>> defense::execute() {
 	//壁のイテレータ
   auto wall_it = wall_.begin();
 
+	//壁の目標座標のイテレータ
+	auto target_x_it = target_x_.begin();
+	auto target_y_it = target_y_.begin();
+
 	//基準点からどれだけずらすか
 	auto shift_ = 0.0;
 
 	if(wall_.size()%2 != 0){//奇数
-		(*wall_it)->move_to(x_,y_,theta);
-		wall_it++;
+		//(*wall_it)->move_to(x_,y_,theta);
+		//wall_it++;
+		(*target_x_it) = x_;
+		(*target_y_it) = y_;
+		target_x_it++;
+		target_y_it++;
+
 		shift_ = 180.0;
 	}else{//偶数
 		shift_ = 90.0;
@@ -119,12 +130,12 @@ std::vector<std::shared_ptr<action::base>> defense::execute() {
 	auto c_x2 = 0.0;
 	auto c_y2 = 0.0;
 
-	for(auto shift = shift_;wall_it!=wall_.end();shift+=shift_,wall_it++){
+	for(auto shift = shift_;wall_it!=wall_.end();shift+=shift_,target_x_it++,target_y_it++/*wall_it++*/){
 		tmp_x = after_base_x;
 		tmp_y1 = std::sqrt(std::pow(shift,2)+std::pow(after_base_x,2)-std::pow(after_base_x,2));
 		tmp_y2 = tmp_y1 * (-1);
 
-		c_x1 = tmp_x*std::cos(alpha) - tmp_y1*std::sin(alpha) + move_x;
+	/*c_x1 = tmp_x*std::cos(alpha) - tmp_y1*std::sin(alpha) + move_x;
 		c_y1 = tmp_x*std::sin(alpha) + tmp_y1*std::cos(alpha) + move_y;
 		c_x2 = tmp_x*std::cos(alpha) - tmp_y2*std::sin(alpha) + move_x;
 		c_y2 = tmp_x*std::sin(alpha) +	tmp_y2*std::cos(alpha) + move_y;
@@ -132,6 +143,21 @@ std::vector<std::shared_ptr<action::base>> defense::execute() {
 		(*wall_it)->move_to(c_x1,c_y1,theta);
 		wall_it++;
 		(*wall_it)->move_to(c_x2,c_y2,theta);
+	*/
+		(*target_x_it) = tmp_x*std::cos(alpha) - tmp_y1*std::sin(alpha) + move_x;
+		(*target_y_it) = tmp_x*std::sin(alpha) + tmp_y1*std::cos(alpha) + move_y;
+		target_x_it++;
+		target_y_it++;
+		(*target_x_it) = tmp_x*std::cos(alpha) - tmp_y2*std::sin(alpha) + move_x;
+		(*target_y_it) = tmp_x*std::sin(alpha) + tmp_y2*std::cos(alpha) + move_y;
+	}
+
+	auto it_y = target_y_.begin();
+	auto my_robot = 
+	for(auto it_x = target_x_.begin();it_x!=target_x_.end();it_x++,it_y++;){
+		auto slope = ((*it_y)-現在地)/((*it_x)-現在地);
+		auto segment = it_y - slope * it_x;
+		auto D = std::pow(segment,2)-4*(1+std::pow(slope,2))*(std::pow(segment,2)-std::pow(1250,2)-std::pow(goal_x,2));
 	}
 
 	//ここからキーパーの処理
