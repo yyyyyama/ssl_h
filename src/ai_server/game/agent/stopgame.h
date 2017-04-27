@@ -10,7 +10,7 @@ namespace agent {
 class stopgame : public base {
 private:
   const std::vector<unsigned int>& ids_;
-  unsigned int nearest_robot;
+  unsigned int nearest_robot = 33;
   std::vector<std::shared_ptr<action::base>> baseaction;
 
 public:

@@ -13,23 +13,6 @@ namespace agent {
 stopgame::stopgame(const model::world& world, bool is_yellow,
                    const std::vector<unsigned int>& ids)
     : base(world, is_yellow), ids_(ids) {
-  const auto ball    = world_.ball();
-  const double ballx = ball.x();
-  const double bally = ball.y();
-
-  // 一番ボールに近いロボットを探索し、ボールを追いかけるロボットとする
-  const auto our_robots = is_yellow_ ? world_.robots_yellow() : world_.robots_blue();
-  double min            = 10000000000;
-
-  for (auto id = ids_.begin(); id != ids_.end(); id++) {
-    const auto& robot = our_robots.at(*id);
-    const double r    = std::hypot(robot.x() - ballx, robot.y() - bally);
-
-    if (r < min) {
-      min           = r;
-      nearest_robot = *id;
-    }
-  }
 }
 std::vector<std::shared_ptr<action::base>> stopgame::execute() {
   std::vector<std::shared_ptr<action::base>> base;
@@ -40,6 +23,20 @@ std::vector<std::shared_ptr<action::base>> stopgame::execute() {
   const double ballxsign     = ballx > 0 ? 1.0 : -1.0;
   const double ballysign     = bally > 0 ? 1.0 : -1.0;
   const double enemygoalsign = world_.field().x_max() > 0 ? 1.0 : -1.0;
+
+  // 一番ボールに近いロボットを探索し、ボールを追いかけるロボットとする
+  if (nearest_robot == 33) {
+    double min = 10000000000;
+    for (auto id = ids_.begin(); id != ids_.end(); id++) {
+      const auto& robot = our_robots.at(*id);
+      const double r    = std::hypot(robot.x() - ballx, robot.y() - bally);
+
+      if (r < min) {
+        min           = r;
+        nearest_robot = *id;
+      }
+    }
+  }
 
   double targetx;
   double targety;
@@ -58,7 +55,7 @@ std::vector<std::shared_ptr<action::base>> stopgame::execute() {
         targetx = ballx - ballxsign * 600;
         targety = bally;
       } else {
-        targetx = ballx - enemygoalsign * i * 530;
+        targetx = ballx - enemygoalsign * i * 640;
         targety = bally - dist * ballysign * i;
         i++;
       }
@@ -67,18 +64,18 @@ std::vector<std::shared_ptr<action::base>> stopgame::execute() {
         targetx = robot.x() > ballx ? ballx + 600 : ballx - 600;
         targety = bally;
       } else {
-        targetx = ballx - enemygoalsign * i * 530;
+        targetx = ballx - enemygoalsign * i * 640;
         targety = bally - dist * ballysign * i;
         i++;
       }
     }
 
-    if (std::hypot(ballx - robotx, bally - roboty) < 520) {
+    if (std::hypot(ballx - robotx, bally - roboty) < 510) {
       // ボールに近かったら遠ざかる
       const double to_robot = std::atan2(roboty - bally, robotx - ballx);
       targetx               = robotx + 200 * std::cos(to_robot);
       targety               = roboty + 200 * std::sin(to_robot);
-    } else if (std::hypot(ballx - robotx, bally - roboty) < 540) {
+    } else if (std::hypot(ballx - robotx, bally - roboty) < 520) {
       const double to_targettheta = std::atan2(targety - bally, targetx - ballx);
       const double to_robottheta  = std::atan2(roboty - bally, robotx - ballx);
       const double theta          = util::wrap_to_pi(to_targettheta - to_robottheta);
@@ -95,7 +92,7 @@ std::vector<std::shared_ptr<action::base>> stopgame::execute() {
       targetx = ballxsign * 4200;
     }
 
-    if (std::hypot(targetx - robotx, targety - roboty) > 100) {
+    if (std::hypot(targetx - robotx, targety - roboty) > 50) {
       // 安全な速度にして移動
       const double to_target    = std::atan2(targety - roboty, targetx - robotx);
       targetx                   = robotx + 300 * std::cos(to_target);
@@ -105,10 +102,12 @@ std::vector<std::shared_ptr<action::base>> stopgame::execute() {
       move->move_to(targetx, targety, to_balltheta);
       base.push_back(move);
     } else {
-      // auto move = std::make_shared<action::move>(world_, is_yellow_, *id);
+      auto move                 = std::make_shared<action::move>(world_, is_yellow_, *id);
+      const double to_balltheta = util::wrap_to_pi(std::atan2(bally - robot.y(), ballx - robot.x()));
+      move->move_to(targetx, targety, to_balltheta);
       // move->move_to(robotx + 1, roboty + 1, robot.theta() + 1);
-      // base.push_back(move);
-      base.push_back(std::make_shared<action::no_operation>(world_, is_yellow_, *id));
+      base.push_back(move);
+      // base.push_back(std::make_shared<action::no_operation>(world_, is_yellow_, *id));
     }
   }
   return base;
