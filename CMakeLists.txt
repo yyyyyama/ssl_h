@@ -60,7 +60,7 @@ endif()
 
 # Required libraries
 find_package(Boost 1.59.0 COMPONENTS coroutine system unit_test_framework REQUIRED)
-find_package(Eigen3 REQUIRED)
+find_package(Eigen3 3.2 REQUIRED)
 find_package(Protobuf 2.6 REQUIRED)
 find_package(Threads REQUIRED)
 
@@ -71,9 +71,14 @@ enable_testing()
 include_directories(
   ${PROJECT_SOURCE_DIR}/src
   ${Boost_INCLUDE_DIRS}
-  ${EIGEN3_INCLUDE_DIRS}
   ${Protobuf_INCLUDE_DIRS}
 )
+
+if(EIGEN3_VERSION_STRING VERSION_LESS 3.2.0)
+  include_directories(${EIGEN3_INCLUDE_DIR})
+else()
+  include_directories(${EIGEN3_INCLUDE_DIRS})
+endif()
 
 add_subdirectory(3rd)
 add_subdirectory(src)
