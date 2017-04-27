@@ -22,6 +22,12 @@ public:
     double omega;
   };
 
+  struct acceleration_t {
+    double ax;
+    double ay;
+    double alpha;
+  };
+
   using setpoint_t  = boost::variant<position_t, velocity_t>;
   using kick_flag_t = std::tuple<kick_type_t, double>;
 
