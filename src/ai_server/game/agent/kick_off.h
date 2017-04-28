@@ -36,7 +36,7 @@ private:
   // action
   std::shared_ptr<action::move> move;
   std::shared_ptr<action::kick_action> kick;
-  std::shared_ptr<action::no_operation> no_op;
+  // std::shared_ptr<action::no_operation> no_op;
 };
 
 } // namespace agent

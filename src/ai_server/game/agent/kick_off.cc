@@ -8,9 +8,9 @@ namespace agent {
 
 kick_off::kick_off(const model::world& world, bool is_yellow, unsigned int kicker_id)
     : base(world, is_yellow), kicker_id_(kicker_id) {
-  move  = std::make_shared<action::move>(world_, is_yellow_, kicker_id_);
-  kick  = std::make_shared<action::kick_action>(world_, is_yellow_, kicker_id_);
-  no_op = std::make_shared<action::no_operation>(world_, is_yellow_, kicker_id_);
+  move = std::make_shared<action::move>(world_, is_yellow_, kicker_id_);
+  kick = std::make_shared<action::kick_action>(world_, is_yellow_, kicker_id_);
+  // no_op = std::make_shared<action::no_operation>(world_, is_yellow_, kicker_id_);
 }
 void kick_off::set_start_flag(bool start_flag) {
   start_flag_ = start_flag;
@@ -29,12 +29,13 @@ std::vector<std::shared_ptr<action::base>> kick_off::execute() {
 
   if (kick_finished_ == true) {
     //ボールを蹴り終わった時
+    auto no_op = std::make_shared<action::no_operation>(world_, is_yellow_, kicker_id_);
     actions.push_back(no_op);
 
   } else {
     if (move_finished_ == true && start_flag_ == true) {
       // StartGameが指定され、所定の位置に移動済みの時
-      auto kick_type = std::make_tuple(model::command::kick_type_t::backspin, 50.0);
+      auto kick_type = std::make_tuple(model::command::kick_type_t::backspin, 60.0);
       auto kick_mode = action::kick_action::mode::goal;
 
       kick->kick_to(world_.field().x_max(), 0.0);
