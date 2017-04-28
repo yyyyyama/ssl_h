@@ -3,9 +3,12 @@
 
 #include <vector>
 #include <memory>
+#include <Eigen/Dense>
 
 #include "ai_server/game/agent/base.h"
 #include "ai_server/game/action/move.h"
+#include "ai_server/game/action/kick_action.h"
+#include "ai_server/game/action/vec.h"
 
 namespace ai_server {
 namespace game {
@@ -21,10 +24,11 @@ public:
 private:
   unsigned int keeper_id_;
   const std::vector<unsigned int>& wall_ids_;
-  std::vector<std::shared_ptr<action::move>> wall_;
-  std::shared_ptr<action::move> keeper_;
-  double x_;
-  double y_;
+  std::vector<std::shared_ptr<action::vec>> wall_;
+  std::shared_ptr<action::vec> keeper_v_;
+  std::shared_ptr<action::kick_action> keeper_k_;
+  std::vector<Eigen::Vector2d> target_;
+  Eigen::Vector2d orientation_;
   defense_mode mode_;
 };
 }
