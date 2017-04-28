@@ -10,7 +10,6 @@ kick_off::kick_off(const model::world& world, bool is_yellow, unsigned int kicke
     : base(world, is_yellow), kicker_id_(kicker_id) {
   move = std::make_shared<action::move>(world_, is_yellow_, kicker_id_);
   kick = std::make_shared<action::kick_action>(world_, is_yellow_, kicker_id_);
-  // no_op = std::make_shared<action::no_operation>(world_, is_yellow_, kicker_id_);
 }
 void kick_off::set_start_flag(bool start_flag) {
   start_flag_ = start_flag;

@@ -33,10 +33,10 @@ private:
 
   double ball_goal_theta_; //ボール上を軸としてゴール上を通る直線の角度 (rad)
   double theta_min_;
+
   // action
   std::shared_ptr<action::move> move;
   std::shared_ptr<action::kick_action> kick;
-  // std::shared_ptr<action::no_operation> no_op;
 };
 
 } // namespace agent
