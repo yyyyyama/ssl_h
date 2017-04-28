@@ -1,7 +1,10 @@
-#ifdef AI_SERVER_GAME_AGENT_KICK_OFF_H
+#ifndef AI_SERVER_GAME_AGENT_KICK_OFF_H
 #define AI_SERVER_GAME_AGENT_KICK_OFF_H
 
 #include "base.h"
+#include "ai_server/game/action/kick_action.h"
+#include "ai_server/game/action/move.h"
+#include "ai_server/game/action/no_operation.h"
 
 namespace ai_server {
 namespace game {
@@ -25,7 +28,15 @@ private:
   double move_to_y_;
   double move_to_theta_;
 
+  //ロボットが移動中にボールに当たらないかを判定するための値
+  double move_to_robot_theta_;
+
   double ball_goal_theta_; //ボール上を軸としてゴール上を通る直線の角度 (rad)
+  double theta_min_;
+  // action
+  std::shared_ptr<action::move> move;
+  std::shared_ptr<action::kick_action> kick;
+  std::shared_ptr<action::no_operation> no_op;
 };
 
 } // namespace agent
