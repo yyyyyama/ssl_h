@@ -13,6 +13,10 @@ defense::defense(const model::world& world, bool is_yellow, unsigned int keeper_
                  const std::vector<unsigned int>& wall_ids)
     : base(world, is_yellow), keeper_id_(keeper_id), wall_ids_(wall_ids) {}
 
+void defense::set_mode(keeper_mode mode) {
+  mode_ = mode;
+}
+
 std::vector<std::shared_ptr<action::base>> defense::execute() {
   using boost::math::constants::pi;
 
@@ -150,36 +154,69 @@ std::vector<std::shared_ptr<action::base>> defense::execute() {
   auto keeper_x     = 0.0;
   auto keeper_theta = 0.0;
 
-  if (std::signbit(ball_x) == std::signbit(goal_x * (-1))) { // A
-    //ゴール直前でボールに併せて横移動
+  switch (mode_) {
+    case keeper_mode::normal_mode:
+      if (std::signbit(ball_x) == std::signbit(goal_x * (-1))) { // A
+        //ゴール直前でボールに併せて横移動
 
-    keeper_x = goal_x + (std::signbit(world_.field().x_max()) ? 100.0 : -100.0);
-    keeper_y = ((ball_y >= -500 && ball_y <= 500) ? ball_y : 0);
+        keeper_x = goal_x + (std::signbit(world_.field().x_max()) ? 100.0 : -100.0);
+        keeper_y = ((ball_y >= -500 && ball_y <= 500) ? ball_y : 0);
 
-  } else if (std::signbit(std::pow(ball_x - world_.field().x_max(), 2) + std::pow(ball_y, 2) -
-                          std::pow(demarcation, 2))) { // C
-    //ゴール前でディフェンスする
+      } else if (std::signbit(std::pow(ball_x - world_.field().x_max(), 2) +
+                              std::pow(ball_y, 2) - std::pow(demarcation, 2))) { // C
+        //ゴール前でディフェンスする
 
-    //ゴール前で張ってるキーパの位置
-    length = std::hypot(goal_x - ball_x, ball_y); //ゴール<->ボール
-    ratio  = (400) / length; //全体に対してのキーパー位置の比
+        //ゴール前で張ってるキーパの位置
+        length = std::hypot(goal_x - ball_x, ball_y); //ゴール<->ボール
+        ratio  = (400) / length; //全体に対してのキーパー位置の比
 
-    keeper_x = ((1 - ratio) * goal_x + ratio * ball_x);
-    keeper_y = ratio * ball_y;
+        keeper_x = ((1 - ratio) * goal_x + ratio * ball_x);
+        keeper_y = ratio * ball_y;
 
-    //もし支線の先にロボットがいたら
-    //そのロボットの視線の先に移動
-    //セット仕直し
-  } else { // B
-    //壁のすぐ後ろで待機
+        //もし支線の先にロボットがいたら
+        //そのロボットの視線の先に移動
+        //セット仕直し
+      } else { // B
+        //壁のすぐ後ろで待機
 
-    //基準点からちょっと下がったキーパの位置
-    length = std::hypot(goal_x - ball_x, ball_y); //基準点<->ボール
-    ratio  = (800) / length; //全体に対してのキーパー位置の比
+        //基準点からちょっと下がったキーパの位置
+        length = std::hypot(goal_x - ball_x, ball_y); //基準点<->ボール
+        ratio  = (800) / length; //全体に対してのキーパー位置の比
 
-    keeper_x = (1 - ratio) * goal_x + ratio * ball_x;
-    keeper_y = ratio * ball_y;
+        keeper_x = (1 - ratio) * goal_x + ratio * ball_x;
+        keeper_y = ratio * ball_y;
+      }
+      break;
+    case keeper_mode::pk_mode:
+			const auto enemy_robots = is_yellow_?world_.robots_blue():world_.robots_yellow();
+			const auto& enemy_robot = enemy_robots.at(keeper_id_);
+			const auto enemy_x = enemy_robot.x();
+			const auto enemy_y = enemy_robot.y();
+
+			const auto my_robots    = is_yellow_?world_.robots_yellow():world_.robots_blue();
+			const auto& my_robot = my_robots.at(keeper_id_);
+			const auto my_x = my_robot.x();
+			const auto my_y = my_robot.y();
+
+      //移動した量
+      auto move_x = ball_x;
+      auto move_y = ball_y;
+
+      //計算の為に中心にずらした場合の座標
+      auto after_ball_x = ball_x - move_x;
+      auto after_ball_y = ball_y - move_y;
+
+      auto after_base_x = x_ - move_x;
+      auto after_base_y = y_ - move_y;
+
+      // x軸から角度
+      auto alpha = util::wrap_to_2pi(
+          std::atan2(after_base_y - after_ball_y, after_base_x - after_ball_x));
+
+      after_base_x = std::hypot(after_base_x - after_ball_x, after_base_y - after_ball_y);
+      after_base_y = 0.0;
   }
+
   keeper_theta = util::wrap_to_2pi(std::atan2(ball_y - keeper_y, ball_x - keeper_x));
 
   keeper_->move_to(keeper_x, keeper_y, keeper_theta); //置く場所をセット
