@@ -11,25 +11,24 @@ namespace agent {
 
 defense::defense(const model::world& world, bool is_yellow, unsigned int keeper_id,
                  const std::vector<unsigned int>& wall_ids)
-    : base(world, is_yellow), keeper_id_(keeper_id), wall_ids_(wall_ids) {}
+    : base(world, is_yellow), keeper_id_(keeper_id), wall_ids_(wall_ids), x_(0.0),y_(0.0) {
+  		
+			// actionの生成部分
+  		//
+  		// actionの初期化は一回しか行わない
+  		//
+  		//
+			//キーパー用のaction
+    	keeper_ = std::make_shared<action::move>(world_, is_yellow_, keeper_id_);
+
+    	//壁用のaction
+			for(auto it : wall_ids_){
+      	wall_.emplace_back(std::make_shared<action::move>(world_, is_yellow_, it));
+			}
+		}
 
 std::vector<std::shared_ptr<action::base>> defense::execute() {
   using boost::math::constants::pi;
-
-  // actionの生成部分
-  //
-  // actionの初期化は一回しか行わない
-  //
-  //
-  if (flag_) {
-    //キーパー用のaction
-    keeper_ = std::make_shared<action::move>(world_, is_yellow_, keeper_id_);
-
-    //壁用のaction
-    for (auto it = wall_ids_.begin(); it != wall_ids_.end(); ++it) {
-      wall_.push_back(std::make_shared<action::move>(world_, is_yellow_, *it));
-    }
-  }
 
   //ボールの座標
   const auto ball_x = world_.ball().x();
@@ -184,15 +183,9 @@ std::vector<std::shared_ptr<action::base>> defense::execute() {
 
   keeper_->move_to(keeper_x, keeper_y, keeper_theta); //置く場所をセット
 
-  if (flag_ != true) { //もし一回目のループではなかったら前回のキーパーを削除
-    wall_.pop_back();
-  }
-  flag_ = false; //一回でも呼ばれたらfalseにする
-
-  wall_.push_back(keeper_); //配列を返すためにキーパーを統合する
   std::vector<std::shared_ptr<action::base>> re_wall{
       wall_.begin(), wall_.end()}; //型を合わせるために無理矢理作り直す
-
+  re_wall.push_back(keeper_); //配列を返すためにキーパーを統合する
   return re_wall; //返す
 }
 }
