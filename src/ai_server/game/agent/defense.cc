@@ -1,5 +1,4 @@
 #include <cmath>
-#include <iostream>
 
 #include "ai_server/game/action/marking.h"
 #include "ai_server/game/agent/defense.h"
@@ -11,21 +10,20 @@ namespace agent {
 
 defense::defense(const model::world& world, bool is_yellow, unsigned int keeper_id,
                  const std::vector<unsigned int>& wall_ids)
-    : base(world, is_yellow), keeper_id_(keeper_id), wall_ids_(wall_ids), x_(0.0),y_(0.0) {
-  		
-			// actionの生成部分
-  		//
-  		// actionの初期化は一回しか行わない
-  		//
-  		//
-			//キーパー用のaction
-    	keeper_ = std::make_shared<action::move>(world_, is_yellow_, keeper_id_);
+    : base(world, is_yellow), keeper_id_(keeper_id), wall_ids_(wall_ids), x_(0.0), y_(0.0) {
+  // actionの生成部分
+  //
+  // actionの初期化は一回しか行わない
+  //
+  //
+  //キーパー用のaction
+  keeper_ = std::make_shared<action::move>(world_, is_yellow_, keeper_id_);
 
-    	//壁用のaction
-			for(auto it : wall_ids_){
-      	wall_.emplace_back(std::make_shared<action::move>(world_, is_yellow_, it));
-			}
-		}
+  //壁用のaction
+  for (auto it : wall_ids_) {
+    wall_.emplace_back(std::make_shared<action::move>(world_, is_yellow_, it));
+  }
+}
 
 std::vector<std::shared_ptr<action::base>> defense::execute() {
   using boost::math::constants::pi;
@@ -37,9 +35,6 @@ std::vector<std::shared_ptr<action::base>> defense::execute() {
   //ゴールの座標
   const auto goal_x = world_.field().x_max();
   const auto goal_y = 0.0;
-
-  std::cout << "ball_x:" << ball_x << "ball_y" << ball_y << std::endl;
-  std::cout << "goal_x:" << goal_x << std::endl;
 
   //半径
   const auto radius = 1340.0;
@@ -62,8 +57,6 @@ std::vector<std::shared_ptr<action::base>> defense::execute() {
   if (y_ >= -250 && y_ <= 250) { //もし基準座標が直線の範囲だったら直線に叩き込む
     x_ = (goal_x + (std::signbit(goal_x) ? 1100 : -1100));
   }
-
-  std::cout << "x_:" << x_ << " y_:" << y_ << std::endl;
 
   //ここから壁の処理
   //
@@ -185,8 +178,8 @@ std::vector<std::shared_ptr<action::base>> defense::execute() {
 
   std::vector<std::shared_ptr<action::base>> re_wall{
       wall_.begin(), wall_.end()}; //型を合わせるために無理矢理作り直す
-  re_wall.push_back(keeper_); //配列を返すためにキーパーを統合する
-  return re_wall; //返す
+  re_wall.push_back(keeper_);      //配列を返すためにキーパーを統合する
+  return re_wall;                  //返す
 }
 }
 }
