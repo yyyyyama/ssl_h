@@ -44,7 +44,6 @@ std::vector<std::shared_ptr<action::base>> stopgame::execute() {
 
   int i = 1;
   for (auto id : ids_) {
-    // for (auto id = ids_.begin(); id != ids_.end(); id++) {
     const auto& robot   = our_robots.at(id);
     const double robotx = robot.x();
     const double roboty = robot.y();
