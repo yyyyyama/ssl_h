@@ -1,4 +1,5 @@
 #include <cmath>
+#include <algorithm>
 
 #include "ai_server/game/action/move.h"
 #include "ai_server/game/action/no_operation.h"
@@ -15,19 +16,15 @@ stopgame::stopgame(const model::world& world, bool is_yellow,
     : base(world, is_yellow), ids_(ids) {
   const auto our_robots = is_yellow_ ? world_.robots_yellow() : world_.robots_blue();
   const auto ball       = world_.ball();
-  const double ballx    = ball.x();
-  const double bally    = ball.y();
 
   // 一番ボールに近いロボットを探索し、ボールを追いかけるロボットとする
-  double min = 10000000000;
-  for (auto id = ids_.begin(); id != ids_.end(); id++) {
-    const auto& robot = our_robots.at(*id);
-    const double r    = std::hypot(robot.x() - ballx, robot.y() - bally);
-    if (r < min) {
-      min           = r;
-      nearest_robot = *id;
-    }
-  }
+  const auto nearest_robot_id =
+      std::min_element(ids_.cbegin(), ids_.cend(), [&ball, &our_robots](auto& a, auto& b) {
+        return std::hypot(our_robots.at(a).x() - ball.x(), our_robots.at(a).y() - ball.y()) <
+               std::hypot(our_robots.at(b).x() - ball.x(), our_robots.at(b).y() - ball.y());
+      });
+
+  nearest_robot_ = *nearest_robot_id;
 }
 
 std::vector<std::shared_ptr<action::base>> stopgame::execute() {
@@ -46,14 +43,15 @@ std::vector<std::shared_ptr<action::base>> stopgame::execute() {
   const double dist = (6000 - std::abs(3000 - std::abs(bally))) / ids_.size();
 
   int i = 1;
-  for (auto id = ids_.begin(); id != ids_.end(); id++) {
-    const auto& robot   = our_robots.at(*id);
+  for (auto id : ids_) {
+    // for (auto id = ids_.begin(); id != ids_.end(); id++) {
+    const auto& robot   = our_robots.at(id);
     const double robotx = robot.x();
     const double roboty = robot.y();
 
     if (std::abs(ballx) > 2000) {
       // 敵または味方のゴール近く
-      if (*id == nearest_robot) {
+      if (id == nearest_robot_) {
         // ボールを追いかけるロボット
         targetx = ballx - ballxsign * 650;
         targety = bally;
@@ -65,7 +63,7 @@ std::vector<std::shared_ptr<action::base>> stopgame::execute() {
       }
     } else {
       // 中間
-      if (*id == nearest_robot) {
+      if (id == nearest_robot_) {
         // ボールを追いかけるロボット
         targetx = robot.x() > ballx ? ballx + 650 : ballx - 650;
         targety = bally;
@@ -107,12 +105,12 @@ std::vector<std::shared_ptr<action::base>> stopgame::execute() {
       const double to_target    = std::atan2(targety - roboty, targetx - robotx);
       targetx                   = robotx + 300 * std::cos(to_target);
       targety                   = roboty + 300 * std::sin(to_target);
-      auto move                 = std::make_shared<action::move>(world_, is_yellow_, *id);
+      auto move                 = std::make_shared<action::move>(world_, is_yellow_, id);
       const double to_balltheta = std::atan2(bally - robot.y(), ballx - robot.x());
       move->move_to(targetx, targety, to_balltheta);
       base.push_back(move);
     } else {
-      base.push_back(std::make_shared<action::no_operation>(world_, is_yellow_, *id));
+      base.push_back(std::make_shared<action::no_operation>(world_, is_yellow_, id));
     }
   }
   return base;

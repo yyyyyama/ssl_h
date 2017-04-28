@@ -1,3 +1,5 @@
+#ifndef AI_SERVER_GAME_AGENT_STOPGAME_H
+#define AI_SERVER_GAME_AGENT_STOPGAME_H
 #include <memory>
 #include <vector>
 #include "ai_server/game/agent/base.h"
@@ -10,8 +12,7 @@ namespace agent {
 class stopgame : public base {
 private:
   const std::vector<unsigned int>& ids_;
-  unsigned int nearest_robot;
-  std::vector<std::shared_ptr<action::base>> baseaction;
+  unsigned int nearest_robot_;
 
 public:
   stopgame(const model::world& world, bool is_yellow, const std::vector<unsigned int>& ids);
@@ -21,3 +22,4 @@ public:
 } // agent
 } // game
 } // ai_server
+#endif
