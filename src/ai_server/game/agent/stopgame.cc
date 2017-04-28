@@ -1,5 +1,4 @@
 #include <cmath>
-#include <iostream>
 
 #include "ai_server/game/action/move.h"
 #include "ai_server/game/action/no_operation.h"
@@ -41,19 +40,6 @@ std::vector<std::shared_ptr<action::base>> stopgame::execute() {
   const double ballysign     = bally > 0 ? 1.0 : -1.0;
   const double enemygoalsign = world_.field().x_max() > 0 ? 1.0 : -1.0;
 
-  // // 一番ボールに近いロボットを探索し、ボールを追いかけるロボットとする
-  // if (nearest_robot == 33) {
-  //   double min = 10000000000;
-  //   for (auto id = ids_.begin(); id != ids_.end(); id++) {
-  //     const auto& robot = our_robots.at(*id);
-  //     const double r    = std::hypot(robot.x() - ballx, robot.y() - bally);
-  //     if (r < min) {
-  //       min           = r;
-  //       nearest_robot = *id;
-  //     }
-  //   }
-  // }
-
   double targetx;
   double targety;
 
@@ -65,7 +51,6 @@ std::vector<std::shared_ptr<action::base>> stopgame::execute() {
     const double robotx = robot.x();
     const double roboty = robot.y();
 
-    std::cout << "d" << dist << std::endl;
     if (std::abs(ballx) > 2000) {
       // 敵または味方のゴール近く
       if (*id == nearest_robot) {
@@ -92,7 +77,6 @@ std::vector<std::shared_ptr<action::base>> stopgame::execute() {
       }
     }
 
-    std::cout << "b" << targetx << ", " << targety << std::endl;
     if (std::hypot(ballx - robotx, bally - roboty) < 510) {
       // ボールに近かったら遠ざかる
       const double to_robot = std::atan2(roboty - bally, robotx - ballx);
@@ -117,7 +101,6 @@ std::vector<std::shared_ptr<action::base>> stopgame::execute() {
     } else if (std::abs(robotx) > 3000 && std::abs(roboty) < 1500) {
       targetx = ballxsign * 2900;
     }
-    std::cout << "af" << targetx << ", " << targety << std::endl;
 
     if (std::hypot(targetx - robotx, targety - roboty) > 100) {
       // 安全な速度にして移動
