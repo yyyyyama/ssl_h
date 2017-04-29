@@ -7,13 +7,19 @@ namespace game {
 namespace agent {
 
 kick_off::kick_off(const model::world& world, bool is_yellow, unsigned int kicker_id)
-    : base(world, is_yellow), kicker_id_(kicker_id) {
-  move = std::make_shared<action::move>(world_, is_yellow_, kicker_id_);
-  kick = std::make_shared<action::kick_action>(world_, is_yellow_, kicker_id_);
+    : base(world, is_yellow),
+      kicker_id_(kicker_id),
+      move_(std::make_shared<action::move>(world_, is_yellow_, kicker_id_)),
+      kick_(std::make_shared<action::kick_action>(world_, is_yellow_, kicker_id_)) {
+  start_flag_    = false;
+  move_finished_ = false;
+  kick_finished_ = false;
 }
+
 void kick_off::set_start_flag(bool start_flag) {
   start_flag_ = start_flag;
 }
+
 bool kick_off::start_flag() const {
   return start_flag_;
 }
@@ -26,22 +32,22 @@ std::vector<std::shared_ptr<action::base>> kick_off::execute() {
 
   std::vector<std::shared_ptr<action::base>> actions;
 
-  if (kick_finished_ == true) {
+  if (kick_finished_) {
     //ボールを蹴り終わった時
     auto no_op = std::make_shared<action::no_operation>(world_, is_yellow_, kicker_id_);
     actions.push_back(no_op);
 
   } else {
-    if (move_finished_ == true && start_flag_ == true) {
+    if (move_finished_ && start_flag_) {
       // StartGameが指定され、所定の位置に移動済みの時
       auto kick_type = std::make_tuple(model::command::kick_type_t::backspin, 60.0);
       auto kick_mode = action::kick_action::mode::goal;
 
-      kick->kick_to(world_.field().x_max(), 0.0);
-      kick->set_kick_type(kick_type);
-      kick->set_mode(kick_mode);
-      kick_finished_ = kick->finished();
-      actions.push_back(kick);
+      kick_->kick_to(world_.field().x_max(), 0.0);
+      kick_->set_kick_type(kick_type);
+      kick_->set_mode(kick_mode);
+      kick_finished_ = kick_->finished();
+      actions.push_back(kick_);
 
     } else {
       // StartGameが指定されていない、または所定の位置に移動していない時
@@ -79,9 +85,9 @@ std::vector<std::shared_ptr<action::base>> kick_off::execute() {
                       std::sin(ball_goal_theta_ + theta_min_);
       }
 
-      move->move_to(move_to_x_, move_to_y_, move_to_theta_);
-      move_finished_ = move->finished();
-      actions.push_back(move);
+      move_->move_to(move_to_x_, move_to_y_, move_to_theta_);
+      move_finished_ = move_->finished();
+      actions.push_back(move_);
     }
   }
 
