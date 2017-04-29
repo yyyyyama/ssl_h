@@ -1,7 +1,5 @@
 #include <cmath>
-#include <iostream>
 
-#include "ai_server/game/action/marking.h"
 #include "ai_server/game/agent/defense.h"
 #include "ai_server/util/math.h"
 
@@ -43,14 +41,11 @@ std::vector<std::shared_ptr<action::base>> defense::execute() {
   const auto ball_x = world_.ball().x();
   const auto ball_y = world_.ball().y();
 
-	std::cout << "ball_x : " << ball_x << "ball_y : " << ball_y << std::endl;
   //ゴールの座標
-  auto goal_x = world_.field().x_max();
+  auto goal_x       = world_.field().x_max();
   const auto goal_y = 0.0;
 
-	std::cout << "goal_x : " << goal_x << "goal_y : " << goal_y << std::endl;
-
-	goal_x = 4500;
+  goal_x = 4500;
   //半径
   const auto radius = 1340.0;
   //比
@@ -206,7 +201,7 @@ std::vector<std::shared_ptr<action::base>> defense::execute() {
       break;
     case defense_mode::pk_mode:
 
-			const auto enemy_robots = is_yellow_ ? world_.robots_blue() : world_.robots_yellow();
+      const auto enemy_robots = is_yellow_ ? world_.robots_blue() : world_.robots_yellow();
 
       //敵のシューターを線形探索する
       //
@@ -227,7 +222,6 @@ std::vector<std::shared_ptr<action::base>> defense::execute() {
           enemy_robot_id = (enemy_it.first);
         }
       }
-			std::cout << "ids : "<<enemy_robot_id << std::endl;
 
       //キーパーのy座標は敵シューターの視線の先
       keeper_y = 1000.0 * std::tan(util::wrap_to_2pi(enemy_robots.at(enemy_robot_id).theta()));
@@ -241,7 +235,6 @@ std::vector<std::shared_ptr<action::base>> defense::execute() {
       keeper_x = goal_x + (std::signbit(world_.field().x_max()) ? 110.0 : -110.0);
   }
 
-	std::cout << "keeper_y : " << keeper_y << " keeper_x : " << keeper_x << std::endl;
   keeper_theta = util::wrap_to_2pi(std::atan2(ball_y - keeper_y, ball_x - keeper_x));
 
   keeper_->move_to(keeper_x, keeper_y, keeper_theta); //置く場所をセット
