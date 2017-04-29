@@ -14,8 +14,8 @@ class defense : public base {
 public:
   defense(const model::world& world, bool is_yellow, unsigned int keeper_id,
           const std::vector<unsigned int>& wall_ids);
-  enum class keeper_mode { normal_mode, pk_mode };
-  void set_mode(action::defense::keeper_mode mode);
+  enum class defense_mode { normal_mode, pk_mode };
+  void set_mode(agent::defense::defense_mode mode);
   std::vector<std::shared_ptr<action::base>> execute() override;
 
 private:
@@ -23,10 +23,9 @@ private:
   const std::vector<unsigned int>& wall_ids_;
   std::vector<std::shared_ptr<action::move>> wall_;
   std::shared_ptr<action::move> keeper_;
-  double x_         = 0.0;
-  double y_         = 0.0;
-  bool flag_        = true;
-  keeper_mode mode_ = keeper_mode::normal_mode;
+  double x_;
+  double y_;
+  defense_mode mode_;
 };
 }
 }

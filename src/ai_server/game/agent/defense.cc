@@ -11,41 +11,46 @@ namespace agent {
 
 defense::defense(const model::world& world, bool is_yellow, unsigned int keeper_id,
                  const std::vector<unsigned int>& wall_ids)
-    : base(world, is_yellow), keeper_id_(keeper_id), wall_ids_(wall_ids) {}
 
-void defense::set_mode(keeper_mode mode) {
+    : base(world, is_yellow),
+      keeper_id_(keeper_id),
+      wall_ids_(wall_ids),
+      x_(0.0),
+      y_(0.0),
+      mode_(defense_mode::normal_mode) {
+  // actionの生成部分
+  //
+  // actionの初期化は一回しか行わない
+  //
+  //
+  //キーパー用のaction
+  keeper_ = std::make_shared<action::move>(world_, is_yellow_, keeper_id_);
+
+  //壁用のaction
+  for (auto it : wall_ids_) {
+    wall_.emplace_back(std::make_shared<action::move>(world_, is_yellow_, it));
+  }
+}
+
+void defense::set_mode(defense_mode mode) {
   mode_ = mode;
 }
 
 std::vector<std::shared_ptr<action::base>> defense::execute() {
   using boost::math::constants::pi;
 
-  // actionの生成部分
-  //
-  // actionの初期化は一回しか行わない
-  //
-  //
-  if (flag_) {
-    //キーパー用のaction
-    keeper_ = std::make_shared<action::move>(world_, is_yellow_, keeper_id_);
-
-    //壁用のaction
-    for (auto it = wall_ids_.begin(); it != wall_ids_.end(); ++it) {
-      wall_.push_back(std::make_shared<action::move>(world_, is_yellow_, *it));
-    }
-  }
-
   //ボールの座標
   const auto ball_x = world_.ball().x();
   const auto ball_y = world_.ball().y();
 
+	std::cout << "ball_x : " << ball_x << "ball_y : " << ball_y << std::endl;
   //ゴールの座標
-  const auto goal_x = world_.field().x_max();
+  auto goal_x = world_.field().x_max();
   const auto goal_y = 0.0;
 
-  std::cout << "ball_x:" << ball_x << "ball_y" << ball_y << std::endl;
-  std::cout << "goal_x:" << goal_x << std::endl;
+	std::cout << "goal_x : " << goal_x << "goal_y : " << goal_y << std::endl;
 
+	goal_x = 4500;
   //半径
   const auto radius = 1340.0;
   //比
@@ -68,7 +73,8 @@ std::vector<std::shared_ptr<action::base>> defense::execute() {
     x_ = (goal_x + (std::signbit(goal_x) ? 1100 : -1100));
   }
 
-  std::cout << "x_:" << x_ << " y_:" << y_ << std::endl;
+  //我等がロボットのすてきなもの
+  const auto my_robots = is_yellow_ ? world_.robots_yellow() : world_.robots_blue();
 
   //ここから壁の処理
   //
@@ -87,8 +93,7 @@ std::vector<std::shared_ptr<action::base>> defense::execute() {
   auto shift_ = 0.0;
 
   if (wall_.size() % 2 != 0) { //奇数
-    (*wall_it)->move_to(x_, y_, theta);
-    wall_it++;
+    (*wall_it++)->move_to(x_, y_, theta);
 
     shift_ = 180.0;
   } else { //偶数
@@ -123,22 +128,34 @@ std::vector<std::shared_ptr<action::base>> defense::execute() {
   auto c_x2 = 0.0;
   auto c_y2 = 0.0;
 
-  for (auto shift = shift_; wall_it != wall_.end(); shift += shift_, wall_it++) {
-    tmp_x = after_base_x;
-    tmp_y1 =
-        std::sqrt(std::pow(shift, 2) + std::pow(after_base_x, 2) - std::pow(after_base_x, 2));
-    tmp_y2 = tmp_y1 * (-1);
+  switch (mode_) {
+    case defense_mode::normal_mode:
+      for (auto shift = shift_; wall_it != wall_.end(); shift += shift_, wall_it++) {
+        tmp_x  = after_base_x;
+        tmp_y1 = std::sqrt(std::pow(shift, 2) + std::pow(after_base_x, 2) -
+                           std::pow(after_base_x, 2));
+        tmp_y2 = tmp_y1 * (-1);
 
-    c_x1 = tmp_x * std::cos(alpha) - tmp_y1 * std::sin(alpha) + move_x;
-    c_y1 = tmp_x * std::sin(alpha) + tmp_y1 * std::cos(alpha) + move_y;
-    c_x2 = tmp_x * std::cos(alpha) - tmp_y2 * std::sin(alpha) + move_x;
-    c_y2 = tmp_x * std::sin(alpha) + tmp_y2 * std::cos(alpha) + move_y;
+        c_x1 = tmp_x * std::cos(alpha) - tmp_y1 * std::sin(alpha) + move_x;
+        c_y1 = tmp_x * std::sin(alpha) + tmp_y1 * std::cos(alpha) + move_y;
+        c_x2 = tmp_x * std::cos(alpha) - tmp_y2 * std::sin(alpha) + move_x;
+        c_y2 = tmp_x * std::sin(alpha) + tmp_y2 * std::cos(alpha) + move_y;
 
-    (*wall_it)->move_to(c_x1, c_y1, theta);
-    wall_it++;
-    (*wall_it)->move_to(c_x2, c_y2, theta);
+        (*wall_it)->move_to(c_x1, c_y1, theta);
+        wall_it++;
+        (*wall_it)->move_to(c_x2, c_y2, theta);
+      }
+      break;
+    case defense_mode::pk_mode:
+      const auto my_robots = is_yellow_ ? world_.robots_yellow() : world_.robots_blue();
+
+      for (auto wall_ids_it : wall_ids_) {
+        (*wall_it++)
+            ->move_to(my_robots.at(wall_ids_it).x(), my_robots.at(wall_ids_it).y(),
+                      my_robots.at(wall_ids_it).theta());
+      }
+      break;
   }
-
   //ここからキーパーの処理
   //
   //キーパーはボールの位置によって動き方が3種類ある.
@@ -155,7 +172,7 @@ std::vector<std::shared_ptr<action::base>> defense::execute() {
   auto keeper_theta = 0.0;
 
   switch (mode_) {
-    case keeper_mode::normal_mode:
+    case defense_mode::normal_mode:
       if (std::signbit(ball_x) == std::signbit(goal_x * (-1))) { // A
         //ゴール直前でボールに併せて横移動
 
@@ -187,48 +204,52 @@ std::vector<std::shared_ptr<action::base>> defense::execute() {
         keeper_y = ratio * ball_y;
       }
       break;
-    case keeper_mode::pk_mode:
-			const auto enemy_robots = is_yellow_?world_.robots_blue():world_.robots_yellow();
-			const auto& enemy_robot = enemy_robots.at(keeper_id_);
-			const auto enemy_x = enemy_robot.x();
-			const auto enemy_y = enemy_robot.y();
+    case defense_mode::pk_mode:
 
-			const auto my_robots    = is_yellow_?world_.robots_yellow():world_.robots_blue();
-			const auto& my_robot = my_robots.at(keeper_id_);
-			const auto my_x = my_robot.x();
-			const auto my_y = my_robot.y();
+			const auto enemy_robots = is_yellow_ ? world_.robots_blue() : world_.robots_yellow();
 
-      //移動した量
-      auto move_x = ball_x;
-      auto move_y = ball_y;
+      //敵のシューターを線形探索する
+      //
+      //
+      //ボールにもっとも近いやつがシューターだと仮定
+      //
 
-      //計算の為に中心にずらした場合の座標
-      auto after_ball_x = ball_x - move_x;
-      auto after_ball_y = ball_y - move_y;
+      //暫定的なボールに最も近い敵ロボット
+      unsigned int enemy_robot_id = 0;
 
-      auto after_base_x = x_ - move_x;
-      auto after_base_y = y_ - move_y;
+      //最小値を比べるための変数
+      auto min_val = 0xffffffff;
 
-      // x軸から角度
-      auto alpha = util::wrap_to_2pi(
-          std::atan2(after_base_y - after_ball_y, after_base_x - after_ball_x));
+      for (auto enemy_it : enemy_robots) {
+        auto len = std::hypot((enemy_it.second).x() - ball_x, (enemy_it.second).y() - ball_y);
+        if (len < min_val) {
+          min_val        = len;
+          enemy_robot_id = (enemy_it.first);
+        }
+      }
+			std::cout << "ids : "<<enemy_robot_id << std::endl;
 
-      after_base_x = std::hypot(after_base_x - after_ball_x, after_base_y - after_ball_y);
-      after_base_y = 0.0;
+      //キーパーのy座標は敵シューターの視線の先
+      keeper_y = 1000.0 * std::tan(util::wrap_to_2pi(enemy_robots.at(enemy_robot_id).theta()));
+      //ゴールの幅をこえたらでないようにする
+      if (keeper_y > 410) {
+        keeper_y = 410;
+      } else if (keeper_y < -410) {
+        keeper_y = -410;
+      }
+
+      keeper_x = goal_x + (std::signbit(world_.field().x_max()) ? 110.0 : -110.0);
   }
 
+	std::cout << "keeper_y : " << keeper_y << " keeper_x : " << keeper_x << std::endl;
   keeper_theta = util::wrap_to_2pi(std::atan2(ball_y - keeper_y, ball_x - keeper_x));
 
   keeper_->move_to(keeper_x, keeper_y, keeper_theta); //置く場所をセット
 
-  if (flag_ != true) { //もし一回目のループではなかったら前回のキーパーを削除
-    wall_.pop_back();
-  }
-  flag_ = false; //一回でも呼ばれたらfalseにする
-
-  wall_.push_back(keeper_); //配列を返すためにキーパーを統合する
   std::vector<std::shared_ptr<action::base>> re_wall{
       wall_.begin(), wall_.end()}; //型を合わせるために無理矢理作り直す
+
+  re_wall.push_back(keeper_); //配列を返すためにキーパーを統合する
 
   return re_wall; //返す
 }
