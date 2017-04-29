@@ -54,7 +54,7 @@ std::vector<std::shared_ptr<action::base>> kick_off::execute() {
       const auto ball            = world_.ball();
       const auto this_robot_team = is_yellow_ ? world_.robots_yellow() : world_.robots_blue();
       const auto& this_robot     = this_robot_team.at(kicker_id_);
-      ball_goal_theta_           = atan2(0.0 - ball.y(), (world_.field().x_max() - ball.x()));
+      ball_goal_theta_           = atan2(0.0 - ball.y(), world_.field().x_max() - ball.x());
 
       //ボールとゴールを結んだライン上で、ボールから半径keep_out_r+ロボット半径離れたところを指定
       move_to_x_     = ball.x() - (keep_out_r + robot_r) * std::cos(ball_goal_theta_);
@@ -64,7 +64,7 @@ std::vector<std::shared_ptr<action::base>> kick_off::execute() {
       //-- ロボットがボールにぶつからないようにするための処理 --
 
       move_to_robot_theta_ =
-          std::atan2((this_robot.y() - move_to_y_), (this_robot.x() - move_to_x_));
+          std::atan2(this_robot.y() - move_to_y_, this_robot.x() - move_to_x_);
 
       if (std::hypot(this_robot.x() - move_to_x_, this_robot.y() - move_to_y_) >
               (keep_out_r + robot_r) * std::cos(move_to_robot_theta_ - ball_goal_theta_) &&
