@@ -1,4 +1,5 @@
 #include <cmath>
+#include <iostream>
 
 #include "ai_server/game/action/marking.h"
 #include "ai_server/game/agent/defense.h"
@@ -23,6 +24,8 @@ defense::defense(const model::world& world, bool is_yellow, unsigned int keeper_
   for (auto it : wall_ids_) {
     wall_.emplace_back(std::make_shared<action::move>(world_, is_yellow_, it));
   }
+	target_x.resize(wall_.size());
+	target_y.resize(wall_.size());
 }
 
 std::vector<std::shared_ptr<action::base>> defense::execute() {
@@ -33,9 +36,10 @@ std::vector<std::shared_ptr<action::base>> defense::execute() {
   const auto ball_y = world_.ball().y();
 
   //ゴールの座標
-  const auto goal_x = world_.field().x_max();
+  auto goal_x = world_.field().x_max();
   const auto goal_y = 0.0;
 
+	goal_x = 4500;
   //半径
   const auto radius = 1340.0;
   //比
@@ -71,12 +75,15 @@ std::vector<std::shared_ptr<action::base>> defense::execute() {
   //壁のイテレータ
   auto wall_it = wall_.begin();
 
+	auto target_x_it = target_x.begin();
+	auto target_y_it = target_y.begin();
   //基準点からどれだけずらすか
   auto shift_ = 0.0;
 
   if (wall_.size() % 2 != 0) { //奇数
-    (*wall_it)->move_to(x_, y_, theta);
-    wall_it++;
+//    (*wall_it++)->move_to(x_, y_, theta);
+		(*target_x_it++) = x_;
+		(*target_y_it++) = y_;
 
     shift_ = 180.0;
   } else { //偶数
@@ -122,11 +129,78 @@ std::vector<std::shared_ptr<action::base>> defense::execute() {
     c_x2 = tmp_x * std::cos(alpha) - tmp_y2 * std::sin(alpha) + move_x;
     c_y2 = tmp_x * std::sin(alpha) + tmp_y2 * std::cos(alpha) + move_y;
 
-    (*wall_it)->move_to(c_x1, c_y1, theta);
-    wall_it++;
-    (*wall_it)->move_to(c_x2, c_y2, theta);
-  }
+    //(*wall_it)->move_to(c_x1, c_y1, theta);
+    //wall_it++;
+    //(*wall_it)->move_to(c_x2, c_y2, theta);
+		(*target_x_it++) = c_x1;
+		(*target_y_it++) = c_y1;
+		(*target_x_it++) = c_x2;
+		(*target_y_it++) = c_y2;
 
+  }
+	
+	std::cout<<"x"<<std::endl;
+	for(auto itx:target_x){
+		std::cout<<itx<<std::endl;
+	}
+
+	std::cout<<"y"<<std::endl;
+	for(auto ity:target_y){
+		std::cout<<ity<<std::endl;
+	}
+	
+
+	const auto wall_robots = is_yellow_?world_.robots_yellow():world_.robots_blue();
+	auto wall_ids_it = wall_ids_.begin();
+
+ 	target_x_it = target_x.begin();
+	target_y_it = target_y.begin();
+
+	for(auto wall_it:wall_){
+		const auto wall_robot = wall_robots.at((*wall_ids_it++));	
+		const auto wall_x = wall_robot.x();
+		const auto wall_y = wall_robot.y();
+		const auto wall_vx = wall_robot.vx();
+		const auto wall_vy = wall_robot.vy();
+
+		std::cout << " wall_x : " << wall_x << "wall_y : " << wall_y<<std::endl;
+
+		std::cout << *target_x_it << "    " << *target_y_it << std::endl;
+  	auto sp_x = (1.0-(1.0/3.0))*wall_x+(1.0/3.0)*(*target_x_it);
+  	auto sp_y = (1.0-(1.0/3.0))*wall_y+(1.0/3.0)*(*target_y_it);
+
+		std::cout <<" sp_x : "<<sp_x<<" sp_y : " << sp_y << std::endl;
+
+		//wall_it->move_to((*target_x_it++),(*target_y_it++),theta);
+		if(sp_y>250){
+
+  		length = std::hypot(goal_x - sp_x, 250 - sp_y); //ボール<->ゴール
+			
+  		ratio = 1100 / length; //全体に対しての基準座標の比
+			auto ul_x = 	(1 - ratio) * goal_x + ratio * sp_x;
+			auto ul_y = (1 - ratio) * 250 + ratio * sp_y;
+			std::cout << "ul_x : "<<ul_x <<"ul_y : "<<ul_y<<std::endl;
+  		wall_it->move_to(ul_x,ul_y,theta);
+			
+		}else if(sp_y<-250){
+			length = std::hypot(goal_x - sp_x, -250 - sp_y); //ボール<->ゴール
+			
+  		ratio = 1100 / length; //全体に対しての基準座標の比
+			
+  		auto ul_x = 	(1 - ratio) * goal_x + ratio * sp_x;
+			auto ul_y = (1 - ratio) * -250 + ratio * sp_y;
+			std::cout << "ul_x : "<<ul_x <<"ul_y : "<<ul_y<<std::endl;
+  		wall_it->move_to(ul_x,ul_y,theta);
+			
+
+		}else{
+			auto ul_x = std::signbit(goal_x) ? -3400 : 3400;
+			auto ul_y = sp_y;
+			std::cout << "ul_x : "<<ul_x <<"ul_y : "<<ul_y<<std::endl;
+  		wall_it->move_to(ul_x,ul_y,theta);
+		}
+
+	}
   //ここからキーパーの処理
   //
   //キーパーはボールの位置によって動き方が3種類ある.
