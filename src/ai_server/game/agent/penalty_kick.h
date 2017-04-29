@@ -23,24 +23,24 @@ public:
   void set_start_flag(bool start_flag);
   std::vector<std::shared_ptr<action::base>> execute() override;
 
-private:
+  // private:
   //パラメータ計算
   void calculate();
 
   bool start_flag_;
-  std::vector<std::shared_ptr<action::base>> exe;
-  std::shared_ptr<action::move> move;
-  std::shared_ptr<action::kick_action> kick;
+  std::vector<std::shared_ptr<action::base>> exe_;
+  std::shared_ptr<action::move> move_;
+  std::shared_ptr<action::kick_action> kick_;
 
   unsigned int kicker_id_;
   // PK待機位置
-  double kick_x;
-  double kick_y;
-  double kick_theta;
+  double kick_x_;
+  double kick_y_;
+  double kick_theta_;
 
   //蹴る方向
-  double target_x;
-  double target_y;
+  double target_x_;
+  double target_y_;
 };
 }
 }
