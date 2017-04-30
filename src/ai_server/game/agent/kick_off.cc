@@ -27,20 +27,24 @@ bool kick_off::start_flag() const {
 std::vector<std::shared_ptr<action::base>> kick_off::execute() {
   const double robot_r    = 90.0;  //ロボットの半径
   const double keep_out_r = 500.0; //キックオフ時の立ち入り禁止区域の半径
-  theta_min_              = std::asin((50 + robot_r) /
-                         keep_out_r); //移動中にロボットがボールに近づけないようにするための値
-
+  theta_min_ =
+      asin((500.0 + robot_r) /
+           (keep_out_r + robot_r)); //移動中にロボットがボールに近づけないようにするための値
+  const double hypot_allow =
+      std::hypot(10, 10); //ボールとの衝突回避に用いられる、指定位置と実際の位置のズレの許容値
   std::vector<std::shared_ptr<action::base>> actions;
 
   if (kick_finished_) {
     //ボールを蹴り終わった時
+    std::printf("--------------NO OP------------------\n");
     auto no_op = std::make_shared<action::no_operation>(world_, is_yellow_, kicker_id_);
     actions.push_back(no_op);
 
   } else {
     if (move_finished_ && start_flag_) {
       // StartGameが指定され、所定の位置に移動済みの時
-      auto kick_type = std::make_tuple(model::command::kick_type_t::backspin, 60.0);
+      std::printf("--------------KICK------------------\n");
+      auto kick_type = std::make_tuple(model::command::kick_type_t::backspin, 120.0);
       auto kick_mode = action::kick_action::mode::goal;
 
       kick_->kick_to(world_.field().x_max(), 0.0);
@@ -50,6 +54,9 @@ std::vector<std::shared_ptr<action::base>> kick_off::execute() {
       actions.push_back(kick_);
 
     } else {
+      if (!start_flag_ && move_finished_) {
+        std::printf("--------------WAIT START------------------\n");
+      }
       // StartGameが指定されていない、または所定の位置に移動していない時
       const auto ball            = world_.ball();
       const auto this_robot_team = is_yellow_ ? world_.robots_yellow() : world_.robots_blue();
@@ -67,7 +74,7 @@ std::vector<std::shared_ptr<action::base>> kick_off::execute() {
           std::atan2(this_robot.y() - move_to_y_, this_robot.x() - move_to_x_);
 
       if (std::hypot(this_robot.x() - move_to_x_, this_robot.y() - move_to_y_) >
-              (keep_out_r + robot_r) * std::cos(move_to_robot_theta_ - ball_goal_theta_) &&
+              keep_out_r + robot_r + hypot_allow &&
           this_robot.x() > move_to_x_ &&
           std::abs(move_to_robot_theta_ - ball_goal_theta_) < theta_min_) {
         //ロボットがボールにぶつかる可能性がある時
@@ -78,14 +85,13 @@ std::vector<std::shared_ptr<action::base>> kick_off::execute() {
         }
 
         //ボールをよけるための位置を指定
-        move_to_x_ += (keep_out_r + robot_r) * std::cos(theta_min_) *
-                      std::cos(ball_goal_theta_ + theta_min_);
-        move_to_y_ += (keep_out_r + robot_r) * std::cos(theta_min_) *
-                      std::sin(ball_goal_theta_ + theta_min_);
-      }
+        move_to_x_ += (keep_out_r + robot_r) * std::cos(ball_goal_theta_ + theta_min_);
+        move_to_y_ += (keep_out_r + robot_r) * std::sin(ball_goal_theta_ + theta_min_);
 
+      } else {
+        move_finished_ = move_->finished();
+      }
       move_->move_to(move_to_x_, move_to_y_, move_to_theta_);
-      move_finished_ = move_->finished();
       actions.push_back(move_);
     }
   }
