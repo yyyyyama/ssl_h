@@ -35,6 +35,7 @@ std::vector<std::shared_ptr<action::base>> defense::execute() {
   const auto ball_x = world_.ball().x();
   const auto ball_y = world_.ball().y();
 
+  std::cout << "ball_x : " << ball_x << " ball_y : " << ball_y << std::endl;
   //ゴールの座標
   auto goal_x       = world_.field().x_max();
   const auto goal_y = 0.0;
@@ -158,55 +159,59 @@ std::vector<std::shared_ptr<action::base>> defense::execute() {
     const auto wall_robot = wall_robots.at((*wall_ids_it++));
     const auto wall_x     = wall_robot.x();
     const auto wall_y     = wall_robot.y();
-    const auto wall_vx    = wall_robot.vx();
-    const auto wall_vy    = wall_robot.vy();
 
-    std::cout << " wall_x : " << wall_x << "wall_y : " << wall_y << std::endl;
+    std::cout << "wall_x : " << wall_x << " wall_y : " << wall_y << std::endl;
 
-    std::cout << *target_x_it << "    " << *target_y_it << std::endl;
+    std::cout << "target_x : " << *target_x_it << " target_y : " << *target_y_it << std::endl;
 
-		//目的地との直線上に交点がなかったらそのまま移動
-		const auto slope   = ((*target_y_it) - wall_y) / ((*target_x_it) - wall_x);
+    //目的地との直線上に交点がなかったらそのまま移動
+    const auto slope   = ((*target_y_it) - wall_y) / ((*target_x_it) - wall_x);
     const auto segment = wall_y - slope * wall_x;
 
+    //交点の数を判別式で出している.
+    //
+    //決して適当にa,b,c,Dって使ってるわけじゃないよ？意味あるからね
+    //
     auto a = (1 + std::pow(slope, 2));
     auto b = (2 * slope * segment - 2 * goal_x - 2 * goal_y * slope);
     auto c = (std::pow(goal_x, 2) + std::pow(segment, 2) - 2 * segment * std::pow(goal_y, 2) +
               std::pow(goal_y, 2) - std::pow(1250, 2));
     auto D = std::pow(b, 2) - 4 * a * c;
 
+    // wall_it->move_to((*target_x_it++),(*target_y_it++),theta);
+
     if (D > 0) {
-      auto sp_x = (1.0 - (1.0 / 3.0)) * wall_x + (1.0 / 3.0) * (*target_x_it);
-      auto sp_y = (1.0 - (1.0 / 3.0)) * wall_y + (1.0 / 3.0) * (*target_y_it);
+      auto index_x = (1.0 - (1.0 / 3.0)) * wall_x + (1.0 / 3.0) * (*target_x_it);
+      auto index_y = (1.0 - (1.0 / 3.0)) * wall_y + (1.0 / 3.0) * (*target_y_it);
 
-      std::cout << " sp_x : " << sp_x << " sp_y : " << sp_y << std::endl;
+      std::cout << "index_x : " << index_x << " index_y : " << index_y << std::endl;
 
-      // wall_it->move_to((*target_x_it++),(*target_y_it++),theta);
-      if (sp_y > 250) {
-        length = std::hypot(goal_x - sp_x, 250 - sp_y); //ボール<->ゴール
+      if (index_y > 250) {
+        length = std::hypot(index_x - goal_x, index_y - 250); //中心<->index
 
-        ratio     = 1150 / length; //全体に対しての基準座標の比
-        auto ul_x = (1 - ratio) * goal_x + ratio * sp_x;
-        auto ul_y = (1 - ratio) * 250 + ratio * sp_y;
-        std::cout << "ul_x : " << ul_x << "ul_y : " << ul_y << std::endl;
-        wall_it->move_to(ul_x, ul_y, theta);
+        ratio       = 1 - (length / 1100); //目的<->indexの比
+        auto sign_x = (-ratio * goal_x + 1 * index_x) / (length / 1100);
+        auto sign_y = (-ratio * 250 + 1 * index_y) / (length / 1100);
+        std::cout << "sign_x : " << sign_x << " sign_y : " << sign_y << std::endl;
+        wall_it->move_to(sign_x, sign_y, theta);
 
-      } else if (sp_y < -250) {
-        length = std::hypot(goal_x - sp_x, -250 - sp_y); //ボール<->ゴール
+      } else if (index_y < -250) {
+        length = std::hypot(index_x - goal_x, index_y - (-250)); //中心<->index
 
-        ratio = 1150 / length; //全体に対しての基準座標の比
-
-        auto ul_x = (1 - ratio) * goal_x + ratio * sp_x;
-        auto ul_y = (1 - ratio) * -250 + ratio * sp_y;
-        std::cout << "ul_x : " << ul_x << "ul_y : " << ul_y << std::endl;
-        wall_it->move_to(ul_x, ul_y, theta);
+        ratio       = 1 - (length / 1100); //目的<->indexの比
+        auto sign_x = (-ratio * goal_x + 1 * index_x) / (length / 1100);
+        auto sign_y = (-ratio * (-250) + 1 * index_y) / (length / 1100);
+        std::cout << "sign_x : " << sign_x << " sign_y : " << sign_y << std::endl;
+        wall_it->move_to(sign_x, sign_y, theta);
 
       } else {
-        auto ul_x = std::signbit(goal_x) ? -3400 : 3400;
-        auto ul_y = sp_y;
-        std::cout << "ul_x : " << ul_x << "ul_y : " << ul_y << std::endl;
-        wall_it->move_to(ul_x, ul_y, theta);
+        auto sign_x = std::signbit(goal_x) ? -3400 : 3400;
+        auto sign_y = index_y;
+        std::cout << "sign_x : " << sign_x << " sign_y : " << sign_y << std::endl;
+        wall_it->move_to(sign_x, sign_y, theta);
       }
+    } else {
+      wall_it->move_to((*target_x_it), (*target_y_it), theta);
     }
     target_y_it++;
     target_x_it++;
