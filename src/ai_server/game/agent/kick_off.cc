@@ -27,23 +27,19 @@ bool kick_off::start_flag() const {
 std::vector<std::shared_ptr<action::base>> kick_off::execute() {
   const double robot_r    = 90.0;  //ロボットの半径
   const double keep_out_r = 500.0; //キックオフ時の立ち入り禁止区域の半径
-  theta_min_ =
-      asin((500.0 + robot_r) /
-           (keep_out_r + robot_r)); //移動中にロボットがボールに近づけないようにするための値
+  theta_min_ = asin(1); //移動中にロボットがボールに近づけないようにするための値
   const double hypot_allow =
       std::hypot(10, 10); //ボールとの衝突回避に用いられる、指定位置と実際の位置のズレの許容値
   std::vector<std::shared_ptr<action::base>> actions;
 
   if (kick_finished_) {
     //ボールを蹴り終わった時
-    std::printf("--------------NO OP------------------\n");
     auto no_op = std::make_shared<action::no_operation>(world_, is_yellow_, kicker_id_);
     actions.push_back(no_op);
 
   } else {
     if (move_finished_ && start_flag_) {
       // StartGameが指定され、所定の位置に移動済みの時
-      std::printf("--------------KICK------------------\n");
       auto kick_type = std::make_tuple(model::command::kick_type_t::backspin, 120.0);
       auto kick_mode = action::kick_action::mode::goal;
 
@@ -55,7 +51,6 @@ std::vector<std::shared_ptr<action::base>> kick_off::execute() {
 
     } else {
       if (!start_flag_ && move_finished_) {
-        std::printf("--------------WAIT START------------------\n");
       }
       // StartGameが指定されていない、または所定の位置に移動していない時
       const auto ball            = world_.ball();
