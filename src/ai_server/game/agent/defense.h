@@ -21,8 +21,8 @@ private:
   const std::vector<unsigned int>& wall_ids_;
   std::vector<std::shared_ptr<action::move>> wall_;
   std::shared_ptr<action::move> keeper_;
-	std::vector<double> target_x;
-	std::vector<double> target_y;
+  std::vector<double> target_x;
+  std::vector<double> target_y;
   double x_;
   double y_;
 };
