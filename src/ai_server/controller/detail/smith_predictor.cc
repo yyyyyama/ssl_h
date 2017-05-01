@@ -1,44 +1,55 @@
 #include <cmath>
-
 #include "smith_predictor.h"
 
 namespace ai_server {
 namespace controller {
-namespace detail{
+namespace detail {
 
-smith_predictor::smith_predictor(const double cycle,const double zeta,const double omega):cycle_(cycle),zeta_(zeta),omega_(omega) {
-  for(int i=0;i<7;i++){
-    u_[i]={0.0,0.0,0.0};
+smith_predictor::smith_predictor(const double cycle, const double zeta, const double omega)
+    : cycle_(cycle), zeta_(zeta), omega_(omega) {
+  for (int i = 0; i < 7; i++) {
+    u_[i] = {0.0, 0.0, 0.0};
   }
 }
 
-smith_predictor::state smith_predictor::interpolate(const model::robot& robot, const velocity_t u) {
-  u_[0]=u;  // 受け取った制御入力を最新入力として
+Eigen::Matrix3d smith_predictor::interpolate(const model::robot& robot, const velocity_t u) {
+  u_[0] = u; // 受け取った制御入力を最新入力として
 
   // 受け取ったロボットの状態(無駄時間分の遅れ含む)
-  struct state now_state;
-  now_state.p=position_t{robot.x(),robot.y(),robot.theta()};
-  now_state.v=velocity_t{robot.vx(),robot.vy(),robot.omega()};
-  now_state.a=acceleration_t{robot.ax(),robot.ay(),robot.alpha()};
-  
-  struct state pre_state=now_state;
-  
+  // 計算しやすいように,ベクトルに変換
+  Eigen::Vector3d pre_position(robot.x(), robot.y(), robot.theta());
+  Eigen::Vector3d pre_velocity(robot.vx(), robot.vy(), robot.omega());
+  Eigen::Vector3d pre_acceleration(robot.ax(), robot.ay(), robot.alpha());
+
+  Eigen::Vector3d now_position     = pre_position;
+  Eigen::Vector3d now_velocity     = pre_velocity;
+  Eigen::Vector3d now_acceleration = pre_acceleration;
+
   // 1ループ毎に当時の制御入力によって1フレーム分の補間をする
   for (int i = 6; i >= 0; i--) {
-   now_state.p.x=now_state.p.x+cycle_*pre_state.v.vx;
-   now_state.p.y=now_state.p.y+cycle_*pre_state.v.vy;
-   now_state.p.theta=now_state.p.theta+cycle_*pre_state.v.omega;
-   now_state.v.vx=now_state.v.vx+cycle_*pre_state.a.ax;
-   now_state.v.vy=now_state.v.vy+cycle_*pre_state.a.ay;
-   now_state.v.omega=now_state.v.omega+cycle_*pre_state.a.alpha;
-   now_state.a.ax=now_state.a.ax+cycle_*(-std::pow(omega_,2)*pre_state.v.vx-2*zeta_*omega_*pre_state.a.ax+std::pow(omega_,2)*u_[i].vx);
-   now_state.a.ay=now_state.a.ay+cycle_*(-std::pow(omega_,2)*pre_state.v.vy-2*zeta_*omega_*pre_state.a.ay+std::pow(omega_,2)*u_[i].vy);
-   now_state.a.alpha=now_state.a.alpha+cycle_*(-std::pow(omega_,2)*pre_state.v.omega-2*zeta_*omega_*pre_state.a.alpha+std::pow(omega_,2)*u_[i].omega);
-   
-   // 更新
-   u_[i]=u_[i-1];
-   pre_state=now_state;
+    Eigen::Vector3d u(u_[i].vx, u_[i].vy, u_[i].omega);
+    // p=p+v*dt
+    now_position = now_position + cycle_ * pre_velocity;
+    // v=v+a*dt
+    now_velocity = now_velocity + cycle_ * pre_acceleration;
+    // a=a+omega^2*v*dt-2*zeta*omega*a+omega^2*u
+    now_acceleration =
+        now_acceleration +
+        cycle_ * (-std::pow(omega_, 2) * pre_velocity - 2 * zeta_ * omega_ * pre_acceleration +
+                  std::pow(omega_, 2) * u);
+
+    // 更新
+    u_[i]            = u_[i - 1];
+    pre_position     = now_position;
+    pre_velocity     = now_velocity;
+    pre_acceleration = now_acceleration;
   }
+
+  // 返すために変換
+  Eigen::Matrix3d now_state;
+  now_state.block(0, 0, 3, 1) = now_position;
+  now_state.block(0, 1, 3, 1) = now_velocity;
+  now_state.block(0, 2, 3, 1) = now_acceleration;
 
   return now_state;
 }
