@@ -27,7 +27,7 @@ bool kick_off::start_flag() const {
 std::vector<std::shared_ptr<action::base>> kick_off::execute() {
   const double robot_r    = 90.0;  //ロボットの半径
   const double keep_out_r = 500.0; //キックオフ時の立ち入り禁止区域の半径
-  theta_min_ = std::asin(1); //移動中にロボットがボールに近づけないようにするための値
+  theta_min_              = std::asin(1); //移動中にロボットがボールに近づけないようにするための値
   const double hypot_allow =
       std::hypot(10, 10); //ボールとの衝突回避に用いられる、指定位置と実際の位置のズレの許容値
   std::vector<std::shared_ptr<action::base>> actions;
@@ -56,7 +56,7 @@ std::vector<std::shared_ptr<action::base>> kick_off::execute() {
       const auto ball            = world_.ball();
       const auto this_robot_team = is_yellow_ ? world_.robots_yellow() : world_.robots_blue();
       const auto& this_robot     = this_robot_team.at(kicker_id_);
-      ball_goal_theta_           = std::atan2(0.0 - ball.y(), world_.field().x_max() - ball.x());
+      ball_goal_theta_ = std::atan2(0.0 - ball.y(), world_.field().x_max() - ball.x());
 
       //ボールとゴールを結んだライン上で、ボールから半径keep_out_r+ロボット半径離れたところを指定
       move_to_x_     = ball.x() - (keep_out_r + robot_r) * std::cos(ball_goal_theta_);
