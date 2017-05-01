@@ -9,7 +9,6 @@
 
 #include <memory>
 #include <vector>
-#include <boost/variant.hpp>
 
 namespace ai_server {
 namespace game {
@@ -23,7 +22,7 @@ public:
   void set_start_flag(bool start_flag);
   std::vector<std::shared_ptr<action::base>> execute() override;
 
-  // private:
+private:
   //パラメータ計算
   void calculate();
 
