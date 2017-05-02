@@ -89,7 +89,7 @@ std::vector<std::shared_ptr<action::base>> defense::execute() {
 
         shift_ = 180.0;
       } else { //偶数
-        shift_ = 100.0;
+        shift_ = 210.0;
       }
 
       //移動した量
@@ -133,16 +133,6 @@ std::vector<std::shared_ptr<action::base>> defense::execute() {
       }
     }
     {
-      std::cout << "x" << std::endl;
-      for (auto itx : target_x) {
-        std::cout << itx << std::endl;
-      }
-
-      std::cout << "y" << std::endl;
-      for (auto ity : target_y) {
-        std::cout << ity << std::endl;
-      }
-
       const auto wall_robots = is_yellow_ ? world_.robots_yellow() : world_.robots_blue();
       auto wall_ids_it       = wall_ids_.begin();
 
@@ -177,20 +167,20 @@ std::vector<std::shared_ptr<action::base>> defense::execute() {
         // wall_it->move_to((*target_x_it++),(*target_y_it++),theta);
 
         if (D > 0) {
-					//現在地と目的地の距離に応じて分け方を変える
-					const auto L = std::hypot((*target_y_it) - wall_y,(*target_x_it) - wall_x);
-					//幸福ディバイド
-					//実際に試して問題なかった値を採用
-					auto divided = 0.0;
-					if(L>1800){
-						divided = 1.0/3.0;
-					}else if(L>1000){
-						divided = 1.0/2.0;
-					}else{
-						divided = 1.0/1.0;
-					}
-					//ディフェンスラインからどれだけずらすか
-					const auto shift = 1200;
+          //現在地と目的地の距離に応じて分け方を変える
+          const auto L = std::hypot((*target_y_it) - wall_y, (*target_x_it) - wall_x);
+          //幸福ディバイド
+          //実際に試して問題なかった値を採用
+          auto divided = 0.0;
+          if (L > 1700) {
+            divided = 1.0 / 3.0;
+          } else if (L > 900) {
+            divided = 1.0 / 2.0;
+          } else {
+            divided = 1.0 / 1.0;
+          }
+          //ディフェンスラインからどれだけずらすか
+          const auto shift = 1200;
 
           const auto index_x = (1.0 - divided) * wall_x + divided * (*target_x_it);
           const auto index_y = (1.0 - divided) * wall_y + divided * (*target_y_it);
@@ -225,7 +215,7 @@ std::vector<std::shared_ptr<action::base>> defense::execute() {
             wall_it->move_to(sign_x, sign_y, theta);
           }
         } else {
-        	wall_it->move_to((*target_x_it), (*target_y_it), theta);
+          wall_it->move_to((*target_x_it), (*target_y_it), theta);
         }
         target_y_it++;
         target_x_it++;
