@@ -6,7 +6,6 @@
 
 #include "ai_server/game/agent/base.h"
 #include "ai_server/game/action/move.h"
-#include "ai_server/game/action/move_velocity.h"
 
 namespace ai_server {
 namespace game {
