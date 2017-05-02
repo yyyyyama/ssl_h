@@ -43,21 +43,21 @@ std::vector<std::shared_ptr<action::base>> defense::execute() {
   goal_x = 4500;
   //半径
   const auto radius = 1340.0;
-  //比
-  auto ratio  = 0.0;
-  auto length = 0.0;
 
   //基準座標を求めている
   //
   //いい感じのところ
   //
   //
-  length = std::hypot(goal_x - ball_x, goal_y - ball_y); //ボール<->ゴール
+  //比
+  {
+    const auto length = std::hypot(goal_x - ball_x, goal_y - ball_y); //ボール<->ゴール
 
-  ratio = radius / length; //全体に対しての基準座標の比
+    const auto ratio = radius / length; //全体に対しての基準座標の比
 
-  x_ = (1 - ratio) * goal_x + ratio * ball_x;
-  y_ = (1 - ratio) * goal_y + ratio * ball_y;
+    x_ = (1 - ratio) * goal_x + ratio * ball_x;
+    y_ = (1 - ratio) * goal_y + ratio * ball_y;
+  }
 
   if (y_ >= -250 && y_ <= 250) { //もし基準座標が直線の範囲だったら直線に叩き込む
     x_ = (goal_x + (std::signbit(goal_x) ? 1100 : -1100));
@@ -69,152 +69,177 @@ std::vector<std::shared_ptr<action::base>> defense::execute() {
   //
   //
   //
+  {
+    //基準点からボールへの向き
+    const auto theta = util::wrap_to_2pi(std::atan2(ball_y - y_, ball_x - x_));
 
-  //基準点からボールへの向き
-  const auto theta = util::wrap_to_2pi(std::atan2(ball_y - y_, ball_x - x_));
+    //壁のイテレータ
+    auto wall_it = wall_.begin();
 
-  //壁のイテレータ
-  auto wall_it = wall_.begin();
+    {
+      auto target_x_it = target_x.begin();
+      auto target_y_it = target_y.begin();
+      //基準点からどれだけずらすか
+      auto shift_ = 0.0;
 
-  auto target_x_it = target_x.begin();
-  auto target_y_it = target_y.begin();
-  //基準点からどれだけずらすか
-  auto shift_ = 0.0;
+      if (wall_.size() % 2) { //奇数
+                              //    (*wall_it++)->move_to(x_, y_, theta);
+        (*target_x_it++) = x_;
+        (*target_y_it++) = y_;
 
-  if (wall_.size() % 2 != 0) { //奇数
-                               //    (*wall_it++)->move_to(x_, y_, theta);
-    (*target_x_it++) = x_;
-    (*target_y_it++) = y_;
-
-    shift_ = 180.0;
-  } else { //偶数
-    shift_ = 90.0;
-  }
-
-  //移動した量
-  auto move_x = ball_x;
-  auto move_y = ball_y;
-
-  //計算の為に中心にずらした場合の座標
-  auto after_ball_x = ball_x - move_x;
-  auto after_ball_y = ball_y - move_y;
-
-  auto after_base_x = x_ - move_x;
-  auto after_base_y = y_ - move_y;
-
-  // x軸から角度
-  auto alpha =
-      util::wrap_to_2pi(std::atan2(after_base_y - after_ball_y, after_base_x - after_ball_x));
-
-  after_base_x = std::hypot(after_base_x - after_ball_x, after_base_y - after_ball_y);
-  after_base_y = 0.0;
-
-  //移動した先での仮の座標
-  auto tmp_x  = 0.0;
-  auto tmp_y1 = 0.0;
-  auto tmp_y2 = 0.0;
-  //回転した後の正しい座標
-  auto c_x1 = 0.0;
-  auto c_y1 = 0.0;
-  auto c_x2 = 0.0;
-  auto c_y2 = 0.0;
-
-  for (auto shift = shift_; wall_it != wall_.end(); shift += shift_, wall_it++) {
-    tmp_x = after_base_x;
-    tmp_y1 =
-        std::sqrt(std::pow(shift, 2) + std::pow(after_base_x, 2) - std::pow(after_base_x, 2));
-    tmp_y2 = tmp_y1 * (-1);
-
-    c_x1 = tmp_x * std::cos(alpha) - tmp_y1 * std::sin(alpha) + move_x;
-    c_y1 = tmp_x * std::sin(alpha) + tmp_y1 * std::cos(alpha) + move_y;
-    c_x2 = tmp_x * std::cos(alpha) - tmp_y2 * std::sin(alpha) + move_x;
-    c_y2 = tmp_x * std::sin(alpha) + tmp_y2 * std::cos(alpha) + move_y;
-
-    //    (*wall_it)->move_to(c_x1, c_y1, theta);
-    //     wall_it++;
-    ///    (*wall_it)->move_to(c_x2, c_y2, theta);
-    (*target_x_it++) = c_x1;
-    (*target_y_it++) = c_y1;
-    (*target_x_it++) = c_x2;
-    (*target_y_it++) = c_y2;
-  }
-
-  std::cout << "x" << std::endl;
-  for (auto itx : target_x) {
-    std::cout << itx << std::endl;
-  }
-
-  std::cout << "y" << std::endl;
-  for (auto ity : target_y) {
-    std::cout << ity << std::endl;
-  }
-
-  const auto wall_robots = is_yellow_ ? world_.robots_yellow() : world_.robots_blue();
-  auto wall_ids_it       = wall_ids_.begin();
-
-  target_x_it = target_x.begin();
-  target_y_it = target_y.begin();
-
-  for (auto wall_it : wall_) {
-    const auto wall_robot = wall_robots.at((*wall_ids_it++));
-    const auto wall_x     = wall_robot.x();
-    const auto wall_y     = wall_robot.y();
-
-    std::cout << "wall_x : " << wall_x << " wall_y : " << wall_y << std::endl;
-
-    std::cout << "target_x : " << *target_x_it << " target_y : " << *target_y_it << std::endl;
-
-    //目的地との直線上に交点がなかったらそのまま移動
-    const auto slope   = ((*target_y_it) - wall_y) / ((*target_x_it) - wall_x);
-    const auto segment = wall_y - slope * wall_x;
-
-    //交点の数を判別式で出している.
-    //
-    //決して適当にa,b,c,Dって使ってるわけじゃないよ？意味あるからね
-    //
-    auto a = (1 + std::pow(slope, 2));
-    auto b = (2 * slope * segment - 2 * goal_x - 2 * goal_y * slope);
-    auto c = (std::pow(goal_x, 2) + std::pow(segment, 2) - 2 * segment * std::pow(goal_y, 2) +
-              std::pow(goal_y, 2) - std::pow(1250, 2));
-    auto D = std::pow(b, 2) - 4 * a * c;
-
-    // wall_it->move_to((*target_x_it++),(*target_y_it++),theta);
-
-    if (D > 0) {
-      auto index_x = (1.0 - (1.0 / 3.0)) * wall_x + (1.0 / 3.0) * (*target_x_it);
-      auto index_y = (1.0 - (1.0 / 3.0)) * wall_y + (1.0 / 3.0) * (*target_y_it);
-
-      std::cout << "index_x : " << index_x << " index_y : " << index_y << std::endl;
-
-      if (index_y > 250) {
-        length = std::hypot(index_x - goal_x, index_y - 250); //中心<->index
-
-        ratio       = 1 - (length / 1100); //目的<->indexの比
-        auto sign_x = (-ratio * goal_x + 1 * index_x) / (length / 1100);
-        auto sign_y = (-ratio * 250 + 1 * index_y) / (length / 1100);
-        std::cout << "sign_x : " << sign_x << " sign_y : " << sign_y << std::endl;
-        wall_it->move_to(sign_x, sign_y, theta);
-
-      } else if (index_y < -250) {
-        length = std::hypot(index_x - goal_x, index_y - (-250)); //中心<->index
-
-        ratio       = 1 - (length / 1100); //目的<->indexの比
-        auto sign_x = (-ratio * goal_x + 1 * index_x) / (length / 1100);
-        auto sign_y = (-ratio * (-250) + 1 * index_y) / (length / 1100);
-        std::cout << "sign_x : " << sign_x << " sign_y : " << sign_y << std::endl;
-        wall_it->move_to(sign_x, sign_y, theta);
-
-      } else {
-        auto sign_x = std::signbit(goal_x) ? -3400 : 3400;
-        auto sign_y = index_y;
-        std::cout << "sign_x : " << sign_x << " sign_y : " << sign_y << std::endl;
-        wall_it->move_to(sign_x, sign_y, theta);
+        shift_ = 180.0;
+      } else { //偶数
+        shift_ = 100.0;
       }
-    } else {
-      wall_it->move_to((*target_x_it), (*target_y_it), theta);
+
+      //移動した量
+      const auto move_x = ball_x;
+      const auto move_y = ball_y;
+
+      //計算の為に中心にずらした場合の座標
+      const auto after_ball_x = ball_x - move_x;
+      const auto after_ball_y = ball_y - move_y;
+
+      auto after_base_x = x_ - move_x;
+      auto after_base_y = y_ - move_y;
+
+      // x軸から角度
+      const auto alpha = util::wrap_to_2pi(
+          std::atan2(after_base_y - after_ball_y, after_base_x - after_ball_x));
+
+      after_base_x = std::hypot(after_base_x - after_ball_x, after_base_y - after_ball_y);
+      after_base_y = 0.0;
+
+      for (auto shift = shift_; wall_it != wall_.end(); shift += shift_, wall_it++) {
+        //移動した先での仮の座標
+        const auto tmp_x  = after_base_x;
+        const auto tmp_y1 = std::sqrt(std::pow(shift, 2) + std::pow(after_base_x, 2) -
+                                      std::pow(after_base_x, 2));
+        const auto tmp_y2 = tmp_y1 * (-1);
+
+        //回転した後の正しい座標
+        const auto c_x1 = tmp_x * std::cos(alpha) - tmp_y1 * std::sin(alpha) + move_x;
+        const auto c_y1 = tmp_x * std::sin(alpha) + tmp_y1 * std::cos(alpha) + move_y;
+        const auto c_x2 = tmp_x * std::cos(alpha) - tmp_y2 * std::sin(alpha) + move_x;
+        const auto c_y2 = tmp_x * std::sin(alpha) + tmp_y2 * std::cos(alpha) + move_y;
+
+        //    (*wall_it)->move_to(c_x1, c_y1, theta);
+        //     wall_it++;
+        ///    (*wall_it)->move_to(c_x2, c_y2, theta);
+        (*target_x_it++) = c_x1;
+        (*target_y_it++) = c_y1;
+        (*target_x_it++) = c_x2;
+        (*target_y_it++) = c_y2;
+      }
     }
-    target_y_it++;
-    target_x_it++;
+    {
+      std::cout << "x" << std::endl;
+      for (auto itx : target_x) {
+        std::cout << itx << std::endl;
+      }
+
+      std::cout << "y" << std::endl;
+      for (auto ity : target_y) {
+        std::cout << ity << std::endl;
+      }
+
+      const auto wall_robots = is_yellow_ ? world_.robots_yellow() : world_.robots_blue();
+      auto wall_ids_it       = wall_ids_.begin();
+
+      auto target_x_it = target_x.begin();
+      auto target_y_it = target_y.begin();
+
+      for (auto wall_it : wall_) {
+        const auto wall_robot = wall_robots.at((*wall_ids_it++));
+        const auto wall_x     = wall_robot.x();
+        const auto wall_y     = wall_robot.y();
+
+        std::cout << "wall_x : " << wall_x << " wall_y : " << wall_y << std::endl;
+
+        std::cout << "target_x : " << *target_x_it << " target_y : " << *target_y_it
+                  << std::endl;
+
+        //目的地との直線上に交点がなかったらそのまま移動
+        const auto slope   = ((*target_y_it) - wall_y) / ((*target_x_it) - wall_x);
+        const auto segment = wall_y - slope * wall_x;
+
+        //交点の数を判別式で出している.
+        //
+        //決して適当にa,b,c,Dって使ってるわけじゃないよ？意味あるからね
+        //
+        const auto a = (1 + std::pow(slope, 2));
+        const auto b = (2 * slope * segment - 2 * goal_x - 2 * goal_y * slope);
+        const auto c =
+            (std::pow(goal_x, 2) + std::pow(segment, 2) - 2 * segment * std::pow(goal_y, 2) +
+             std::pow(goal_y, 2) - std::pow(1250, 2));
+        const auto D = std::pow(b, 2) - 4 * a * c;
+
+        // wall_it->move_to((*target_x_it++),(*target_y_it++),theta);
+
+        if (D > 0) {
+          const auto index_x = (1.0 - (1.0 / 3.0)) * wall_x + (1.0 / 3.0) * (*target_x_it);
+          const auto index_y = (1.0 - (1.0 / 3.0)) * wall_y + (1.0 / 3.0) * (*target_y_it);
+
+          std::cout << "index_x : " << index_x << " index_y : " << index_y << std::endl;
+
+          if (index_y > 250) {
+            const auto length = std::hypot(index_x - goal_x, index_y - 250); //中心<->index
+
+            const auto ratio  = 1 - (length / 1100); //目的<->indexの比
+            const auto sign_x = (-ratio * goal_x + 1 * index_x) / (length / 1100);
+            const auto sign_y = (-ratio * 250 + 1 * index_y) / (length / 1100);
+            std::cout << "sign_x : " << sign_x << " sign_y : " << sign_y << std::endl;
+            const auto velocity_x =
+                ((sign_x - wall_x) / std::hypot(sign_x - wall_x, sign_y - wall_y)) * 50000;
+            const auto velocity_y =
+                ((sign_y - wall_y) / std::hypot(sign_x - wall_x, sign_y - wall_y)) * 50000;
+
+            std::cout << "vec_x : " << velocity_x << " vec_y : " << velocity_y << std::endl;
+            wall_it->move_to(sign_x, sign_y, theta);
+            // wall_it->set_vec(velocity_x, velocity_y, 0);
+
+          } else if (index_y < -250) {
+            const auto length = std::hypot(index_x - goal_x, index_y - (-250)); //中心<->index
+
+            const auto ratio  = 1 - (length / 1100); //目的<->indexの比
+            const auto sign_x = (-ratio * goal_x + 1 * index_x) / (length / 1100);
+            const auto sign_y = (-ratio * (-250) + 1 * index_y) / (length / 1100);
+            std::cout << "sign_x : " << sign_x << " sign_y : " << sign_y << std::endl;
+            const auto velocity_x =
+                ((sign_x - wall_x) / std::hypot(sign_x - wall_x, sign_y - wall_y)) * 50000;
+            const auto velocity_y =
+                ((sign_y - wall_y) / std::hypot(sign_x - wall_x, sign_y - wall_y)) * 50000;
+
+            std::cout << "vec_x : " << velocity_x << " vec_y : " << velocity_y << std::endl;
+            wall_it->move_to(sign_x, sign_y, theta);
+            // wall_it->set_vec(velocity_x, velocity_y, 0);
+
+          } else {
+            const auto sign_x = std::signbit(goal_x) ? -3400 : 3400;
+            const auto sign_y = index_y;
+            std::cout << "sign_x : " << sign_x << " sign_y : " << sign_y << std::endl;
+            const auto velocity_x =
+                ((sign_x - wall_x) / std::hypot(sign_x - wall_x, sign_y - wall_y)) * 50000;
+            const auto velocity_y =
+                ((sign_y - wall_y) / std::hypot(sign_x - wall_x, sign_y - wall_y)) * 50000;
+
+            std::cout << "vec_x : " << velocity_x << " vec_y : " << velocity_y << std::endl;
+            wall_it->move_to(sign_x, sign_y, theta);
+            // wall_it->set_vec(velocity_x, velocity_y, 0);
+          }
+        } else {
+          // auto velocity_x = (((*target_x_it) -
+          // wall_x)/std::hypot((*target_x_it)-wall_x,(*target_y_it)-wall_y))*50000;
+          // auto velocity_y = (((*target_y_it) -
+          // wall_x)/std::hypot((*target_x_it)-wall_x,(*target_y_it)-wall_y))*50000;
+          // wall_it->set_vec(velocity_x, velocity_y, 0);
+          // std::cout << "vec_x : " << velocity_x << " vec_y : " << velocity_y << std::endl;
+          wall_it->move_to((*target_x_it), (*target_y_it), theta);
+        }
+        target_y_it++;
+        target_x_it++;
+      }
+    }
   }
   //ここからキーパーの処理
   //
@@ -225,46 +250,50 @@ std::vector<std::shared_ptr<action::base>> defense::execute() {
   // C:ボールはゴールの直ぐ目の前なのでゴールまえでジャンプしてでも止める
   //
   //
-  const auto demarcation = 2250.0; //縄張りの大きさ
+  {
+    const auto demarcation = 2250.0; //縄張りの大きさ
 
-  auto keeper_y     = 0.0;
-  auto keeper_x     = 0.0;
-  auto keeper_theta = 0.0;
+    auto keeper_y     = 0.0;
+    auto keeper_x     = 0.0;
+    auto keeper_theta = 0.0;
 
-  if (std::signbit(ball_x) == std::signbit(goal_x * (-1))) { // A
-    //ゴール直前でボールに併せて横移動
+    if (std::signbit(ball_x) == std::signbit(goal_x * (-1))) { // A
+      //ゴール直前でボールに併せて横移動
 
-    keeper_x = goal_x + (std::signbit(world_.field().x_max()) ? 100.0 : -100.0);
-    keeper_y = ((ball_y >= -500 && ball_y <= 500) ? ball_y : 0);
+      keeper_x = goal_x + (std::signbit(world_.field().x_max()) ? 100.0 : -100.0);
+      keeper_y = ((ball_y >= -500 && ball_y <= 500) ? ball_y : 0);
 
-  } else if (std::signbit(std::pow(ball_x - world_.field().x_max(), 2) + std::pow(ball_y, 2) -
-                          std::pow(demarcation, 2))) { // C
-    //ゴール前でディフェンスする
+    } else if (std::signbit(std::pow(ball_x - world_.field().x_max(), 2) + std::pow(ball_y, 2) -
+                            std::pow(demarcation, 2))) { // C
+      //ゴール前でディフェンスする
 
-    //ゴール前で張ってるキーパの位置
-    length = std::hypot(goal_x - ball_x, ball_y); //ゴール<->ボール
-    ratio  = (400) / length; //全体に対してのキーパー位置の比
+      {
+        //ゴール前で張ってるキーパの位置
+        const auto length = std::hypot(goal_x - ball_x, ball_y); //ゴール<->ボール
+        const auto ratio  = (400) / length; //全体に対してのキーパー位置の比
 
-    keeper_x = ((1 - ratio) * goal_x + ratio * ball_x);
-    keeper_y = ratio * ball_y;
+        keeper_x = ((1 - ratio) * goal_x + ratio * ball_x);
+        keeper_y = ratio * ball_y;
+      }
+      //もし支線の先にロボットがいたら
+      //そのロボットの視線の先に移動
+      //セット仕直し
+    } else { // B
+      //壁のすぐ後ろで待機
 
-    //もし支線の先にロボットがいたら
-    //そのロボットの視線の先に移動
-    //セット仕直し
-  } else { // B
-    //壁のすぐ後ろで待機
+      {
+        //基準点からちょっと下がったキーパの位置
+        const auto length = std::hypot(goal_x - ball_x, ball_y); //基準点<->ボール
+        const auto ratio  = (800) / length; //全体に対してのキーパー位置の比
 
-    //基準点からちょっと下がったキーパの位置
-    length = std::hypot(goal_x - ball_x, ball_y); //基準点<->ボール
-    ratio  = (800) / length; //全体に対してのキーパー位置の比
+        keeper_x = (1 - ratio) * goal_x + ratio * ball_x;
+        keeper_y = ratio * ball_y;
+      }
+    }
+    keeper_theta = util::wrap_to_2pi(std::atan2(ball_y - keeper_y, ball_x - keeper_x));
 
-    keeper_x = (1 - ratio) * goal_x + ratio * ball_x;
-    keeper_y = ratio * ball_y;
+    keeper_->move_to(keeper_x, keeper_y, keeper_theta); //置く場所をセット
   }
-  keeper_theta = util::wrap_to_2pi(std::atan2(ball_y - keeper_y, ball_x - keeper_x));
-
-  keeper_->move_to(keeper_x, keeper_y, keeper_theta); //置く場所をセット
-
   std::vector<std::shared_ptr<action::base>> re_wall{
       wall_.begin(), wall_.end()}; //型を合わせるために無理矢理作り直す
   re_wall.push_back(keeper_);      //配列を返すためにキーパーを統合する
