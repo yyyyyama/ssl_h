@@ -20,6 +20,7 @@ private:
   double kp_[2];                         // 比例ゲイン(xy,rotate)
   double ki_[2];                         // 積分ゲイン(xy,rotate)
   double kd_[2];                         // 微分ゲイン(xy,rotate)
+  model::robot estimated_robot_;         // 推定ロボット状態
   velocity_t up_[2];                     // 操作量(比例,1フレーム前まで)
   velocity_t ui_[2];                     // 操作量(積分,1フレーム前まで)
   velocity_t ud_[2];                     // 操作量(微分,1フレーム前まで)
@@ -32,8 +33,12 @@ private:
   std::vector<std::unique_ptr<detail::sliding_mode_controller>> sliding_mode_;
   std::unique_ptr<detail::smith_predictor> smith_predictor_;
 
-  // 制御計算関数
-  void calculate();
+  // レギュレータ部
+  void regulator(const model::robot& robot);
+
+  // フィールド基準座標系からロボット基準座標系に変換
+  position_t convert(const position_t pos, const double robot_theta);
+  velocity_t convert(const velocity_t vel, const double robot_theta);
 
 public:
   // コンストラクタ

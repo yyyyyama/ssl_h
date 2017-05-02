@@ -9,7 +9,9 @@
 namespace ai_server {
 namespace controller {
 
+using boost::algorithm::clamp;
 using boost::math::constants::half_pi;
+using boost::math::constants::pi;
 
 const double state_feedback_controller::k_                = 49.17;
 const double state_feedback_controller::zeta_             = 1.0;
@@ -68,19 +70,17 @@ state_feedback_controller::state_feedback_controller(double cycle) : cycle_(cycl
   }
   smith_predictor_ = std::make_unique<detail::smith_predictor>(cycle_, zeta_, omega_);
   // 状態フィードバックゲイン
-  double k1;
-  double k2;
   // (s+k)^2=s^2+2ks+k^2=0
   // |sI-A|=s^2+(2ζω-k2ω^2)s+ω^2-k1ω^2
   // 2k=2ζω-k2ω^2,k^2=ω^2-k1ω^2
-  k1     = 1 - std::pow(k_, 2) / std::pow(omega_, 2);
-  k2     = 2 * (zeta_ * omega_ - k_) / std::pow(omega_, 2);
-  kp_[0] = k1;
-  kp_[1] = k1;
-  ki_[0] = 0.0;
-  ki_[1] = 0.0;
-  kd_[0] = k2;
-  kd_[1] = k2;
+  double k1 = 1 - std::pow(k_, 2) / std::pow(omega_, 2);
+  double k2 = 2 * (zeta_ * omega_ - k_) / std::pow(omega_, 2);
+  kp_[0]    = k1;
+  kp_[1]    = 0.0;
+  ki_[0]    = 0.0;
+  ki_[1]    = 0.0;
+  kd_[0]    = k2;
+  kd_[1]    = 0.0;
   for (int i = 0; i < 2; i++) {
     up_[i] = {0.0, 0.0, 0.0};
     ui_[i] = {0.0, 0.0, 0.0};
@@ -92,47 +92,18 @@ state_feedback_controller::state_feedback_controller(double cycle) : cycle_(cycl
 
 velocity_t state_feedback_controller::update(const model::robot& robot,
                                              const position_t& setpoint) {
-  velocity_t pre_u;
-  double u_direction = std::atan2(u_[1].vy, u_[1].vx);
-  pre_u.vx    = u_[1].vx * std::cos(u_direction) + u_[1].vy * std::cos(u_direction + half_pi<double>());
-  pre_u.vy    = u_[1].vx * std::sin(u_direction) + u_[1].vy * std::sin(u_direction + half_pi<double>());
-  pre_u.omega = u_[1].omega;
-
-  Eigen::Matrix3d now_state = smith_predictor_->interpolate(robot, pre_u);
-  model::robot estimated_robot;
-  estimated_robot.set_x(now_state(0, 0));
-  estimated_robot.set_y(now_state(1, 0));
-  estimated_robot.set_theta(now_state(2, 0));
-  estimated_robot.set_vx(now_state(0, 1));
-  estimated_robot.set_vy(now_state(1, 1));
-  estimated_robot.set_omega(now_state(2, 1));
-
-  e_[0].vx = estimated_robot.vx() * std::cos(-estimated_robot.theta()) +
-             estimated_robot.vy() * std::cos(half_pi<double>() - estimated_robot.theta());
-  e_[0].vy = estimated_robot.vx() * std::sin(-estimated_robot.theta()) +
-             estimated_robot.vy() * std::sin(half_pi<double>() - estimated_robot.theta());
-  e_[0].omega = estimated_robot.omega();
-
-  // 制御計算
-  calculate();
-  u_[0] = (up_[0] + ui_[0] + ud_[0]);
-
-  position_t delta_p;
-  position_t e_p =
-      setpoint - position_t{estimated_robot.x(), estimated_robot.y(), estimated_robot.theta()};
-  delta_p.x = e_p.x * std::cos(-estimated_robot.theta()) +
-              e_p.y * std::cos(half_pi<double>() - estimated_robot.theta());
-  delta_p.y = e_p.x * std::sin(-estimated_robot.theta()) +
-              e_p.y * std::sin(half_pi<double>() - estimated_robot.theta());
-  delta_p.theta = e_p.theta;
+  regulator(robot);
+  position_t e_p = setpoint - position_t{estimated_robot_.x(), estimated_robot_.y(),
+                                         estimated_robot_.theta()};
+  position_t delta_p = convert(e_p, estimated_robot_.theta());
 
   velocity_t target;
   target.vx    = sliding_mode_.at(0)->control(-delta_p.x);
   target.vy    = sliding_mode_.at(1)->control(-delta_p.y);
-  target.omega = util::wrap_to_pi(delta_p.theta) * 2;
+  target.omega = clamp(util::wrap_to_pi(delta_p.theta) * 2, -pi<double>(), pi<double>());
 
   u_[0] = u_[0] + (std::pow(k_, 2) / std::pow(omega_, 2)) * target;
-  
+
   // 値の更新
   up_[1] = up_[0];
   ui_[1] = ui_[0];
@@ -145,44 +116,14 @@ velocity_t state_feedback_controller::update(const model::robot& robot,
 
 velocity_t state_feedback_controller::update(const model::robot& robot,
                                              const velocity_t& setpoint) {
-  velocity_t pre_u;
-  double u_direction = std::atan2(u_[1].vy, u_[1].vx);
-  pre_u.vx    = u_[1].vx * std::cos(u_direction) + u_[1].vy * std::cos(u_direction + half_pi<double>());
-  pre_u.vy    = u_[1].vx * std::sin(u_direction) + u_[1].vy * std::sin(u_direction + half_pi<double>());
-  pre_u.omega = u_[1].omega;
+  regulator(robot);
 
-  Eigen::Matrix3d now_state = smith_predictor_->interpolate(robot, pre_u);
-  model::robot estimated_robot;
-  estimated_robot.set_x(now_state(0, 0));
-  estimated_robot.set_y(now_state(1, 0));
-  estimated_robot.set_theta(now_state(2, 0));
-  estimated_robot.set_vx(now_state(0, 1));
-  estimated_robot.set_vy(now_state(1, 1));
-  estimated_robot.set_omega(now_state(2, 1));
-
-  e_[0].vx = estimated_robot.vx() * std::cos(-estimated_robot.theta()) +
-             estimated_robot.vy() * std::cos(half_pi<double>() - estimated_robot.theta());
-  e_[0].vy = estimated_robot.vx() * std::sin(-estimated_robot.theta()) +
-             estimated_robot.vy() * std::sin(half_pi<double>() - estimated_robot.theta());
-  e_[0].omega = estimated_robot.omega();
-
-  // 制御計算
-  calculate();
-  u_[0] = (up_[0] + ui_[0] + ud_[0]);
-
-  velocity_t target=setpoint;
-  target.vx = setpoint.vx * std::cos(-estimated_robot.theta()) +
-             setpoint.vy * std::cos(half_pi<double>() - estimated_robot.theta());
-  target.vy = setpoint.vx * std::sin(-estimated_robot.theta()) +
-             setpoint.vy * std::sin(half_pi<double>() - estimated_robot.theta());
-  target.omega = setpoint.omega;
+  velocity_t target = convert(setpoint, estimated_robot_.theta());
 
   // 加速度，速度制限
-  using boost::algorithm::clamp;
-  double u_angle = std::atan2(target.vy, target.vx); // 今回指令速度の方向
-  double u_speed = std::hypot(target.vx, target.vy); // 今回指令速度の大きさ
-  double robot_speed =
-      std::hypot(u_[1].vx, u_[1].vy );
+  double u_angle     = std::atan2(target.vy, target.vx); // 今回指令速度の方向
+  double u_speed     = std::hypot(target.vx, target.vy); // 今回指令速度の大きさ
+  double robot_speed = std::hypot(u_[1].vx, u_[1].vy);
   double delta_speed = u_speed - robot_speed; // 速さ偏差(今回指令とロボット速さの差)
   // 速度に応じて加速度を変化(初動でのスリップ防止)
   // 制限加速度計算
@@ -191,21 +132,22 @@ velocity_t state_feedback_controller::update(const model::robot& robot,
   optimized_accel = clamp(optimized_accel, min_acceleration_, max_acceleration_);
   // 加速度制限
   if (delta_speed / cycle_ > optimized_accel /*&&
-      std::abs(u_speed) > std::abs(robot_speed)*/) { // +制限加速度超過
+        std::abs(u_speed) > std::abs(robot_speed)*/) { // +制限加速度超過
     u_speed = robot_speed + (optimized_accel * cycle_);
   } else if (delta_speed / cycle_ < -optimized_accel /*&&
-             std::abs(u_speed) > std::abs(robot_speed)*/) { // -制限加速度超過
+               std::abs(u_speed) > std::abs(robot_speed)*/) { // -制限加速度超過
     u_speed = robot_speed - (optimized_accel * cycle_);
   }
   // 速度制限
   u_speed = clamp(u_speed, 0.0, max_velocity_);
 
-  target.vx = u_speed * std::cos(u_angle); // 成分速度再計算
-  target.vy = u_speed * std::sin(u_angle);
-  target.omega=setpoint.omega;
+  // 成分速度再計算
+  target.vx    = u_speed * std::cos(u_angle);
+  target.vy    = u_speed * std::sin(u_angle);
+  target.omega = setpoint.omega;
 
   u_[0] = u_[0] + (std::pow(k_, 2) / std::pow(omega_, 2)) * target;
-  
+
   // 値の更新
   up_[1] = up_[0];
   ui_[1] = ui_[0];
@@ -216,7 +158,30 @@ velocity_t state_feedback_controller::update(const model::robot& robot,
   return u_[0];
 }
 
-void state_feedback_controller::calculate() {
+void state_feedback_controller::regulator(const model::robot& robot) {
+  // 前回制御入力をフィールド基準に座標変換
+  velocity_t pre_u;
+  double u_direction = std::atan2(u_[1].vy, u_[1].vx);
+  pre_u.vx =
+      u_[1].vx * std::cos(u_direction) + u_[1].vy * std::cos(u_direction + half_pi<double>());
+  pre_u.vy =
+      u_[1].vx * std::sin(u_direction) + u_[1].vy * std::sin(u_direction + half_pi<double>());
+  pre_u.omega = u_[1].omega;
+
+  // smith_predictorでvisionの遅れ時間の補間
+  Eigen::Matrix3d now_state = smith_predictor_->interpolate(robot, pre_u);
+  estimated_robot_.set_x(now_state(0, 0));
+  estimated_robot_.set_y(now_state(1, 0));
+  estimated_robot_.set_theta(now_state(2, 0));
+  estimated_robot_.set_vx(now_state(0, 1));
+  estimated_robot_.set_vy(now_state(1, 1));
+  estimated_robot_.set_omega(now_state(2, 1));
+
+  // ロボット状態を座標変換
+  e_[0] = convert(
+      velocity_t{estimated_robot_.vx(), estimated_robot_.vy(), estimated_robot_.omega()},
+      estimated_robot_.theta());
+
   // 双一次変換
   // s=(2/T)*(Z-1)/(Z+1)としてPIDcontrollerを離散化
   // C=Kp+Ki/s+Kds
@@ -227,6 +192,27 @@ void state_feedback_controller::calculate() {
   up_[0]        = kp * e_[0];
   ui_[0]        = cycle_ * ki * (e_[0] + e_[1]) / 2 + ui_[1];
   ud_[0]        = 2 * kd * (e_[0] - e_[1]) / cycle_ - ud_[1];
+  u_[0]         = (up_[0] + ui_[0] + ud_[0]);
+}
+
+position_t state_feedback_controller::convert(const position_t pos, const double robot_theta) {
+  position_t target;
+  target.x = pos.x * std::cos(-robot_theta) + pos.y * std::cos(half_pi<double>() - robot_theta);
+  target.y = pos.x * std::sin(-robot_theta) + pos.y * std::sin(half_pi<double>() - robot_theta);
+  target.theta = pos.theta;
+
+  return target;
+}
+
+velocity_t state_feedback_controller::convert(const velocity_t vel, const double robot_theta) {
+  velocity_t target;
+  target.vx =
+      vel.vx * std::cos(-robot_theta) + vel.vy * std::cos(half_pi<double>() - robot_theta);
+  target.vy =
+      vel.vx * std::sin(-robot_theta) + vel.vy * std::sin(half_pi<double>() - robot_theta);
+  target.omega = vel.omega;
+
+  return target;
 }
 
 } // controller
