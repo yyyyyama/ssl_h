@@ -19,9 +19,13 @@ public:
   /// @param  cycle 制御周期
   sliding_mode_controller(double cycle);
 
-  /// @brief  制御計算関数
+  /// @brief  位置制御計算関数
   /// @param  delta_p  位置偏差(現在位置-目標位置)
-  double control(const double delta_p);
+  double control_pos(const double delta_p);
+  
+  /// @brief  速度制御計算関数
+  /// @param  delta_v  速度偏差(現在速度-目標速度)
+  double control_vel(const double delta_v);
 };
 
 } // detail
