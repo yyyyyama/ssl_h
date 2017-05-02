@@ -177,64 +177,55 @@ std::vector<std::shared_ptr<action::base>> defense::execute() {
         // wall_it->move_to((*target_x_it++),(*target_y_it++),theta);
 
         if (D > 0) {
-          const auto index_x = (1.0 - (1.0 / 3.0)) * wall_x + (1.0 / 3.0) * (*target_x_it);
-          const auto index_y = (1.0 - (1.0 / 3.0)) * wall_y + (1.0 / 3.0) * (*target_y_it);
+					//現在地と目的地の距離に応じて分け方を変える
+					const auto L = std::hypot((*target_y_it) - wall_y,(*target_x_it) - wall_x);
+					//幸福ディバイド
+					//実際に試して問題なかった値を採用
+					auto divided = 0.0;
+					if(L>1800){
+						divided = 1.0/3.0;
+					}else if(L>1000){
+						divided = 1.0/2.0;
+					}else{
+						divided = 1.0/1.0;
+					}
+					//ディフェンスラインからどれだけずらすか
+					const auto shift = 1200;
+
+          const auto index_x = (1.0 - divided) * wall_x + divided * (*target_x_it);
+          const auto index_y = (1.0 - divided) * wall_y + divided * (*target_y_it);
 
           std::cout << "index_x : " << index_x << " index_y : " << index_y << std::endl;
 
           if (index_y > 250) {
             const auto length = std::hypot(index_x - goal_x, index_y - 250); //中心<->index
 
-            const auto ratio  = 1 - (length / 1100); //目的<->indexの比
-            const auto sign_x = (-ratio * goal_x + 1 * index_x) / (length / 1100);
-            const auto sign_y = (-ratio * 250 + 1 * index_y) / (length / 1100);
+            const auto ratio  = 1 - (length / shift); //目的<->indexの比
+            const auto sign_x = (-ratio * goal_x + 1 * index_x) / (length / shift);
+            const auto sign_y = (-ratio * 250 + 1 * index_y) / (length / shift);
             std::cout << "sign_x : " << sign_x << " sign_y : " << sign_y << std::endl;
-            const auto velocity_x =
-                ((sign_x - wall_x) / std::hypot(sign_x - wall_x, sign_y - wall_y)) * 50000;
-            const auto velocity_y =
-                ((sign_y - wall_y) / std::hypot(sign_x - wall_x, sign_y - wall_y)) * 50000;
 
-            std::cout << "vec_x : " << velocity_x << " vec_y : " << velocity_y << std::endl;
             wall_it->move_to(sign_x, sign_y, theta);
-            // wall_it->set_vec(velocity_x, velocity_y, 0);
 
           } else if (index_y < -250) {
             const auto length = std::hypot(index_x - goal_x, index_y - (-250)); //中心<->index
 
-            const auto ratio  = 1 - (length / 1100); //目的<->indexの比
-            const auto sign_x = (-ratio * goal_x + 1 * index_x) / (length / 1100);
-            const auto sign_y = (-ratio * (-250) + 1 * index_y) / (length / 1100);
+            const auto ratio  = 1 - (length / shift); //目的<->indexの比
+            const auto sign_x = (-ratio * goal_x + 1 * index_x) / (length / shift);
+            const auto sign_y = (-ratio * (-250) + 1 * index_y) / (length / shift);
             std::cout << "sign_x : " << sign_x << " sign_y : " << sign_y << std::endl;
-            const auto velocity_x =
-                ((sign_x - wall_x) / std::hypot(sign_x - wall_x, sign_y - wall_y)) * 50000;
-            const auto velocity_y =
-                ((sign_y - wall_y) / std::hypot(sign_x - wall_x, sign_y - wall_y)) * 50000;
 
-            std::cout << "vec_x : " << velocity_x << " vec_y : " << velocity_y << std::endl;
             wall_it->move_to(sign_x, sign_y, theta);
-            // wall_it->set_vec(velocity_x, velocity_y, 0);
 
           } else {
             const auto sign_x = std::signbit(goal_x) ? -3400 : 3400;
             const auto sign_y = index_y;
             std::cout << "sign_x : " << sign_x << " sign_y : " << sign_y << std::endl;
-            const auto velocity_x =
-                ((sign_x - wall_x) / std::hypot(sign_x - wall_x, sign_y - wall_y)) * 50000;
-            const auto velocity_y =
-                ((sign_y - wall_y) / std::hypot(sign_x - wall_x, sign_y - wall_y)) * 50000;
 
-            std::cout << "vec_x : " << velocity_x << " vec_y : " << velocity_y << std::endl;
             wall_it->move_to(sign_x, sign_y, theta);
-            // wall_it->set_vec(velocity_x, velocity_y, 0);
           }
         } else {
-          // auto velocity_x = (((*target_x_it) -
-          // wall_x)/std::hypot((*target_x_it)-wall_x,(*target_y_it)-wall_y))*50000;
-          // auto velocity_y = (((*target_y_it) -
-          // wall_x)/std::hypot((*target_x_it)-wall_x,(*target_y_it)-wall_y))*50000;
-          // wall_it->set_vec(velocity_x, velocity_y, 0);
-          // std::cout << "vec_x : " << velocity_x << " vec_y : " << velocity_y << std::endl;
-          wall_it->move_to((*target_x_it), (*target_y_it), theta);
+        	wall_it->move_to((*target_x_it), (*target_y_it), theta);
         }
         target_y_it++;
         target_x_it++;
