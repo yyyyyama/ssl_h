@@ -6,6 +6,7 @@
 
 #include "ai_server/game/agent/base.h"
 #include "ai_server/game/action/move.h"
+#include "ai_server/game/action/vec.h"
 
 namespace ai_server {
 namespace game {
@@ -19,7 +20,7 @@ public:
 private:
   unsigned int keeper_id_;
   const std::vector<unsigned int>& wall_ids_;
-  std::vector<std::shared_ptr<action::move>> wall_;
+  std::vector<std::shared_ptr<action::vec>> wall_;
   std::shared_ptr<action::move> keeper_;
   std::vector<double> target_x;
   std::vector<double> target_y;
