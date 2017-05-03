@@ -131,12 +131,18 @@ velocity_t state_feedback_controller::update(const model::robot& robot,
       robot_speed * (max_acceleration_ - min_acceleration_) / reach_speed_ + min_acceleration_;
   optimized_accel = clamp(optimized_accel, min_acceleration_, max_acceleration_);
   // 加速度制限
-  if (delta_speed / cycle_ > optimized_accel /*&&
-        std::abs(u_speed) > std::abs(robot_speed)*/) { // +制限加速度超過
-    u_speed = robot_speed + (optimized_accel * cycle_);
-  } else if (delta_speed / cycle_ < -optimized_accel /*&&
-               std::abs(u_speed) > std::abs(robot_speed)*/) { // -制限加速度超過
-    u_speed = robot_speed - (optimized_accel * cycle_);
+  if (delta_speed / cycle_ > optimized_accel) {
+    if (std::abs(u_speed) > std::abs(robot_speed)) {
+      u_speed = robot_speed + (optimized_accel * cycle_); // +方向加速
+    } else {
+      u_speed = robot_speed + (optimized_accel * cycle_); // -方向減速
+    }
+  } else if (delta_speed / cycle_ < -optimized_accel) {
+    if (std::abs(u_speed) > std::abs(robot_speed)) {
+      u_speed = robot_speed - (optimized_accel * cycle_); // -方向加速
+    } else {
+      u_speed = robot_speed - (optimized_accel * cycle_); // +方向減速
+    }
   }
   // 速度制限
   u_speed = clamp(u_speed, 0.0, max_velocity_);
