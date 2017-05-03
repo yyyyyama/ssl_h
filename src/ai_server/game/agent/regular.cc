@@ -19,62 +19,62 @@ std::vector<std::shared_ptr<action::base>> regular::execute() {
   // const auto these_robots = is_yellow_ ? world_.robots_yellow() : world_.robots_blue();
   const auto those_robots = !is_yellow_ ? world_.robots_yellow() : world_.robots_blue();
 
-  // std::vector<unsigned int> this_ids;  //味方ロボットのID
-  std::vector<unsigned int> that_ids;  //敵ロボットのID
+  std::vector<unsigned int> this_unadded_ids; //まだ動作の割り当てられていない味方ロボットのID
+  std::vector<unsigned int> those_ids; //敵ロボットのID
   std::vector<unsigned int> added_ids; //動作が既に割当てられているロボットのID
   unsigned int candidate_id = ids_.at(0); //ある動作を割り当てられる候補のロボットのID
 
-  /*double shortest_d = std::hypot(world_.field().x_max(), world_.field().y_max()) +
-                      10000.0; //距離で割当するときに使用*/
+  this_unadded_ids = ids_;
 
   //敵ロボットのIDを登録
   for (auto that_rob : those_robots) {
-    that_ids.push_back(that_rob.first);
+    those_ids.push_back(that_rob.first);
   }
 
   //ボールを追いかけるロボットの登録
-  candidate_id = nearest_robot_id(ball.x(), ball.y());
+  candidate_id = nearest_robot_id(ball.x(), ball.y(), this_unadded_ids);
 
   // ballを追いかけるActionを設定
   // chase_ball = regular::make_action(candidate_id);
   // actions.push_back(chase_ball);
-  auto move = std::make_shared<action::move>(world_, is_yellow_, candidate_id); // for debug
-  move->move_to(ball.x(), ball.y(), 0.0);                                       // for debug
-  actions.push_back(move);                                                      // for debug
+
+  // <debug>
+  auto move = std::make_shared<action::move>(world_, is_yellow_, candidate_id);
+  move->move_to(ball.x(), ball.y(), 0.0);
+  actions.push_back(move);
   added_ids.push_back(candidate_id);
-  std::printf("\x1b[46mchase ball ID: %d\x1b[49m\n\n", candidate_id); // for debug
+  std::printf("\x1b[46mchase ball ID: %d\x1b[49m\n\n", candidate_id);
+  // </debug>
 
-  //マーキング対象のロボットを、優先度の高い順に登録する
-  std::vector<unsigned int> that_soat_ids;
-  std::vector<unsigned int>::iterator that_ids_tag = that_ids.end() - 1;
-  unsigned int that_id;
+  //対象敵のIDと重要度を登録
+  std::vector<regular::that_robot_importance_> that_importance_list;
+  for (auto id : those_ids) {
+    that_importance_list.push_back({id, -1.0 * those_robots.at(id).x()});
+  }
 
-  while (!that_ids.empty()) {
-    that_id = *that_ids_tag;
-    for (auto id : that_ids) {
-      if (std::abs(those_robots.at(id).x() - world_.field().x_min()) < shortest_d) {
-        shortest_d = std::abs(those_robots.at(that_id).x() - world_.field().x_min());
-      }
-    }
-    that_ids.erase(that_ids_tag);
-    that_ids_tag--;
+  //重要度の高い順にソート
+  std::sort(that_importance_list.begin(), that_importance_list.end());
+
+  // <debug>
+  for (auto id : that_importance_list) {
+    std::printf("ID: %d  \x1b[36m重要度: %.0f\x1b[39m\n", id.id, id.importance);
   }
-  for (auto id : that_ids) {
-    //  if
-  }
+  // </debug>
 
   //マーキングを担当するロボットを割り当て
+
   // shortest_d = for (auto id : ids_) {}
 
   return actions;
-  std::printf("-----     One Loop     -----\n\n"); // debug
+  std::printf("\n-----     One Loop     -----\n\n"); // debug
 }
 
-unsigned int regular::nearest_robot_id(double target_x, double target_y) {
-  const double v_stop_max = 50.0; //ロボットが静止していると判定する上限値
+unsigned int regular::nearest_robot_id(double target_x, double target_y,
+                                       std::vector<unsigned int>& can_ids) {
+  const double v_stop_max = 50.0; //ロボットが静止しているとするVの上限
   double smallest_theta   = std::asin(
       3.0 /
-      7.0); //ロボットの速度ベクトルと、ロボットから見たボールの方向のズレの最大許容値を指定(0<=smallest_theta<=π/2)
+      7.0); //ロボットのVベクトルと、ロボットから見たボールの方向のズレの最大許容値を指定(0<=smallest_theta<=π/2)
 
   const auto ids_robots = is_yellow_ ? world_.robots_yellow() : world_.robots_blue();
   double shortest_d     = std::hypot(world_.field().x_max(), world_.field().y_max()) + 10000.0;
@@ -82,7 +82,7 @@ unsigned int regular::nearest_robot_id(double target_x, double target_y) {
   double robot_target_d;
   double ret_id = ids_.at(0);
 
-  for (auto id : ids_) {
+  for (auto id : can_ids) {
     robot_target_d =
         std::hypot(target_x - ids_robots.at(id).x(), target_y - ids_robots.at(id).y());
     std::printf("ID:%d--%5.0f[mm]", id, robot_target_d);
