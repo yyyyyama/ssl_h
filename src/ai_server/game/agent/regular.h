@@ -3,6 +3,7 @@
 
 #include "base.h"
 #include "ai_server/game/action/marking.h"
+#include "ai_server/game/action/move.h"
 //#include "ai_server/game/action/chase_ball.h"
 
 namespace ai_server {
@@ -21,6 +22,7 @@ private:
   // Action
   std::shared_ptr<action::marking> marking_;
   // std::shared_ptr<action::chase_ball> chase_ball_;
+  
 };
 
 } // agent
