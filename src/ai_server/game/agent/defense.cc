@@ -34,7 +34,7 @@ std::vector<std::shared_ptr<action::base>> defense::execute() {
   const auto ball_y = world_.ball().y();
 
   //ゴールの座標
-  const auto goal_x       = world_.field().x_max();
+  const auto goal_x = world_.field().x_max();
   const auto goal_y = 0.0;
 
   //半径
