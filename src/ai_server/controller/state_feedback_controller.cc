@@ -16,9 +16,9 @@ using boost::math::constants::pi;
 const double state_feedback_controller::k_                = 49.17;
 const double state_feedback_controller::zeta_             = 1.0;
 const double state_feedback_controller::omega_            = 49.17;
-const double state_feedback_controller::max_velocity_     = 3000.0; // 最大速度
-const double state_feedback_controller::max_acceleration_ = 3000.0; // 最大加速度
-const double state_feedback_controller::min_acceleration_ = 1000.0; // 速度ゼロ時の加速度
+const double state_feedback_controller::max_velocity_     = 2500.0; // 最大速度
+const double state_feedback_controller::max_acceleration_ = 4000.0; // 最大加速度
+const double state_feedback_controller::min_acceleration_ = 2000.0; // 速度ゼロ時の加速度
 // optimized_accelがmax_accelに到達するときのロボット速度
 const double state_feedback_controller::reach_speed_ = 1000.0;
 
