@@ -165,15 +165,18 @@ std::vector<std::shared_ptr<action::base>> defense::execute() {
 
         // wall_it->move_to((*target_x_it++),(*target_y_it++),theta);
 
+				//移動目標
+				auto sign_x = 0.0;
+				auto sign_y = 0.0;
         if (D > 0) {
           //現在地と目的地の距離に応じて分け方を変える
           const auto L = std::hypot((*target_y_it) - wall_y, (*target_x_it) - wall_x);
           //幸福ディバイド
           //実際に試して問題なかった値を採用
           auto divided = 0.0;
-          if (L > 1700) {
+          if (L > 1500) {
             divided = 1.0 / 3.0;
-          } else if (L > 900) {
+          } else if (L > 1000) {
             divided = 1.0 / 2.0;
           } else {
             divided = 1.0 / 1.0;
@@ -184,38 +187,36 @@ std::vector<std::shared_ptr<action::base>> defense::execute() {
           const auto index_x = (1.0 - divided) * wall_x + divided * (*target_x_it);
           const auto index_y = (1.0 - divided) * wall_y + divided * (*target_y_it);
 
-          std::cout << "index_x : " << index_x << " index_y : " << index_y << std::endl;
+					//いまどこにいるかで投影する図形が変わる
+					auto constant = 0.0;
+				if(index_y>250){
+					constant = 250;
+				}else if(index_y<-250){
+					constant = -250;
+				} 
+      	//基準点からちょっと下がったキーパの位置
+        const auto length = std::hypot(index_x - goal_x, index_y - (constant)); //中心<->index
+        const auto ratio  = 1 - (length / shift); //目的<->indexの比
 
-          if (index_y > 250) {
-            const auto length = std::hypot(index_x - goal_x, index_y - 250); //中心<->index
+        sign_x = (-ratio * goal_x + 1 * index_x) / (length / shift);
+        sign_y = (-ratio * (constant) + 1 * index_y) / (length / shift);
 
-            const auto ratio  = 1 - (length / shift); //目的<->indexの比
-            const auto sign_x = (-ratio * goal_x + 1 * index_x) / (length / shift);
-            const auto sign_y = (-ratio * 250 + 1 * index_y) / (length / shift);
-            std::cout << "sign_x : " << sign_x << " sign_y : " << sign_y << std::endl;
+  			if (index_y >= -250 && index_y <= 250) { //もし基準座標が直線の範囲だったら直線に叩き込む
+    			sign_x = (goal_x + (std::signbit(goal_x) ? 1100 : -1100));
+    			sign_y = index_y;
+				}
 
-            wall_it->move_to(sign_x, sign_y, theta);
+  		}else {
+					sign_x = (*target_x_it);
+					sign_y = (*target_y_it);
+      }
+//        sign_x = (((*target_x_it) - wall_x)/std::hypot((*target_x_it) - wall_x,(*target_y_it) - wall_y))*1000;
+//        sign_y = (((*target_y_it) - wall_y)/std::hypot((*target_x_it) - wall_x,(*target_y_it) - wall_y))*1000;
+        std::cout << "sign_x : " << sign_x << " sign_y : " << sign_y << std::endl;
+				
+        wall_it->move_to(sign_x, sign_y, theta);
+//        wall_it->move_to(sign_x, sign_y, 0.0);
 
-          } else if (index_y < -250) {
-            const auto length = std::hypot(index_x - goal_x, index_y - (-250)); //中心<->index
-
-            const auto ratio  = 1 - (length / shift); //目的<->indexの比
-            const auto sign_x = (-ratio * goal_x + 1 * index_x) / (length / shift);
-            const auto sign_y = (-ratio * (-250) + 1 * index_y) / (length / shift);
-            std::cout << "sign_x : " << sign_x << " sign_y : " << sign_y << std::endl;
-
-            wall_it->move_to(sign_x, sign_y, theta);
-
-          } else {
-            const auto sign_x = std::signbit(goal_x) ? -3400 : 3400;
-            const auto sign_y = index_y;
-            std::cout << "sign_x : " << sign_x << " sign_y : " << sign_y << std::endl;
-
-            wall_it->move_to(sign_x, sign_y, theta);
-          }
-        } else {
-          wall_it->move_to((*target_x_it), (*target_y_it), theta);
-        }
         target_y_it++;
         target_x_it++;
       }
@@ -250,7 +251,7 @@ std::vector<std::shared_ptr<action::base>> defense::execute() {
       {
         //ゴール前で張ってるキーパの位置
         const auto length = std::hypot(goal_x - ball_x, ball_y); //ゴール<->ボール
-        const auto ratio  = (400) / length; //全体に対してのキーパー位置の比
+        const auto ratio  = (410) / length; //全体に対してのキーパー位置の比
 
         keeper_x = ((1 - ratio) * goal_x + ratio * ball_x);
         keeper_y = ratio * ball_y;
@@ -260,15 +261,22 @@ std::vector<std::shared_ptr<action::base>> defense::execute() {
       //セット仕直し
     } else { // B
       //壁のすぐ後ろで待機
+			auto shift = 0.0;
+			if(y_>250){
+				shift = 250;
+			}else if(y_<-250){
+				shift = -250;
+			} 
+      //基準点からちょっと下がったキーパの位置
+      const auto length = std::hypot(goal_x - ball_x, shift - ball_y); //基準点<->ボール
+      const auto ratio  = (910) / length; //全体に対してのキーパー位置の比
 
-      {
-        //基準点からちょっと下がったキーパの位置
-        const auto length = std::hypot(goal_x - ball_x, ball_y); //基準点<->ボール
-        const auto ratio  = (800) / length; //全体に対してのキーパー位置の比
+      keeper_x = (1 - ratio) * goal_x + ratio * ball_x;
+      keeper_y = (1 - ratio) * shift + ratio * ball_y;
 
-        keeper_x = (1 - ratio) * goal_x + ratio * ball_x;
-        keeper_y = ratio * ball_y;
-      }
+  		if (keeper_y >= -250 && keeper_y <= 250) { //もし基準座標が直線の範囲だったら直線に叩き込む
+    		keeper_x = (goal_x + (std::signbit(goal_x) ? 910 : -910));
+  		}
     }
     keeper_theta = util::wrap_to_2pi(std::atan2(ball_y - keeper_y, ball_x - keeper_x));
 
