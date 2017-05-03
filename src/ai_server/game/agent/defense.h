@@ -3,6 +3,7 @@
 
 #include <vector>
 #include <memory>
+#include <Eigen/Dense>
 
 #include "ai_server/game/agent/base.h"
 #include "ai_server/game/action/move.h"
@@ -22,10 +23,8 @@ private:
   const std::vector<unsigned int>& wall_ids_;
   std::vector<std::shared_ptr<action::vec>> wall_;
   std::shared_ptr<action::move> keeper_;
-  std::vector<double> target_x;
-  std::vector<double> target_y;
-  double x_;
-  double y_;
+  std::vector<Eigen::Vector2d> target_;
+  Eigen::Vector2d orientation_;
 };
 }
 }
