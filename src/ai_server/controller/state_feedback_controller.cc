@@ -134,14 +134,10 @@ velocity_t state_feedback_controller::update(const model::robot& robot,
   if (delta_speed / cycle_ > optimized_accel) {
     if (std::abs(u_speed) > std::abs(robot_speed)) {
       u_speed = robot_speed + (optimized_accel * cycle_); // +方向加速
-    } else {
-      u_speed = robot_speed + (optimized_accel * cycle_); // -方向減速
     }
   } else if (delta_speed / cycle_ < -optimized_accel) {
     if (std::abs(u_speed) > std::abs(robot_speed)) {
       u_speed = robot_speed - (optimized_accel * cycle_); // -方向加速
-    } else {
-      u_speed = robot_speed - (optimized_accel * cycle_); // +方向減速
     }
   }
   // 速度制限
