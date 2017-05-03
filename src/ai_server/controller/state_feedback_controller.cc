@@ -98,8 +98,8 @@ velocity_t state_feedback_controller::update(const model::robot& robot,
   position_t delta_p = convert(e_p, estimated_robot_.theta());
 
   velocity_t target;
-  target.vx    = sliding_mode_.at(0)->control(-delta_p.x);
-  target.vy    = sliding_mode_.at(1)->control(-delta_p.y);
+  target.vx    = sliding_mode_.at(0)->control_pos(-delta_p.x);
+  target.vy    = sliding_mode_.at(1)->control_pos(-delta_p.y);
   target.omega = clamp(util::wrap_to_pi(delta_p.theta) * 2, -pi<double>(), pi<double>());
 
   u_[0] = u_[0] + (std::pow(k_, 2) / std::pow(omega_, 2)) * target;
