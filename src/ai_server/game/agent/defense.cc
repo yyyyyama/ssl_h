@@ -53,7 +53,8 @@ std::vector<std::shared_ptr<action::base>> defense::execute() {
     return re_wall;
   }
   //ゴールの座標
-  const Eigen::Vector2d goal(world_.field().x_max() * (-1), 0.0);
+  // const Eigen::Vector2d goal(world_.field().x_max() * (-1), 0.0);
+  const Eigen::Vector2d goal(4500.0, 0.0);
 
   //半径
   const auto radius = 1400.0;
@@ -185,12 +186,13 @@ std::vector<std::shared_ptr<action::base>> defense::execute() {
     //速さに掛ける係数
     auto coefficient = 0.0;
 
-    if (std::signbit(ball.x()) > std::signbit(goal.x()) ? 100 : -100) { // A
+    if (std::signbit(goal.x() * (-1)) ==
+        std::signbit((ball.x() + (std::signbit(goal.x() * (-1)) ? 100 : -100)))) { // A
       //ゴール直前でボールに併せて横移動
 
-      keeper.x()  = goal.x() + (std::signbit(goal.x() ? 100.0 : -100.0));
+      keeper.x()  = goal.x() + (std::signbit(goal.x()) ? 110.0 : -110.0);
       keeper.y()  = ((ball.y() >= -500 && ball.y() <= 500) ? ball.y() : 0);
-      coefficient = 6.0;
+      coefficient = 7.0;
 
       //違う状態同士の移動は速度を抑える
       if (status_ != defense::keeper_status::level_green) {
@@ -209,7 +211,7 @@ std::vector<std::shared_ptr<action::base>> defense::execute() {
         keeper = (1 - ratio) * goal + ratio * ball;
       }
 
-      coefficient = 6.0;
+      coefficient = 7.0;
       //違う状態同士の移動は速度を抑える
       if (status_ != defense::keeper_status::level_red) {
         coefficient = 1.5;
@@ -234,7 +236,7 @@ std::vector<std::shared_ptr<action::base>> defense::execute() {
           keeper.y() <= 250) { //もし基準座標が直線の範囲だったら直線に叩き込む
         keeper.x() = (goal.x() + (std::signbit(goal.x()) ? 910 : -910));
       }
-      coefficient = 6.0;
+      coefficient = 7.0;
       //違う状態同士の移動は速度を抑える
       if (status_ != defense::keeper_status::level_yellow) {
         coefficient = 2.0;
