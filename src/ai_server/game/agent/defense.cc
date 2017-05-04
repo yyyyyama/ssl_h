@@ -122,7 +122,7 @@ std::vector<std::shared_ptr<action::base>> defense::execute() {
           std::hypot(after_base.x() - after_ball.x(), after_base.y() - after_ball.y());
       after_base.y() = 0.0;
 
-      for (auto shift = shift_; wall_it != wall_.end(); shift += shift_, wall_it += 2) {
+      for (auto shift = shift_; wall_it != wall_.end(); shift += (shift_*2), wall_it += 2) {
         //移動した先での仮の座標
         const Eigen::Vector2d tmp1(after_base.x(), shift);
         const Eigen::Vector2d tmp2(tmp1.x(), tmp1.y() * (-1));
@@ -188,9 +188,9 @@ std::vector<std::shared_ptr<action::base>> defense::execute() {
     if (std::signbit(std::pow(ball.x() - goal.x(), 2) + std::pow(ball.y() - goal.y(), 2) -
                      std::pow(600, 2))) {
       if (std::signbit(std::pow(ball.x() - keeper_robot.x(), 2) +
-                       std::pow(ball.y() - keeper_robot.y(), 2) - std::pow(130, 2)) &&
+                       std::pow(ball.y() - keeper_robot.y(), 2) - std::pow(120, 2)) &&
           (util::wrap_to_2pi(std::atan2(ball.y() - goal.y(), ball.x() - goal.x())) -
-           keeper_theta) < 1.0) {
+           keeper_theta) < 0.5) {
         if (!keeper_k_->finished()) {
           keeper_k_->kick_to(goal.x() * (-1), goal.y());
           keeper_k_->set_kick_type({model::command::kick_type_t::chip, 10.0});
@@ -242,7 +242,7 @@ std::vector<std::shared_ptr<action::base>> defense::execute() {
       }
 
       //移動距離が短ければ移動速度低下さ
-      if ((keeper - keeper_c).norm() < 300) {
+      if ((keeper - keeper_c).norm() < 100) {
         coefficient = {0.8, 0.8};
       }
       //移動目標
