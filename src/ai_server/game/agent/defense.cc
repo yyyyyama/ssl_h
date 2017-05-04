@@ -53,8 +53,7 @@ std::vector<std::shared_ptr<action::base>> defense::execute() {
     return re_wall;
   }
   //ゴールの座標
-  // const Eigen::Vector2d goal(world_.field().x_max(), 0.0);
-  const Eigen::Vector2d goal(4500.0, 0.0);
+  const Eigen::Vector2d goal(world_.field().x_max() * (-1), 0.0);
 
   //半径
   const auto radius = 1400.0;
