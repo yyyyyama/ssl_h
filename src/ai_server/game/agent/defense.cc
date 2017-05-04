@@ -44,7 +44,7 @@ std::vector<std::shared_ptr<action::base>> defense::execute() {
     for (auto wall_it : wall_) {
       wall_it->move_to(0.0, 0.0, 0.0);
     }
-    keeper_v_->move_to(0.0, 0.0, 0.0);
+    keeper_->move_to(0.0, 0.0, 0.0);
 
     std::vector<std::shared_ptr<action::base>> re_wall{
         wall_.begin(), wall_.end()}; //型を合わせるために無理矢理作り直す
@@ -253,7 +253,7 @@ std::vector<std::shared_ptr<action::base>> defense::execute() {
         util::wrap_to_2pi(std::atan2(ball.y() - goal.y(), ball.x() - goal.x())) - keeper_theta;
     keeper_->move_to(sign.x(), sign.y(), omega);
 
-    re_wall.push_back(keeper_v_); //配列を返すためにキーパーを統合する
+    re_wall.push_back(keeper_); //配列を返すためにキーパーを統合する
   }
 
   return re_wall; //返す
