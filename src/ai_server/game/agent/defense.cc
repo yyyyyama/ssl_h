@@ -54,6 +54,10 @@ std::vector<std::shared_ptr<action::base>> defense::execute() {
   //ゴールの座標
   const Eigen::Vector2d goal(world_.field().x_max() * (-1), 0.0);
 
+  const auto ball_theta =
+      std::signbit(goal.x())
+          ? std::atan2(ball.y() - goal.y(), ball.x() - goal.x())
+          : util::wrap_to_2pi(std::atan2(ball.y() - goal.y(), ball.x() - goal.x()));
   //半径
   const auto radius = 1400.0;
 
@@ -149,15 +153,19 @@ std::vector<std::shared_ptr<action::base>> defense::execute() {
       for (auto wall_it : wall_) {
         const auto wall_robot = wall_robots.at((*wall_ids_it++));
         const Eigen::Vector2d wall(wall_robot.x(), wall_robot.y());
-        const auto wall_theta = util::wrap_to_2pi(wall_robot.theta());
+        const auto wall_theta =
+            std::signbit(goal.x()) ? wall_robot.theta() : util::wrap_to_2pi(wall_robot.theta());
 
         //移動目標
         const Eigen::Vector2d sign(((*target_it) - wall) * 6.0);
 
         //ボールの向きを向くために,ゴール<->ボールの角度-自身の角度 をしてそれを角速度とする.
-        const auto omega =
-            util::wrap_to_2pi(std::atan2(ball.y() - goal.y(), ball.x() - goal.x())) -
-            wall_theta;
+        // const auto omega =
+        //    util::wrap_to_2pi(std::atan2(ball.y() - goal.y(), ball.x() - goal.x())) -
+        //    wall_theta;
+        const auto omega = ball_theta - wall_theta;
+        std::cout << "ball_theta : " << wall_theta << " wall_theta : " << wall_theta
+                  << std::endl;
         wall_it->move_to(sign.x(), sign.y(), omega);
         target_it++;
       }
@@ -181,7 +189,8 @@ std::vector<std::shared_ptr<action::base>> defense::execute() {
     const auto my_robots    = is_yellow_ ? world_.robots_yellow() : world_.robots_blue();
     const auto keeper_robot = my_robots.at(keeper_id_);
     //キーパーの角度
-    const auto keeper_theta = util::wrap_to_2pi(keeper_robot.theta());
+    const auto keeper_theta =
+        std::signbit(goal.x()) ? keeper_robot.theta() : util::wrap_to_2pi(keeper_robot.theta());
     const Eigen::Vector2d keeper_c(keeper_robot.x(), keeper_robot.y());
     //速さに掛ける係数
     Eigen::Vector2d coefficient(Eigen::Vector2d::Zero());
@@ -246,9 +255,7 @@ std::vector<std::shared_ptr<action::base>> defense::execute() {
                                  (keeper.y() - keeper_c.y()) * coefficient.y());
 
       //ボールの向きを向くために,ゴール<->ボールの角度-自身の角度 をしてそれを角速度とする.
-      const auto omega =
-          util::wrap_to_2pi(std::atan2(ball.y() - goal.y(), ball.x() - goal.x())) -
-          keeper_theta;
+      const auto omega = ball_theta - keeper_theta;
       keeper_v_->move_to(sign.x(), sign.y(), omega);
 
       re_wall.push_back(keeper_v_); //配列を返すためにキーパーを統合する
