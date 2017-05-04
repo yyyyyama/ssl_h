@@ -41,12 +41,25 @@ std::vector<std::shared_ptr<action::base>> defense::execute() {
   //ボールの座標
   const Eigen::Vector2d ball(world_.ball().x(), world_.ball().y());
 
+	//ボールがゴールより後ろに喜多羅現状維持
+	if(ball.x()<-4500.0||ball.x()>4500.0){
+		for(auto wall_it:wall_){
+      wall_it->move_to(0.0, 0.0, 0.0);
+		}
+   keeper_v_->move_to(0.0, 0.0, 0.0);
+
+   std::vector<std::shared_ptr<action::base>> re_wall{
+      wall_.begin(), wall_.end()}; //型を合わせるために無理矢理作り直す
+   re_wall.push_back(keeper_v_); //配列を返すためにキーパーを統合する
+
+	 return re_wall;
+	}
   //ゴールの座標
   // const Eigen::Vector2d goal(world_.field().x_max(), 0.0);
   const Eigen::Vector2d goal(4500.0, 0.0);
 
   //半径
-  const auto radius = 1340.0;
+  const auto radius = 1400.0;
 
   //基準座標を求めている
   //
@@ -77,7 +90,7 @@ std::vector<std::shared_ptr<action::base>> defense::execute() {
       //基準点からどれだけずらすか
       auto shift_ = 0.0;
 
-      const auto demarcation = 3000.0; //縄張りの大きさ
+      const auto demarcation = 2000.0; //縄張りの大きさ
 
       if (wall_.size() % 2) { //奇数
         (*target_it++) = orientation_;
@@ -166,7 +179,7 @@ std::vector<std::shared_ptr<action::base>> defense::execute() {
   //
   //
   {
-    const auto demarcation = 3000.0; //縄張りの大きさ
+    const auto demarcation = 2000.0; //縄張りの大きさ
 
     Eigen::Vector2d keeper(Eigen::Vector2d::Zero());
     const auto my_robots    = is_yellow_ ? world_.robots_yellow() : world_.robots_blue();
@@ -184,7 +197,7 @@ std::vector<std::shared_ptr<action::base>> defense::execute() {
 
       //違う状態同士の移動は速度を抑える
       if (status_ != defense::keeper_status::level_green) {
-        coefficient = 1.0;
+        coefficient = 0.3;
       }
       status_ = defense::keeper_status::level_green;
     } else if (std::signbit(std::pow(ball.x() - goal.x(), 2) + std::pow(ball.y(), 2) -
