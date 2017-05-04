@@ -39,7 +39,9 @@ Eigen::Matrix3d smith_predictor::interpolate(const model::robot& robot, const ve
                   std::pow(omega_, 2) * u);
 
     // 更新
-    u_[i]            = u_[i - 1];
+    if (i != 0) {
+      u_[i] = u_[i - 1];
+    }
     pre_position     = now_position;
     pre_velocity     = now_velocity;
     pre_acceleration = now_acceleration;
