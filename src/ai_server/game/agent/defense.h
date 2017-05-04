@@ -23,7 +23,8 @@ private:
   unsigned int keeper_id_;
   const std::vector<unsigned int>& wall_ids_;
   std::vector<std::shared_ptr<action::vec>> wall_;
-  std::shared_ptr<action::vec> keeper_;
+  std::shared_ptr<action::vec> keeper_v_;
+  std::shared_ptr<action::kick_action> keeper_k_;
   std::vector<Eigen::Vector2d> target_;
   Eigen::Vector2d orientation_;
 };

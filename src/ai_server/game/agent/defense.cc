@@ -22,7 +22,8 @@ defense::defense(const model::world& world, bool is_yellow, unsigned int keeper_
   //
   //キーパー用のaction
   //移動用
-  keeper_ = std::make_shared<action::vec>(world_, is_yellow_, keeper_id_);
+  keeper_v_ = std::make_shared<action::vec>(world_, is_yellow_, keeper_id_);
+  keeper_k_ = std::make_shared<action::kick_action>(world_, is_yellow_, keeper_id_);
 
   //壁用のaction
   for (auto it : wall_ids_) {
@@ -42,11 +43,11 @@ std::vector<std::shared_ptr<action::base>> defense::execute() {
     for (auto wall_it : wall_) {
       wall_it->move_to(0.0, 0.0, 0.0);
     }
-    keeper_->move_to(0.0, 0.0, 0.0);
+    keeper_v_->move_to(0.0, 0.0, 0.0);
 
     std::vector<std::shared_ptr<action::base>> re_wall{
         wall_.begin(), wall_.end()}; //型を合わせるために無理矢理作り直す
-    re_wall.push_back(keeper_);      //配列を返すためにキーパーを統合する
+    re_wall.push_back(keeper_v_);    //配列を返すためにキーパーを統合する
 
     return re_wall;
   }
@@ -179,69 +180,83 @@ std::vector<std::shared_ptr<action::base>> defense::execute() {
     Eigen::Vector2d keeper(Eigen::Vector2d::Zero());
     const auto my_robots    = is_yellow_ ? world_.robots_yellow() : world_.robots_blue();
     const auto keeper_robot = my_robots.at(keeper_id_);
+    //キーパーの角度
+    const auto keeper_theta = util::wrap_to_2pi(keeper_robot.theta());
     const Eigen::Vector2d keeper_c(keeper_robot.x(), keeper_robot.y());
     //速さに掛ける係数
     Eigen::Vector2d coefficient(Eigen::Vector2d::Zero());
+    if (std::signbit(std::pow(ball.x() - goal.x(), 2) + std::pow(ball.y() - goal.y(), 2) -
+                     std::pow(600, 2))) {
+      if (std::signbit(std::pow(ball.x() - keeper_robot.x(), 2) +
+                       std::pow(ball.y() - keeper_robot.y(), 2) - std::pow(130, 2)) &&
+          (util::wrap_to_2pi(std::atan2(ball.y() - goal.y(), ball.x() - goal.x())) -
+           keeper_theta) < 1.0) {
+        if (!keeper_k_->finished()) {
+          keeper_k_->kick_to(goal.x() * (-1), goal.y());
+          keeper_k_->set_kick_type({model::command::kick_type_t::chip, 10.0});
+        }
+        re_wall.push_back(keeper_k_); //配列を返すためにキーパーを統合する
+      }
+    } else {
+      if (std::signbit(goal.x() * (-1)) ==
+          std::signbit((ball.x() + (std::signbit(goal.x() * (-1)) ? 500 : -500)))) { // A
+        //ゴール直前でボールに併せて横移動
 
-    if (std::signbit(goal.x() * (-1)) ==
-        std::signbit((ball.x() + (std::signbit(goal.x() * (-1)) ? 500 : -500)))) { // A
-      //ゴール直前でボールに併せて横移動
+        keeper.x()  = goal.x() + (std::signbit(goal.x()) ? 110.0 : -110.0);
+        keeper.y()  = ((ball.y() >= -500 && ball.y() <= 500) ? ball.y() : 0);
+        coefficient = {0.7, 7.0};
 
-      keeper.x()  = goal.x() + (std::signbit(goal.x()) ? 110.0 : -110.0);
-      keeper.y()  = ((ball.y() >= -500 && ball.y() <= 500) ? ball.y() : 0);
-      coefficient = {0.7, 7.0};
+      } else if (std::signbit(std::pow(ball.x() - goal.x(), 2) +
+                              std::pow(ball.y() - goal.y(), 2) -
+                              std::pow(demarcation, 2))) { // C
+        //ゴール前でディフェンスする
 
-    } else if (std::signbit(std::pow(ball.x() - goal.x(), 2) + std::pow(ball.y(), 2) -
-                            std::pow(demarcation, 2))) { // C
-      //ゴール前でディフェンスする
+        {
+          //ゴール前で張ってるキーパの位置
+          const auto length = std::hypot(goal.x() - ball.x(), ball.y()); //ゴール<->ボール
+          const auto ratio  = (410) / length; //全体に対してのキーパー位置の比
 
-      {
-        //ゴール前で張ってるキーパの位置
-        const auto length = std::hypot(goal.x() - ball.x(), ball.y()); //ゴール<->ボール
-        const auto ratio  = (410) / length; //全体に対してのキーパー位置の比
+          keeper = (1 - ratio) * goal + ratio * ball;
+        }
+        coefficient = {6.0, 7.0};
+      } else { // B
+               //壁のすぐ後ろで待機
+        auto shift = 0.0;
+        if (orientation_.y() > 250) {
+          shift = 250;
+        } else if (orientation_.y() < -250) {
+          shift = -250;
+        }
+        //基準点からちょっと下がったキーパの位置
+        const auto length = std::hypot(goal.x() - ball.x(), shift - ball.y()); //基準点<->ボール
+        const auto ratio = (910) / length; //全体に対してのキーパー位置の比
 
-        keeper = (1 - ratio) * goal + ratio * ball;
+        keeper.x() = (1 - ratio) * goal.x() + ratio * ball.x();
+        keeper.y() = (1 - ratio) * shift + ratio * ball.y();
+
+        if (keeper.y() >= -250 &&
+            keeper.y() <= 250) { //もし基準座標が直線の範囲だったら直線に叩き込む
+          keeper.x() = (goal.x() + (std::signbit(goal.x()) ? 910 : -910));
+        }
+        coefficient = {6.5, 7.0};
       }
 
-      coefficient = {6.0, 7.0};
-    } else { // B
-             //壁のすぐ後ろで待機
-      auto shift = 0.0;
-      if (orientation_.y() > 250) {
-        shift = 250;
-      } else if (orientation_.y() < -250) {
-        shift = -250;
+      //移動距離が短ければ移動速度低下さ
+      if ((keeper - keeper_c).norm() < 300) {
+        coefficient = {0.8, 0.8};
       }
-      //基準点からちょっと下がったキーパの位置
-      const auto length = std::hypot(goal.x() - ball.x(), shift - ball.y()); //基準点<->ボール
-      const auto ratio = (910) / length; //全体に対してのキーパー位置の比
+      //移動目標
+      const Eigen::Vector2d sign((keeper.x() - keeper_c.x()) * coefficient.x(),
+                                 (keeper.y() - keeper_c.y()) * coefficient.y());
 
-      keeper.x() = (1 - ratio) * goal.x() + ratio * ball.x();
-      keeper.y() = (1 - ratio) * shift + ratio * ball.y();
+      //ボールの向きを向くために,ゴール<->ボールの角度-自身の角度 をしてそれを角速度とする.
+      const auto omega =
+          util::wrap_to_2pi(std::atan2(ball.y() - goal.y(), ball.x() - goal.x())) -
+          keeper_theta;
+      keeper_v_->move_to(sign.x(), sign.y(), omega);
 
-      if (keeper.y() >= -250 &&
-          keeper.y() <= 250) { //もし基準座標が直線の範囲だったら直線に叩き込む
-        keeper.x() = (goal.x() + (std::signbit(goal.x()) ? 910 : -910));
-      }
-      coefficient = {6.5, 7.0};
+      re_wall.push_back(keeper_v_); //配列を返すためにキーパーを統合する
     }
-
-    const auto keeper_theta = util::wrap_to_2pi(keeper_robot.theta());
-
-    //移動距離が短ければ移動速度低下さ
-    if ((keeper - keeper_c).norm() < 300) {
-      coefficient = {0.8, 0.8};
-    }
-    //移動目標
-    const Eigen::Vector2d sign((keeper.x() - keeper_c.x()) * coefficient.x(),
-                               (keeper.y() - keeper_c.y()) * coefficient.y());
-
-    //ボールの向きを向くために,ゴール<->ボールの角度-自身の角度 をしてそれを角速度とする.
-    const auto omega =
-        util::wrap_to_2pi(std::atan2(ball.y() - goal.y(), ball.x() - goal.x())) - keeper_theta;
-    keeper_->move_to(sign.x(), sign.y(), omega);
-
-    re_wall.push_back(keeper_); //配列を返すためにキーパーを統合する
   }
 
   return re_wall; //返す
