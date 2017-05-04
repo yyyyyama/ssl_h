@@ -1,6 +1,4 @@
 #include <cmath>
-#include <boost/geometry/geometry.hpp>
-#include <boost/geometry/geometries/point_xy.hpp>
 
 #include "ai_server/game/agent/defense.h"
 #include "ai_server/util/math.h"
@@ -23,8 +21,7 @@ defense::defense(const model::world& world, bool is_yellow, unsigned int keeper_
   //
   //キーパー用のaction
   //移動用
-  keeper_v_ = std::make_shared<action::vec>(world_, is_yellow_, keeper_id_);
-  keeper_k_ = std::make_shared<action::kick_action>(world_, is_yellow_, keeper_id_);
+  keeper_ = std::make_shared<action::vec>(world_, is_yellow_, keeper_id_);
 
   //壁用のaction
   for (auto it : wall_ids_) {
@@ -38,7 +35,6 @@ void defense::set_mode(defense_mode mode) {
 }
 
 std::vector<std::shared_ptr<action::base>> defense::execute() {
-  using boost::math::constants::pi;
 
   //ボールの座標
   const Eigen::Vector2d ball(world_.ball().x(), world_.ball().y());
@@ -48,11 +44,11 @@ std::vector<std::shared_ptr<action::base>> defense::execute() {
     for (auto wall_it : wall_) {
       wall_it->move_to(0.0, 0.0, 0.0);
     }
-    keeper_v_->move_to(0.0, 0.0, 0.0);
+    keeper_->move_to(0.0, 0.0, 0.0);
 
     std::vector<std::shared_ptr<action::base>> re_wall{
         wall_.begin(), wall_.end()}; //型を合わせるために無理矢理作り直す
-    re_wall.push_back(keeper_v_);    //配列を返すためにキーパーを統合する
+    re_wall.push_back(keeper_);    //配列を返すためにキーパーを統合する
 
     return re_wall;
   }
@@ -173,8 +169,6 @@ std::vector<std::shared_ptr<action::base>> defense::execute() {
             //    util::wrap_to_2pi(std::atan2(ball.y() - goal.y(), ball.x() - goal.x())) -
             //    wall_theta;
             const auto omega = ball_theta - wall_theta;
-            std::cout << "ball_theta : " << wall_theta << " wall_theta : " << wall_theta
-                      << std::endl;
             wall_it->move_to(sign.x(), sign.y(), omega);
             target_it++;
           }
@@ -197,7 +191,7 @@ std::vector<std::shared_ptr<action::base>> defense::execute() {
     // A:ボールが敵陣地なので多分そこまで動く必要はない
     // B:ボールが自陣地なので壁の補強をしなければ
     // C:ボールはゴールの直ぐ目の前なのでゴールまえでジャンプしてでも止める
-    //
+		//
     //
     {
       Eigen::Vector2d keeper(Eigen::Vector2d::Zero());
@@ -212,21 +206,7 @@ std::vector<std::shared_ptr<action::base>> defense::execute() {
       Eigen::Vector2d coefficient(Eigen::Vector2d::Zero());
       switch (mode_) {
         case defense_mode::normal_mode: {
-          const auto demarcation = 2500.0; //縄張りの大きさ
-          //めっちゃ近くにボールがあったら蹴ってみたいね
-          if (std::signbit(std::pow(ball.x() - goal.x(), 2) + std::pow(ball.y() - goal.y(), 2) -
-                           std::pow(600, 2))) {
-            if (std::signbit(std::pow(ball.x() - keeper_robot.x(), 2) +
-                             std::pow(ball.y() - keeper_robot.y(), 2) - std::pow(120, 2)) &&
-                (util::wrap_to_2pi(std::atan2(ball.y() - goal.y(), ball.x() - goal.x())) -
-                 keeper_theta) < 0.5) {
-              if (!keeper_k_->finished()) {
-                keeper_k_->kick_to(goal.x() * (-1), goal.y());
-                keeper_k_->set_kick_type({model::command::kick_type_t::chip, 10.0});
-              }
-              re_wall.push_back(keeper_k_); //配列を返すためにキーパーを統合する
-            }
-          } else {
+          const auto demarcation = 2000.0; //縄張りの大きさ
             if (std::signbit(goal.x() * (-1)) ==
                 std::signbit((ball.x() + (std::signbit(goal.x() * (-1)) ? 500 : -500)))) { // A
               //ゴール直前でボールに併せて横移動
@@ -248,7 +228,7 @@ std::vector<std::shared_ptr<action::base>> defense::execute() {
                 keeper = (1 - ratio) * goal + ratio * ball;
               }
               coefficient = {6.0, 7.0};
-            } else { // B
+            }else { // B
                      //壁のすぐ後ろで待機
               auto shift = 0.0;
               if (orientation_.y() > 250) {
@@ -270,7 +250,6 @@ std::vector<std::shared_ptr<action::base>> defense::execute() {
               }
               coefficient = {6.5, 7.0};
             }
-          }
           break;
         }
         case defense_mode::pk_mode: {
@@ -319,9 +298,9 @@ std::vector<std::shared_ptr<action::base>> defense::execute() {
 
       //ボールの向きを向くために,ゴール<->ボールの角度-自身の角度 をしてそれを角速度とする.
       const auto omega = ball_theta - keeper_theta;
-      keeper_v_->move_to(sign.x(), sign.y(), omega);
+      keeper_->move_to(sign.x(), sign.y(), omega);
 
-      re_wall.push_back(keeper_v_); //配列を返すためにキーパーを統合する
+      re_wall.push_back(keeper_); //配列を返すためにキーパーを統合する
     }
 
     return re_wall; //返す
