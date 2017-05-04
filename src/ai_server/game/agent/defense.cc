@@ -204,7 +204,7 @@ std::vector<std::shared_ptr<action::base>> defense::execute() {
         keeper = (1 - ratio) * goal + ratio * ball;
       }
 
-      coefficient = {7.0, 7.0};
+      coefficient = {6.0, 7.0};
     } else { // B
              //壁のすぐ後ろで待機
       auto shift = 0.0;
@@ -229,6 +229,7 @@ std::vector<std::shared_ptr<action::base>> defense::execute() {
 
     const auto keeper_theta = util::wrap_to_2pi(keeper_robot.theta());
 
+    //移動距離が短ければ移動速度低下さ
     if ((keeper - keeper_c).norm() < 300) {
       coefficient = {0.8, 0.8};
     }
