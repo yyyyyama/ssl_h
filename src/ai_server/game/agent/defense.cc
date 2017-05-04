@@ -86,7 +86,7 @@ std::vector<std::shared_ptr<action::base>> defense::execute() {
       //基準点からどれだけずらすか
       auto shift_ = 0.0;
 
-      const auto demarcation = 2000.0; //縄張りの大きさ
+      const auto demarcation = 2500.0; //縄張りの大きさ
 
       if (wall_.size() % 2) { //奇数
         (*target_it++) = orientation_;
@@ -133,7 +133,7 @@ std::vector<std::shared_ptr<action::base>> defense::execute() {
 
         //もしディフェンスエリアないに入ってしまっても順番が入れ替わらないようにする
         if ((std::pow(ball.x() - goal.x(), 2) + std::pow(ball.y() - goal.y(), 2) -
-             std::pow(1340.0, 2)) < 0) {
+             std::pow(1400.0, 2)) < 0) {
           const auto tmp   = *(target_it - 2);
           *(target_it - 2) = *(target_it - 1);
           *(target_it - 1) = tmp;
@@ -175,7 +175,7 @@ std::vector<std::shared_ptr<action::base>> defense::execute() {
   //
   //
   {
-    const auto demarcation = 2000.0; //縄張りの大きさ
+    const auto demarcation = 2500.0; //縄張りの大きさ
 
     Eigen::Vector2d keeper(Eigen::Vector2d::Zero());
     const auto my_robots    = is_yellow_ ? world_.robots_yellow() : world_.robots_blue();
@@ -190,7 +190,7 @@ std::vector<std::shared_ptr<action::base>> defense::execute() {
 
       keeper.x()  = goal.x() + (std::signbit(goal.x()) ? 110.0 : -110.0);
       keeper.y()  = ((ball.y() >= -500 && ball.y() <= 500) ? ball.y() : 0);
-      coefficient = {0.5, 7.0};
+      coefficient = {0.7, 7.0};
 
     } else if (std::signbit(std::pow(ball.x() - goal.x(), 2) + std::pow(ball.y(), 2) -
                             std::pow(demarcation, 2))) { // C
@@ -224,7 +224,7 @@ std::vector<std::shared_ptr<action::base>> defense::execute() {
           keeper.y() <= 250) { //もし基準座標が直線の範囲だったら直線に叩き込む
         keeper.x() = (goal.x() + (std::signbit(goal.x()) ? 910 : -910));
       }
-      coefficient = {7.0, 7.0};
+      coefficient = {6.5, 7.0};
     }
 
     const auto keeper_theta = util::wrap_to_2pi(keeper_robot.theta());
