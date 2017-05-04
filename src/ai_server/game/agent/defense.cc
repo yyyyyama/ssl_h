@@ -15,8 +15,7 @@ defense::defense(const model::world& world, bool is_yellow, unsigned int keeper_
     : base(world, is_yellow),
       keeper_id_(keeper_id),
       wall_ids_(wall_ids),
-      orientation_(Eigen::Vector2d::Zero()),
-      status_(keeper_status::level_green) {
+      orientation_(Eigen::Vector2d::Zero()) {
   // actionの生成部分
   //
   // actionの初期化は一回しか行わない
@@ -53,8 +52,7 @@ std::vector<std::shared_ptr<action::base>> defense::execute() {
     return re_wall;
   }
   //ゴールの座標
-  // const Eigen::Vector2d goal(world_.field().x_max() * (-1), 0.0);
-  const Eigen::Vector2d goal(4500.0, 0.0);
+  const Eigen::Vector2d goal(world_.field().x_max() * (-1), 0.0);
 
   //半径
   const auto radius = 1400.0;
@@ -184,21 +182,16 @@ std::vector<std::shared_ptr<action::base>> defense::execute() {
     const auto keeper_robot = my_robots.at(keeper_id_);
     const Eigen::Vector2d keeper_c(keeper_robot.x(), keeper_robot.y());
     //速さに掛ける係数
-    auto coefficient = 0.0;
+    Eigen::Vector2d coefficient(Eigen::Vector2d::Zero());
 
     if (std::signbit(goal.x() * (-1)) ==
-        std::signbit((ball.x() + (std::signbit(goal.x() * (-1)) ? 100 : -100)))) { // A
+        std::signbit((ball.x() + (std::signbit(goal.x() * (-1)) ? 500 : -500)))) { // A
       //ゴール直前でボールに併せて横移動
 
       keeper.x()  = goal.x() + (std::signbit(goal.x()) ? 110.0 : -110.0);
       keeper.y()  = ((ball.y() >= -500 && ball.y() <= 500) ? ball.y() : 0);
-      coefficient = 7.0;
+      coefficient = {0.5, 7.0};
 
-      //違う状態同士の移動は速度を抑える
-      if (status_ != defense::keeper_status::level_green) {
-        coefficient = 0.3;
-      }
-      status_ = defense::keeper_status::level_green;
     } else if (std::signbit(std::pow(ball.x() - goal.x(), 2) + std::pow(ball.y(), 2) -
                             std::pow(demarcation, 2))) { // C
       //ゴール前でディフェンスする
@@ -211,12 +204,7 @@ std::vector<std::shared_ptr<action::base>> defense::execute() {
         keeper = (1 - ratio) * goal + ratio * ball;
       }
 
-      coefficient = 7.0;
-      //違う状態同士の移動は速度を抑える
-      if (status_ != defense::keeper_status::level_red) {
-        coefficient = 1.5;
-      }
-      status_ = defense::keeper_status::level_red;
+      coefficient = {7.0, 7.0};
     } else { // B
              //壁のすぐ後ろで待機
       auto shift = 0.0;
@@ -236,19 +224,14 @@ std::vector<std::shared_ptr<action::base>> defense::execute() {
           keeper.y() <= 250) { //もし基準座標が直線の範囲だったら直線に叩き込む
         keeper.x() = (goal.x() + (std::signbit(goal.x()) ? 910 : -910));
       }
-      coefficient = 7.0;
-      //違う状態同士の移動は速度を抑える
-      if (status_ != defense::keeper_status::level_yellow) {
-        coefficient = 2.0;
-      }
-      status_ = defense::keeper_status::level_yellow;
+      coefficient = {7.0, 7.0};
     }
 
     const auto keeper_theta = util::wrap_to_2pi(keeper_robot.theta());
 
     //移動目標
-    const Eigen::Vector2d sign((keeper.x() - keeper_c.x()) * coefficient,
-                               (keeper.y() - keeper_c.y()) * coefficient);
+    const Eigen::Vector2d sign((keeper.x() - keeper_c.x()) * coefficient.x(),
+                               (keeper.y() - keeper_c.y()) * coefficient.y());
 
     //ボールの向きを向くために,ゴール<->ボールの角度-自身の角度 をしてそれを角速度とする.
     const auto omega =

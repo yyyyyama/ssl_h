@@ -17,8 +17,6 @@ class defense : public base {
 public:
   defense(const model::world& world, bool is_yellow, unsigned int keeper_id,
           const std::vector<unsigned int>& wall_ids);
-  //ボールがどの範囲にあるかで警戒度を変える.
-  enum class keeper_status { level_green, level_yellow, level_red };
   std::vector<std::shared_ptr<action::base>> execute() override;
 
 private:
@@ -28,7 +26,6 @@ private:
   std::shared_ptr<action::vec> keeper_;
   std::vector<Eigen::Vector2d> target_;
   Eigen::Vector2d orientation_;
-  keeper_status status_;
 };
 }
 }
