@@ -229,6 +229,9 @@ std::vector<std::shared_ptr<action::base>> defense::execute() {
 
     const auto keeper_theta = util::wrap_to_2pi(keeper_robot.theta());
 
+    if ((keeper - keeper_c).norm() < 300) {
+      coefficient = {0.8, 0.8};
+    }
     //移動目標
     const Eigen::Vector2d sign((keeper.x() - keeper_c.x()) * coefficient.x(),
                                (keeper.y() - keeper_c.y()) * coefficient.y());
