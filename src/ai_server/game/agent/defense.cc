@@ -119,18 +119,16 @@ std::vector<std::shared_ptr<action::base>> defense::execute() {
         const Eigen::Vector2d tmp2(tmp1.x(), tmp1.y() * (-1));
 
         //回転した後の正しい座標
-        Eigen::Vector2d c1 = (rotate * tmp1) + move;
-        Eigen::Vector2d c2 = (rotate * tmp2) + move;
+        (*target_it++) = (rotate * tmp1) + move;
+        (*target_it++) = (rotate * tmp2) + move;
 
-        //もしディフェンスエリアないに入ってしまったも順番が入れ替わらないようにする
+        //もしディフェンスエリアないに入ってしまっても順番が入れ替わらないようにする
         if ((std::pow(ball.x() - goal.x(), 2) + std::pow(ball.y() - goal.y(), 2) -
              std::pow(1340.0, 2)) < 0) {
-          const auto tmp = c1;
-          c1             = c2;
-          c2             = tmp;
+          const auto tmp   = *(target_it - 2);
+          *(target_it - 2) = *(target_it - 1);
+          *(target_it - 1) = tmp;
         }
-        (*target_it++) = c1;
-        (*target_it++) = c2;
       }
     }
     {
@@ -145,8 +143,7 @@ std::vector<std::shared_ptr<action::base>> defense::execute() {
         const auto wall_theta = util::wrap_to_2pi(wall_robot.theta());
 
         //移動目標
-        const Eigen::Vector2d sign(((*target_it).x() - wall.x()) * 6.0,
-                                   ((*target_it).y() - wall.y()) * 6.0);
+        const Eigen::Vector2d sign(((*target_it) - wall) * 6.0);
 
         //ボールの向きを向くために,ゴール<->ボールの角度-自身の角度 をしてそれを角速度とする.
         const auto omega =
@@ -171,8 +168,7 @@ std::vector<std::shared_ptr<action::base>> defense::execute() {
   {
     const auto demarcation = 3000.0; //縄張りの大きさ
 
-    Eigen::Vector2d keeper;
-    keeper                  = Eigen::Vector2d::Zero();
+    Eigen::Vector2d keeper(Eigen::Vector2d::Zero());
     const auto my_robots    = is_yellow_ ? world_.robots_yellow() : world_.robots_blue();
     const auto keeper_robot = my_robots.at(keeper_id_);
     const Eigen::Vector2d keeper_c(keeper_robot.x(), keeper_robot.y());
@@ -186,6 +182,10 @@ std::vector<std::shared_ptr<action::base>> defense::execute() {
       keeper.y()  = ((ball.y() >= -500 && ball.y() <= 500) ? ball.y() : 0);
       coefficient = 6.0;
 
+      //違う状態同士の移動は速度を抑える
+      if (status_ != defense::keeper_status::level_green) {
+        coefficient = 1.0;
+      }
       status_ = defense::keeper_status::level_green;
     } else if (std::signbit(std::pow(ball.x() - goal.x(), 2) + std::pow(ball.y(), 2) -
                             std::pow(demarcation, 2))) { // C
@@ -200,10 +200,11 @@ std::vector<std::shared_ptr<action::base>> defense::execute() {
       }
 
       coefficient = 6.0;
-      if (status_ == defense::keeper_status::level_yellow) {
+      //違う状態同士の移動は速度を抑える
+      if (status_ != defense::keeper_status::level_red) {
         coefficient = 1.5;
       }
-      status_ = defense::keeper_status::level_green;
+      status_ = defense::keeper_status::level_red;
     } else { // B
              //壁のすぐ後ろで待機
       auto shift = 0.0;
@@ -224,7 +225,11 @@ std::vector<std::shared_ptr<action::base>> defense::execute() {
         keeper.x() = (goal.x() + (std::signbit(goal.x()) ? 910 : -910));
       }
       coefficient = 6.0;
-      status_     = defense::keeper_status::level_yellow;
+      //違う状態同士の移動は速度を抑える
+      if (status_ != defense::keeper_status::level_yellow) {
+        coefficient = 2.0;
+      }
+      status_ = defense::keeper_status::level_yellow;
     }
 
     const auto keeper_theta = util::wrap_to_2pi(keeper_robot.theta());
