@@ -122,7 +122,7 @@ std::vector<std::shared_ptr<action::base>> defense::execute() {
           std::hypot(after_base.x() - after_ball.x(), after_base.y() - after_ball.y());
       after_base.y() = 0.0;
 
-      for (auto shift = shift_; wall_it != wall_.end(); shift += (shift_*2), wall_it += 2) {
+      for (auto shift = shift_; wall_it != wall_.end(); shift += (shift_ * 2), wall_it += 2) {
         //移動した先での仮の座標
         const Eigen::Vector2d tmp1(after_base.x(), shift);
         const Eigen::Vector2d tmp2(tmp1.x(), tmp1.y() * (-1));
@@ -241,10 +241,6 @@ std::vector<std::shared_ptr<action::base>> defense::execute() {
         coefficient = {6.5, 7.0};
       }
 
-      //移動距離が短ければ移動速度低下さ
-      if ((keeper - keeper_c).norm() < 100) {
-        coefficient = {0.8, 0.8};
-      }
       //移動目標
       const Eigen::Vector2d sign((keeper.x() - keeper_c.x()) * coefficient.x(),
                                  (keeper.y() - keeper_c.y()) * coefficient.y());
