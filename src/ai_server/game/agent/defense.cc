@@ -24,9 +24,7 @@ defense::defense(const model::world& world, bool is_yellow, unsigned int keeper_
   //
   //キーパー用のaction
   //移動用
-  keeper_v_ = std::make_shared<action::vec>(world_, is_yellow_, keeper_id_);
-  //キック用
-  keeper_k_ = std::make_shared<action::kick_action>(world_, is_yellow_, keeper_id_);
+  keeper_ = std::make_shared<action::vec>(world_, is_yellow_, keeper_id_);
 
   //壁用のaction
   for (auto it : wall_ids_) {
@@ -41,19 +39,19 @@ std::vector<std::shared_ptr<action::base>> defense::execute() {
   //ボールの座標
   const Eigen::Vector2d ball(world_.ball().x(), world_.ball().y());
 
-	//ボールがゴールより後ろに喜多羅現状維持
-	if(ball.x()<-4500.0||ball.x()>4500.0){
-		for(auto wall_it:wall_){
+  //ボールがゴールより後ろに喜多羅現状維持
+  if (ball.x() < -4500.0 || ball.x() > 4500.0) {
+    for (auto wall_it : wall_) {
       wall_it->move_to(0.0, 0.0, 0.0);
-		}
-   keeper_v_->move_to(0.0, 0.0, 0.0);
+    }
+    keeper_v_->move_to(0.0, 0.0, 0.0);
 
-   std::vector<std::shared_ptr<action::base>> re_wall{
-      wall_.begin(), wall_.end()}; //型を合わせるために無理矢理作り直す
-   re_wall.push_back(keeper_v_); //配列を返すためにキーパーを統合する
+    std::vector<std::shared_ptr<action::base>> re_wall{
+        wall_.begin(), wall_.end()}; //型を合わせるために無理矢理作り直す
+    re_wall.push_back(keeper_);      //配列を返すためにキーパーを統合する
 
-	 return re_wall;
-	}
+    return re_wall;
+  }
   //ゴールの座標
   // const Eigen::Vector2d goal(world_.field().x_max(), 0.0);
   const Eigen::Vector2d goal(4500.0, 0.0);
@@ -254,7 +252,7 @@ std::vector<std::shared_ptr<action::base>> defense::execute() {
     //ボールの向きを向くために,ゴール<->ボールの角度-自身の角度 をしてそれを角速度とする.
     const auto omega =
         util::wrap_to_2pi(std::atan2(ball.y() - goal.y(), ball.x() - goal.x())) - keeper_theta;
-    keeper_v_->move_to(sign.x(), sign.y(), omega);
+    keeper_->move_to(sign.x(), sign.y(), omega);
 
     re_wall.push_back(keeper_v_); //配列を返すためにキーパーを統合する
   }
