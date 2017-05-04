@@ -185,7 +185,7 @@ std::vector<std::shared_ptr<action::base>> defense::execute() {
     //速さに掛ける係数
     auto coefficient = 0.0;
 
-    if (std::signbit(ball.x()) == std::signbit(goal.x() * (-1))) { // A
+    if (std::signbit(ball.x()) == std::signbit(std::signbit(goal.x()) ? -100 : 100)) { // A
       //ゴール直前でボールに併せて横移動
 
       keeper.x()  = goal.x() + (std::signbit(goal.x() ? 100.0 : -100.0));
