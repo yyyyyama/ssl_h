@@ -57,7 +57,7 @@ std::vector<std::shared_ptr<action::base>> defense::execute() {
     return re_wall;
   }
   //ゴールの座標
-   const Eigen::Vector2d goal(world_.field().x_min(), 0.0);
+  const Eigen::Vector2d goal(world_.field().x_min(), 0.0);
 
   const auto ball_theta =
       std::signbit(goal.x())
