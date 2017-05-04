@@ -7,7 +7,7 @@ namespace ai_server {
 namespace controller {
 namespace detail {
 
-const double sliding_mode_controller::a_max_ = 3000.0;
+const double sliding_mode_controller::a_max_ = 4000.0;
 const double sliding_mode_controller::kp_    = 1.0;
 
 sliding_mode_controller::sliding_mode_controller(double cycle) : cycle_(cycle) {
