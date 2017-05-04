@@ -43,7 +43,7 @@ std::vector<std::shared_ptr<action::base>> defense::execute() {
   //ボールの座標
   const Eigen::Vector2d ball(world_.ball().x(), world_.ball().y());
 
-  //ボールがゴールより後ろに喜多羅現状維持
+  //ボールがゴールより後ろに来たら現状維持
   if (ball.x() < -4500.0 || ball.x() > 4500.0) {
     for (auto wall_it : wall_) {
       wall_it->move_to(0.0, 0.0, 0.0);
@@ -57,7 +57,8 @@ std::vector<std::shared_ptr<action::base>> defense::execute() {
     return re_wall;
   }
   //ゴールの座標
-  const Eigen::Vector2d goal(world_.field().x_max() * (-1), 0.0);
+  // const Eigen::Vector2d goal(world_.field().x_min(), 0.0);
+  const Eigen::Vector2d goal(4500.0, 0.0);
 
   const auto ball_theta =
       std::signbit(goal.x())
@@ -213,6 +214,7 @@ std::vector<std::shared_ptr<action::base>> defense::execute() {
       switch (mode_) {
         case defense_mode::normal_mode: {
           const auto demarcation = 2500.0; //縄張りの大きさ
+          //めっちゃ近くにボールがあったら蹴ってみたいね
           if (std::signbit(std::pow(ball.x() - goal.x(), 2) + std::pow(ball.y() - goal.y(), 2) -
                            std::pow(600, 2))) {
             if (std::signbit(std::pow(ball.x() - keeper_robot.x(), 2) +
@@ -300,13 +302,13 @@ std::vector<std::shared_ptr<action::base>> defense::execute() {
           //キーパーのy座標は敵シューターの視線の先
           keeper.y() =
               1000.0 * std::tan(util::wrap_to_2pi(enemy_robots.at(enemy_robot_id).theta()));
-          //ゴールの幅をこえたらでないようにする
           if (keeper.y() > 410) {
             keeper.y() = 410;
           } else if (keeper.y() < -410) {
             keeper.y() = -410;
           }
-
+          //自チームゴールが正か負かで向きが反転するので直す
+          keeper.y() *= (std::signbit(goal.x()) ? -1 : 1);
           keeper.x() = goal.x() + (std::signbit(goal.x()) ? 110.0 : -110.0);
           break;
         }
