@@ -57,8 +57,7 @@ std::vector<std::shared_ptr<action::base>> defense::execute() {
     return re_wall;
   }
   //ゴールの座標
-  // const Eigen::Vector2d goal(world_.field().x_min(), 0.0);
-  const Eigen::Vector2d goal(4500.0, 0.0);
+   const Eigen::Vector2d goal(world_.field().x_min(), 0.0);
 
   const auto ball_theta =
       std::signbit(goal.x())
@@ -309,6 +308,7 @@ std::vector<std::shared_ptr<action::base>> defense::execute() {
           }
           //自チームゴールが正か負かで向きが反転するので直す
           keeper.y() *= (std::signbit(goal.x()) ? -1 : 1);
+
           keeper.x() = goal.x() + (std::signbit(goal.x()) ? 110.0 : -110.0);
           break;
         }
