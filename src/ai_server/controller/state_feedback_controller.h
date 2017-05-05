@@ -32,9 +32,8 @@ private:
   const static double reach_speed_;      // 加速度上昇の速さ
   std::vector<std::unique_ptr<detail::sliding_mode_controller>> sliding_mode_;
   std::unique_ptr<detail::smith_predictor> smith_predictor_;
-
   // レギュレータ部
-  void regulator(const model::robot& robot);
+  void calculate_regulator(const model::robot& robot);
 
   // フィールド基準座標系からロボット基準座標系に変換
   position_t convert(const position_t pos, const double robot_theta);

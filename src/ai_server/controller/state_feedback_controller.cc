@@ -92,7 +92,7 @@ state_feedback_controller::state_feedback_controller(double cycle) : cycle_(cycl
 
 velocity_t state_feedback_controller::update(const model::robot& robot,
                                              const position_t& setpoint) {
-  regulator(robot);
+  calculate_regulator(robot);
   position_t e_p = setpoint - position_t{estimated_robot_.x(), estimated_robot_.y(),
                                          estimated_robot_.theta()};
   position_t delta_p = convert(e_p, estimated_robot_.theta());
@@ -116,7 +116,7 @@ velocity_t state_feedback_controller::update(const model::robot& robot,
 
 velocity_t state_feedback_controller::update(const model::robot& robot,
                                              const velocity_t& setpoint) {
-  regulator(robot);
+  calculate_regulator(robot);
 
   velocity_t target = convert(setpoint, estimated_robot_.theta());
 
@@ -160,7 +160,7 @@ velocity_t state_feedback_controller::update(const model::robot& robot,
   return u_[0];
 }
 
-void state_feedback_controller::regulator(const model::robot& robot) {
+void state_feedback_controller::calculate_regulator(const model::robot& robot) {
   // 前回制御入力をフィールド基準に座標変換
   velocity_t pre_u;
   double u_direction = std::atan2(u_[1].vy, u_[1].vx);
