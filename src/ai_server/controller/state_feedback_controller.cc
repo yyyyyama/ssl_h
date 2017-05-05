@@ -64,11 +64,7 @@ const velocity_t operator/(const velocity_t& vel, const double& c) {
   return {vel.vx / c, vel.vy / c, vel.omega / c};
 }
 
-state_feedback_controller::state_feedback_controller(double cycle) : cycle_(cycle) {
-  for (int i = 0; i < 2; i++) {
-    sliding_mode_.push_back(std::make_unique<detail::sliding_mode_controller>(cycle_));
-  }
-  smith_predictor_ = std::make_unique<detail::smith_predictor>(cycle_, zeta_, omega_);
+state_feedback_controller::state_feedback_controller(double cycle) : cycle_(cycle),smith_predictor_(cycle_,zeta_,omega_) {
   // 状態フィードバックゲイン
   // (s+k)^2=s^2+2ks+k^2=0
   // |sI-A|=s^2+(2ζω-k2ω^2)s+ω^2-k1ω^2
@@ -98,8 +94,8 @@ velocity_t state_feedback_controller::update(const model::robot& robot,
   position_t delta_p = convert(e_p, estimated_robot_.theta());
 
   velocity_t target;
-  target.vx    = sliding_mode_.at(0)->control_pos(-delta_p.x);
-  target.vy    = sliding_mode_.at(1)->control_pos(-delta_p.y);
+  target.vx    = sliding_mode_[0].control_pos(-delta_p.x);
+  target.vy    = sliding_mode_[1].control_pos(-delta_p.y);
   target.omega = clamp(util::wrap_to_pi(delta_p.theta) * 2, -pi<double>(), pi<double>());
 
   u_[0] = u_[0] + (std::pow(k_, 2) / std::pow(omega_, 2)) * target;
@@ -171,7 +167,7 @@ void state_feedback_controller::calculate_regulator(const model::robot& robot) {
   pre_u.omega = u_[1].omega;
 
   // smith_predictorでvisionの遅れ時間の補間
-  Eigen::Matrix3d now_state = smith_predictor_->interpolate(robot, pre_u);
+  Eigen::Matrix3d now_state = smith_predictor_.interpolate(robot, pre_u);
   estimated_robot_.set_x(now_state(0, 0));
   estimated_robot_.set_y(now_state(1, 0));
   estimated_robot_.set_theta(now_state(2, 0));
