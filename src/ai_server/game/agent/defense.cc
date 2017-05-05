@@ -93,7 +93,7 @@ std::vector<std::shared_ptr<action::base>> defense::execute() {
       //基準点からどれだけずらすか
       auto shift_ = 0.0;
 
-      const auto demarcation = 2500.0; //縄張りの大きさ
+      const auto demarcation = 2000.0; //縄張りの大きさ
       //壁の数によってずらしていく倍率が変わるのでその倍率
       auto magnification = 0.0;
       Eigen::Vector2d odd{0.0, 0.0};
@@ -127,10 +127,10 @@ std::vector<std::shared_ptr<action::base>> defense::execute() {
       } else { //偶数
         magnification = 2.0;
         shift_        = 190.0;
-/*        if (std::signbit(std::pow(ball.x() - goal.x(), 2) + std::pow(ball.y(), 2) -
+        if (std::signbit(std::pow(ball.x() - goal.x(), 2) + std::pow(ball.y(), 2) -
                          std::pow(demarcation, 2))) {
           shift_ = 90;
-        }*/
+        }
       }
       //移動した量
       const Eigen::Vector2d move(ball.x(), ball.y());
@@ -265,7 +265,7 @@ std::vector<std::shared_ptr<action::base>> defense::execute() {
             const auto length =
 //                std::hypot(shift - ball.x(), goal.y() - ball.y()); //基準点<->ボール
                 std::hypot(goal.x() - ball.x(), shift - ball.y()); //基準点<->ボール
-            const auto ratio = (1250) / length; //全体に対してのキーパー位置の比
+            const auto ratio = (1160) / length; //全体に対してのキーパー位置の比
 
             keeper.x() = (1 - ratio) * goal.x()  + ratio * ball.x();
             keeper.y() = (1 - ratio) * shift+ ratio * ball.y();
