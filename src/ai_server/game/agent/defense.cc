@@ -35,7 +35,6 @@ void defense::set_mode(defense_mode mode) {
 }
 
 std::vector<std::shared_ptr<action::base>> defense::execute() {
-
   //ボールの座標
   const Eigen::Vector2d ball(world_.ball().x(), world_.ball().y());
 
@@ -48,7 +47,7 @@ std::vector<std::shared_ptr<action::base>> defense::execute() {
 
     std::vector<std::shared_ptr<action::base>> re_wall{
         wall_.begin(), wall_.end()}; //型を合わせるために無理矢理作り直す
-    re_wall.push_back(keeper_);    //配列を返すためにキーパーを統合する
+    re_wall.push_back(keeper_);      //配列を返すためにキーパーを統合する
 
     return re_wall;
   }
@@ -92,17 +91,20 @@ std::vector<std::shared_ptr<action::base>> defense::execute() {
       auto shift_ = 0.0;
 
       const auto demarcation = 2500.0; //縄張りの大きさ
+      auto magnification     = 0.0;
 
       if (wall_.size() % 2) { //奇数
         (*target_it++) = orientation_;
         wall_it++;
-        shift_ = 400.0;
+        magnification = 1.0;
+        shift_        = 400.0;
         if (std::signbit(std::pow(ball.x() - goal.x(), 2) + std::pow(ball.y(), 2) -
                          std::pow(demarcation, 2))) {
           shift_ = 200;
         }
       } else { //偶数
-        shift_ = 210.0;
+        magnification = 2.0;
+        shift_        = 210.0;
         if (std::signbit(std::pow(ball.x() - goal.x(), 2) + std::pow(ball.y(), 2) -
                          std::pow(demarcation, 2))) {
           shift_ = 110;
@@ -127,7 +129,8 @@ std::vector<std::shared_ptr<action::base>> defense::execute() {
           std::hypot(after_base.x() - after_ball.x(), after_base.y() - after_ball.y());
       after_base.y() = 0.0;
 
-      for (auto shift = shift_; wall_it != wall_.end(); shift += (shift_ * 2), wall_it += 2) {
+      for (auto shift = shift_; wall_it != wall_.end();
+           shift += (shift_ * magnification), wall_it += 2) {
         //移動した先での仮の座標
         const Eigen::Vector2d tmp1(after_base.x(), shift);
         const Eigen::Vector2d tmp2(tmp1.x(), tmp1.y() * (-1));
@@ -191,7 +194,7 @@ std::vector<std::shared_ptr<action::base>> defense::execute() {
     // A:ボールが敵陣地なので多分そこまで動く必要はない
     // B:ボールが自陣地なので壁の補強をしなければ
     // C:ボールはゴールの直ぐ目の前なのでゴールまえでジャンプしてでも止める
-		//
+    //
     //
     {
       Eigen::Vector2d keeper(Eigen::Vector2d::Zero());
@@ -207,49 +210,49 @@ std::vector<std::shared_ptr<action::base>> defense::execute() {
       switch (mode_) {
         case defense_mode::normal_mode: {
           const auto demarcation = 2000.0; //縄張りの大きさ
-            if (std::signbit(goal.x() * (-1)) ==
-                std::signbit((ball.x() + (std::signbit(goal.x() * (-1)) ? 500 : -500)))) { // A
-              //ゴール直前でボールに併せて横移動
+          if (std::signbit(goal.x() * (-1)) ==
+              std::signbit((ball.x() + (std::signbit(goal.x() * (-1)) ? 500 : -500)))) { // A
+            //ゴール直前でボールに併せて横移動
 
-              keeper.x()  = goal.x() + (std::signbit(goal.x()) ? 110.0 : -110.0);
-              keeper.y()  = ((ball.y() >= -500 && ball.y() <= 500) ? ball.y() : 0);
-              coefficient = {0.7, 7.0};
+            keeper.x()  = goal.x() + (std::signbit(goal.x()) ? 110.0 : -110.0);
+            keeper.y()  = ((ball.y() >= -500 && ball.y() <= 500) ? ball.y() : 0);
+            coefficient = {0.7, 7.0};
 
-            } else if (std::signbit(std::pow(ball.x() - goal.x(), 2) +
-                                    std::pow(ball.y() - goal.y(), 2) -
-                                    std::pow(demarcation, 2))) { // C
-              //ゴール前でディフェンスする
+          } else if (std::signbit(std::pow(ball.x() - goal.x(), 2) +
+                                  std::pow(ball.y() - goal.y(), 2) -
+                                  std::pow(demarcation, 2))) { // C
+            //ゴール前でディフェンスする
 
-              {
-                //ゴール前で張ってるキーパの位置
-                const auto length = std::hypot(goal.x() - ball.x(), ball.y()); //ゴール<->ボール
-                const auto ratio = (410) / length; //全体に対してのキーパー位置の比
+            {
+              //ゴール前で張ってるキーパの位置
+              const auto length = std::hypot(goal.x() - ball.x(), ball.y()); //ゴール<->ボール
+              const auto ratio = (410) / length; //全体に対してのキーパー位置の比
 
-                keeper = (1 - ratio) * goal + ratio * ball;
-              }
-              coefficient = {6.0, 7.0};
-            }else { // B
-                     //壁のすぐ後ろで待機
-              auto shift = 0.0;
-              if (orientation_.y() > 250) {
-                shift = 250;
-              } else if (orientation_.y() < -250) {
-                shift = -250;
-              }
-              //基準点からちょっと下がったキーパの位置
-              const auto length =
-                  std::hypot(goal.x() - ball.x(), shift - ball.y()); //基準点<->ボール
-              const auto ratio = (910) / length; //全体に対してのキーパー位置の比
-
-              keeper.x() = (1 - ratio) * goal.x() + ratio * ball.x();
-              keeper.y() = (1 - ratio) * shift + ratio * ball.y();
-
-              if (keeper.y() >= -250 &&
-                  keeper.y() <= 250) { //もし基準座標が直線の範囲だったら直線に叩き込む
-                keeper.x() = (goal.x() + (std::signbit(goal.x()) ? 910 : -910));
-              }
-              coefficient = {6.5, 7.0};
+              keeper = (1 - ratio) * goal + ratio * ball;
             }
+            coefficient = {6.0, 7.0};
+          } else { // B
+                   //壁のすぐ後ろで待機
+            auto shift = 0.0;
+            if (orientation_.y() > 250) {
+              shift = 250;
+            } else if (orientation_.y() < -250) {
+              shift = -250;
+            }
+            //基準点からちょっと下がったキーパの位置
+            const auto length =
+                std::hypot(goal.x() - ball.x(), shift - ball.y()); //基準点<->ボール
+            const auto ratio = (910) / length; //全体に対してのキーパー位置の比
+
+            keeper.x() = (1 - ratio) * goal.x() + ratio * ball.x();
+            keeper.y() = (1 - ratio) * shift + ratio * ball.y();
+
+            if (keeper.y() >= -250 &&
+                keeper.y() <= 250) { //もし基準座標が直線の範囲だったら直線に叩き込む
+              keeper.x() = (goal.x() + (std::signbit(goal.x()) ? 910 : -910));
+            }
+            coefficient = {6.5, 7.0};
+          }
           break;
         }
         case defense_mode::pk_mode: {
