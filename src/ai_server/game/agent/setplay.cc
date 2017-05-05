@@ -100,12 +100,12 @@ std::vector<std::shared_ptr<action::base>> setplay::execute() {
         }
       }
 
-      // const double power = 100;
-      const double power = 5;
+      const double power = 100;
+      // const double power = 5;
 
       kick_->kick_to(enemygoal, target);
       kick_->set_mode(action::kick_action::mode::ball);
-      kick_->set_anglemargin(0.03);
+      kick_->set_anglemargin(0.02);
       kick_->set_kick_type({model::command::kick_type_t::line, power});
       baseaction.push_back(kick_);
     }
@@ -258,16 +258,16 @@ std::vector<std::shared_ptr<action::base>> setplay::execute() {
         // line_flag = true;
 
         if (line_flag) {
-          // const double power = 30;
-          const double power = 5;
+          const double power = 30;
+          // const double power = 5;
 
           kick_->set_dribble(4);
           kick_->set_anglemargin(0.01);
           kick_->set_kick_type({model::command::kick_type_t::line, power});
         } else {
           /* ここで距離とパワーの変換関数を入れたい */
-          const double power = 10;
-          // const double power = 150;
+          const double power = 150;
+          // const double power = 10;
 
           kick_->set_dribble(4);
           kick_->set_anglemargin(0.01);
@@ -359,8 +359,8 @@ std::vector<std::shared_ptr<action::base>> setplay::execute() {
                   }
 
                   if (std::hypot(ball.x() - receiver.x(), ball.y() - receiver.y()) < 1000) {
-                    // const double power = 100;
-                    const double power = 5;
+                    const double power = 100;
+                    // const double power = 5;
 
                     kick_->kick_to(enemygoal, target);
                     kick_->set_dribble(9);
@@ -389,8 +389,8 @@ std::vector<std::shared_ptr<action::base>> setplay::execute() {
                 baseaction.push_back(make_action<action::no_operation>(receiver_id));
               }
             } else {
-              // const double power = 100;
-              const double power = 5;
+              const double power = 100;
+              // const double power = 5;
 
               kick_->kick_to(enemygoal, 0);
               kick_->set_dribble(9);
