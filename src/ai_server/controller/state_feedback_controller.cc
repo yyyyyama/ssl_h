@@ -64,7 +64,8 @@ const velocity_t operator/(const velocity_t& vel, const double& c) {
   return {vel.vx / c, vel.vy / c, vel.omega / c};
 }
 
-state_feedback_controller::state_feedback_controller(double cycle) : cycle_(cycle),smith_predictor_(cycle_,zeta_,omega_) {
+state_feedback_controller::state_feedback_controller(double cycle)
+    : cycle_(cycle), smith_predictor_(cycle_, zeta_, omega_) {
   // 状態フィードバックゲイン
   // (s+k)^2=s^2+2ks+k^2=0
   // |sI-A|=s^2+(2ζω-k2ω^2)s+ω^2-k1ω^2

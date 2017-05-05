@@ -30,7 +30,7 @@ private:
   const static double max_acceleration_; // 最大加速度
   const static double min_acceleration_; // 最小加速度
   const static double reach_speed_;      // 加速度上昇の速さ
-  detail::sliding_mode_controller sliding_mode_[2]={cycle_,cycle_};
+  detail::sliding_mode_controller sliding_mode_[2] = {cycle_, cycle_};
   detail::smith_predictor smith_predictor_;
 
   // レギュレータ部
