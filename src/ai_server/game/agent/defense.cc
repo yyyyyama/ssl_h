@@ -52,8 +52,8 @@ std::vector<std::shared_ptr<action::base>> defense::execute() {
     return re_wall;
   }
   //ゴールの座標
-//  const Eigen::Vector2d goal(world_.field().x_min(), 0.0);
-  const Eigen::Vector2d goal(4500.0, 0.0);
+  const Eigen::Vector2d goal(world_.field().x_min(), 0.0);
+  //  const Eigen::Vector2d goal(4500.0, 0.0);
 
   const auto ball_theta =
       std::signbit(goal.x())
@@ -91,7 +91,7 @@ std::vector<std::shared_ptr<action::base>> defense::execute() {
       //基準点からどれだけずらすか
       auto shift_ = 0.0;
 
-      const auto demarcation = 2500.0; //縄張りの大きさ
+      const auto demarcation = 2000.0; //縄張りの大きさ
       //壁の数によってずらしていく倍率が変わるのでその倍率
       auto magnification = 0.0;
       Eigen::Vector2d odd{0.0, 0.0};
@@ -104,16 +104,15 @@ std::vector<std::shared_ptr<action::base>> defense::execute() {
 
           odd = (1 - ratio) * orientation_ + ratio * ball;
         }
-				if(std::abs(odd.x())>std::abs(orientation_.x())){
-					{
-          const auto length = (orientation_ - ball).norm(); //ボール<->ゴール
+        if (std::abs(odd.x()) > std::abs(orientation_.x())) {
+          {
+            const auto length = (orientation_ - ball).norm(); //ボール<->ゴール
 
-          const auto ratio = -400 / length; //全体に対しての基準座標の比
+            const auto ratio = -400 / length; //全体に対しての基準座標の比
 
-          odd = (1 - ratio) * orientation_ + ratio * ball;
-        	}
-
-				}
+            odd = (1 - ratio) * orientation_ + ratio * ball;
+          }
+        }
         (*target_it++) = odd;
         wall_it++;
         magnification = 1.0;
@@ -184,7 +183,7 @@ std::vector<std::shared_ptr<action::base>> defense::execute() {
                                         : util::wrap_to_2pi(wall_robot.theta());
 
             //移動目標
-            const Eigen::Vector2d sign(((*target_it) - wall) * 6.0);
+            const Eigen::Vector2d sign(((*target_it) - wall) * 4.0);
 
             //ボールの向きを向くために,ゴール<->ボールの角度-自身の角度
             //をしてそれを角速度とする.
@@ -250,7 +249,7 @@ std::vector<std::shared_ptr<action::base>> defense::execute() {
 
               keeper = (1 - ratio) * goal + ratio * ball;
             }
-            coefficient = {6.0, 7.0};
+            coefficient = {5.5, 7.0};
           } else { // B
                    //壁のすぐ後ろで待機
             auto shift = 0.0;
@@ -271,14 +270,14 @@ std::vector<std::shared_ptr<action::base>> defense::execute() {
                 keeper.y() <= 250) { //もし基準座標が直線の範囲だったら直線に叩き込む
               keeper.x() = (goal.x() + (std::signbit(goal.x()) ? 910 : -910));
             }
-            coefficient = {6.5, 7.0};
+            coefficient = {5.5, 6.0};
           }
           break;
         }
         case defense_mode::pk_mode: {
           const auto enemy_robots = is_yellow_ ? world_.robots_blue() : world_.robots_yellow();
 
-          coefficient = {7.0, 7.0};
+          coefficient = {5.0, 5.0};
           //敵のシューターを線形探索する
           //
           //
