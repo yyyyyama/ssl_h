@@ -91,19 +91,28 @@ std::vector<std::shared_ptr<action::base>> defense::execute() {
       auto shift_ = 0.0;
 
       const auto demarcation = 2500.0; //縄張りの大きさ
-      auto magnification     = 0.0;
+      //壁の数によってずらしていく倍率が変わるのでその倍率
+      auto magnification = 0.0;
+      Eigen::Vector2d odd{0.0, 0.0};
 
       if (wall_.size() % 2) { //奇数
-        (*target_it++) = orientation_;
+        {
+          const auto length = (orientation_ - ball).norm(); //ボール<->ゴール
+
+          const auto ratio = 400 / length; //全体に対しての基準座標の比
+
+          odd = (1 - ratio) * orientation_ + ratio * ball;
+        }
+        (*target_it++) = odd;
         wall_it++;
         magnification = 1.0;
-        shift_        = 400.0;
+        shift_        = 250.0;
         if (std::signbit(std::pow(ball.x() - goal.x(), 2) + std::pow(ball.y(), 2) -
                          std::pow(demarcation, 2))) {
           shift_ = 200;
         }
       } else { //偶数
-        magnification = 2.0;
+        magnification = 1.0;
         shift_        = 210.0;
         if (std::signbit(std::pow(ball.x() - goal.x(), 2) + std::pow(ball.y(), 2) -
                          std::pow(demarcation, 2))) {
