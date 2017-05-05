@@ -87,6 +87,7 @@ std::vector<std::shared_ptr<action::base>> defense::execute() {
   {
     //壁のイテレータ
     auto wall_it = wall_.begin();
+    auto C       = 0.0;
 
     {
       auto target_it = target_.begin();
@@ -123,6 +124,7 @@ std::vector<std::shared_ptr<action::base>> defense::execute() {
                          std::pow(demarcation, 2))) {
           *(target_it - 1) = orientation_;
           shift_           = 200;
+        } else {
         }
       } else { //偶数
         magnification = 2.0;
@@ -130,6 +132,9 @@ std::vector<std::shared_ptr<action::base>> defense::execute() {
         if (std::signbit(std::pow(ball.x() - goal.x(), 2) + std::pow(ball.y(), 2) -
                          std::pow(demarcation, 2))) {
           shift_ = 90;
+          C      = 10.0;
+        } else {
+          C = 5.0;
         }
       }
       //移動した量
@@ -183,15 +188,12 @@ std::vector<std::shared_ptr<action::base>> defense::execute() {
             const auto wall_theta = util::wrap_to_pi(wall_robot.theta());
 
             //移動目標
-            const Eigen::Vector2d sign(((*target_it) - wall) * 4.0);
+            const Eigen::Vector2d sign(((*target_it) - wall) * C);
 
             //ボールの向きを向くために,ゴール<->ボールの角度-自身の角度をしてそれを角速度とする.
             const auto omega = ball_theta - wall_theta;
-						std::cout<<"wl theta : "<<wall_theta<<std::endl;
-						std::cout<<"bl theta : "<<ball_theta<<std::endl;
             wall_it->move_to(sign.x(), sign.y(), omega);
             target_it++;
-						std::cout<<"wl omega : "<<omega<<std::endl;
           }
           break;
         }
@@ -308,7 +310,6 @@ coefficient = {5.5, 7.0};
       //ボールの向きを向くために,ゴール<->ボールの角度-自身の角度 をしてそれを角速度とする.
       const auto omega = ball_theta - keeper_theta;
       keeper_->move_to(sign.x(), sign.y(), omega);
-			std::cout<<"kp omega : "<<omega<<std::endl;
 
       re_wall.push_back(keeper_); //配列を返すためにキーパーを統合する
     }
