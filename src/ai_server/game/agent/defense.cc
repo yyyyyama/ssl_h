@@ -112,7 +112,7 @@ std::vector<std::shared_ptr<action::base>> defense::execute() {
           shift_ = 200;
         }
       } else { //偶数
-        magnification = 1.0;
+        magnification = 2.0;
         shift_        = 210.0;
         if (std::signbit(std::pow(ball.x() - goal.x(), 2) + std::pow(ball.y(), 2) -
                          std::pow(demarcation, 2))) {
