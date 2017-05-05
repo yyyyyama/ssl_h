@@ -91,7 +91,7 @@ std::vector<std::shared_ptr<action::base>> defense::execute() {
       //基準点からどれだけずらすか
       auto shift_ = 0.0;
 
-      const auto demarcation = 2000.0; //縄張りの大きさ
+      const auto demarcation = 2500.0; //縄張りの大きさ
       //壁の数によってずらしていく倍率が変わるのでその倍率
       auto magnification = 0.0;
       Eigen::Vector2d odd{0.0, 0.0};
@@ -119,6 +119,7 @@ std::vector<std::shared_ptr<action::base>> defense::execute() {
         shift_        = 200.0;
         if (std::signbit(std::pow(ball.x() - goal.x(), 2) + std::pow(ball.y(), 2) -
                          std::pow(demarcation, 2))) {
+					*(target_it-1) = orientation_;
           shift_ = 200;
         }
       } else { //偶数
@@ -228,7 +229,7 @@ std::vector<std::shared_ptr<action::base>> defense::execute() {
       Eigen::Vector2d coefficient(Eigen::Vector2d::Zero());
       switch (mode_) {
         case defense_mode::normal_mode: {
-          const auto demarcation = 2000.0; //縄張りの大きさ
+          const auto demarcation = 2500.0; //縄張りの大きさ
           if (std::signbit(goal.x() * (-1)) ==
               std::signbit((ball.x() + (std::signbit(goal.x() * (-1)) ? 500 : -500)))) { // A
             //ゴール直前でボールに併せて横移動
