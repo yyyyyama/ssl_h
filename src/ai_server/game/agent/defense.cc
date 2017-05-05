@@ -180,15 +180,18 @@ std::vector<std::shared_ptr<action::base>> defense::execute() {
           for (auto wall_it : wall_) {
             const auto wall_robot = wall_robots.at((*wall_ids_it++));
             const Eigen::Vector2d wall(wall_robot.x(), wall_robot.y());
-            const auto wall_theta = wall_robot.theta();
+            const auto wall_theta = util::wrap_to_pi(wall_robot.theta());
 
             //移動目標
             const Eigen::Vector2d sign(((*target_it) - wall) * 4.0);
 
             //ボールの向きを向くために,ゴール<->ボールの角度-自身の角度をしてそれを角速度とする.
             const auto omega = ball_theta - wall_theta;
+						std::cout<<"wl theta : "<<wall_theta<<std::endl;
+						std::cout<<"bl theta : "<<ball_theta<<std::endl;
             wall_it->move_to(sign.x(), sign.y(), omega);
             target_it++;
+						std::cout<<"wl omega : "<<omega<<std::endl;
           }
           break;
         }
@@ -216,7 +219,7 @@ std::vector<std::shared_ptr<action::base>> defense::execute() {
       const auto my_robots     = is_yellow_ ? world_.robots_yellow() : world_.robots_blue();
       const auto& keeper_robot = my_robots.at(keeper_id_);
       //キーパーの角度
-      const auto keeper_theta = keeper_robot.theta();
+      const auto keeper_theta = util::wrap_to_pi(keeper_robot.theta());
       const Eigen::Vector2d keeper_c(keeper_robot.x(), keeper_robot.y());
       //速さに掛ける係数
       Eigen::Vector2d coefficient(Eigen::Vector2d::Zero());
@@ -305,6 +308,7 @@ coefficient = {5.5, 7.0};
       //ボールの向きを向くために,ゴール<->ボールの角度-自身の角度 をしてそれを角速度とする.
       const auto omega = ball_theta - keeper_theta;
       keeper_->move_to(sign.x(), sign.y(), omega);
+			std::cout<<"kp omega : "<<omega<<std::endl;
 
       re_wall.push_back(keeper_); //配列を返すためにキーパーを統合する
     }
