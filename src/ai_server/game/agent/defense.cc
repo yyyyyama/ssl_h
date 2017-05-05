@@ -52,7 +52,8 @@ std::vector<std::shared_ptr<action::base>> defense::execute() {
     return re_wall;
   }
   //ゴールの座標
-  const Eigen::Vector2d goal(world_.field().x_min(), 0.0);
+//  const Eigen::Vector2d goal(world_.field().x_min(), 0.0);
+  const Eigen::Vector2d goal(4500.0, 0.0);
 
   const auto ball_theta =
       std::signbit(goal.x())
@@ -103,10 +104,20 @@ std::vector<std::shared_ptr<action::base>> defense::execute() {
 
           odd = (1 - ratio) * orientation_ + ratio * ball;
         }
+				if(std::abs(odd.x())>std::abs(orientation_.x())){
+					{
+          const auto length = (orientation_ - ball).norm(); //ボール<->ゴール
+
+          const auto ratio = -400 / length; //全体に対しての基準座標の比
+
+          odd = (1 - ratio) * orientation_ + ratio * ball;
+        	}
+
+				}
         (*target_it++) = odd;
         wall_it++;
         magnification = 1.0;
-        shift_        = 250.0;
+        shift_        = 200.0;
         if (std::signbit(std::pow(ball.x() - goal.x(), 2) + std::pow(ball.y(), 2) -
                          std::pow(demarcation, 2))) {
           shift_ = 200;
