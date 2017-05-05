@@ -125,21 +125,24 @@ model::ball world_updater::build_ball_data(
 
   // フィールドにボールがあれば情報を更新する
   if (reliable_element != balls.cend()) {
-    const auto& ball_data = std::get<1>(*reliable_element);
-    ret.set_x(ball_data->x());
-    ret.set_y(ball_data->y());
-    ret.set_z(ball_data->z());
+    // 各カメラで2つ以上のボールが映らないものとする
+    // 選択したデータのカメラIDとdetectionのカメラIDが一致していたらデータを更新する
+    if (std::get<0>(*reliable_element) == camera_id) {
+      const auto& ball_data = std::get<1>(*reliable_element);
+      ret.set_x(ball_data->x());
+      ret.set_y(ball_data->y());
+      ret.set_z(ball_data->z());
 
-    // 選択したデータのカメラIDとdetectionのカメラIDが一致し,
-    // かつFilterが設定されていたらそれを適用する
-    if (std::get<0>(*reliable_element) == camera_id && !ball_filter_initializers_.empty()) {
-      // Filterが初期化されていなければ初期化する
-      if (ball_filters_.empty()) {
-        ball_filters_ = init_filters(ball_filter_initializers_);
-      }
+      // Filterが設定されていたらそれを適用する
+      if (!ball_filter_initializers_.empty()) {
+        // Filterが初期化されていなければ初期化する
+        if (ball_filters_.empty()) {
+          ball_filters_ = init_filters(ball_filter_initializers_);
+        }
 
-      for (auto&& f : ball_filters_) {
-        f->apply(ret, captured_time);
+        for (auto&& f : ball_filters_) {
+          f->apply(ret, captured_time);
+        }
       }
     }
   }
