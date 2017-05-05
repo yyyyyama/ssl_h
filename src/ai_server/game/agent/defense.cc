@@ -287,17 +287,14 @@ coefficient = {5.5, 7.0};
           }
 
           //キーパーのy座標は敵シューターの視線の先
-          keeper.y() =
-              1000.0 * std::tan(util::wrap_to_2pi(enemy_robots.at(enemy_robot_id).theta()));
+          keeper.y() = (1000.0 * std::tan(enemy_robots.at(enemy_robot_id).theta())) * (-1);
           if (keeper.y() > 410) {
             keeper.y() = 410;
           } else if (keeper.y() < -410) {
             keeper.y() = -410;
           }
-          //自チームゴールが正か負かで向きが反転するので直す
-          keeper.y() *= (std::signbit(goal.x()) ? -1 : 1);
 
-          keeper.x() = goal.x() + (std::signbit(goal.x()) ? 110.0 : -110.0);
+          keeper.x() = goal.x() + 110.0;
           break;
         }
       }
