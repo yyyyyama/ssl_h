@@ -79,7 +79,7 @@ model::command kick_action::execute() {
   const double direction1 = mode_ == mode::goal ? robot_theta : atand3;
   const double direction2 = mode_ == mode::goal ? atand1 : atand3;
   double dis              = 250;
-  if (dribble_ != 33) {
+  if (dribble_ != 3) {
     dis = 200;
   }
 

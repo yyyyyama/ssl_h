@@ -10,6 +10,8 @@
 
 #include "setplay.h"
 
+// #include <iostream>
+
 namespace ai_server {
 namespace game {
 namespace agent {
@@ -27,12 +29,46 @@ std::vector<std::shared_ptr<action::base>> setplay::execute() {
   const auto enemyrobots = is_yellow_ ? world_.robots_blue() : world_.robots_yellow();
   const auto& kicker     = our_robots.at(kicker_id_);
 
-  const auto ball            = world_.ball();
-  const double ballysign     = ball.y() > 0 ? 1.0 : -1.0;
-  const double enemygoal     = world_.field().x_max();
+  const auto ball        = world_.ball();
+  const double ballysign = ball.y() > 0 ? 1.0 : -1.0;
+
+  // const double enemygoal     = world_.field().x_max();
+  // const double enemygoalsign = enemygoal > 0 ? 1.0 : -1.0;
+  const double enemygoal     = 4500;
   const double enemygoalsign = enemygoal > 0 ? 1.0 : -1.0;
 
+  const auto old_ball = ball_log_.front();
+
   const Eigen::Vector2d passpos(enemygoalsign * 1000, 0);
+
+  /* 敵の密集度を行列で評価する このデータ使ってパス位置導出したい */
+  const Eigen::Vector2i split(18, 12);
+  const Eigen::Vector2i gap(9000 / split.x(), 6000 / split.y());
+  Eigen::MatrixXi enemydata = Eigen::MatrixXi::Zero(split.x(), split.y());
+  for (auto enemyrobot_p : enemyrobots) {
+    const auto enemyrobot = std::get<1>(enemyrobot_p);
+    const Eigen::Vector2i point((enemyrobot.x() + 4500) / gap.x(),
+                                (enemyrobot.y() + 3000) / gap.y());
+    for (int i = -1; i <= 1; i++) {
+      for (int j = -1; j <= 1; j++) {
+        const Eigen::Vector2i target(point.x() + i, point.y() + j);
+        if (i == 0 && j == 0) {
+          enemydata(point.x(), point.y()) += 3;
+        } else if (-1 < target.x() && -1 < target.y() && target.x() < split.x() &&
+                   target.y() < split.y()) {
+          enemydata(target.x(), target.y()) += 1;
+        }
+      }
+    }
+  }
+
+  // // std::cout << std::endl;
+  for (int j = split.y() - 1; j >= 0; j--) {
+    for (int i = 0; i < split.x(); i++) {
+      // // std::cout << enemydata(i, j);
+    }
+    // // std::cout << std::endl;
+  }
 
   if (kick_->finished()) {
     if (state_ == state::pass) {
@@ -46,6 +82,7 @@ std::vector<std::shared_ptr<action::base>> setplay::execute() {
 
   switch (state_) {
     case setplay::state::setup: {
+      // // std::cout << "setup" << std::endl;
       if (positions.size() == 0) {
         /* いいかんじのばしょをしていしたかった */
         int i = 0;
@@ -92,7 +129,6 @@ std::vector<std::shared_ptr<action::base>> setplay::execute() {
           auto& receiver  = our_robots.at(receiver_id);
           for (auto enemyrobot_p : enemyrobots) {
             auto enemyrobot = std::get<1>(enemyrobot_p);
-            // if ((enemygoal - enemyrobot.x()) * (receiver.x() - enemyrobot.x() < 0)) {
             if ((ball.x() - enemyrobot.x()) * (receiver.x() - enemyrobot.x() < 0)) {
               Eigen::Vector3d to_shooter(receiver.x() - ball.x(), receiver.y() - ball.y(), 0);
               Eigen::Vector3d to_enemy(enemyrobot.x() - ball.x(), enemyrobot.y() - ball.y(), 0);
@@ -139,6 +175,7 @@ std::vector<std::shared_ptr<action::base>> setplay::execute() {
     }
 
     case state::pass: {
+      // // std::cout << "pass" << std::endl;
       auto shooter = our_robots.at(shooter_id_);
       kick_->set_mode(action::kick_action::mode::ball);
 
@@ -146,8 +183,18 @@ std::vector<std::shared_ptr<action::base>> setplay::execute() {
 
       if (pos_ == pos::near) {
         kick_->kick_to(shooter.x() + enemygoalsign * 100, shooter.y());
-        line_flag = false;
-        // line_flag = true;
+        for (auto enemyrobot_p : enemyrobots) {
+          auto enemyrobot = std::get<1>(enemyrobot_p);
+          Eigen::Vector3d to_shooter(shooter.x() - kicker.x(), shooter.y() - kicker.y(), 0);
+          Eigen::Vector3d to_enemy(enemyrobot.x() - kicker.x(), enemyrobot.y() - kicker.y(), 0);
+          const double distance =
+              std::abs(to_shooter.cross(to_enemy).norm() / to_shooter.norm());
+          if (distance < 100) {
+            line_flag = false;
+            break;
+          }
+        }
+        line_flag = true;
       } else {
         kick_->kick_to(shooter.x(), shooter.y());
         /* 間にロボットがいるか */
@@ -163,6 +210,7 @@ std::vector<std::shared_ptr<action::base>> setplay::execute() {
           }
         }
       }
+      // line_flag = true;
 
       if (line_flag) {
         const double power = 30;
@@ -172,7 +220,7 @@ std::vector<std::shared_ptr<action::base>> setplay::execute() {
         kick_->set_anglemargin(0.01);
         kick_->set_kick_type({model::command::kick_type_t::line, power});
       } else {
-        // ここで距離とパワーの変換関数を入れたい
+        /* ここで距離とパワーの変換関数を入れたい */
         // const double power = 10;
         const double power = 150;
 
@@ -185,7 +233,8 @@ std::vector<std::shared_ptr<action::base>> setplay::execute() {
       for (auto receiver_id : receiver_ids_) {
         const auto receiver = our_robots.at(receiver_id);
         if (pos_ == pos::near) {
-          const Eigen::Vector2d kickerball(passpos.x() - kicker.x(), passpos.y() - kicker.y());
+          const Eigen::Vector2d kickerball(passpos.x() - old_ball.x(),
+                                           passpos.y() - old_ball.y());
           const Eigen::Vector2d to_shooter(receiver.x() - kicker.x(),
                                            receiver.y() - kicker.y());
           const Eigen::Vector2d normaliz = kickerball.normalized();
@@ -198,7 +247,7 @@ std::vector<std::shared_ptr<action::base>> setplay::execute() {
 
           baseaction.push_back(move);
         } else {
-          // 暫定moveの場所に移動？してそれをbaseactionに代入
+          /* 暫定moveの場所に移動？してそれをbaseactionに代入 */
           auto move = make_action<action::move>(receiver_id);
           move->move_to(receiver.x(), receiver.y(),
                         std::atan2(ball.y() - receiver.y(), ball.x() - receiver.x()));
@@ -209,68 +258,20 @@ std::vector<std::shared_ptr<action::base>> setplay::execute() {
     }
 
     case state::shoot: {
+      // // std::cout << "shoot" << std::endl;
       baseaction.push_back(make_action<action::no_operation>(kicker_id_));
       for (auto receiver_id : receiver_ids_) {
-        // shooterにkick_actionいれてほかはnoop?
+        /* shooterにkick_actionいれてほかはnoop? */
         const auto receiver = our_robots.at(receiver_id);
         if (std::hypot(enemygoal - receiver.x(), receiver.y()) > 1000 &&
             std::abs(ball.x() < 4500) && std::abs(ball.y()) < 3000) {
-          if (receiver_id == shooter_id_) {
-            if (pos_ == pos::near &&
-                std::hypot(receiver.x() - ball.x(), receiver.y() - ball.y()) > 1200) {
-              const Eigen::Vector2d kickerball(ball.x() - kicker.x(), ball.y() - kicker.y());
-              const Eigen::Vector2d to_shooter(receiver.x() - kicker.x(),
-                                               receiver.y() - kicker.y());
-              const Eigen::Vector2d normaliz = kickerball.normalized();
-              const double dot               = normaliz.dot(to_shooter);
-              Eigen::Vector2d target(kicker.x() + normaliz.x() * dot,
-                                     kicker.y() + normaliz.y() * dot);
-              const double theta = std::atan2(normaliz.y(), normaliz.x()) + pi<double>();
-              auto move          = make_action<action::move>(shooter_id_);
-              // if (target.norm() > 600) {
-              //   target = target.normalized() * 600;
-              // }
-              move->move_to(target.x(), target.y(), theta);
-
-              baseaction.push_back(move);
-            } else {
-              double max_dist = 0;
-              double target;
-
-              std::vector<double> goalpoint{-270, 0, 270};
-              for (auto point : goalpoint) {
-                double min_dist = 100000;
-                for (auto enemyrobot_p : enemyrobots) {
-                  auto enemyrobot = std::get<1>(enemyrobot_p);
-                  if ((ball.x() - enemyrobot.x()) * (enemygoal - enemyrobot.x() < 0)) {
-                    const Eigen::Vector3d to_point(enemygoal - ball.x(), point - ball.y(), 0);
-                    const Eigen::Vector3d to_enemy(enemyrobot.x() - ball.x(),
-                                                   enemyrobot.y() - ball.y(), 0);
-                    const double distance =
-                        std::abs(to_point.cross(to_enemy).norm() / to_point.norm());
-                    if (distance < min_dist) {
-                      min_dist = distance;
-                    }
-                  }
-                }
-                if (min_dist > max_dist) {
-                  max_dist = min_dist;
-                  target   = point;
-                }
-              }
-
-              if (std::hypot(ball.x() - receiver.x(), ball.y() - receiver.y()) < 200) {
-                const double power = 100;
-                // const double power = 5;
-
-                kick_->kick_to(enemygoal, target);
-                kick_->set_dribble(9);
-                kick_->set_mode(action::kick_action::mode::ball);
-                kick_->set_anglemargin(0.03);
-                kick_->set_kick_type({model::command::kick_type_t::line, power});
-                baseaction.push_back(kick_);
-              } else {
-                const Eigen::Vector2d kickerball(ball.x() - kicker.x(), ball.y() - kicker.y());
+          if (std::hypot(receiver.x() - kicker.x(), receiver.y() - kicker.y()) >
+              std::hypot(ball.x() - kicker.x(), ball.y() - kicker.y())) {
+            if (receiver_id == shooter_id_) {
+              if (pos_ == pos::near &&
+                  std::hypot(receiver.x() - ball.x(), receiver.y() - ball.y()) > 1000) {
+                const Eigen::Vector2d kickerball(ball.x() - old_ball.x(),
+                                                 ball.y() - old_ball.y());
                 const Eigen::Vector2d to_shooter(receiver.x() - kicker.x(),
                                                  receiver.y() - kicker.y());
                 const Eigen::Vector2d normaliz = kickerball.normalized();
@@ -279,12 +280,78 @@ std::vector<std::shared_ptr<action::base>> setplay::execute() {
                                        kicker.y() + normaliz.y() * dot);
                 const double theta = std::atan2(normaliz.y(), normaliz.x()) + pi<double>();
                 auto move          = make_action<action::move>(shooter_id_);
+                // if (target.norm() > 600) {
+                //   target = target.normalized() * 600;
+                // }
                 move->move_to(target.x(), target.y(), theta);
+
                 baseaction.push_back(move);
+              } else {
+                double max_dist = 0;
+                double target;
+
+                std::vector<double> goalpoint{-270, 0, 270};
+                for (auto point : goalpoint) {
+                  double min_dist = 100000;
+                  for (auto enemyrobot_p : enemyrobots) {
+                    auto enemyrobot = std::get<1>(enemyrobot_p);
+                    if ((ball.x() - enemyrobot.x()) * (enemygoal - enemyrobot.x() < 0)) {
+                      const Eigen::Vector3d to_point(enemygoal - ball.x(), point - ball.y(), 0);
+                      const Eigen::Vector3d to_enemy(enemyrobot.x() - ball.x(),
+                                                     enemyrobot.y() - ball.y(), 0);
+                      const double distance =
+                          std::abs(to_point.cross(to_enemy).norm() / to_point.norm());
+                      if (distance < min_dist) {
+                        min_dist = distance;
+                      }
+                    }
+                  }
+                  if (min_dist > max_dist) {
+                    max_dist = min_dist;
+                    target   = point;
+                  }
+                }
+
+                if (std::hypot(ball.x() - receiver.x(), ball.y() - receiver.y()) < 1000) {
+                  const double power = 100;
+                  // const double power = 5;
+
+                  kick_->kick_to(enemygoal, target);
+                  kick_->set_dribble(9);
+                  kick_->set_mode(action::kick_action::mode::ball);
+                  kick_->set_anglemargin(0.03);
+                  kick_->set_kick_type({model::command::kick_type_t::line, power});
+                  baseaction.push_back(kick_);
+                } else {
+                  // // std::cout << "nyan" << std::endl;
+                  const Eigen::Vector2d kickerball(ball.x() - old_ball.x(),
+                                                   ball.y() - old_ball.y());
+                  const Eigen::Vector2d to_shooter(receiver.x() - kicker.x(),
+                                                   receiver.y() - kicker.y());
+                  const Eigen::Vector2d normaliz = kickerball.normalized();
+                  const double dot               = normaliz.dot(to_shooter);
+                  Eigen::Vector2d target(kicker.x() + normaliz.x() * dot,
+                                         kicker.y() + normaliz.y() * dot);
+                  const double theta = std::atan2(normaliz.y(), normaliz.x()) + pi<double>();
+                  auto move          = make_action<action::move>(shooter_id_);
+                  move->move_to(target.x(), target.y(), theta);
+                  baseaction.push_back(move);
+                }
               }
+            } else {
+              baseaction.push_back(make_action<action::no_operation>(receiver_id));
             }
-          }else{
-		  }
+          } else {
+            const double power = 100;
+            // const double power = 5;
+
+            kick_->kick_to(enemygoal, 0);
+            kick_->set_dribble(9);
+            kick_->set_mode(action::kick_action::mode::ball);
+            kick_->set_anglemargin(0.03);
+            kick_->set_kick_type({model::command::kick_type_t::line, power});
+            baseaction.push_back(kick_);
+          }
         } else {
           baseaction.push_back(make_action<action::no_operation>(receiver_id));
         }
@@ -293,6 +360,7 @@ std::vector<std::shared_ptr<action::base>> setplay::execute() {
     }
 
     case state::finished: {
+      // // std::cout << "finished" << std::endl;
       baseaction.push_back(make_action<action::no_operation>(kicker_id_));
       for (auto receiver_id : receiver_ids_) {
         baseaction.push_back(make_action<action::no_operation>(receiver_id));
@@ -300,6 +368,10 @@ std::vector<std::shared_ptr<action::base>> setplay::execute() {
       break;
     }
   }
+  if (ball_log_.size() > 10) {
+    ball_log_.pop();
+  }
+  ball_log_.push({ball.x(), ball.y()});
   return baseaction;
 }
 

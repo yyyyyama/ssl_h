@@ -3,6 +3,7 @@
 #include <memory>
 #include <vector>
 #include <Eigen/Core>
+#include <queue>
 #include "base.h"
 #include "ai_server/model/world.h"
 #include "ai_server/game/action/kick_action.h"
@@ -29,6 +30,7 @@ private:
   const std::vector<unsigned int>& receiver_ids_;
   std::shared_ptr<action::kick_action> kick_;
   std::vector<Eigen::Vector3d> positions;
+  std::queue<Eigen::Vector2d> ball_log_;
 };
 } // agent
 } // game
