@@ -1,3 +1,4 @@
+#include <iostream>
 #include <cmath>
 
 #include "ai_server/game/agent/defense.h"
@@ -38,6 +39,7 @@ std::vector<std::shared_ptr<action::base>> defense::execute() {
   //ボールの座標
   const Eigen::Vector2d ball(world_.ball().x(), world_.ball().y());
 
+	std::cout << ball.x() <<"agent"<< ball.y() << std::endl;
   //ボールがゴールより後ろに来たら現状維持
   if (ball.x() < -4500.0 || ball.x() > 4500.0) {
     for (auto wall_it : wall_) {
@@ -55,10 +57,10 @@ std::vector<std::shared_ptr<action::base>> defense::execute() {
   const Eigen::Vector2d goal(world_.field().x_min(), 0.0);
   //  const Eigen::Vector2d goal(4500.0, 0.0);
 
-  const auto ball_theta =
-      std::signbit(goal.x())
-          ? std::atan2(ball.y() - goal.y(), ball.x() - goal.x())
-          : util::wrap_to_2pi(std::atan2(ball.y() - goal.y(), ball.x() - goal.x()));
+  const auto ball_theta =std::atan2(ball.y() - goal.y(), ball.x() - goal.x());
+//      std::signbit(goal.x())
+//          ? std::atan2(ball.y() - goal.y(), ball.x() - goal.x())
+//          : util::wrap_to_2pi(std::atan2(ball.y() - goal.y(), ball.x() - goal.x()));
   //半径
   const auto radius = 1400.0;
 
@@ -124,11 +126,11 @@ std::vector<std::shared_ptr<action::base>> defense::execute() {
         }
       } else { //偶数
         magnification = 2.0;
-        shift_        = 210.0;
-        if (std::signbit(std::pow(ball.x() - goal.x(), 2) + std::pow(ball.y(), 2) -
+        shift_        = 190.0;
+/*        if (std::signbit(std::pow(ball.x() - goal.x(), 2) + std::pow(ball.y(), 2) -
                          std::pow(demarcation, 2))) {
-          shift_ = 110;
-        }
+          shift_ = 90;
+        }*/
       }
       //移動した量
       const Eigen::Vector2d move(ball.x(), ball.y());
@@ -158,7 +160,7 @@ std::vector<std::shared_ptr<action::base>> defense::execute() {
         //回転した後の正しい座標
         (*target_it++) = (rotate * tmp1) + move;
         (*target_it++) = (rotate * tmp2) + move;
-
+ 
         //もしディフェンスエリアないに入ってしまっても順番が入れ替わらないようにする
         if ((std::pow(ball.x() - goal.x(), 2) + std::pow(ball.y() - goal.y(), 2) -
              std::pow(1400.0, 2)) < 0) {
@@ -179,10 +181,10 @@ std::vector<std::shared_ptr<action::base>> defense::execute() {
           for (auto wall_it : wall_) {
             const auto wall_robot = wall_robots.at((*wall_ids_it++));
             const Eigen::Vector2d wall(wall_robot.x(), wall_robot.y());
-            const auto wall_theta = std::signbit(goal.x())
+            const auto wall_theta =wall_robot.theta();/* std::signbit(goal.x())
                                         ? wall_robot.theta()
                                         : util::wrap_to_2pi(wall_robot.theta());
-
+*/
             //移動目標
             const Eigen::Vector2d sign(((*target_it) - wall) * 4.0);
 
@@ -230,7 +232,7 @@ std::vector<std::shared_ptr<action::base>> defense::execute() {
       switch (mode_) {
         case defense_mode::normal_mode: {
           const auto demarcation = 2500.0; //縄張りの大きさ
-          if (std::signbit(goal.x() * (-1)) ==
+         /* if (std::signbit(goal.x() * (-1)) ==
               std::signbit((ball.x() + (std::signbit(goal.x() * (-1)) ? 500 : -500)))) { // A
             //ゴール直前でボールに併せて横移動
 
@@ -238,7 +240,7 @@ std::vector<std::shared_ptr<action::base>> defense::execute() {
             keeper.y()  = ((ball.y() >= -500 && ball.y() <= 500) ? ball.y() : 0);
             coefficient = {0.7, 7.0};
 
-          } else if (std::signbit(std::pow(ball.x() - goal.x(), 2) +
+          }else if (std::signbit(std::pow(ball.x() - goal.x(), 2) +
                                   std::pow(ball.y() - goal.y(), 2) -
                                   std::pow(demarcation, 2))) { // C
             //ゴール前でディフェンスする
@@ -251,28 +253,29 @@ std::vector<std::shared_ptr<action::base>> defense::execute() {
               keeper = (1 - ratio) * goal + ratio * ball;
             }
             coefficient = {5.5, 7.0};
-          } else { // B
+          } else { // B*/
                    //壁のすぐ後ろで待機
             auto shift = 0.0;
             if (orientation_.y() > 250) {
-              shift = 250;
+              shift = 0;
             } else if (orientation_.y() < -250) {
-              shift = -250;
+              shift = 0;
             }
             //基準点からちょっと下がったキーパの位置
             const auto length =
+//                std::hypot(shift - ball.x(), goal.y() - ball.y()); //基準点<->ボール
                 std::hypot(goal.x() - ball.x(), shift - ball.y()); //基準点<->ボール
-            const auto ratio = (910) / length; //全体に対してのキーパー位置の比
+            const auto ratio = (1250) / length; //全体に対してのキーパー位置の比
 
-            keeper.x() = (1 - ratio) * goal.x() + ratio * ball.x();
-            keeper.y() = (1 - ratio) * shift + ratio * ball.y();
+            keeper.x() = (1 - ratio) * goal.x()  + ratio * ball.x();
+            keeper.y() = (1 - ratio) * shift+ ratio * ball.y();
 
             if (keeper.y() >= -250 &&
                 keeper.y() <= 250) { //もし基準座標が直線の範囲だったら直線に叩き込む
               keeper.x() = (goal.x() + (std::signbit(goal.x()) ? 910 : -910));
             }
             coefficient = {5.5, 6.0};
-          }
+        //  }
           break;
         }
         case defense_mode::pk_mode: {
