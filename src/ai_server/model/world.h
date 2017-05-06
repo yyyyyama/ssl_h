@@ -22,6 +22,12 @@ class world {
 public:
   using robots_list = std::unordered_map<unsigned int, model::robot>;
 
+  world();
+
+  // コピーコンストラクタ
+  world(const world& others);
+  world& operator=(const world& others);
+
   model::field field() const;
   model::ball ball() const;
   robots_list robots_blue() const;

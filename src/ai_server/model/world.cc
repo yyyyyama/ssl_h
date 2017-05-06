@@ -8,6 +8,23 @@
 namespace ai_server {
 namespace model {
 
+world::world() : field_{}, ball_{}, robots_blue_{}, robots_yellow_{} {}
+
+world::world(const world& others) {
+  set_field(others.field());
+  set_ball(others.ball());
+  set_robots_blue(others.robots_blue());
+  set_robots_yellow(others.robots_yellow());
+}
+
+world& world::operator=(const world& others) {
+  set_field(others.field());
+  set_ball(others.ball());
+  set_robots_blue(others.robots_blue());
+  set_robots_yellow(others.robots_yellow());
+  return *this;
+}
+
 model::field world::field() const {
   std::lock_guard<std::mutex> lock(mutex_);
   return field_;
