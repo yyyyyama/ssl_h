@@ -185,11 +185,11 @@ std::vector<std::shared_ptr<action::base>> defense::execute() {
             const auto wall_theta = util::wrap_to_pi(wall_robot.theta());
 
             //移動目標
-						auto coefficient = 20.0;
-						if((((*target_it) - wall)*coefficient).norm()>1400.0){
-							std::cout<<"in coefficient"<<std::endl;
-							coefficient = 3.0;
-						}
+            auto coefficient = 20.0;
+            if ((((*target_it) - wall) * coefficient).norm() > 1400.0) {
+              std::cout << "in coefficient" << std::endl;
+              coefficient = 3.0;
+            }
             const Eigen::Vector2d sign(((*target_it) - wall) * coefficient);
 
             //ボールの向きを向くために,ゴール<->ボールの角度-自身の角度をしてそれを角速度とする.
@@ -226,7 +226,7 @@ std::vector<std::shared_ptr<action::base>> defense::execute() {
       const auto keeper_theta = util::wrap_to_pi(keeper_robot.theta());
       const Eigen::Vector2d keeper_c(keeper_robot.x(), keeper_robot.y());
       //速さに掛ける係数
-//      Eigen::Vector2d coefficient(Eigen::Vector2d::Zero());
+      //      Eigen::Vector2d coefficient(Eigen::Vector2d::Zero());
       switch (mode_) {
         case defense_mode::normal_mode: {
           /*const auto demarcation = 2500.0; //縄張りの大きさ
@@ -300,10 +300,10 @@ coefficient = {5.5, 7.0};
         }
       }
       //移動目標
-			auto coefficient = 20.0;
-			if(((keeper - keeper_c)*coefficient).norm()>1400.0){
-				coefficient = 3.0;
-			}
+      auto coefficient = 20.0;
+      if (((keeper - keeper_c) * coefficient).norm() > 1400.0) {
+        coefficient = 3.0;
+      }
 
       const Eigen::Vector2d sign((keeper.x() - keeper_c.x()) * coefficient,
                                  (keeper.y() - keeper_c.y()) * coefficient);
