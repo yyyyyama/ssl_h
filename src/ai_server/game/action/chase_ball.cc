@@ -9,8 +9,8 @@ namespace game {
 namespace action {
 
 void chase_ball::set_target(double x, double y) {
-  target_x_ = x;
-  target_y_ = y;
+  kick_target_x_ = x;
+  kick_target_y_ = y;
 }
 
 model::command chase_ball::execute() {
@@ -65,7 +65,7 @@ model::command chase_ball::execute() {
   double v1_theta = std::atan2(v1(1), v1(0));
 
   // ボール->ターゲット
-  const auto v2   = Vector2d{target_x_ - ball_x, target_y_ - ball_y}.normalized();
+  const auto v2   = Vector2d{kick_target_x_ - ball_x, kick_target_y_ - ball_y}.normalized();
   double v2_theta = std::atan2(v2(1), v2(0));
 
   if (!init_flag_) {
@@ -219,8 +219,8 @@ model::command chase_ball::execute() {
         wait_flag_ = true;
       }
       /*    else {
-            next_vel = {300 * std::cos(std::atan2(target_y_ - my_pos.y, target_x_ - my_pos.x)),
-                        300 * std::sin(std::atan2(target_y_ - my_pos.y, target_x_ - my_pos.x)),
+            next_vel = {300 * std::cos(std::atan2(kick_target_y_ - my_pos.y, kick_target_x_ - my_pos.x)),
+                        300 * std::sin(std::atan2(kick_target_y_ - my_pos.y, kick_target_x_ - my_pos.x)),
                         wrap_angle};
 
           }
