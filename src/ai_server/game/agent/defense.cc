@@ -86,6 +86,7 @@ std::vector<std::shared_ptr<action::base>> defense::execute() {
   //
   //
   {
+		bool flag = false;
     //壁のイテレータ
     auto wall_it = wall_.begin();
 
@@ -132,9 +133,9 @@ std::vector<std::shared_ptr<action::base>> defense::execute() {
         if (std::signbit(std::pow(ball.x() - goal.x(), 2) + std::pow(ball.y(), 2) -
                          std::pow(demarcation, 2))) {
           shift_ = 90;
-        } else {
-        }
-      }
+        }     
+		 	}
+
       //移動した量
       const Eigen::Vector2d move(ball.x(), ball.y());
 
@@ -173,7 +174,7 @@ std::vector<std::shared_ptr<action::base>> defense::execute() {
       }
     }
     //ワンツー対策
-    {
+/*   {
       if (std::signbit(std::pow(ball.x() - goal.x(), 2) + std::pow(ball.y(), 2) -
                        std::pow(3000.0, 2))) {
         const auto enemy_robots = is_yellow_ ? world_.robots_blue() : world_.robots_yellow();
@@ -182,7 +183,6 @@ std::vector<std::shared_ptr<action::base>> defense::execute() {
         unsigned int enemy_robot_id = 0;
         {
           for (auto enemy_it : enemy_robots) {
-            std::hypot((enemy_it.second).x() - ball.x(), (enemy_it.second).y() - ball.y());
             if (std::pow(ball.x() - (enemy_it.second).x(), 2) +
                     std::pow(ball.y() - (enemy_it.second).y(), 2) - std::pow(100.0, 2) <
                 0) {
@@ -190,8 +190,7 @@ std::vector<std::shared_ptr<action::base>> defense::execute() {
             }
           }
         }
-
-        if (enemy_robots.count(enemy_robot_id)) {
+     	 if (enemy_robots.count(enemy_robot_id)) {
           const auto& enemy_robot = enemy_robots.at(enemy_robot_id);
 
           const auto enemy_theta = util::wrap_to_pi(enemy_robot.theta());
@@ -208,6 +207,7 @@ std::vector<std::shared_ptr<action::base>> defense::execute() {
             const auto comp_theta =
                 std::atan2(comp_pos.x() - enemy_pos.x(), comp_pos.y() - enemy_pos.y()) -
                 (std::signbit(enemy_pos.y()) ? 0 : pi<double>());
+						std::cout<<"comp_theta  : "<<comp_theta<< " enemy_theta : "<<enemy_theta<<std::endl;
 
             if ((comp_theta - (pi<double>() / 18.0)) < enemy_theta &&
                 (comp_theta + (pi<double>() / 18.0)) > enemy_theta) {
@@ -237,9 +237,11 @@ std::vector<std::shared_ptr<action::base>> defense::execute() {
                   auto min_val   = 0xffffffff;
                   auto target_it = target_.begin();
 
+                  const auto wall_robots =
+                      is_yellow_ ? world_.robots_yellow() : world_.robots_blue();
+									
                   for (auto wall_ids_it : wall_ids_) {
-                    const auto wall_robots =
-                        is_yellow_ ? world_.robots_yellow() : world_.robots_blue();
+
                     if (wall_robots.count(wall_ids_it)) {
                       const auto& wall_robot = wall_robots.at(wall_ids_it);
                       const Eigen::Vector2d wall(wall_robot.x(), wall_robot.y());
@@ -248,17 +250,24 @@ std::vector<std::shared_ptr<action::base>> defense::execute() {
                         min_val = (new_pos - wall).norm();
                       }
                       target_it++;
-                    }
+                    }else{
+											flag = true;
+										}
+
                   }
                 }
                 (*it) = new_pos;
-              }
+              }else{
+								flag = true;
+							}
             }
           }
-        }
+        }else{
+					flag = true;
+				}
       }
     }
-    {
+*/    {
       switch (mode_) {
         case defense_mode::normal_mode: {
           const auto wall_robots = is_yellow_ ? world_.robots_yellow() : world_.robots_blue();
@@ -281,7 +290,11 @@ std::vector<std::shared_ptr<action::base>> defense::execute() {
 
               //ボールの向きを向くために,ゴール<->ボールの角度-自身の角度をしてそれを角速度とする.
               const auto omega = ball_theta - wall_theta;
-              wall_it->move_to(sign.x(), sign.y(), omega);
+							if(flag){
+              	wall_it->move_to(0.0, 0.0, 0.0);
+							}else{
+              	wall_it->move_to(sign.x(), sign.y(), omega);
+							}
               target_it++;
 
             } else {
@@ -349,7 +362,7 @@ std::vector<std::shared_ptr<action::base>> defense::execute() {
           //基準点からちょっと下がったキーパの位置
           const auto length =
               std::hypot(goal.x() - ball.x(), goal.y() - ball.y()); //基準点<->ボール
-          const auto ratio = (1250) / length; //全体に対してのキーパー位置の比
+          const auto ratio = (1000) / length; //全体に対してのキーパー位置の比
 
           keeper = (1 - ratio) * goal + ratio * ball;
 
