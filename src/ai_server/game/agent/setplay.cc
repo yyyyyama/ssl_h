@@ -191,7 +191,7 @@ std::vector<std::shared_ptr<action::base>> setplay::execute() {
             auto move         = make_action<action::move>(receiver_ids_[i]);
             const double to_target =
                 std::atan2(positions[i].y() - robot.y(), positions[i].x() - robot.x());
-			std::cout<<"ss1"<<std::endl;
+			// std::cout<<"ss1"<<std::endl;
             if (std::hypot(positions[i].x() - robot.x(), positions[i].y() - robot.y()) < 50) {
               move->move_to(robot.x(), robot.y(),
                             std::atan2(ball.y() - robot.y(), ball.x() - robot.x()));
@@ -204,7 +204,7 @@ std::vector<std::shared_ptr<action::base>> setplay::execute() {
           }
 
           if (std::hypot(ball.x() - kicker.x(), ball.y() - kicker.y()) > 500) {
-			std::cout<<"ss2"<<std::endl;
+			// std::cout<<"ss2"<<std::endl;
             auto move            = make_action<action::move>(kicker_id_);
             const double to_ball = std::atan2(ball.y() - kicker.y(), ball.x() - kicker.x());
             move->move_to(kicker.x() + 500 * std::cos(to_ball),
