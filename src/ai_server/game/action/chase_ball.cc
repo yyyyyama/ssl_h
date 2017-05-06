@@ -1,6 +1,5 @@
 #include <Eigen/Core>
 #include <cmath>
-#include <iostream>
 #include "ai_server/game/action/chase_ball.h"
 #include "ai_server/util/math.h"
 
@@ -104,6 +103,10 @@ model::command chase_ball::execute() {
         ball_y_     = ball_y;
       }
     }
+  }
+
+  if (std::hypot(ball_vx, ball_vy) > 2000 && ball_vx / ball_vy > 3){
+    mode_ = mode::not_move;
   }
 
   // 位置の決定
@@ -254,9 +257,12 @@ model::command chase_ball::execute() {
         next_vel = {(first_pos.x - my_pos.x) / a, (first_pos.y - my_pos.y) / a, move_omega};
       }
       break;
+
+  case mode::not_move:
+      next_vel = {0, 0, 0};
+      wait_flag_ = true;
+      break;
   }
-  std::cout << ball_x << "    " << ball_y << std::endl;
-  std::cout << first_pos.x << "    " << first_pos.y << std::endl;
 
   // ボールの速度を加算
   if (!wait_flag_) {

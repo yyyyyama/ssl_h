@@ -11,7 +11,7 @@ namespace action {
 class chase_ball : public base {
 public:
   using base::base;
-  enum class mode { move_to_ball, wraparound, dribble, wait_ball } mode_ = mode::move_to_ball;
+  enum class mode { move_to_ball, wraparound, dribble, wait_ball, not_move} mode_ = mode::move_to_ball;
   void set_target(double x, double y);
   model::command execute() override;
   bool finished() const override;
