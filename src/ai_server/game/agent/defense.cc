@@ -87,7 +87,6 @@ std::vector<std::shared_ptr<action::base>> defense::execute() {
   {
     //壁のイテレータ
     auto wall_it = wall_.begin();
-    auto C       = 0.0;
 
     {
       auto target_it = target_.begin();
@@ -132,9 +131,7 @@ std::vector<std::shared_ptr<action::base>> defense::execute() {
         if (std::signbit(std::pow(ball.x() - goal.x(), 2) + std::pow(ball.y(), 2) -
                          std::pow(demarcation, 2))) {
           shift_ = 90;
-          C      = 10.0;
         } else {
-          C = 5.0;
         }
       }
       //移動した量
@@ -188,7 +185,12 @@ std::vector<std::shared_ptr<action::base>> defense::execute() {
             const auto wall_theta = util::wrap_to_pi(wall_robot.theta());
 
             //移動目標
-            const Eigen::Vector2d sign(((*target_it) - wall) * C);
+						auto coefficient = 20.0;
+						if((((*target_it) - wall)*coefficient).norm()>1400.0){
+							std::cout<<"in coefficient"<<std::endl;
+							coefficient = 3.0;
+						}
+            const Eigen::Vector2d sign(((*target_it) - wall) * coefficient);
 
             //ボールの向きを向くために,ゴール<->ボールの角度-自身の角度をしてそれを角速度とする.
             const auto omega = ball_theta - wall_theta;
@@ -224,7 +226,7 @@ std::vector<std::shared_ptr<action::base>> defense::execute() {
       const auto keeper_theta = util::wrap_to_pi(keeper_robot.theta());
       const Eigen::Vector2d keeper_c(keeper_robot.x(), keeper_robot.y());
       //速さに掛ける係数
-      Eigen::Vector2d coefficient(Eigen::Vector2d::Zero());
+//      Eigen::Vector2d coefficient(Eigen::Vector2d::Zero());
       switch (mode_) {
         case defense_mode::normal_mode: {
           /*const auto demarcation = 2500.0; //縄張りの大きさ
@@ -254,22 +256,16 @@ coefficient = {5.5, 7.0};
           //基準点からちょっと下がったキーパの位置
           const auto length =
               std::hypot(goal.x() - ball.x(), goal.y() - ball.y()); //基準点<->ボール
-          const auto ratio = (1000) / length; //全体に対してのキーパー位置の比
+          const auto ratio = (1250) / length; //全体に対してのキーパー位置の比
 
           keeper = (1 - ratio) * goal + ratio * ball;
 
-          if (keeper.y() >= -500 &&
-              keeper.y() <= 500) { //もし基準座標が直線の範囲だったら直線に叩き込む
-            keeper.x() = (goal.x() + (std::signbit(goal.x()) ? 910 : -910));
-          }
-          coefficient = {5.5, 6.0};
           //  }
           break;
         }
         case defense_mode::pk_mode: {
           const auto enemy_robots = is_yellow_ ? world_.robots_blue() : world_.robots_yellow();
 
-          coefficient = {5.0, 5.0};
           //敵のシューターを線形探索する
           //
           //
@@ -304,8 +300,13 @@ coefficient = {5.5, 7.0};
         }
       }
       //移動目標
-      const Eigen::Vector2d sign((keeper.x() - keeper_c.x()) * coefficient.x(),
-                                 (keeper.y() - keeper_c.y()) * coefficient.y());
+			auto coefficient = 20.0;
+			if(((keeper - keeper_c)*coefficient).norm()>1400.0){
+				coefficient = 3.0;
+			}
+
+      const Eigen::Vector2d sign((keeper.x() - keeper_c.x()) * coefficient,
+                                 (keeper.y() - keeper_c.y()) * coefficient);
 
       //ボールの向きを向くために,ゴール<->ボールの角度-自身の角度 をしてそれを角速度とする.
       const auto omega = ball_theta - keeper_theta;
