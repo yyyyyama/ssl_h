@@ -155,7 +155,7 @@ model::command chase_ball::execute() {
                     acc * count_ / 60 * std::sin(move_theta), move_omega};
       }
 
-      else if (count_ > acc_count && dist1 >= acc_dist - 100) {
+      else if (count_ > acc_count && dist1 >= acc_dist - 150) {    //default 100
         next_vel = {max_vel * std::cos(move_theta), max_vel * std::sin(move_theta), move_omega};
       } else if (dist1 < acc_dist && sub_count_ <= acc_count / 1.5) {
         sub_count_++;
@@ -181,7 +181,7 @@ model::command chase_ball::execute() {
                         move_omega};
           }
           //位置調整
-          else if (dist2 > 50) {
+          else if (dist2 > 50 || std::abs(v2_theta - v1_theta) > 2 * pi<double>() / 180) {
             next_vel = {(first_pos.x - my_pos.x) / a, (first_pos.y - my_pos.y) / a, move_omega};
           } else {
             next_vel = {0, 0, 0};
@@ -203,7 +203,7 @@ model::command chase_ball::execute() {
         // wrap_omega};
       }
       //位置調整
-      if (dist2 > 50) {
+      if (dist2 > 50 || std::abs(v2_theta - v1_theta) > 2 * pi<double>() / 180){
         next_vel = {(second_pos.x - my_pos.x) / a, (second_pos.y - my_pos.y) / a, wrap_angle};
       } else {
         next_vel = {0, 0, 0};
@@ -226,7 +226,7 @@ model::command chase_ball::execute() {
           }
       */
       if (/*v2_theta - v1_theta > half_pi<double>() ||*/ dist > 500) {
-        mode_ = mode::wraparound;
+        mode_ = mode::move_to_ball/*wrapparound*/;
       }
       command.set_dribble(dribble_pow);
       fin_flag_ = true;
