@@ -95,9 +95,11 @@ velocity_t state_feedback_controller::update(const model::robot& robot,
   position_t delta_p = convert(e_p, estimated_robot_.theta());
 
   velocity_t target;
-  target.vx    = sliding_mode_[0].control_pos(-delta_p.x);
-  target.vy    = sliding_mode_[1].control_pos(-delta_p.y);
-  target.omega = clamp(util::wrap_to_pi(delta_p.theta) * 2, -pi<double>(), pi<double>());
+  target.vx = sliding_mode_[0].control_pos(-delta_p.x);
+  target.vy = sliding_mode_[1].control_pos(-delta_p.y);
+  // 速度が大きいときに角速度が大きくなりすぎないように
+  double omega_limit = pi<double>() * std::exp(-std::hypot(target.vx, target.vy) / 2000.0);
+  target.omega       = clamp(util::wrap_to_pi(delta_p.theta) * 2, -omega_limit, omega_limit);
 
   u_[0] = u_[0] + (std::pow(k_, 2) / std::pow(omega_, 2)) * target;
 
@@ -141,9 +143,11 @@ velocity_t state_feedback_controller::update(const model::robot& robot,
   u_speed = clamp(u_speed, 0.0, max_velocity_);
 
   // 成分速度再計算
-  target.vx    = u_speed * std::cos(u_angle);
-  target.vy    = u_speed * std::sin(u_angle);
-  target.omega = setpoint.omega;
+  target.vx = u_speed * std::cos(u_angle);
+  target.vy = u_speed * std::sin(u_angle);
+  // 速度が大きいときに角速度が大きくなりすぎないように
+  double omega_limit = pi<double>() * std::exp(-std::hypot(target.vx, target.vy) / 2000.0);
+  target.omega       = clamp(setpoint.omega, -omega_limit, omega_limit);
 
   u_[0] = u_[0] + (std::pow(k_, 2) / std::pow(omega_, 2)) * target;
 
