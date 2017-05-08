@@ -91,7 +91,7 @@ model::command kick_action::execute() {
   } else if (std::hypot(to_robot_x, to_robot_y) > dis && !aroundflag_) {
     // ロボットがボールから250以上離れていればボールに近づく処理
     robot_pos = {ball_x, ball_y, direction1};
-    if (dribble_ != 33) command.set_dribble(dribble_);
+    if (dribble_ != 3) command.set_dribble(dribble_);
   } else if (std::abs(dth) > margin_) {
     // ロボット、ボール、蹴りたい位置が一直線に並んでいなければボールを中心にまわる処理
     aroundflag_ = std::hypot(to_robot_x, to_robot_y) < 350;
@@ -104,13 +104,13 @@ model::command kick_action::execute() {
       robot_pos = {robot_x - std::abs(dth) * 200 * std::sin(atand2 + 0.20),
                    robot_y + std::abs(dth) * 200 * std::cos(atand2 + 0.20), direction2};
     }
-    if (dribble_ != 33) command.set_dribble(dribble_);
+    if (dribble_ != 3) command.set_dribble(dribble_);
   } else if (std::abs(atand1 - robot_theta) > margin_ &&
              std::abs(atand1 - robot_theta) < two_pi<double>() - margin_) {
     // 位置をそのままにロボットがボールを蹴れる向きにする処理
     aroundflag_ = false;
     robot_pos   = {robot_x, robot_y, atand1};
-    if (dribble_ != 33) command.set_dribble(dribble_);
+    if (dribble_ != 3) command.set_dribble(dribble_);
   } else {
     // キックフラグをセットし、ボールの位置まで移動する処理
     robot_pos = {ball_x, ball_y, atand1};
