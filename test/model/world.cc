@@ -10,30 +10,85 @@
 
 BOOST_AUTO_TEST_SUITE(world_model)
 
-BOOST_AUTO_TEST_CASE(setter) {
-  ai_server::model::world w{};
+BOOST_AUTO_TEST_CASE(nyan) {
+  ai_server::model::world w;
 
-  ai_server::model::field field{};
-  field.set_length(1);
-  w.set_field(field);
+  {
+    // 保持するメンバが正しく初期化されているか
 
-  ai_server::model::ball ball{123, 456, 789};
-  w.set_ball(ball);
+    ai_server::model::field f{};
+    BOOST_TEST(w.field().length() == f.length());
+    BOOST_TEST(w.field().width() == f.width());
+    BOOST_TEST(w.field().center_radius() == f.center_radius());
+    BOOST_TEST(w.field().goal_width() == f.goal_width());
+    BOOST_TEST(w.field().penalty_radius() == f.penalty_radius());
+    BOOST_TEST(w.field().penalty_line_length() == f.penalty_line_length());
 
-  ai_server::model::world::robots_list robots_blue{{1, {1}}, {3, {3}}};
-  w.set_robots_blue(robots_blue);
+    ai_server::model::ball b{};
+    BOOST_TEST(w.ball().x() == b.x());
+    BOOST_TEST(w.ball().y() == b.y());
+    BOOST_TEST(w.ball().z() == b.z());
 
-  ai_server::model::world::robots_list robots_yellow{{2, {2}}, {4, {4}}};
-  w.set_robots_yellow(robots_yellow);
+    BOOST_TEST(w.robots_blue().size() == 0);
+    BOOST_TEST(w.robots_yellow().size() == 0);
+  }
 
-  BOOST_TEST(w.field().length() == 1);
-  BOOST_TEST(w.ball().x() = 123);
-  BOOST_TEST(w.robots_blue().size() == 2);
-  BOOST_TEST(w.robots_blue().count(1) == 1);
-  BOOST_TEST(w.robots_blue().count(3) == 1);
-  BOOST_TEST(w.robots_yellow().size() == 2);
-  BOOST_TEST(w.robots_yellow().count(2) == 1);
-  BOOST_TEST(w.robots_yellow().count(4) == 1);
+  {
+    // getter/setterが正しく動作するか
+
+    ai_server::model::field field{};
+    field.set_length(1);
+    w.set_field(field);
+
+    ai_server::model::ball ball{123, 456, 789};
+    w.set_ball(ball);
+
+    ai_server::model::world::robots_list robots_blue{{1, {1}}, {3, {3}}};
+    w.set_robots_blue(robots_blue);
+
+    ai_server::model::world::robots_list robots_yellow{{2, {2}}, {4, {4}}};
+    w.set_robots_yellow(robots_yellow);
+
+    BOOST_TEST(w.field().length() == 1);
+    BOOST_TEST(w.ball().x() = 123);
+    BOOST_TEST(w.robots_blue().size() == 2);
+    BOOST_TEST(w.robots_blue().count(1) == 1);
+    BOOST_TEST(w.robots_blue().count(3) == 1);
+    BOOST_TEST(w.robots_yellow().size() == 2);
+    BOOST_TEST(w.robots_yellow().count(2) == 1);
+    BOOST_TEST(w.robots_yellow().count(4) == 1);
+  }
+
+  {
+    // コピーコンストラクタ, コピー代入演算子が正しく動作するか
+
+    ai_server::model::world w2(w);
+
+    BOOST_TEST(w2.field().length() == 1);
+    BOOST_TEST(w2.ball().x() = 123);
+    BOOST_TEST(w2.robots_blue().size() == 2);
+    BOOST_TEST(w2.robots_blue().count(1) == 1);
+    BOOST_TEST(w2.robots_blue().count(3) == 1);
+    BOOST_TEST(w2.robots_yellow().size() == 2);
+    BOOST_TEST(w2.robots_yellow().count(2) == 1);
+    BOOST_TEST(w2.robots_yellow().count(4) == 1);
+
+    ai_server::model::world w3 = w;
+
+    BOOST_TEST(w3.field().length() == 1);
+    BOOST_TEST(w3.ball().x() = 123);
+    BOOST_TEST(w3.robots_blue().size() == 2);
+    BOOST_TEST(w3.robots_blue().count(1) == 1);
+    BOOST_TEST(w3.robots_blue().count(3) == 1);
+    BOOST_TEST(w3.robots_yellow().size() == 2);
+    BOOST_TEST(w3.robots_yellow().count(2) == 1);
+    BOOST_TEST(w3.robots_yellow().count(4) == 1);
+
+    // コピーなのでwを変更してもw2, w3は変化しない
+    w.set_ball(ai_server::model::ball{12, 34, 56});
+    BOOST_TEST(w2.ball().x() = 123);
+    BOOST_TEST(w3.ball().x() = 123);
+  }
 }
 
 BOOST_AUTO_TEST_SUITE_END()
