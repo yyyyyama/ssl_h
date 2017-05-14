@@ -6,7 +6,7 @@
 #include <Eigen/Dense>
 
 #include "ai_server/game/agent/base.h"
-#include "ai_server/game/action/move.h"
+#include "ai_server/game/action/guard.h"
 #include "ai_server/game/action/vec.h"
 
 namespace ai_server {
@@ -23,9 +23,9 @@ public:
 private:
   unsigned int keeper_id_;
   const std::vector<unsigned int>& wall_ids_;
-  std::vector<std::shared_ptr<action::vec>> wall_;
+  std::vector<std::shared_ptr<action::guard>> wall_;
   std::shared_ptr<action::vec> keeper_;
-  std::vector<Eigen::Vector2d> target_;
+  std::vector<Eigen::Vector2d> old_target_;
   Eigen::Vector2d orientation_;
   defense_mode mode_;
 };

@@ -1,8 +1,8 @@
 #include <cmath>
-#include <boost/geometry/geometry.hpp>
-#include <boost/geometry/geometries/point_xy.hpp>
+#include <iostream>
 
 #include "ai_server/game/agent/defense.h"
+#include "ai_server/model/command.h"
 #include "ai_server/util/math.h"
 
 namespace ai_server {
@@ -21,15 +21,15 @@ defense::defense(const model::world& world, bool is_yellow, unsigned int keeper_
   // actionの初期化は一回しか行わない
   //
   //
+	
   //キーパー用のaction
-  //移動用
   keeper_ = std::make_shared<action::vec>(world_, is_yellow_, keeper_id_);
 
   //壁用のaction
   for (auto it : wall_ids_) {
-    wall_.emplace_back(std::make_shared<action::vec>(world_, is_yellow_, it));
+    wall_.emplace_back(std::make_shared<action::guard>(world_, is_yellow_, it));
   }
-  target_.resize(wall_.size());
+  old_target_.resize(wall_.size());
 }
 
 void defense::set_mode(defense_mode mode) {
@@ -38,13 +38,22 @@ void defense::set_mode(defense_mode mode) {
 
 std::vector<std::shared_ptr<action::base>> defense::execute() {
   using boost::math::constants::pi;
+	
   //ボールの座標
-  const Eigen::Vector2d ball(world_.ball().x(), world_.ball().y());
+  const Eigen::Vector2d ball_v(world_.ball().vx(), world_.ball().vy());
+
+	std::cout << "vx : "<<world_.ball().vx()<<" vy : "<<world_.ball().vy()<<std::endl;
+
+  const Eigen::Vector2d ball_p(world_.ball().x(), world_.ball().y());
+  const Eigen::Vector2d ball_k(ball_v*0.5);
+  const Eigen::Vector2d ball(ball_p+ball_k);
+	std::cout << "k_x : "<<ball_k.x()<<" k_y : "<<ball_k.y()<<std::endl;
 
   //ボールがゴールより後ろに来たら現状維持
   if (ball.x() < -4500.0 || ball.x() > 4500.0) {
+		auto target_it = old_target_.begin();
     for (auto wall_it : wall_) {
-      wall_it->move_to(0.0, 0.0, 0.0);
+      wall_it->move_to((*target_it).x(),(*target_it).y(), 0.0);
     }
     keeper_->move_to(0.0, 0.0, 0.0);
 
@@ -56,15 +65,14 @@ std::vector<std::shared_ptr<action::base>> defense::execute() {
   }
   //ゴールの座標
   const Eigen::Vector2d goal(world_.field().x_min(), 0.0);
-  //  const Eigen::Vector2d goal(4500.0, 0.0);
 
   const auto ball_theta = std::atan2(ball.y() - goal.y(), ball.x() - goal.x());
 
   //基準座標を求めている
   //
-  //いい感じのところ
   //
   //
+	
   //比
   {
     //半径
@@ -75,8 +83,20 @@ std::vector<std::shared_ptr<action::base>> defense::execute() {
     const auto ratio = radius / length; //全体に対しての基準座標の比
 
     orientation_ = (1 - ratio) * goal + ratio * ball;
-  }
+		std::cout << "change_x : "<<orientation_.x()<<" change_y : "<<orientation_.y()<<std::endl;
+	}
+  //比
+  {
+    //半径
+    const auto radius = 1400.0;
 
+    const auto length = (goal - ball_p).norm(); //ボール<->ゴール
+
+    const auto ratio = radius / length; //全体に対しての基準座標の比
+
+		Eigen::Vector2d test{(1 - ratio) * goal + ratio * ball_p};
+		std::cout << "x : "<<test.x()<<" y : "<<test.y()<<std::endl;
+	}
   //ここから壁の処理
   //
   //
@@ -84,15 +104,12 @@ std::vector<std::shared_ptr<action::base>> defense::execute() {
   //
   //
   {
-    //ロボットがロストしているかのフラグ
-    bool flag = false;
     //壁のイテレータ
     auto wall_it = wall_.begin();
 
+		std::vector<Eigen::Vector2d> target;
     //移動目標を出す
     {
-      auto target_it = target_.begin();
-
       //基準点からどれだけずらすか
       auto shift_ = 0.0;
       //縄張りの大きさ
@@ -102,14 +119,13 @@ std::vector<std::shared_ptr<action::base>> defense::execute() {
 
       if (wall_.size() % 2) { //奇数
         //奇数なら五稜郭っぽいことしたいね<-塹壕戦の基本！
-        Eigen::Vector2d odd{0.0, 0.0};
+        Eigen::Vector2d odd{Eigen::Vector2d::Zero()};
         //中央の壁は前に出ろ
         {
           const auto length = (orientation_ - ball).norm(); //ボール<->ゴール
 
           const auto ratio = 400 / length; //全体に対しての基準座標の比
 
-          odd = orientation_;
           odd = ((1 - ratio) * orientation_ + ratio * ball);
         }
         //時々位置が反転するのでその処理
@@ -122,19 +138,17 @@ std::vector<std::shared_ptr<action::base>> defense::execute() {
             odd = (1 - ratio) * orientation_ + ratio * ball;
           }
         }
-        (*target_it) = odd;
-        wall_it++;
-        magnification = 1.0;
-        shift_        = 200.0;
 
         //敵がめっちゃ近づいたら閉める
         if (std::signbit(std::pow(ball.x() - goal.x(), 2) + std::pow(ball.y(), 2) -
                          std::pow(demarcation, 2))) {
           //前に出てる場合じゃねぇ
-          (*target_it) = orientation_;
-          shift_       = 200;
+          odd = orientation_;
         }
-        target_it++;
+        target.push_back(odd);
+        wall_it++;
+        magnification = 1.0;
+        shift_        = 200;
       } else { //偶数
         magnification = 2.0;
         shift_        = 190.0;
@@ -169,106 +183,16 @@ std::vector<std::shared_ptr<action::base>> defense::execute() {
         const Eigen::Vector2d tmp2(tmp1.x(), tmp1.y() * (-1));
 
         //回転した後の正しい座標
-        (*target_it++) = (rotate * tmp1) + move;
-        (*target_it++) = (rotate * tmp2) + move;
+        target.push_back((rotate * tmp1) + move);
+        target.push_back((rotate * tmp2) + move);
 
         //もしディフェンスエリアないに入ってしまっても順番が入れ替わらないようにする
         if ((std::pow(ball.x() - goal.x(), 2) + std::pow(ball.y() - goal.y(), 2) -
              std::pow(1400.0, 2)) < 0) {
-          const auto tmp   = *(target_it - 2);
-          *(target_it - 2) = *(target_it - 1);
-          *(target_it - 1) = tmp;
-        }
-      }
-    }
-    //ワンツー対策
-    {
-      if ((ball.y() > 1500.0 || ball.y() < -1500.0) && ball.x() < 2500.0) {
-        const auto enemy_robots = is_yellow_ ? world_.robots_blue() : world_.robots_yellow();
-
-        //暫定的なボールに最も近い敵ロボット
-        unsigned int enemy_robot_id = 0xff;
-        {
-          for (auto enemy_it : enemy_robots) {
-            if (std::pow(ball.x() - (enemy_it.second).x(), 2) +
-                    std::pow(ball.y() - (enemy_it.second).y(), 2) - std::pow(150.0, 2) <
-                0) {
-              enemy_robot_id = (enemy_it.first);
-            }
-          }
-        }
-        if (enemy_robot_id != 0xff) {
-          if (enemy_robots.count(enemy_robot_id)) {
-            const auto& enemy_robot = enemy_robots.at(enemy_robot_id);
-
-            const auto enemy_theta = util::wrap_to_pi(enemy_robot.theta());
-            const Eigen::Vector2d enemy_pos(enemy_robot.x(), enemy_robot.y());
-
-            //暫定的な受け取り敵ロボット
-            unsigned int recerve_id = 0xff;
-
-            for (auto enemy_it : enemy_robots) {
-              if ((enemy_it.first) == enemy_robot_id) {
-                continue;
-              }
-              const Eigen::Vector2d comp_pos((enemy_it.second).x(), (enemy_it.second).y());
-              const auto comp_theta =
-                  std::atan2(comp_pos.y() - enemy_pos.y(), comp_pos.x() - enemy_pos.x());
-
-              if ((comp_theta - (pi<double>() / 30.0)) < enemy_theta &&
-                  (comp_theta + (pi<double>() / 30.0)) > enemy_theta) {
-                recerve_id = (enemy_it.first);
-              }
-            }
-            {
-              if (recerve_id != 0xff) {
-                if (enemy_robots.count(recerve_id)) {
-                  const auto& recerve_robot = enemy_robots.at(recerve_id);
-                  const Eigen::Vector2d recerve_pos(recerve_robot.x(), recerve_robot.y());
-                  Eigen::Vector2d new_pos;
-                  {
-                    //半径
-                    const auto radius = 1400.0;
-
-                    const auto length = (goal - recerve_pos).norm(); //レシーバー<->ゴール
-
-                    const auto ratio = radius / length; //全体に対しての基準座標の比
-
-                    new_pos = (1 - ratio) * goal + ratio * recerve_pos;
-                  }
-                  //近い奴のいてレーたを格納する
-                  auto it = target_.begin();
-                  {
-                    //最小値を比べるための変数
-                    auto min_val   = 0xffff;
-                    auto target_it = target_.begin();
-
-                    const auto wall_robots =
-                        is_yellow_ ? world_.robots_yellow() : world_.robots_blue();
-
-                    for (auto wall_ids_it : wall_ids_) {
-                      if (wall_robots.count(wall_ids_it)) {
-                        const auto& wall_robot = wall_robots.at(wall_ids_it);
-                        const Eigen::Vector2d wall(wall_robot.x(), wall_robot.y());
-                        if ((new_pos - wall).norm() < min_val) {
-                          it      = target_it;
-                          min_val = (new_pos - wall).norm();
-                        }
-                        target_it++;
-                      } else {
-                        flag = true;
-                      }
-                    }
-                  }
-                  (*it) = new_pos;
-                } else {
-                  flag = true;
-                }
-              }
-            }
-          } else {
-            flag = true;
-          }
+          const auto tmp   = target.back();
+					target.pop_back();
+					auto target_it = target.end();
+					target.insert(--target_it,tmp);
         }
       }
     }
@@ -280,39 +204,14 @@ std::vector<std::shared_ptr<action::base>> defense::execute() {
       //
       switch (mode_) {
         case defense_mode::normal_mode: {
-          const auto wall_robots = is_yellow_ ? world_.robots_yellow() : world_.robots_blue();
-          auto wall_ids_it       = wall_ids_.begin();
-
-          auto target_it = target_.begin();
-
+          auto target_it = target.begin();
+          auto old_target_it = old_target_.begin();
           for (auto wall_it : wall_) {
-            if (wall_robots.count((*wall_ids_it))) {
-              const auto& wall_robot = wall_robots.at((*wall_ids_it++));
-              const Eigen::Vector2d wall(wall_robot.x(), wall_robot.y());
-              const auto wall_theta = util::wrap_to_pi(wall_robot.theta());
-
-              //移動目標
-              auto coefficient = 10.0;
-              if ((((*target_it) - wall) * coefficient).norm() > 1400.0) {
-                coefficient = 3.0;
-              }
-
-              const Eigen::Vector2d sign(((*target_it) - wall) * coefficient);
-
-              //ボールの向きを向くために,ゴール<->ボールの角度-自身の角度をしてそれを角速度とする.
-              const auto omega = ball_theta - wall_theta;
-
-              if (flag) {
-                wall_it->move_to(0, 0, 0);
-              } else {
-                wall_it->move_to(sign.x(), sign.y(), omega);
-              }
-
+              wall_it->move_to((*target_it).x(),(*target_it).y(), ball_theta);
+							//wall_it->set_kick_type({model::command::kick_type_t::chip,255});
+							wall_it->set_dribble(3);
+							(*old_target_it) = (*target_it);
               target_it++;
-
-            } else {
-              wall_it->move_to(0.0, 0.0, 0.0);
-            }
           }
           break;
         }
