@@ -22,7 +22,7 @@ private:
   // 二次遅れモデルパラメータ
   double zeta_;
   double omega_;
-  velocity_t u_[7]; // 7フレーム分の制御入力
+  Eigen::Vector3d u_[7]; // 7フレーム分の制御入力
 
 public:
   /// @brief  コンストラクタ
@@ -34,7 +34,7 @@ public:
   /// @brief  現在状態の推定
   /// @param  robot ロボット
   /// @param  u (前回)制御入力
-  Eigen::Matrix3d interpolate(const model::robot& robot, const velocity_t u);
+  Eigen::Matrix3d interpolate(const model::robot& robot, const Eigen::Vector3d u);
 };
 
 } // detail

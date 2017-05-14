@@ -8,11 +8,12 @@ namespace detail {
 smith_predictor::smith_predictor(const double cycle, const double zeta, const double omega)
     : cycle_(cycle), zeta_(zeta), omega_(omega) {
   for (int i = 0; i < 7; i++) {
-    u_[i] = {0.0, 0.0, 0.0};
+    u_[i].Eigen::Vector3d::Zero(3);
   }
 }
 
-Eigen::Matrix3d smith_predictor::interpolate(const model::robot& robot, const velocity_t u) {
+Eigen::Matrix3d smith_predictor::interpolate(const model::robot& robot,
+                                             const Eigen::Vector3d u) {
   u_[0] = u; // 受け取った制御入力を最新入力として
 
   // 受け取ったロボットの状態(無駄時間分の遅れ含む)
@@ -27,7 +28,6 @@ Eigen::Matrix3d smith_predictor::interpolate(const model::robot& robot, const ve
 
   // 1ループ毎に当時の制御入力によって1フレーム分の補間をする
   for (int i = 6; i >= 0; i--) {
-    Eigen::Vector3d u(u_[i].vx, u_[i].vy, u_[i].omega);
     // p=p+v*dt
     now_position = now_position + cycle_ * pre_velocity;
     // v=v+a*dt
