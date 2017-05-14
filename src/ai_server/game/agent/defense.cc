@@ -1,5 +1,4 @@
 #include <cmath>
-#include <iostream>
 
 #include "ai_server/game/agent/defense.h"
 #include "ai_server/model/command.h"
@@ -21,15 +20,15 @@ defense::defense(const model::world& world, bool is_yellow, unsigned int keeper_
   // actionの初期化は一回しか行わない
   //
   //
-	
+
   //キーパー用のaction
-  keeper_ = std::make_shared<action::vec>(world_, is_yellow_, keeper_id_);
+  keeper_ = std::make_shared<action::guard>(world_, is_yellow_, keeper_id_);
 
   //壁用のaction
   for (auto it : wall_ids_) {
     wall_.emplace_back(std::make_shared<action::guard>(world_, is_yellow_, it));
   }
-  old_target_.resize(wall_.size());
+  wall_target_.resize(wall_.size());
 }
 
 void defense::set_mode(defense_mode mode) {
@@ -38,24 +37,20 @@ void defense::set_mode(defense_mode mode) {
 
 std::vector<std::shared_ptr<action::base>> defense::execute() {
   using boost::math::constants::pi;
-	
+
   //ボールの座標
   const Eigen::Vector2d ball_v(world_.ball().vx(), world_.ball().vy());
-
-	std::cout << "vx : "<<world_.ball().vx()<<" vy : "<<world_.ball().vy()<<std::endl;
-
   const Eigen::Vector2d ball_p(world_.ball().x(), world_.ball().y());
-  const Eigen::Vector2d ball_k(ball_v*0.5);
-  const Eigen::Vector2d ball(ball_p+ball_k);
-	std::cout << "k_x : "<<ball_k.x()<<" k_y : "<<ball_k.y()<<std::endl;
+  const Eigen::Vector2d ball_k(ball_v * 0.5);
+  const Eigen::Vector2d ball(ball_p + ball_k);
 
   //ボールがゴールより後ろに来たら現状維持
   if (ball.x() < -4500.0 || ball.x() > 4500.0) {
-		auto target_it = old_target_.begin();
+    auto target_it = wall_target_.begin();
     for (auto wall_it : wall_) {
-      wall_it->move_to((*target_it).x(),(*target_it).y(), 0.0);
+      wall_it->move_to((*target_it).x(), (*target_it).y(), 0.0);
     }
-    keeper_->move_to(0.0, 0.0, 0.0);
+    keeper_->move_to(keeper_target_.x(), keeper_target_.x(), 0.0);
 
     std::vector<std::shared_ptr<action::base>> re_wall{
         wall_.begin(), wall_.end()}; //型を合わせるために無理矢理作り直す
@@ -72,7 +67,7 @@ std::vector<std::shared_ptr<action::base>> defense::execute() {
   //
   //
   //
-	
+
   //比
   {
     //半径
@@ -83,20 +78,8 @@ std::vector<std::shared_ptr<action::base>> defense::execute() {
     const auto ratio = radius / length; //全体に対しての基準座標の比
 
     orientation_ = (1 - ratio) * goal + ratio * ball;
-		std::cout << "change_x : "<<orientation_.x()<<" change_y : "<<orientation_.y()<<std::endl;
-	}
-  //比
-  {
-    //半径
-    const auto radius = 1400.0;
+  }
 
-    const auto length = (goal - ball_p).norm(); //ボール<->ゴール
-
-    const auto ratio = radius / length; //全体に対しての基準座標の比
-
-		Eigen::Vector2d test{(1 - ratio) * goal + ratio * ball_p};
-		std::cout << "x : "<<test.x()<<" y : "<<test.y()<<std::endl;
-	}
   //ここから壁の処理
   //
   //
@@ -107,7 +90,7 @@ std::vector<std::shared_ptr<action::base>> defense::execute() {
     //壁のイテレータ
     auto wall_it = wall_.begin();
 
-		std::vector<Eigen::Vector2d> target;
+    std::vector<Eigen::Vector2d> target;
     //移動目標を出す
     {
       //基準点からどれだけずらすか
@@ -189,10 +172,10 @@ std::vector<std::shared_ptr<action::base>> defense::execute() {
         //もしディフェンスエリアないに入ってしまっても順番が入れ替わらないようにする
         if ((std::pow(ball.x() - goal.x(), 2) + std::pow(ball.y() - goal.y(), 2) -
              std::pow(1400.0, 2)) < 0) {
-          const auto tmp   = target.back();
-					target.pop_back();
-					auto target_it = target.end();
-					target.insert(--target_it,tmp);
+          const auto tmp = target.back();
+          target.pop_back();
+          auto target_it = target.end();
+          target.insert(--target_it, tmp);
         }
       }
     }
@@ -204,21 +187,17 @@ std::vector<std::shared_ptr<action::base>> defense::execute() {
       //
       switch (mode_) {
         case defense_mode::normal_mode: {
-          auto target_it = target.begin();
-          auto old_target_it = old_target_.begin();
+          auto target_it     = target.begin();
+          auto old_target_it = wall_target_.begin();
           for (auto wall_it : wall_) {
-              wall_it->move_to((*target_it).x(),(*target_it).y(), ball_theta);
-							//wall_it->set_kick_type({model::command::kick_type_t::chip,255});
-							wall_it->set_dribble(3);
-							(*old_target_it) = (*target_it);
-              target_it++;
+            wall_it->move_to((*target_it).x(), (*target_it).y(), ball_theta);
+            // wall_it->set_kick_type({model::command::kick_type_t::chip,255});
+            wall_it->set_dribble(3);
+            (*old_target_it++) = (*target_it++);
           }
           break;
         }
         case defense_mode::pk_mode: {
-          for (auto wall_it : wall_) {
-            wall_it->move_to(0.0, 0.0, 0.0);
-          }
           break;
         }
       }
@@ -241,8 +220,6 @@ std::vector<std::shared_ptr<action::base>> defense::execute() {
     const auto my_robots = is_yellow_ ? world_.robots_yellow() : world_.robots_blue();
     if (my_robots.count(keeper_id_)) {
       const auto& keeper_robot = my_robots.at(keeper_id_);
-      //キーパーの角度
-      const auto keeper_theta = util::wrap_to_pi(keeper_robot.theta());
       const Eigen::Vector2d keeper_c(keeper_robot.x(), keeper_robot.y());
 
       switch (mode_) {
@@ -314,22 +291,13 @@ std::vector<std::shared_ptr<action::base>> defense::execute() {
           break;
         }
       }
-      //移動目標
-      auto coefficient = 10.0;
-      if (((keeper - keeper_c) * coefficient).norm() > 1400.0) {
-        coefficient = 5.0;
-      }
+      keeper_target_ = keeper;
 
-      const Eigen::Vector2d sign = ((keeper - keeper_c) * coefficient);
-
-      //ボールの向きを向くために,ゴール<->ボールの角度-自身の角度
-      //をしてそれを角速度とする.
-      const auto omega = ball_theta - keeper_theta;
-      keeper_->move_to(sign.x(), sign.y(), omega);
+      keeper_->move_to(keeper.x(), keeper.y(), ball_theta);
 
       re_wall.push_back(keeper_); //配列を返すためにキーパーを統合する
     } else {
-      keeper_->move_to(0.0, 0.0, 0.0);
+      keeper_->move_to(keeper_target_.x(), keeper_target_.y(), 0.0);
     }
   }
 
