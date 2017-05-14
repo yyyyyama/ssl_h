@@ -15,12 +15,15 @@ public:
   void move_to(double x, double y, double theta);
 	void set_kick_type(const model::command::kick_flag_t& kick_type);
 	model::command::kick_flag_t kick_type();
+	void set_dribble(int dribble);
+	int dribble();
   model::command execute() override;
   bool finished() const override;
 
 private:
   Eigen::Vector2d pos_{0.0, 0.0};
   double theta_ = 0.0;
+	int dribble_;
 	model::command::kick_flag_t kick_type_ = {model::command::kick_type_t::none,0.0};
   bool flag_    = false;
 };
