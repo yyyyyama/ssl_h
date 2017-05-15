@@ -21,21 +21,20 @@ namespace agent {
 class regular : public base {
 public:
   regular(const model::world& world, bool is_yellow, const std::vector<unsigned int>& ids);
-  void set_ball_chase(bool ball_chase); //全てのロボットをマーキングにする時はfalse
+  void set_ball_chase(bool ball_chase); //全てのロボットをマーキングに割り当てる時はfalse
   std::vector<std::shared_ptr<action::base>> execute() override;
 
 private:
   const std::vector<unsigned int>& ids_;
   bool ball_chase_;
-  unsigned int chase_ball_id_;
-  
+
   bool chase_ball_finished_;
   bool kick_action_finished_;
 
   // Action
   std::shared_ptr<action::marking> marking_;
   std::shared_ptr<action::chase_ball> chase_ball_;
-    std::shared_ptr<action::kick_action> kick_action_;
+  std::shared_ptr<action::kick_action> kick_action_;
 
   // IDと、優先度の構造体
   //重要度の所には、「(条件1)*a+(条件2)*b+...
@@ -52,57 +51,35 @@ private:
   //ゾーンの構造体(四角形)
   struct zone_ {
     unsigned int id; //ゾーンのID
-    double x;
-    double y;
-    double width;
-    double height;
+    double x_min;
+    double y_min;
+    double x_max;
+    double y_max;
   };
-  
+
+  std::vector<zone_> zones_; //ゾーンのvector
+
   //ロボットとゾーンの結び付け
- using robot_id_zone_id= std::unordered_map<unsigned int,unsigned int>;
- robot_id_zone_id robot_zone;
-void set_robot_ids_zone_ids();
+  using id_id_ = std::unordered_map<unsigned int, unsigned int>;
+  id_id_ robot_id_zone_id_;
+  id_id_ zone_id_robot_id_;
 
-//ボールを追いかけるロボットを設定
-void set_chase_ball_id_();
+  unsigned int chase_ball_id;
 
+  void set_chase_ball_id_(); //ボールを追いかけるロボットを設定
 
+  void set_zones_(); //ゾーンの設定
 
-  //ロボットIDとゾーンIDを結びつける(ロボットID,ゾーンID)
-  struct robot_zone_id_ {
-    unsigned int robot_id;
-    unsigned int zone_id;
-    bool operator<(const robot_zone_id_& next) const {
-      return zone_id < next.zone_id; //ソート基準をゾーンIDの若い順に設定
-    }
-  };
-
-  std::vector<zone_> zones_;                   //ゾーンのvector
-  std::vector<robot_zone_id_> robot_zone_ids_; //ロボットIDとゾーンIDのタグvector
-
-  //ゾーンのvectorを設定
-  void set_zones_();
-
-  //ロボットIDとゾーンIDのvectorを設定
-  void set_robot_zone_ids_();
+  void set_robot_ids_zone_ids_(); //ロボットIDとゾーンID関係性を設定
 
   //ある点が指定されたエリア上にあるか(第2引数のzone_構造体のIDは適当で良い)
   bool on_area_(double x, double y, zone_ zone);
 
-  //ゾーンIDに対応したロボットIDを返す
-  unsigned int zone_id_to_robot_id_(unsigned int id);
-
-  //ロボットIDに対応したゾーンIDを返す
-  unsigned int robot_id_to_zone_id_(unsigned int id);
-  
-      //ゾーンIDに対応したロボットIDを返す(敵も対応)
-  unsigned int zone_id_to_robot_id_x_(unsigned int id,std::vector<robot_zone_id_>& vect);
-
   //ある地点に対応するゾーンIDを返す
   unsigned int point_to_zone_id_(double x, double y);
-
+  
   //安定マッチング
-  std::vector<unsigned int> stable_matching(
+  std::vector<unsigned int> stable_matching_(
       const std::vector<std::vector<unsigned int>>& order_man,
       const std::vector<std::vector<unsigned int>>& order_woman);
 };
