@@ -45,7 +45,7 @@ std::vector<std::shared_ptr<action::base>> defense::execute() {
   const Eigen::Vector2d ball(ball_p + ball_k);
 
   //ボールがゴールより後ろに来たら現状維持
-  if (ball.x() < -4500.0 || ball.x() > 4500.0) {
+  if (ball.x() < world_.field().x_min() || ball.x() > world_.field().x_max()) {
     auto target_it = wall_target_.begin();
     for (auto wall_it : wall_) {
       wall_it->move_to((*target_it).x(), (*target_it).y(), 0.0);
