@@ -1,6 +1,7 @@
 #include <cmath>
 
 #include "ai_server/game/action/guard.h"
+#include "ai_server/util/math.h"
 
 namespace ai_server {
 namespace game {
@@ -23,8 +24,6 @@ int guard::dribble() {
   return dribble_;
 }
 model::command guard::execute() {
-  //速度
-  const auto velocity = 3000.0;
   //それぞれ自機を生成
   model::command command(id_);
 
@@ -43,9 +42,9 @@ model::command guard::execute() {
 
   const auto robot = robots.at(id_);
   const Eigen::Vector2d robot_pos{robot.x(), robot.y()};
-  const auto robot_theta = robot.theta();
+  const auto robot_theta = util::wrap_to_pi(robot.theta());
   const auto omega       = theta_ - robot_theta;
-  //	const Eigen::Vector2d vec{((pos_ - robot_pos).normalized())*velocity};
+  //速度の係数
   auto c = 10.0;
   if (((pos_ - robot_pos) * c).norm() > 1400.0) {
     c = 5.0;
@@ -53,11 +52,11 @@ model::command guard::execute() {
   const Eigen::Vector2d vec{(pos_ - robot_pos) * c};
 
   //位置のマージン
-  //const auto margin = 0.1 * vec.norm();
+  // const auto margin = 0.1 * vec.norm();
   auto margin = 80.0;
-	if(vec.norm()<1400){
-		margin = 10.0;
-	}
+  if (vec.norm() < 1400) {
+    margin = 10.0;
+  }
   //目標位置に居るなら終わり
   if (std::pow(robot_pos.x() - pos_.x(), 2) + std::pow(robot_pos.y() - pos_.y(), 2) -
           std::pow(margin, 2) <
