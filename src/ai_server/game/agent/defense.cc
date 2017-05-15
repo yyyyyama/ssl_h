@@ -191,7 +191,7 @@ std::vector<std::shared_ptr<action::base>> defense::execute() {
           auto old_target_it = wall_target_.begin();
           for (auto wall_it : wall_) {
             wall_it->move_to((*target_it).x(), (*target_it).y(), ball_theta);
-            // wall_it->set_kick_type({model::command::kick_type_t::chip,255});
+            wall_it->set_kick_type({model::command::kick_type_t::chip,255});
             wall_it->set_dribble(3);
             (*old_target_it++) = (*target_it++);
           }
