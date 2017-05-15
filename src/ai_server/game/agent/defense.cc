@@ -50,7 +50,7 @@ std::vector<std::shared_ptr<action::base>> defense::execute() {
     for (auto wall_it : wall_) {
       wall_it->move_to((*target_it).x(), (*target_it).y(), 0.0);
     }
-    keeper_->move_to(keeper_target_.x(), keeper_target_.x(), 0.0);
+    keeper_->move_to(keeper_target_.x(), keeper_target_.y(), 0.0);
 
     std::vector<std::shared_ptr<action::base>> re_wall{
         wall_.begin(), wall_.end()}; //型を合わせるために無理矢理作り直す
