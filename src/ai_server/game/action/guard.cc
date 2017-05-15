@@ -32,8 +32,6 @@ model::command guard::execute() {
 
   command.set_dribble(dribble_);
 
-  flag_ = false;
-
   const auto robots = is_yellow_ ? world_.robots_yellow() : world_.robots_blue();
   if (!robots.count(id_)) {
     command.set_velocity({0.0, 0.0, 0.0});
@@ -44,23 +42,26 @@ model::command guard::execute() {
   const Eigen::Vector2d robot_pos{robot.x(), robot.y()};
   const auto robot_theta = util::wrap_to_pi(robot.theta());
   const auto omega       = theta_ - robot_theta;
+
   //速度の係数
-  auto c = 10.0;
-  if (((pos_ - robot_pos) * c).norm() > 1400.0) {
-    c = 5.0;
-  }
+  const auto& pos = pos_;
+  const auto c    = [&robot_pos, &pos] {
+    if (((pos - robot_pos) * 10.0).norm() > 1400.0) {
+      return 5.0;
+    } else {
+      return 10.0;
+    }
+  }();
+
   const Eigen::Vector2d vec{(pos_ - robot_pos) * c};
 
   //位置のマージン
-  // const auto margin = 0.1 * vec.norm();
-  auto margin = 80.0;
-  if (vec.norm() < 1400) {
-    margin = 10.0;
-  }
+  const auto margin = vec.norm() < 1400 ? 10.0 : 80.0;
+
   //目標位置に居るなら終わり
-  if (std::pow(robot_pos.x() - pos_.x(), 2) + std::pow(robot_pos.y() - pos_.y(), 2) -
-          std::pow(margin, 2) <
-      0) {
+  //目標位置から現在地の距離
+  const auto lengh = hypot(robot_pos.x() - pos_.x(), robot_pos.y() - pos_.y());
+  if (lengh < margin) {
     command.set_velocity({0.0, 0.0, omega});
     flag_ = true;
     return command;
@@ -68,6 +69,7 @@ model::command guard::execute() {
 
   command.set_velocity({vec.x(), vec.y(), omega});
 
+  flag_ = false;
   return command;
 }
 bool guard::finished() const {
