@@ -35,4 +35,30 @@ BOOST_AUTO_TEST_CASE(wrap_to_2pi, *boost::unit_test::tolerance(0.0000001)) {
   BOOST_TEST(util::wrap_to_2pi(-25 * two_pi +  pi) == pi);
 }
 
+BOOST_AUTO_TEST_CASE(wrap_to_pi, *boost::unit_test::tolerance(0.0000001)) {
+  using namespace boost::math::double_constants;
+
+  BOOST_TEST(util::wrap_to_pi(-two_thirds_pi) == -two_thirds_pi);
+  BOOST_TEST(util::wrap_to_pi(-third_pi) == -third_pi);
+  BOOST_TEST(util::wrap_to_pi(0.0) == 0.0);
+  BOOST_TEST(util::wrap_to_pi(third_pi) == third_pi);
+  BOOST_TEST(util::wrap_to_pi(two_thirds_pi) == two_thirds_pi);
+  BOOST_TEST(util::wrap_to_pi(pi) == pi);
+  BOOST_TEST(util::wrap_to_pi(-pi) == pi);
+
+  BOOST_TEST(util::wrap_to_pi(pi + third_pi) == -two_thirds_pi);
+  BOOST_TEST(util::wrap_to_pi(pi + two_thirds_pi) == -third_pi);
+  BOOST_TEST(util::wrap_to_pi(two_pi) == 0.0);
+
+  BOOST_TEST(util::wrap_to_pi(-pi - third_pi) == two_thirds_pi);
+  BOOST_TEST(util::wrap_to_pi(-pi - two_thirds_pi) == third_pi);
+
+  BOOST_TEST(util::wrap_to_pi(25 * two_pi + third_pi) == third_pi);
+  BOOST_TEST(util::wrap_to_pi(25 * two_pi + two_thirds_pi) == two_thirds_pi);
+  BOOST_TEST(util::wrap_to_pi(25 * two_pi + pi) == pi);
+  BOOST_TEST(util::wrap_to_pi(-25 * two_pi + third_pi) == third_pi);
+  BOOST_TEST(util::wrap_to_pi(-25 * two_pi + two_thirds_pi) == two_thirds_pi);
+  BOOST_TEST(util::wrap_to_pi(-25 * two_pi + pi) == pi);
+}
+
 BOOST_AUTO_TEST_SUITE_END()
