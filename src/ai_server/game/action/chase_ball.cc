@@ -105,7 +105,7 @@ model::command chase_ball::execute() {
     }
   }
 
-  if (std::hypot(ball_vx, ball_vy) > 2000 && ball_vx / ball_vy > 3){
+  if (std::hypot(ball_vx, ball_vy) > 2000 && ball_vx / ball_vy > 3) {
     mode_ = mode::not_move;
   }
 
@@ -158,7 +158,7 @@ model::command chase_ball::execute() {
                     acc * count_ / 60 * std::sin(move_theta), move_omega};
       }
 
-      else if (count_ > acc_count && dist1 >= acc_dist - 150) {    //default 100
+      else if (count_ > acc_count && dist1 >= acc_dist - 150) { // default 100
         next_vel = {max_vel * std::cos(move_theta), max_vel * std::sin(move_theta), move_omega};
       } else if (dist1 < acc_dist && sub_count_ <= acc_count / 1.5) {
         sub_count_++;
@@ -206,7 +206,7 @@ model::command chase_ball::execute() {
         // wrap_omega};
       }
       //位置調整
-      if (dist2 > 50 || std::abs(v2_theta - v1_theta) > 2 * pi<double>() / 180){
+      if (dist2 > 50 || std::abs(v2_theta - v1_theta) > 2 * pi<double>() / 180) {
         next_vel = {(second_pos.x - my_pos.x) / a, (second_pos.y - my_pos.y) / a, wrap_angle};
       } else {
         next_vel = {0, 0, 0};
@@ -222,14 +222,16 @@ model::command chase_ball::execute() {
         wait_flag_ = true;
       }
       /*    else {
-            next_vel = {300 * std::cos(std::atan2(kick_target_y_ - my_pos.y, kick_target_x_ - my_pos.x)),
-                        300 * std::sin(std::atan2(kick_target_y_ - my_pos.y, kick_target_x_ - my_pos.x)),
+            next_vel = {300 * std::cos(std::atan2(kick_target_y_ - my_pos.y, kick_target_x_ -
+         my_pos.x)),
+                        300 * std::sin(std::atan2(kick_target_y_ - my_pos.y, kick_target_x_ -
+         my_pos.x)),
                         wrap_angle};
 
           }
       */
       if (/*v2_theta - v1_theta > half_pi<double>() ||*/ dist > 500) {
-        mode_ = mode::move_to_ball/*wrapparound*/;
+        mode_ = mode::move_to_ball /*wrapparound*/;
       }
       command.set_dribble(dribble_pow);
       fin_flag_ = true;
@@ -258,8 +260,8 @@ model::command chase_ball::execute() {
       }
       break;
 
-  case mode::not_move:
-      next_vel = {0, 0, 0};
+    case mode::not_move:
+      next_vel   = {0, 0, 0};
       wait_flag_ = true;
       break;
   }
