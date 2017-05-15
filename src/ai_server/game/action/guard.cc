@@ -60,7 +60,7 @@ model::command guard::execute() {
 
   //目標位置に居るなら終わり
   //目標位置から現在地の距離
-  const auto lengh = hypot(robot_pos.x() - pos_.x(), robot_pos.y() - pos_.y());
+  const auto lengh = std::hypot(robot_pos.x() - pos_.x(), robot_pos.y() - pos_.y());
   if (lengh < margin) {
     command.set_velocity({0.0, 0.0, omega});
     flag_ = true;
