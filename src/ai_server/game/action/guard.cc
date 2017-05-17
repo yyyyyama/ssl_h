@@ -44,7 +44,7 @@ model::command guard::execute() {
   const auto omega       = theta_ - robot_theta;
 
   //速度の係数
-  const auto c    =((pos_ - robot_pos)*10.0).norm()>1400.0?5.0:10.0;
+  const auto c = ((pos_ - robot_pos) * 10.0).norm() > 1400.0 ? 5.0 : 10.0;
 
   const Eigen::Vector2d vec{(pos_ - robot_pos) * c};
 
