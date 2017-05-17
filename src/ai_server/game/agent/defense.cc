@@ -48,7 +48,7 @@ std::vector<std::shared_ptr<action::base>> defense::execute() {
   if (ball.x() < world_.field().x_min() || ball.x() > world_.field().x_max()) {
     auto target_it = wall_target_.begin();
     for (auto wall_it : wall_) {
-      wall_it->move_to((*target_it).x(), (*target_it).y(), 0.0);
+      wall_it->move_to((*target_it++).x(), (*target_it++).y(), 0.0);
     }
     keeper_->move_to(keeper_target_.x(), keeper_target_.y(), 0.0);
 
