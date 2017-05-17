@@ -25,6 +25,10 @@ bool kick_off::start_flag() const {
   return start_flag_;
 }
 
+bool kick_off::finished() const {
+  return move_finished_ && kick_finished_;
+}
+
 std::vector<std::shared_ptr<action::base>> kick_off::execute() {
   const double robot_r    = 90.0;  //ロボットの半径
   const double keep_out_r = 500.0; //キックオフ時の立ち入り禁止区域の半径

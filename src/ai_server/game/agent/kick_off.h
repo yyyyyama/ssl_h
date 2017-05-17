@@ -15,6 +15,7 @@ public:
   kick_off(const model::world& world, bool is_yellow, unsigned int kicker_id);
   bool start_flag() const;
   void set_start_flag(bool start_flag);
+  bool finished() const;
   std::vector<std::shared_ptr<action::base>> execute() override;
 
 private:
