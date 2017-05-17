@@ -21,6 +21,13 @@ inline auto position(const T& obj)
   return {obj.x(), obj.y()};
 }
 
+/// @brief     position_tを2次元のベクトル型に変換する
+/// @param obj 変換したいオブジェクト
+/// @return    Eigen::Vector2d{obj.x, obj.y}
+inline Eigen::Vector2d position(const model::command::position_t& obj) {
+  return {obj.x, obj.y};
+}
+
 /// @brief     メンバ関数vx(), vy()を持つオブジェクトを2次元のベクトル型に変換する
 /// @param obj 変換したいオブジェクト
 /// @return    Eigen::Matrix<T, 2, 1>{obj.vx(), obj.vy()}
@@ -28,6 +35,13 @@ template <class T, std::enable_if_t<detail::has_vx_vy_v<T>>* = nullptr>
 inline auto velocity(const T& obj)
     -> Eigen::Matrix<std::common_type_t<decltype(obj.vx()), decltype(obj.vy())>, 2, 1> {
   return {obj.vx(), obj.vy()};
+}
+
+/// @brief     velocity_tを2次元のベクトル型に変換する
+/// @param obj 変換したいオブジェクト
+/// @return    Eigen::Vector2d{obj.x, obj.y}
+inline Eigen::Vector2d velocity(const model::command::velocity_t& obj) {
+  return {obj.vx, obj.vy};
 }
 
 /// @brief     メンバ関数ax(), ay()を持つオブジェクトを2次元のベクトル型に変換する
