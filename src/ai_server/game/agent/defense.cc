@@ -123,8 +123,7 @@ std::vector<std::shared_ptr<action::base>> defense::execute() {
         }
 
         //敵がめっちゃ近づいたら閉める
-        if (std::signbit(std::pow(ball.x() - goal.x(), 2) + std::pow(ball.y(), 2) -
-                         std::pow(demarcation, 2))) {
+        if ((ball - goal).norm() < demarcation) {
           //前に出てる場合じゃねぇ
           odd = orientation_;
         }
@@ -136,8 +135,7 @@ std::vector<std::shared_ptr<action::base>> defense::execute() {
         magnification = 2.0;
         shift_        = 190.0;
         //敵がめっちゃ近づいたら閉める
-        if (std::signbit(std::pow(ball.x() - goal.x(), 2) + std::pow(ball.y(), 2) -
-                         std::pow(demarcation, 2))) {
+        if ((ball - goal).norm() < demarcation) {
           shift_ = 90;
         }
       }
@@ -170,8 +168,7 @@ std::vector<std::shared_ptr<action::base>> defense::execute() {
         target.push_back((rotate * tmp2) + move);
 
         //もしディフェンスエリアないに入ってしまっても順番が入れ替わらないようにする
-        if ((std::pow(ball.x() - goal.x(), 2) + std::pow(ball.y() - goal.y(), 2) -
-             std::pow(1400.0, 2)) < 0) {
+        if ((ball - goal).norm() < 1400) {
           const auto tmp = target.back();
           target.pop_back();
           auto target_it = target.end();
@@ -224,15 +221,13 @@ std::vector<std::shared_ptr<action::base>> defense::execute() {
 
       switch (mode_) {
         case defense_mode::normal_mode: {
-          const auto demarcation = 2500.0; //縄張りの大きさ
-          if (std::signbit(std::pow(ball.x() - goal.x(), 2) + std::pow(ball.y() - goal.y(), 2) -
-                           std::pow(demarcation,
-                                    2))) { // C
+          const auto demarcation = 2500.0;          //縄張りの大きさ
+          if ((ball - goal).norm() < demarcation) { // C
             //ゴール前でディフェンスする
 
             {
               //ゴール前で張ってるキーパの位置
-              const auto length = std::hypot(goal.x() - ball.x(), ball.y()); //ゴール<->ボール
+              const auto length = (goal - ball).norm(); //ゴール<->ボール
               const auto ratio = (410) / length; //全体に対してのキーパー位置の比
 
               keeper = (1 - ratio) * goal + ratio * ball;
