@@ -11,9 +11,10 @@ kick_off::kick_off(const model::world& world, bool is_yellow, unsigned int kicke
       kicker_id_(kicker_id),
       move_(std::make_shared<action::move>(world_, is_yellow_, kicker_id_)),
       kick_(std::make_shared<action::kick_action>(world_, is_yellow_, kicker_id_)) {
-  start_flag_    = false;
-  move_finished_ = false;
-  kick_finished_ = false;
+  start_flag_        = false;
+  evacuate_finished_ = false;
+  move_finished_     = false;
+  kick_finished_     = false;
 }
 
 void kick_off::set_start_flag(bool start_flag) {
@@ -50,8 +51,6 @@ std::vector<std::shared_ptr<action::base>> kick_off::execute() {
       actions.push_back(kick_);
 
     } else {
-      if (start_flag_ && move_finished_) {
-      }
       // StartGameが指定されていない、または所定の位置に移動していない時
       const auto ball            = world_.ball();
       const auto this_robot_team = is_yellow_ ? world_.robots_yellow() : world_.robots_blue();
@@ -69,9 +68,11 @@ std::vector<std::shared_ptr<action::base>> kick_off::execute() {
           std::atan2(this_robot.y() - move_to_y_, this_robot.x() - move_to_x_);
 
       if (std::hypot(this_robot.x() - move_to_x_, this_robot.y() - move_to_y_) >
-              keep_out_r + robot_r + hypot_allow &&
-          this_robot.x() > move_to_x_ &&
-          std::abs(move_to_robot_theta_ - ball_goal_theta_) < theta_min_) {
+                      keep_out_r + robot_r + hypot_allow &&
+                  this_robot.x() > move_to_x_ &&
+                  std::abs(move_to_robot_theta_ - ball_goal_theta_) < evacuate_finished_
+              ? theta_min_ - std::atan2(keep_out_r, 30.0)
+              : theta_min_) {
         //ロボットがボールにぶつかる可能性がある時
 
         if (move_to_robot_theta_ < ball_goal_theta_) {
@@ -82,6 +83,7 @@ std::vector<std::shared_ptr<action::base>> kick_off::execute() {
         //ボールをよけるための位置を指定
         move_to_x_ += (keep_out_r + robot_r) * std::cos(ball_goal_theta_ + theta_min_);
         move_to_y_ += (keep_out_r + robot_r) * std::sin(ball_goal_theta_ + theta_min_);
+        evacuate_finished_ = move_->finished();
 
       } else {
         move_finished_ = move_->finished();

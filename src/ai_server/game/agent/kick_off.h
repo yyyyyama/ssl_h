@@ -20,6 +20,7 @@ public:
 private:
   unsigned int kicker_id_;
   bool start_flag_;
+  bool evacuate_finished_;
   bool move_finished_;
   bool kick_finished_;
 
