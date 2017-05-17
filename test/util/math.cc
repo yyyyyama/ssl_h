@@ -7,7 +7,7 @@
 #include "ai_server/model/command.h"
 #include "ai_server/model/robot.h"
 #include "ai_server/util/math.h"
-#include "ai_server/util/math/detail/is_vector_type.h"
+#include "ai_server/util/math/to_vector.h"
 
 using namespace ai_server;
 
@@ -23,6 +23,18 @@ BOOST_AUTO_TEST_CASE(to_vector) {
   static_assert(!util::math::detail::has_x_y_v<model::command>, "");
   static_assert(!util::math::detail::has_vx_vy_v<model::command>, "");
   static_assert(!util::math::detail::has_ax_ay_v<model::command>, "");
+
+  model::robot r{};
+  r.set_x(1);
+  r.set_y(2);
+  r.set_vx(3);
+  r.set_vy(4);
+  r.set_ax(5);
+  r.set_ay(6);
+
+  BOOST_TEST(util::math::position(r) == Eigen::Vector2d(1, 2));
+  BOOST_TEST(util::math::velocity(r) == Eigen::Vector2d(3, 4));
+  BOOST_TEST(util::math::acceleration(r) == Eigen::Vector2d(5, 6));
 }
 
 BOOST_AUTO_TEST_CASE(wrap_to_2pi, *boost::unit_test::tolerance(0.0000001)) {
