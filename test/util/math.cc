@@ -4,11 +4,26 @@
 #include <boost/math/constants/constants.hpp>
 #include <boost/test/unit_test.hpp>
 
+#include "ai_server/model/command.h"
+#include "ai_server/model/robot.h"
 #include "ai_server/util/math.h"
+#include "ai_server/util/math/detail/is_vector_type.h"
 
 using namespace ai_server;
 
 BOOST_AUTO_TEST_SUITE(math)
+
+BOOST_AUTO_TEST_CASE(to_vector) {
+  // 各メタ関数のテスト
+  // model::robotはx(), y(), vx(), vy(), ax(), ay()を持っているのでtrue
+  static_assert(util::math::detail::has_x_y_v<model::robot>, "");
+  static_assert(util::math::detail::has_vx_vy_v<model::robot>, "");
+  static_assert(util::math::detail::has_ax_ay_v<model::robot>, "");
+  // model::commandはx(), y(), vx(), vy(), ax(), ay()を持っていないのでfalse
+  static_assert(!util::math::detail::has_x_y_v<model::command>, "");
+  static_assert(!util::math::detail::has_vx_vy_v<model::command>, "");
+  static_assert(!util::math::detail::has_ax_ay_v<model::command>, "");
+}
 
 BOOST_AUTO_TEST_CASE(wrap_to_2pi, *boost::unit_test::tolerance(0.0000001)) {
   using namespace boost::math::double_constants;
