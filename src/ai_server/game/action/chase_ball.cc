@@ -7,8 +7,8 @@ namespace game {
 namespace action {
 
 void chase_ball::set_target(double x, double y) {
-  target_x_ = x;
-  target_y_ = y;
+  kick_target_x_ = x;
+  kick_target_y_ = y;
 }
 
 model::command chase_ball::execute() {
