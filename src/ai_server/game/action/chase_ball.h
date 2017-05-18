@@ -12,12 +12,13 @@ class chase_ball : public base {
 public:
   using base::base;
   enum class mode {
-    move_to_ball,
-    wraparound,
-    dribble,
-    wait_ball,
-    not_move
-  } mode_ = mode::move_to_ball;
+    move_to_ball, // first_posに移動
+    wraparound,   // ボールに回り込む
+    dribble,      // ドリブルしながら直進
+    wait_ball     // ボールが来るのを待つ
+  };
+  mode mode_ = mode::move_to_ball;
+
   void set_target(double x, double y);
   model::command execute() override;
   bool finished() const override;
@@ -28,11 +29,14 @@ private:
 
   double start_dist_; // mode::wait_ball 開始時のfirst_posまでの距離
 
-  int count_     = 0; // 移動時間のカウント
-  int sub_count_ = 0; // 減速時間のカウント
+  int count_     = 0; // 移動時間のカウント [fps]
+  int sub_count_ = 0; // 減速時間のカウント [fps]
 
-  double ball_x_, ball_y_;   // mode::wait_ball 開始時のballの位置
-  double ball_vx_, ball_vy_; // ballの速度(速度フィルター)
+  double ball_x_; // mode::wait_ball 開始時のballの位置
+  double ball_y_;
+
+  double ball_vx_; // ballの速度(速度フィルター)
+  double ball_vy_;
 
   bool init_flag_ = false; //初期化
   bool wait_flag_ = false; //ボールを待つ動作の判断
