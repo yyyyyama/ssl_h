@@ -6,6 +6,7 @@
 #include <Eigen/Dense>
 
 #include "ai_server/game/agent/base.h"
+#include "ai_server/game/action/marking.h"
 #include "ai_server/game/action/guard.h"
 
 namespace ai_server {
@@ -15,6 +16,9 @@ class defense : public base {
 public:
   defense(const model::world& world, bool is_yellow, unsigned int keeper_id,
           const std::vector<unsigned int>& wall_ids);
+  defense(const model::world& world, bool is_yellow, unsigned int keeper_id,
+          const std::vector<unsigned int>& wall_ids,
+          const std::vector<unsigned int>& marking_ids);
   enum class defense_mode { normal_mode, pk_mode };
   void set_mode(agent::defense::defense_mode mode);
   std::vector<std::shared_ptr<action::base>> execute() override;
@@ -22,10 +26,13 @@ public:
 private:
   unsigned int keeper_id_;
   const std::vector<unsigned int>& wall_ids_;
-  std::vector<std::shared_ptr<action::guard>> wall_;
+  const std::vector<unsigned int>& marking_ids_;
   std::shared_ptr<action::guard> keeper_;
-  std::vector<Eigen::Vector2d> wall_target_;
+  std::vector<std::shared_ptr<action::guard>> wall_;
+  std::vector<std::shared_ptr<action::marking>> marking_;
   Eigen::Vector2d keeper_target_;
+  std::vector<Eigen::Vector2d> wall_target_;
+  std::vector<Eigen::Vector2d> marking_target_;
   Eigen::Vector2d orientation_;
   defense_mode mode_;
 };

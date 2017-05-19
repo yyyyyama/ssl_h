@@ -9,10 +9,12 @@ namespace game {
 namespace agent {
 
 defense::defense(const model::world& world, bool is_yellow, unsigned int keeper_id,
-                 const std::vector<unsigned int>& wall_ids)
+                 const std::vector<unsigned int>& wall_ids,
+                 const std::vector<unsigned int>& marking_ids)
     : base(world, is_yellow),
       keeper_id_(keeper_id),
       wall_ids_(wall_ids),
+      marking_ids_(marking_ids),
       orientation_(Eigen::Vector2d::Zero()),
       mode_(defense_mode::normal_mode) {
   // actionの生成部分
@@ -29,6 +31,12 @@ defense::defense(const model::world& world, bool is_yellow, unsigned int keeper_
     wall_.emplace_back(std::make_shared<action::guard>(world_, is_yellow_, it));
   }
   wall_target_.resize(wall_.size());
+
+  //壁用のaction
+  for (auto it : marking_ids_) {
+    marking_.emplace_back(std::make_shared<action::marking>(world_, is_yellow_, it));
+  }
+  marking_target_.resize(marking_.size());
 }
 
 void defense::set_mode(defense_mode mode) {
