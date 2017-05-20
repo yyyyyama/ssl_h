@@ -14,16 +14,6 @@ using namespace ai_server;
 BOOST_AUTO_TEST_SUITE(math)
 
 BOOST_AUTO_TEST_CASE(to_vector) {
-  // 各メタ関数のテスト
-  // model::robotはx(), y(), vx(), vy(), ax(), ay()を持っているのでtrue
-  static_assert(util::math::detail::has_x_y_v<model::robot>, "");
-  static_assert(util::math::detail::has_vx_vy_v<model::robot>, "");
-  static_assert(util::math::detail::has_ax_ay_v<model::robot>, "");
-  // model::commandはx(), y(), vx(), vy(), ax(), ay()を持っていないのでfalse
-  static_assert(!util::math::detail::has_x_y_v<model::command>, "");
-  static_assert(!util::math::detail::has_vx_vy_v<model::command>, "");
-  static_assert(!util::math::detail::has_ax_ay_v<model::command>, "");
-
   model::robot r{};
   r.set_x(1);
   r.set_y(2);
