@@ -13,7 +13,7 @@ namespace math {
 
 /// @brief     メンバ関数x(), y()を持つオブジェクトを2次元のベクトル型に変換する
 /// @param obj 変換したいオブジェクト
-/// @return    Eigen::Matrix<T, 2, 1>{obj.x(), obj.y()}
+/// @return    Eigen::Matrix<x y共通の型, 2, 1>{obj.x(), obj.y()}
 template <class T>
 inline auto position(const T& obj)
     -> Eigen::Matrix<std::common_type_t<decltype(obj.x()), decltype(obj.y())>, 2, 1> {
@@ -29,7 +29,7 @@ inline Eigen::Vector2d position(const model::command::position_t& obj) {
 
 /// @brief     メンバ関数vx(), vy()を持つオブジェクトを2次元のベクトル型に変換する
 /// @param obj 変換したいオブジェクト
-/// @return    Eigen::Matrix<T, 2, 1>{obj.vx(), obj.vy()}
+/// @return    Eigen::Matrix<vx vy共通の型, 2, 1>{obj.vx(), obj.vy()}
 template <class T>
 inline auto velocity(const T& obj)
     -> Eigen::Matrix<std::common_type_t<decltype(obj.vx()), decltype(obj.vy())>, 2, 1> {
@@ -45,7 +45,7 @@ inline Eigen::Vector2d velocity(const model::command::velocity_t& obj) {
 
 /// @brief     メンバ関数ax(), ay()を持つオブジェクトを2次元のベクトル型に変換する
 /// @param obj 変換したいオブジェクト
-/// @return    Eigen::Matrix<T, 2, 1>{obj.ax(), obj.ay()}
+/// @return    Eigen::Matrix<ax ay共通の型, 2, 1>{obj.ax(), obj.ay()}
 template <class T>
 inline auto acceleration(const T& obj)
     -> Eigen::Matrix<std::common_type_t<decltype(obj.ax()), decltype(obj.ay())>, 2, 1> {
