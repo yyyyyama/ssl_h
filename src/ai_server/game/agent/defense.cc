@@ -1,4 +1,5 @@
 #include <cmath>
+#include <iostream>
 
 #include "ai_server/game/agent/defense.h"
 #include "ai_server/model/command.h"
@@ -219,20 +220,46 @@ std::vector<std::shared_ptr<action::base>> defense::execute() {
     //点数の初期化
     auto point = 0;
 
-    //ボールとの距離で点数決め
-    for (auto& it : enemy_list) {
-      it.valuation = (ball - it.position).norm();
+    {
+      //ボールとの距離で点数決め
+      for (auto& it : enemy_list) {
+        it.valuation = (ball - it.position).norm();
+      }
+
+      //距離が近い順に昇順ソート
+      std::sort(enemy_list.begin(), enemy_list.end(),
+                [](const Enemy& a, const Enemy& b) { return (a.valuation < b.valuation); });
+
+      point = enemy_list.size();
+      for (auto& it : enemy_list) {
+        it.score = point--;
+      }
     }
-
-    //距離が近い順に昇順ソート
-    std::sort(enemy_list.begin(), enemy_list.end(),
-              [](const Enemy& a, const Enemy& b) { return (a.valuation < b.valuation); });
-
-    point = enemy_list.size();
-    for (auto& it : enemy_list) {
-      it.score = point--;
-    }
-
+    //		{
+    //			//ボール<->敵<->ゴールの角度で決める
+    //      for (auto& it : enemy_list) {
+    //				const auto goal_theta = std::atan2(goal.y() -
+    //it.position.y(),goal.x()
+    //-
+    // it.position.x());
+    //				const auto ball_theta = std::atan2(ball.y() -
+    //it.position.y(),ball.x()
+    //-
+    // it.position.x());
+    //        it.valuation = goal_theta + ball_theta;
+    //      }
+    //
+    //			//角度が小さいに昇順ソート
+    //      std::sort(enemy_list.begin(), enemy_list.end(),
+    //                [](const Enemy& a, const Enemy& b) { return (a.valuation < b.valuation);
+    //                });
+    //
+    //      point = enemy_list.size();
+    //      for (auto& it : enemy_list) {
+    //        it.score = point--;
+    //      }
+    //		}
+    //点数が大きい順に並べ替える
     std::sort(enemy_list.begin(), enemy_list.end(),
               [](const Enemy& a, const Enemy& b) { return (a.score > b.score); });
 
@@ -260,10 +287,29 @@ std::vector<std::shared_ptr<action::base>> defense::execute() {
         case defense_mode::normal_mode: {
           //
           //キーパーはボールの位置によって動き方が2種類ある.
+          // そもそもマーキング状態なら別の処理
           // A:ボールが敵陣地なので多分そこまで動く必要はない
           // B:ボールが自陣地なので壁の補強をしなければ
-          const auto demarcation = 2500.0;          //縄張りの大きさ
-          if ((ball - goal).norm() < demarcation) { // C
+          const auto demarcation = 2500.0; //縄張りの大きさ
+          if (marking_.size() != 0) {
+            if ((ball.x() - ball_p.x()) != 0) {
+              const auto slope = (ball.y() - ball_p.y()) / (ball.x() - ball_p.x());
+              std::cout << "slope : " << slope << std::endl;
+              const auto b = ball.y() - slope * ball.x();
+              //キーパーのy座はボールの延長線上
+              keeper.y() = slope * goal.x() + b;
+              //ゴールの範囲を超えたら跳びでないようにする
+              if (keeper.y() > 410) {
+                keeper.y() = 410;
+              } else if (keeper.y() < -410) {
+                keeper.y() = -410;
+              }
+            } else {
+              keeper.y() = keeper_target_.y();
+            }
+            //ロボットの大きさ分ずらす
+            keeper.x() = goal.x() + 110.0;
+          } else if ((ball - goal).norm() < demarcation) { // C
             //ゴール前でディフェンスする
 
             {
@@ -331,10 +377,10 @@ std::vector<std::shared_ptr<action::base>> defense::execute() {
 
       keeper_->move_to(keeper.x(), keeper.y(), ball_theta);
 
-      re_wall.push_back(keeper_); //配列を返すためにキーパーを統合する
     } else {
       keeper_->move_to(keeper_target_.x(), keeper_target_.y(), 0.0);
     }
+    re_wall.push_back(keeper_); //配列を返すためにキーパーを統合する
   }
 
   return re_wall; //返す
