@@ -36,7 +36,6 @@ defense::defense(const model::world& world, bool is_yellow, unsigned int keeper_
   for (auto it : marking_ids_) {
     marking_.emplace_back(std::make_shared<action::marking>(world_, is_yellow_, it));
   }
-  marking_target_.resize(marking_.size());
 }
 
 void defense::set_mode(defense_mode mode) {
@@ -66,6 +65,7 @@ std::vector<std::shared_ptr<action::base>> defense::execute() {
 
     return re_wall;
   }
+
   //ゴールの座標
   const Eigen::Vector2d goal(world_.field().x_min(), 0.0);
 
@@ -187,37 +187,66 @@ std::vector<std::shared_ptr<action::base>> defense::execute() {
 
     //実際にアクションを詰めて返す
     {
-      // pk時は動かない
-      //
-      //
-      switch (mode_) {
-        case defense_mode::normal_mode: {
-          auto target_it     = target.begin();
-          auto old_target_it = wall_target_.begin();
-          for (auto wall_it : wall_) {
-            wall_it->move_to((*target_it).x(), (*target_it).y(), ball_theta);
-            wall_it->set_kick_type({model::command::kick_type_t::chip, 255});
-            wall_it->set_dribble(3);
-            (*old_target_it++) = (*target_it++);
-          }
-          break;
-        }
-        case defense_mode::pk_mode: {
-          break;
-        }
+      auto target_it     = target.begin();
+      auto old_target_it = wall_target_.begin();
+      for (auto wall_it : wall_) {
+        wall_it->move_to((*target_it).x(), (*target_it).y(), ball_theta);
+        wall_it->set_kick_type({model::command::kick_type_t::chip, 255});
+        wall_it->set_dribble(3);
+        (*old_target_it++) = (*target_it++);
       }
     }
   }
+
   //型を合わせるために無理矢理作り直す
   std::vector<std::shared_ptr<action::base>> re_wall{wall_.begin(), wall_.end()};
 
+  //マーキングの処理.
+  //
+  //
+  //
+  {
+    std::vector<Enemy> enemy_list;
+    const auto enemy_robots = is_yellow_ ? world_.robots_blue() : world_.robots_yellow();
+    for (auto it : enemy_robots) {
+      const Eigen::Vector2d tmp{(it.second).x(), (it.second).y()};
+      if ((ball - tmp).norm() < 300) {
+        continue;
+      }
+      Enemy enemy_tmp{it.first, tmp, (it.second).theta(), 0.0, 0};
+      enemy_list.emplace_back(enemy_tmp);
+    }
+    //点数の初期化
+    auto point = 0;
+
+    //ボールとの距離で点数決め
+    for (auto& it : enemy_list) {
+      it.valuation = (ball - it.position).norm();
+    }
+
+    //距離が近い順に昇順ソート
+    std::sort(enemy_list.begin(), enemy_list.end(),
+              [](const Enemy& a, const Enemy& b) { return (a.valuation < b.valuation); });
+
+    point = enemy_list.size();
+    for (auto& it : enemy_list) {
+      it.score = point--;
+    }
+
+    std::sort(enemy_list.begin(), enemy_list.end(),
+              [](const Enemy& a, const Enemy& b) { return (a.score > b.score); });
+
+    auto marking_it = marking_.begin();
+    auto enemy_it   = enemy_list.begin();
+    while (marking_it != marking_.end() && enemy_it != enemy_list.end()) {
+      (*marking_it++)->mark_robot((*enemy_it++).id);
+    }
+  }
+  for (auto& it : marking_) {
+    re_wall.push_back(it); //配列を返すためにキーパーを統合する
+  }
   //ここからキーパーの処理
   //
-  //キーパーはボールの位置によって動き方が3種類ある.
-  //
-  // A:ボールが敵陣地なので多分そこまで動く必要はない
-  // B:ボールが自陣地なので壁の補強をしなければ
-  // C:ボールはゴールの直ぐ目の前なのでゴールまえでジャンプしてでも止める
   //
   //
   {
@@ -229,6 +258,10 @@ std::vector<std::shared_ptr<action::base>> defense::execute() {
 
       switch (mode_) {
         case defense_mode::normal_mode: {
+          //
+          //キーパーはボールの位置によって動き方が2種類ある.
+          // A:ボールが敵陣地なので多分そこまで動く必要はない
+          // B:ボールが自陣地なので壁の補強をしなければ
           const auto demarcation = 2500.0;          //縄張りの大きさ
           if ((ball - goal).norm() < demarcation) { // C
             //ゴール前でディフェンスする

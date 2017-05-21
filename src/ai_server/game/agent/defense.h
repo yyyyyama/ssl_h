@@ -12,10 +12,16 @@
 namespace ai_server {
 namespace game {
 namespace agent {
+
 class defense : public base {
 public:
-  defense(const model::world& world, bool is_yellow, unsigned int keeper_id,
-          const std::vector<unsigned int>& wall_ids);
+  struct Enemy {
+    unsigned int id;
+    Eigen::Vector2d position;
+    double theta;
+    double valuation;
+    unsigned int score;
+  };
   defense(const model::world& world, bool is_yellow, unsigned int keeper_id,
           const std::vector<unsigned int>& wall_ids,
           const std::vector<unsigned int>& marking_ids);
@@ -32,7 +38,6 @@ private:
   std::vector<std::shared_ptr<action::marking>> marking_;
   Eigen::Vector2d keeper_target_;
   std::vector<Eigen::Vector2d> wall_target_;
-  std::vector<Eigen::Vector2d> marking_target_;
   Eigen::Vector2d orientation_;
   defense_mode mode_;
 };
