@@ -22,13 +22,14 @@ private:
   bool ball_chase_;
   unsigned int chase_ball_id_;
   bool chase_finished_;
+  bool kick_finished;
   std::vector<std::shared_ptr<action::marking>> mark_actions_;
 
   //マーキング相手を組み直す
   void set_marking_(unsigned int& chase_ball_id, bool is_ball_chase);
 
   //ターゲットに最も近いロボットIDを返す
-  unsigned int nearest_robot_id(double target_x, double target_y,std::vector<unsigned int>& can_ids);
+  unsigned int nearest_robot_id(double target_x, double target_y,std::vector<unsigned int>& can_ids,bool is_read_only);
 
   //IDと優先度
   struct that_robot_importance_ {
