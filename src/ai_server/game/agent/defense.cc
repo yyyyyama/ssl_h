@@ -56,7 +56,8 @@ std::vector<std::shared_ptr<action::base>> defense::execute() {
   if (ball.x() < world_.field().x_min() || ball.x() > world_.field().x_max()) {
     auto target_it = wall_target_.begin();
     for (auto wall_it : wall_) {
-      wall_it->move_to((*target_it++).x(), (*target_it++).y(), 0.0);
+      wall_it->move_to((*target_it).x(), (*target_it).y(), 0.0);
+      target_it++;
     }
     keeper_->move_to(keeper_target_.x(), keeper_target_.y(), 0.0);
 
@@ -239,11 +240,11 @@ std::vector<std::shared_ptr<action::base>> defense::execute() {
     //			//ボール<->敵<->ゴールの角度で決める
     //      for (auto& it : enemy_list) {
     //				const auto goal_theta = std::atan2(goal.y() -
-    //it.position.y(),goal.x()
+    // it.position.y(),goal.x()
     //-
     // it.position.x());
     //				const auto ball_theta = std::atan2(ball.y() -
-    //it.position.y(),ball.x()
+    // it.position.y(),ball.x()
     //-
     // it.position.x());
     //        it.valuation = goal_theta + ball_theta;
