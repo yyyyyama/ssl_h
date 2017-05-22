@@ -62,7 +62,7 @@ model::command chase_ball::execute() {
   double v1_theta = std::atan2(ball_y - my_pos.y, ball_x - my_pos.x);
 
   // ボールとターゲットの角度
-  double v2_theta = std::atan2(target_y_ - ball_y, target_x_ - ball_x);
+  double v2_theta = std::atan2(kick_target_y_ - ball_y, kick_target_x_ - ball_x);
 
   if (!init_flag_) {
     count_     = 0;
