@@ -13,6 +13,7 @@ namespace agent {
 class regular : public base {
 public:
   regular(const model::world& world, bool is_yellow, const std::vector<unsigned int>& ids);
+  bool ball_chase() const;
   void set_ball_chase(bool ball_chase); //全てのロボットをマーキングにする時はfalse
   std::vector<std::shared_ptr<action::base>> execute() override;
 

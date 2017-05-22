@@ -17,18 +17,23 @@ regular::regular(const model::world& world, bool is_yellow,const std::vector<uns
   set_marking_(chase_ball_id_,ball_chase_);
 }
 
+bool regular::ball_chase() const {
+  return ball_chase_;
+}
+
 void regular::set_ball_chase(bool ball_chase) {
   if(ball_chase_!=ball_chase) {
+    
     ball_chase_ = ball_chase;  
     
-    const auto ball   = world_.ball();
-    chase_ball_id_ = nearest_robot_id(ball.x(), ball.y(),ids_); //ボール追従ロボ登録
-    set_marking_(chase_ball_id_,ball_chase);
-    
-    if(!ball_chase){
+    if(ball_chase_){
       chase_finished_=false;
       kick_finished=false;
+      const auto ball   = world_.ball();
+      chase_ball_id_ = nearest_robot_id(ball.x(), ball.y(),ids_); //ボール追従ロボ登録
     }
+
+    set_marking_(chase_ball_id_,ball_chase_);    
 
   }
 }
@@ -92,12 +97,17 @@ void regular::set_marking_(unsigned int& chase_ball_id, bool ball_chase){
   
   //マーキング担当のロボットを登録
   if(ball_chase){
+    std::printf("\n\x1b[44mChaseBall ID : %d\x1b[49m\n\n",chase_ball_id);
     chase_ball_ = std::make_shared<action::chase_ball>(world_, is_yellow_, chase_ball_id);
    kick_action_ = std::make_shared<action::kick_action>(world_, is_yellow_, chase_ball_id);
     for(auto id: ids_){
       if(id!=chase_ball_id){
         this_unadded_ids.push_back(id);
       }
+    }
+  }else{
+    for(auto id: ids_){
+      this_unadded_ids.push_back(id);
     }
   }
   
@@ -106,7 +116,7 @@ void regular::set_marking_(unsigned int& chase_ball_id, bool ball_chase){
   std::vector<regular::that_robot_importance_> that_importance_list;
   for (auto id : those_ids) {
     that_importance_list.push_back({id,-1.0* std::hypot(those_robots.at(id).x() - world_.field().x_min() ,those_robots.at(id).y())});
-    std::printf("\x1b[45m敵ID: %d\x1b[49m  距離： %f mm\n\n",id,std::hypot(those_robots.at(id).x() - world_.field().x_min() ,those_robots.at(id).y()));
+    //std::printf("\x1b[45m敵ID: %d\x1b[49m  距離： %f mm\n\n",id,std::hypot(those_robots.at(id).x() - world_.field().x_min() ,those_robots.at(id).y()));
   }
   std::sort(that_importance_list.begin(), that_importance_list.end());
 
