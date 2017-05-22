@@ -5,7 +5,6 @@
 #include "ai_server/game/action/marking.h"
 #include "ai_server/game/action/chase_ball.h"
 #include "ai_server/game/action/kick_action.h"
-#include "ai_server/model/robot.h"
 
 namespace ai_server {
 namespace game {
@@ -29,7 +28,8 @@ private:
   void set_marking_(unsigned int& chase_ball_id, bool is_ball_chase);
 
   //ターゲットに最も近いロボットIDを返す
-  unsigned int nearest_robot_id(double target_x, double target_y,std::vector<unsigned int>& can_ids,bool is_read_only);
+  unsigned int nearest_robot_id(double target_x, double target_y,std::vector<unsigned int>& can_ids);
+  unsigned int nearest_robot_id(double target_x, double target_y,const std::vector<unsigned int>& can_ids);
 
   //IDと優先度
   struct that_robot_importance_ {

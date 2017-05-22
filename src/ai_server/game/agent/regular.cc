@@ -1,19 +1,19 @@
 #include <unordered_map>
 #include <cmath>
-
+#include <tuple>
 #include "regular.h"
 #include "ai_server/model/robot.h"
+#include "ai_server/model/command.h"
 
 namespace ai_server {
 namespace game {
 namespace agent {
 
 regular::regular(const model::world& world, bool is_yellow,const std::vector<unsigned int>& ids) : base(world, is_yellow), ids_(ids) {
-  ball_chase_       = false;
+  ball_chase_       = true;
   chase_finished_=false;
- // const auto ball   = world_.ball();
-//  std::vector<unsigned int> tmp_ids = ids_;
-//  chase_ball_id_ = nearest_robot_id(ball.x(), ball.y(), tmp_ids,true); //ボール追従ロボ登録
+  const auto ball   = world_.ball();
+  chase_ball_id_ = nearest_robot_id(ball.x(), ball.y(),ids_); //ボール追従ロボ登録
   set_marking_(chase_ball_id_,ball_chase_);
 }
 
@@ -22,8 +22,7 @@ void regular::set_ball_chase(bool ball_chase) {
     ball_chase_ = ball_chase;  
     
     const auto ball   = world_.ball();
-   std::vector<unsigned int> tmp_ids=ids_;
-    chase_ball_id_ = nearest_robot_id(ball.x(), ball.y(), tmp_ids,true); //ボール追従ロボ登録
+    chase_ball_id_ = nearest_robot_id(ball.x(), ball.y(),ids_); //ボール追従ロボ登録
     set_marking_(chase_ball_id_,ball_chase);
     
     if(!ball_chase){
@@ -43,15 +42,24 @@ std::vector<std::shared_ptr<action::base>> regular::execute() {
   if(ball_chase_){
     if(chase_finished_){
       if(kick_finished){
+        
          //ReTry
-        chase_finished_=false;
-        kick_finished=false;
-        set_marking_(chase_ball_id_,ball_chase_);  
+        const auto ball   = world_.ball();
+        unsigned int tmp_chase_ball_id_ = nearest_robot_id(ball.x(), ball.y(), ids_);
+        
+        if(chase_ball_id_!=tmp_chase_ball_id_){
+          std::printf("ReTry!!!!!!!!!!!!!!\n\n");
+          chase_ball_id_=tmp_chase_ball_id_;
+          chase_finished_=false;
+          kick_finished=false;   
+          set_marking_(chase_ball_id_,ball_chase_);   
+        }
+        
       } else{
+        std::printf("Kick!\n");
         //Kick
         kick_action_->kick_to(world_.field().x_max(), 0.0);
-        kick_action_->set_kick_type(std::tuple<model::command::kick_type_t, double>(
-        model::command::kick_type_t::line, 50.0));
+        kick_action_->set_kick_type(std::tuple<model::command::kick_type_t, double>(model::command::kick_type_t::line, 50.0));
         kick_action_->set_mode(action::kick_action::mode::goal);
         kick_finished= kick_action_->finished();
         actions.push_back(kick_action_);
@@ -84,8 +92,8 @@ void regular::set_marking_(unsigned int& chase_ball_id, bool ball_chase){
   
   //マーキング担当のロボットを登録
   if(ball_chase){
-    
     chase_ball_ = std::make_shared<action::chase_ball>(world_, is_yellow_, chase_ball_id);
+   kick_action_ = std::make_shared<action::kick_action>(world_, is_yellow_, chase_ball_id);
     for(auto id: ids_){
       if(id!=chase_ball_id){
         this_unadded_ids.push_back(id);
@@ -106,7 +114,7 @@ void regular::set_marking_(unsigned int& chase_ball_id, bool ball_chase){
   //マーキングを担当するロボットを割り当て
   for (auto that_robot : that_importance_list) {
     if (!this_unadded_ids.empty()) {
-      added_id_ = nearest_robot_id(those_robots.at(that_robot.id).x(), those_robots.at(that_robot.id).x(), this_unadded_ids,false);
+      added_id_ = nearest_robot_id(those_robots.at(that_robot.id).x(), those_robots.at(that_robot.id).x(), this_unadded_ids);
       marking_ = std::make_shared<action::marking>(world_, is_yellow_, added_id_);
       marking_->mark_robot(that_robot.id);
       marking_->set_mode(that_robot.importance > -0.0
@@ -124,7 +132,7 @@ void regular::set_marking_(unsigned int& chase_ball_id, bool ball_chase){
 }
 
 unsigned int regular::nearest_robot_id(double target_x, double target_y,
-                                       std::vector<unsigned int>& can_ids,bool is_read_only) {
+                                       std::vector<unsigned int>& can_ids) {
   double ret_id         = can_ids.at(0);
   const auto ids_robots = is_yellow_ ? world_.robots_yellow() : world_.robots_blue();
   double robot_target_d;
@@ -135,17 +143,35 @@ unsigned int regular::nearest_robot_id(double target_x, double target_y,
 
     robot_target_d = std::hypot(target_x - ids_robots.at(*id_itr).x(),
                                 target_y - ids_robots.at(*id_itr).y());
-   // std::printf("ID:%d--%5.0f[mm]", *id_itr, robot_target_d);
     if (robot_target_d < shortest_d) {
       // Targetとの距離
         shortest_d = robot_target_d;
         ret_id     = *id_itr;
         del_id_itr = id_itr;
-    //    std::printf("<--IF 1"); // debug
     }
-//    std::printf("\n"); // debug
   }
-  if(!is_read_only) can_ids.erase(del_id_itr);
+  can_ids.erase(del_id_itr);
+  return ret_id;
+}
+
+unsigned int regular::nearest_robot_id(double target_x, double target_y,const std::vector<unsigned int>& can_ids){
+  double ret_id         = can_ids.at(0);
+  const auto ids_robots = is_yellow_ ? world_.robots_yellow() : world_.robots_blue();
+  double robot_target_d;
+  double shortest_d = std::hypot(world_.field().x_max(), world_.field().y_max()) + 1000.0;
+  auto del_id_itr   = can_ids.begin();
+
+  for (auto id_itr = can_ids.begin(); id_itr < can_ids.end(); ++id_itr) {
+
+    robot_target_d = std::hypot(target_x - ids_robots.at(*id_itr).x(),
+                                target_y - ids_robots.at(*id_itr).y());
+    if (robot_target_d < shortest_d) {
+      // Targetとの距離
+        shortest_d = robot_target_d;
+        ret_id     = *id_itr;
+        del_id_itr = id_itr;
+    }
+  }
   return ret_id;
 }
 
