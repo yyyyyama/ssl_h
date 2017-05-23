@@ -15,6 +15,7 @@ build:
     - script:
       name: static validations
       code: |
+        ./tools/validate/encoding.sh
         ./tools/validate/format.sh
 
     - script:
