@@ -32,14 +32,14 @@ set(CMAKE_CXX_FLAGS_DEBUG   "${CMAKE_CXX_FLAGS_DEBUG}   -g -DDEBUG")
 set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -O2 -march=native -DNDEBUG")
 set(CMAKE_EXE_LINKER_FLAGS  "${CMAKE_EXE_LINKER_FLAGS}  -Wl,-O1,--sort-common,--as-needed,-z,relro")
 
-if (CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
-  if (CMAKE_GENERATOR STREQUAL "Ninja")
+if(CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
+  if(CMAKE_GENERATOR STREQUAL "Ninja")
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fcolor-diagnostics")
   endif()
 endif()
 
 # Sanitizers
-if (ENABLE_SANITIZERS)
+if(ENABLE_SANITIZERS)
   if(CMAKE_COMPILER_IS_GNUCXX)
     message(STATUS "Enabling GCC's address sanitizer")
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fsanitize=address")
