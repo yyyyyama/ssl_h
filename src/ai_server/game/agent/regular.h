@@ -28,16 +28,18 @@ private:
   //マーキング相手を組み直す
   void set_marking_(unsigned int& chase_ball_id, bool is_ball_chase);
 
-  //ターゲットに最も近いロボットIDを返す
-  unsigned int nearest_robot_id(double target_x, double target_y,std::vector<unsigned int>& can_ids);
-  unsigned int nearest_robot_id(double target_x, double target_y,const std::vector<unsigned int>& can_ids);
+  //ターゲットに最も近いロボットIDを返す(can_idsがconstになってない方は、can_idsから返り値の要素が削除される）
+  unsigned int nearest_robot_id(double target_x, double target_y,
+                                std::vector<unsigned int>& can_ids) const;
+  unsigned int nearest_robot_id(double target_x, double target_y,
+                                const std::vector<unsigned int>& can_ids) const;
 
-  //IDと優先度
+  // IDと優先度
   struct that_robot_importance_ {
-    //ID, 重要度
+    // ID, 重要度
     unsigned int id;
     double importance;
-    
+
     bool operator<(const that_robot_importance_& next) const {
       return importance > next.importance; //ソート基準=重要度が高い順
     }
