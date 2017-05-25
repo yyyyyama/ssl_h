@@ -1,5 +1,4 @@
 #include <cmath>
-#include <iostream>
 
 #include "ai_server/game/agent/defense.h"
 #include "ai_server/model/command.h"
@@ -295,8 +294,7 @@ std::vector<std::shared_ptr<action::base>> defense::execute() {
           if (marking_.size() != 0) {
             if ((ball.x() - ball_p.x()) != 0) {
               const auto slope = (ball.y() - ball_p.y()) / (ball.x() - ball_p.x());
-              std::cout << "slope : " << slope << std::endl;
-              const auto b = ball.y() - slope * ball.x();
+              const auto b     = ball.y() - slope * ball.x();
               //キーパーのy座はボールの延長線上
               keeper.y() = slope * goal.x() + b;
               //ゴールの範囲を超えたら跳びでないようにする
