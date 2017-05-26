@@ -15,11 +15,16 @@ namespace agent {
 
 class defense : public base {
 public:
-  struct Enemy {
+  struct enemy {
+    //ロボットのid
     unsigned int id;
+    //ロボットの位置
     Eigen::Vector2d position;
+    //ロボットの角度
     double theta;
+    //ソート計算した値を一時的に格納する変数
     double valuation;
+    //評価点数
     unsigned int score;
   };
   defense(const model::world& world, bool is_yellow, unsigned int keeper_id,

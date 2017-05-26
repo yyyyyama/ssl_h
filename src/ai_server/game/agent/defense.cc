@@ -207,18 +207,15 @@ std::vector<std::shared_ptr<action::base>> defense::execute() {
   //
   //
   {
-    std::vector<Enemy> enemy_list;
+    std::vector<enemy> enemy_list;
     const auto enemy_robots = is_yellow_ ? world_.robots_blue() : world_.robots_yellow();
     for (auto it : enemy_robots) {
       const Eigen::Vector2d tmp{(it.second).x(), (it.second).y()};
       if ((ball - tmp).norm() < 300) {
         continue;
       }
-      Enemy enemy_tmp{it.first, tmp, (it.second).theta(), 0.0, 0};
-      enemy_list.emplace_back(enemy_tmp);
+      enemy_list.emplace_back(enemy{it.first, tmp, (it.second).theta(), 0.0, 0});
     }
-    //点数の初期化
-    auto point = 0;
 
     {
       //ボールとの距離で点数決め
@@ -228,9 +225,10 @@ std::vector<std::shared_ptr<action::base>> defense::execute() {
 
       //距離が近い順に昇順ソート
       std::sort(enemy_list.begin(), enemy_list.end(),
-                [](const Enemy& a, const Enemy& b) { return (a.valuation < b.valuation); });
+                [](const enemy& a, const enemy& b) { return (a.valuation < b.valuation); });
 
-      point = enemy_list.size();
+      //点数の初期化
+      auto point = enemy_list.size();
       for (auto& it : enemy_list) {
         it.score = point--;
       }
@@ -251,17 +249,17 @@ std::vector<std::shared_ptr<action::base>> defense::execute() {
     //
     //			//角度が小さいに昇順ソート
     //      std::sort(enemy_list.begin(), enemy_list.end(),
-    //                [](const Enemy& a, const Enemy& b) { return (a.valuation < b.valuation);
+    //                [](const enemy& a, const enemy& b) { return (a.valuation < b.valuation);
     //                });
     //
-    //      point = enemy_list.size();
+    //      auto point = enemy_list.size();
     //      for (auto& it : enemy_list) {
     //        it.score = point--;
     //      }
     //		}
     //点数が大きい順に並べ替える
     std::sort(enemy_list.begin(), enemy_list.end(),
-              [](const Enemy& a, const Enemy& b) { return (a.score > b.score); });
+              [](const enemy& a, const enemy& b) { return (a.score > b.score); });
 
     auto marking_it = marking_.begin();
     auto enemy_it   = enemy_list.begin();
