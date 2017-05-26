@@ -7,6 +7,7 @@
 #include "ai_server/game/action/no_operation.h"
 #include "ai_server/model/command.h"
 #include "ai_server/util/math.h"
+#include "ai_server/util/math/to_vector.h"
 
 #include "setplay.h"
 
@@ -32,31 +33,32 @@ std::vector<std::shared_ptr<action::base>> setplay::execute() {
     baseaction_.clear();
     baseaction_.shrink_to_fit();
 
-    const auto& kicker     = our_robots.at(kicker_id_);
-    const auto& ball       = world_.ball();
-    const double ballysign = ball.y() > 0 ? 1.0 : -1.0;
-    double enemygoal       = world_.field().x_max();
+    const Eigen::Vector2d kicker   = util::math::position(our_robots.at(kicker_id_));
+    const auto& ball               = world_.ball();
+    const Eigen::Vector2d ball_pos = util::math::position(ball);
+    const Eigen::Vector2d ball_vec = util::math::velocity(ball);
+    const double ballysign         = ball.y() > 0 ? 1.0 : -1.0;
+    double enemygoal               = world_.field().x_max();
 
     // これより遠いと速度制限
     const double fdir = 600;
 
     // パス以降の処理でボールの軌道が大きく変わったら的に取られたと判定し、agent終了
     if (static_cast<int>(state_) >= static_cast<int>(state::receive)) {
-      auto shooter = our_robots.at(shooter_id_);
-      if (std::abs(std::atan2(ball.vy(), ball.vx()) - std::atan2(ballv_.y(), ballv_.x())) >
-              1.0 &&
-          std::hypot(shooter.x() - ball.x(), shooter.y() - ball.y()) > 3000 &&
-          std::hypot(kicker.x() - ball.x(), kicker.y() - ball.y()) > 500) {
+      Eigen::Vector2d shooter = util::math::position(our_robots.at(shooter_id_));
+      if (std::abs(vectorangle(ball_vec) - vectorangle(ballv_)) > 1.0 &&
+          (shooter - ball_pos).norm() > 3000 && (kicker - ball_pos).norm() > 500) {
         state_ = state::finished;
       }
     }
-    ballv_ = {ball.vx(), ball.vy()};
+    ballv_ = ball_vec;
 
     // キックフラグが立ったら次の状態に移行
     if (kick_->finished()) {
       if (state_ == state::pass) {
-        kick_  = make_action<action::kick_action>(shooter_id_);
-        state_ = state::receive;
+        receive_ = make_action<action::receive>(shooter_id_);
+        kick_    = make_action<action::kick_action>(shooter_id_);
+        state_   = state::receive;
       } else {
         state_ = state::finished;
       }
@@ -73,20 +75,18 @@ std::vector<std::shared_ptr<action::base>> setplay::execute() {
           /*現状固定なので動的に求めたい{{{*/
           int i = 0;
           for (auto receiver_id : receiver_ids_) {
-            const auto& robot  = our_robots.at(receiver_id);
             const double rad   = -0.4;
             const double theta = ballysign * (i / 2 + 1) * rad * (1.0 - 2 * (i % 2));
-            const double dire  = std::atan2(ball.y() - robot.y(), ball.x() - robot.x());
-            if (ball.x() > 2000) {
+            if (ball_pos.x() > 2000) {
               pos_ = pos::far;
               positions_.push_back(
-                  {enemygoal - std::cos(theta) * 2000, std::sin(theta) * 3000, dire});
-            } else if (ball.x() < -2000) {
+                  {enemygoal - std::cos(theta) * 2000, std::sin(theta) * 3000});
+            } else if (ball_pos.x() < -2000) {
               pos_ = pos::near;
-              positions_.push_back({ball.x() + (i + 1) * 1500, std::sin(theta) * 3000, dire});
+              positions_.push_back({ball_pos.x() + (i + 1) * 1500, std::sin(theta) * 3000});
             } else {
               pos_ = pos::mid;
-              positions_.push_back({ball.x() + (i + 1) * 1000, std::sin(theta) * 2000, dire});
+              positions_.push_back({ball_pos.x() + (i + 1) * 1000, std::sin(theta) * 2000});
             }
             if (positions_[i].x() > enemygoal - 500) {
               positions_[i].x() = enemygoal - 500;
@@ -100,14 +100,13 @@ std::vector<std::shared_ptr<action::base>> setplay::execute() {
         int i          = 0;
         bool movedflag = true;
         for (auto receiver_id : receiver_ids_) {
-          if (std::hypot(positions_[i].x() - our_robots.at(receiver_id).x(),
-                         positions_[i].y() - our_robots.at(receiver_id).y()) > 100) {
+          if ((positions_[i] - util::math::position(our_robots.at(receiver_id))).norm() > 100) {
             movedflag = false;
             break;
           }
           i++;
         }
-        if (std::hypot(ball.x() - kicker.x(), ball.y() - kicker.y()) > 700) {
+        if ((ball_pos - kicker).norm() > 700) {
           movedflag = false;
         }
         if (movedflag) {
@@ -118,8 +117,8 @@ std::vector<std::shared_ptr<action::base>> setplay::execute() {
             auto& receiver  = our_robots.at(receiver_id);
             for (auto enemy_robot_p : enemy_robots) {
               auto enemy_robot = std::get<1>(enemy_robot_p);
-              if ((ball.x() - enemy_robot.x()) *
-                  (receiver.x() - ball.x() - enemy_robot.x() < 0)) {
+              if ((ball_pos.x() - enemy_robot.x()) *
+                  (receiver.x() - ball_pos.x() - enemy_robot.x() < 0)) {
                 Eigen::Vector3d to_shooter(receiver.x() - ball.x(), receiver.y() - ball.y(), 0);
                 Eigen::Vector3d to_enemy(enemy_robot.x() - ball.x(), enemy_robot.y() - ball.y(),
                                          0);
@@ -150,23 +149,22 @@ std::vector<std::shared_ptr<action::base>> setplay::execute() {
             baseaction_.push_back(make_action<action::no_operation>(receiver_id));
         } else {
           for (i = 0; i < static_cast<double>(receiver_ids_.size()); i++) {
-            const auto& receiver = our_robots.at(receiver_ids_[i]);
-            auto move            = make_action<action::move>(receiver_ids_[i]);
-            const double to_target =
-                std::atan2(positions_[i].y() - receiver.y(), positions_[i].x() - receiver.x());
-            const int dis =
-                std::hypot(positions_[i].x() - receiver.x(), positions_[i].y() - receiver.y());
-            bool neflag = dis < 10;
+            const Eigen::Vector2d receiver =
+                util::math::position(our_robots.at(receiver_ids_[i]));
+            auto move              = make_action<action::move>(receiver_ids_[i]);
+            const double to_target = vectorangle(positions_[i] - receiver);
+            const int dis          = (positions_[i] - receiver).norm();
+            bool neflag            = dis < 10;
 
             const int sp = dis < 400 ? dis : fdir;
             move->move_to(receiver.x() + (neflag ? 0 : sp * std::cos(to_target)),
                           receiver.y() + (neflag ? 0 : sp * std::sin(to_target)),
-                          std::atan2(ball.y() - receiver.y(), ball.x() - receiver.x()));
+                          vectorangle(ball_pos - receiver));
             baseaction_.push_back(move);
           }
-          if (std::hypot(ball.x() - kicker.x(), ball.y() - kicker.y()) > 500) {
+          if ((ball_pos - kicker).norm() > 500) {
             auto move            = make_action<action::move>(kicker_id_);
-            const double to_ball = std::atan2(ball.y() - kicker.y(), ball.x() - kicker.x());
+            const double to_ball = vectorangle(ball_pos - kicker);
             move->move_to(kicker.x() + 500 * std::cos(to_ball),
                           kicker.y() + 500 * std::sin(to_ball), to_ball);
             baseaction_.push_back(move);
@@ -198,25 +196,21 @@ std::vector<std::shared_ptr<action::base>> setplay::execute() {
         baseaction_.push_back(kick_);
 
         for (auto receiver_id : receiver_ids_) {
-          const auto receiver = our_robots.at(receiver_id);
+          const auto receiver = util::math::position(our_robots.at(receiver_id));
           if (receiver_id != shooter_id_) {
             auto move = make_action<action::move>(receiver_id);
-            move->move_to(receiver.x(), receiver.y(),
-                          std::atan2(ball.y() - receiver.y(), ball.x() - receiver.x()));
+            move->move_to(receiver.x(), receiver.y(), vectorangle(ball_pos - receiver));
             baseaction_.push_back(move);
           } else {
-            const Eigen::Vector3d target = {
-                passpos_.x(), passpos_.y(),
-                std::atan2(ball.y() - receiver.y(), ball.x() - receiver.x())};
-            auto move = make_action<action::move>(shooter_id_);
-            const double to_target =
-                std::atan2(target.y() - receiver.y(), target.x() - receiver.x());
-            const int dis = std::hypot(target.x() - receiver.x(), target.y() - receiver.y());
-            bool neflag   = dis < 50;
-            const int sp  = dis < 400 ? dis : fdir;
+            const Eigen::Vector2d target = {passpos_.x(), passpos_.y()};
+            auto move                    = make_action<action::move>(shooter_id_);
+            const double to_target       = vectorangle(target - receiver);
+            const int dis                = (target - receiver).norm();
+            bool neflag                  = dis < 50;
+            const int sp                 = dis < 400 ? dis : fdir;
             move->move_to(passpos_.x() + (neflag ? 0 : sp * std::cos(to_target)),
                           passpos_.y() + (neflag ? 0 : sp * std::sin(to_target)),
-                          std::atan2(ball.y() - receiver.y(), ball.x() - receiver.x()));
+                          vectorangle(ball_pos - receiver));
             baseaction_.push_back(move);
           }
         }
@@ -226,23 +220,9 @@ std::vector<std::shared_ptr<action::base>> setplay::execute() {
         baseaction_.push_back(make_action<action::no_operation>(kicker_id_));
         for (auto receiver_id : receiver_ids_) {
           if (receiver_id == shooter_id_) {
-            const auto& receiver = our_robots.at(receiver_id);
-            const double to_rec  = std::hypot(receiver.x() - ball.x(), receiver.y() - ball.y());
-            if (to_rec > 200) {
-              const Eigen::Vector3d target = seekcrosspoint(
-                  {ball.vx(), ball.vy()}, {receiver.x(), receiver.y()}, {ball.x(), ball.y()});
-              auto move = make_action<action::move>(shooter_id_);
-              const double to_target =
-                  std::atan2(target.y() - receiver.y(), target.x() - receiver.x());
-              const int dis = std::hypot(target.x() - receiver.x(), target.y() - receiver.y());
-              bool neflag   = dis < 50;
-
-              const int sp = dis < 400 ? dis : fdir;
-              move->move_to(receiver.x() + (neflag ? 0 : sp * std::cos(to_target)),
-                            receiver.y() + (neflag ? 0 : sp * std::sin(to_target)),
-                            std::atan2(ball.y() - receiver.y(), ball.x() - receiver.x()));
-              move->set_dribble(7);
-              baseaction_.push_back(move);
+            if (!receive_->finished()) {
+              receive_->set_dribble(9);
+              baseaction_.push_back(receive_);
             } else {
               state_ = state::shoot;
             }
@@ -274,10 +254,7 @@ std::vector<std::shared_ptr<action::base>> setplay::execute() {
         for (auto receiver_id : receiver_ids_) {
           if (receiver_id == shooter_id_) {
             std::vector<Eigen::Vector2d> goalpoint;
-            goalpoint.push_back({enemygoal, -270});
-            goalpoint.push_back({enemygoal, 0});
-            goalpoint.push_back({enemygoal, 270});
-            Eigen::Vector2d target = chooselocation(goalpoint, enemy_robots);
+            Eigen::Vector2d target = {enemygoal, 270 * ballysign};
             const double power     = 50;
             kick_->kick_to(target.x(), target.y());
             kick_->set_dribble(7);
@@ -336,18 +313,9 @@ Eigen::Vector2d setplay::chooselocation(std::vector<Eigen::Vector2d> targets,
   }
   return decide;
 } /*}}}*/
-// 直線と点の交点を求める関数/*{{{*/
-// to_target:ボールの速度ベクトル
-// receiver:レシーバーの位置
-// start:ボールの位置
-Eigen::Vector3d setplay::seekcrosspoint(Eigen::Vector2d to_target, Eigen::Vector2d receiver,
-                                        Eigen::Vector2d start) {
-  const Eigen::Vector2d to_res(receiver - start);
-  const Eigen::Vector2d normaliz = to_target.normalized();
-  const double dot               = normaliz.dot(to_res);
-  Eigen::Vector2d tar(start + dot * normaliz);
-  const double theta = std::atan2(-normaliz.y(), -normaliz.x());
-  return {tar.x(), tar.y(), theta};
+// ベクトルを渡すと角度を返してくれるもの/*{{{*/
+double setplay::vectorangle(Eigen::Vector2d vec) {
+  return std::atan2(vec.y(), vec.x());
 } /*}}}*/
 } // agent
 } // game

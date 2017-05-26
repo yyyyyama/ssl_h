@@ -6,6 +6,7 @@
 #include "base.h"
 #include "ai_server/model/world.h"
 #include "ai_server/game/action/kick_action.h"
+#include"ai_server/game/action/receive.h"
 
 #include<queue>
 
@@ -31,13 +32,13 @@ private:
   const std::vector<unsigned int>& receiver_ids_;
   Eigen::Vector2d ballv_;
   std::shared_ptr<action::kick_action> kick_;
+  std::shared_ptr<action::receive> receive_;
   std::vector<std::shared_ptr<action::base>> baseaction_;
   Eigen::Vector2d passpos_;
-  std::vector<Eigen::Vector3d> positions_;
+  std::vector<Eigen::Vector2d> positions_;
   Eigen::Vector2d chooselocation(std::vector<Eigen::Vector2d> targets,
                                  model::world::robots_list enemy_robots, int dist = 1);
-  Eigen::Vector3d seekcrosspoint(Eigen::Vector2d to_target, Eigen::Vector2d receive,
-                                 Eigen::Vector2d start);
+  double vectorangle(Eigen::Vector2d vec);
 };
 } // agent
 } // game
