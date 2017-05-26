@@ -39,6 +39,7 @@ model::command marking::execute() {
   switch (mode_) {
     case mark_mode::kick_block:                   //ボールを蹴るのを阻止(外分点)
       tmp      = (enemy - ball).norm() / radius_; //敵位置 - 自位置の比
+      ratio    = 1 - tmp;
       position = (-ratio * enemy + ball) / tmp;
       tmp_pos  = ball;
       break;
