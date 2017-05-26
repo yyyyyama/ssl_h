@@ -1,19 +1,19 @@
 #include <cmath>
 
-#include "ai_server/game/action/recerve.h"
+#include "ai_server/game/action/receive.h"
 #include "ai_server/util/math/to_vector.h"
 #include "ai_server/util/math.h"
 
 namespace ai_server {
 namespace game {
 namespace action {
-void recerve::set_dribble(int dribble) {
+void receive::set_dribble(int dribble) {
   dribble_ = dribble;
 }
-int recerve::dribble() {
+int receive::dribble() {
   return dribble_;
 }
-model::command recerve::execute() {
+model::command receive::execute() {
   //それぞれ自機を生成
   model::command command(id_);
 
@@ -50,7 +50,7 @@ model::command recerve::execute() {
   flag_ = false;
   return command;
 }
-bool recerve::finished() const {
+bool receive::finished() const {
   return flag_;
 }
 }

@@ -1,5 +1,5 @@
-#ifndef AI_SERVER_GAME_ACTION_RECERVE_H
-#define AI_SERVER_GAME_ACTION_RECERVE_H
+#ifndef AI_SERVER_GAME_ACTION_RECEIVE_H
+#define AI_SERVER_GAME_ACTION_RECEIVE_H
 
 #include "ai_server/model/command.h"
 #include "ai_server/game/action/base.h"
@@ -7,7 +7,7 @@
 namespace ai_server {
 namespace game {
 namespace action {
-class recerve : public base {
+class receive : public base {
 public:
   using base::base;
   void set_dribble(int dribble);
@@ -22,4 +22,4 @@ private:
 }
 }
 }
-#endif // AI_SERVER_GAME_ACTION_RECERVE_H
+#endif // AI_SERVER_GAME_ACTION_RECEIVE_H
