@@ -26,22 +26,24 @@ model::command receive::execute() {
     return command;
   }
 
-  const auto robot       = robots.at(id_);
+  const auto& robot      = robots.at(id_);
   const auto robot_pos   = util::math::position(robot);
   const auto robot_theta = util::wrap_to_pi(robot.theta());
-  const auto ball_p      = util::math::position(world_.ball());
-  const auto ball_v      = util::math::velocity(world_.ball());
+  const auto ball_pos    = util::math::position(world_.ball());
+  const auto ball_vec    = util::math::velocity(world_.ball());
 
-  if ((robot_pos - ball_p).norm() < 120) {
+  //ボールがめっちゃ近くに来たら受け取ったと判定
+  //現状だとボールセンサに反応があるか分からないので
+  if ((robot_pos - ball_pos).norm() < 120) {
     flag_ = true;
     command.set_velocity({0.0, 0.0, 0.0});
     return command;
   }
-  const auto len      = robot_pos - ball_p;
-  const auto normaliz = ball_v.normalized();
-  const auto dot      = normaliz.dot(len);
+  const auto length   = robot_pos - ball_pos;
+  const auto normaliz = ball_vec.normalized();
+  const auto dot      = normaliz.dot(length);
   //目標位置と角度
-  const auto target = (ball_p + dot * normaliz);
+  const auto target = (ball_pos + dot * normaliz);
   const auto theta  = std::atan2(-normaliz.y(), -normaliz.x());
 
   const auto omega = theta - robot_theta;
