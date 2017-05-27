@@ -39,12 +39,12 @@ model::command receive::execute() {
     command.set_velocity({0.0, 0.0, 0.0});
     return command;
   }
-  const auto length   = robot_pos - ball_pos;
-  const auto normaliz = ball_vec.normalized();
-  const auto dot      = normaliz.dot(length);
+  const auto length    = robot_pos - ball_pos;
+  const auto normalize = ball_vec.normalized();
+  const auto dot       = normalize.dot(length);
   //目標位置と角度
-  const auto target = (ball_pos + dot * normaliz);
-  const auto theta  = std::atan2(-normaliz.y(), -normaliz.x());
+  const auto target = (ball_pos + dot * normalize);
+  const auto theta  = std::atan2(-normalize.y(), -normalize.x());
 
   const auto omega = theta - robot_theta;
   command.set_position({target.x(), target.y(), omega});
