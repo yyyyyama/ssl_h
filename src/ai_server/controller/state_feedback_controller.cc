@@ -72,7 +72,7 @@ velocity_t state_feedback_controller::update(const model::robot& robot,
                                              const velocity_t& setpoint) {
   calculate_regulator(robot);
 
-  Eigen::Vector3d set;
+  Eigen::RowVector3d set;
   set << setpoint.vx, setpoint.vy, setpoint.omega;
   Eigen::Vector3d target = convert(set, estimated_robot_(0, 2));
 
@@ -120,7 +120,7 @@ velocity_t state_feedback_controller::update(const model::robot& robot,
 
 void state_feedback_controller::calculate_regulator(const model::robot& robot) {
   // 前回制御入力をフィールド基準に座標変換
-  Eigen::Vector3d pre_u;
+  Eigen::RowVector3d pre_u;
   double u_direction = std::atan2(u_[1].y(), u_[1].x());
   pre_u.x() =
       u_[1].x() * std::cos(u_direction) + u_[1].y() * std::cos(u_direction + half_pi<double>());

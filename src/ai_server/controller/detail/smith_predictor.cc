@@ -13,18 +13,18 @@ smith_predictor::smith_predictor(const double cycle, const double zeta, const do
 }
 
 Eigen::Matrix3d smith_predictor::interpolate(const model::robot& robot,
-                                             const Eigen::Vector3d u) {
+                                             const Eigen::RowVector3d u) {
   u_[0] = u; // 受け取った制御入力を最新入力として
 
   // 受け取ったロボットの状態(無駄時間分の遅れ含む)
   // 計算しやすいように,ベクトルに変換
-  Eigen::Vector3d pre_position(robot.x(), robot.y(), robot.theta());
-  Eigen::Vector3d pre_velocity(robot.vx(), robot.vy(), robot.omega());
-  Eigen::Vector3d pre_acceleration(robot.ax(), robot.ay(), robot.alpha());
+  Eigen::RowVector3d pre_position(robot.x(), robot.y(), robot.theta());
+  Eigen::RowVector3d pre_velocity(robot.vx(), robot.vy(), robot.omega());
+  Eigen::RowVector3d pre_acceleration(robot.ax(), robot.ay(), robot.alpha());
 
-  Eigen::Vector3d now_position     = pre_position;
-  Eigen::Vector3d now_velocity     = pre_velocity;
-  Eigen::Vector3d now_acceleration = pre_acceleration;
+  Eigen::RowVector3d now_position     = pre_position;
+  Eigen::RowVector3d now_velocity     = pre_velocity;
+  Eigen::RowVector3d now_acceleration = pre_acceleration;
 
   // 1ループ毎に当時の制御入力によって1フレーム分の補間をする
   for (int i = 6; i >= 0; i--) {
@@ -49,9 +49,9 @@ Eigen::Matrix3d smith_predictor::interpolate(const model::robot& robot,
 
   // 返すために変換
   Eigen::Matrix3d now_state;
-  now_state.block(0, 0, 3, 1) = now_position;
-  now_state.block(0, 1, 3, 1) = now_velocity;
-  now_state.block(0, 2, 3, 1) = now_acceleration;
+  now_state.row(0) = now_position;
+  now_state.row(1) = now_velocity;
+  now_state.row(2) = now_acceleration;
 
   return now_state;
 }
