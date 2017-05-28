@@ -27,6 +27,12 @@ public:
     //評価点数
     unsigned int score;
   };
+  struct mark {
+    //ロボットの位置
+    Eigen::Vector2d position;
+    //マーキングのアクション
+    std::shared_ptr<action::marking> action;
+  };
   defense(const model::world& world, bool is_yellow, unsigned int keeper_id,
           const std::vector<unsigned int>& wall_ids,
           const std::vector<unsigned int>& marking_ids);

@@ -1,4 +1,5 @@
 #include <cmath>
+#include <map>
 
 #include "ai_server/game/agent/defense.h"
 #include "ai_server/model/command.h"
@@ -233,33 +234,58 @@ std::vector<std::shared_ptr<action::base>> defense::execute() {
         it.score = point--;
       }
     }
-    {
-      //ボール<->敵<->ゴールの角度で決める
-      for (auto& it : enemy_list) {
-        const auto goal_theta =
-            std::atan2(goal.y() - it.position.y(), goal.x() - it.position.x());
-        const auto ball_theta =
-            std::atan2(ball.y() - it.position.y(), ball.x() - it.position.x());
-        it.valuation = goal_theta + ball_theta;
-      }
-
-      //角度が小さいに昇順ソート
-      std::sort(enemy_list.begin(), enemy_list.end(),
-                [](const enemy& a, const enemy& b) { return (a.valuation < b.valuation); });
-
-      auto point = enemy_list.size();
-      for (auto& it : enemy_list) {
-        it.score = point--;
-      }
-    }
+    //    {
+    //      //ボール<->敵<->ゴールの角度で決める
+    //      for (auto& it : enemy_list) {
+    //        const auto goal_theta =
+    //            std::atan2(goal.y() - it.position.y(), goal.x() - it.position.x());
+    //        const auto ball_theta =
+    //            std::atan2(ball.y() - it.position.y(), ball.x() - it.position.x());
+    //        it.valuation = goal_theta + ball_theta;
+    //      }
+    //
+    //      //角度が小さいに昇順ソート
+    //      std::sort(enemy_list.begin(), enemy_list.end(),
+    //                [](const enemy& a, const enemy& b) { return (a.valuation < b.valuation);
+    //                });
+    //
+    //      auto point = enemy_list.size();
+    //      for (auto& it : enemy_list) {
+    //        it.score = point--;
+    //      }
+    //    }
     //点数が大きい順に並べ替える
     std::sort(enemy_list.begin(), enemy_list.end(),
               [](const enemy& a, const enemy& b) { return (a.score > b.score); });
 
-    auto marking_it = marking_.begin();
-    auto enemy_it   = enemy_list.begin();
-    while (marking_it != marking_.end() && enemy_it != enemy_list.end()) {
-      (*marking_it++)->mark_robot((*enemy_it++).id);
+    //    auto marking_it = marking_.begin();
+    //    auto enemy_it   = enemy_list.begin();
+    //    while (marking_it != marking_.end() && enemy_it != enemy_list.end()) {
+    //      (*marking_it++)->mark_robot((*enemy_it++).id);
+    //    }
+    {
+      std::map<unsigned int, mark> mark_list;
+      const auto mark_robots = is_yellow_ ? world_.robots_yellow() : world_.robots_blue();
+      for (auto& it : marking_) {
+				if(mark_robots.count(it->id())){
+        const mark robot{{mark_robots.at(it->id()).x(), mark_robots.at(it->id()).y()}, it};
+        mark_list.insert(std::make_pair(it->id(), robot));
+				}
+      }
+
+      for (auto enemy_it = enemy_list.begin();
+           !mark_list.empty() && enemy_it != enemy_list.end(); enemy_it++) {
+        unsigned int id = 0;
+        auto min_val    = 0xffff;
+        for (auto& it : mark_list) {
+          if (min_val > (enemy_it->position - it.second.position).norm()) {
+            min_val = (enemy_it->position - it.second.position).norm();
+            id      = it.first;
+          }
+        }
+        mark_list.at(id).action->mark_robot(enemy_it->id);
+        mark_list.erase(id);
+      }
     }
   }
   for (auto& it : marking_) {
@@ -284,7 +310,7 @@ std::vector<std::shared_ptr<action::base>> defense::execute() {
           // A:ボールが敵陣地なので多分そこまで動く必要はない
           // B:ボールが自陣地なので壁の補強をしなければ
           const auto demarcation = 2500.0; //縄張りの大きさ
-					if(((ball - goal).norm() < demarcation)&&(marking_.size() == 0)) { // C
+          if (((ball - goal).norm() < demarcation) && (marking_.size() == 0)) { // C
             //ゴール前でディフェンスする
 
             {
