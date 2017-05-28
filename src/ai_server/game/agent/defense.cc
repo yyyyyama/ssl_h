@@ -213,7 +213,7 @@ std::vector<std::shared_ptr<action::base>> defense::execute() {
     const auto enemy_robots = is_yellow_ ? world_.robots_blue() : world_.robots_yellow();
     for (auto it : enemy_robots) {
       const Eigen::Vector2d tmp{(it.second).x(), (it.second).y()};
-      if (((ball - tmp).norm() < 650) || (tmp.x() > 0)) {
+      if (((ball - tmp).norm() < 1000) || (tmp.x() > 0)) {
         continue;
       }
       enemy_list.emplace_back(enemy{it.first, tmp, (it.second).theta(), 0.0, 0});
@@ -308,20 +308,29 @@ std::vector<std::shared_ptr<action::base>> defense::execute() {
           }
         }
         mark_list.at(id).action->mark_robot(enemy_it->id);
+        mark_list.at(id).action->set_mode(action::marking::mark_mode::kick_block);
+        mark_list.at(id).action->set_radius(250.0);
         if (enemy_it == enemy_list.begin()) {
           mark_list.at(id).action->set_radius(600.0);
-        }else{
-          mark_list.at(id).action->set_radius(250.0);
-				}
+        }
         mark_list.erase(id);
       }
 
       //もしマークロボットが溢れたらこうなるにゃん
       if (!mark_list.empty()) {
-        int i = 1;
-        for (auto& it : mark_list) {
-          (it.second).action->mark_robot(enemy_list.begin()->id);
-          (it.second).action->set_radius(600 + 300 * i++);
+        for (auto enemy_it = enemy_list.begin() + 1;
+             !mark_list.empty() && enemy_it != enemy_list.end(); enemy_it++) {
+          unsigned int id = 0;
+          auto min_val    = 0xffff;
+          for (auto& it : mark_list) {
+            if (min_val > (enemy_it->position - it.second.position).norm()) {
+              min_val = (enemy_it->position - it.second.position).norm();
+              id      = it.first;
+            }
+          }
+          mark_list.at(id).action->mark_robot(enemy_it->id);
+          mark_list.at(id).action->set_mode(action::marking::mark_mode::shoot_block);
+          mark_list.erase(id);
         }
       }
     }
