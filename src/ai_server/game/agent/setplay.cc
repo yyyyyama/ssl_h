@@ -83,7 +83,7 @@ std::vector<std::shared_ptr<action::base>> setplay::execute() {
                   {enemygoal - std::cos(theta) * 2000, std::sin(theta) * 3000});
             } else if (ball_pos.x() < -2000) {
               pos_ = pos::near;
-              positions_.push_back({ball_pos.x() + (i + 1) * 1500, std::sin(theta) * 3000});
+              positions_.push_back({ball_pos.x() + (i + 2) * 1500, std::sin(theta) * 3000});
             } else {
               pos_ = pos::mid;
               positions_.push_back({ball_pos.x() + (i + 1) * 1000, std::sin(theta) * 2000});
@@ -236,11 +236,7 @@ std::vector<std::shared_ptr<action::base>> setplay::execute() {
       }
       case state::shoot: {
         if (receiver_ids_.size() == 0) {
-          std::vector<Eigen::Vector2d> goalpoint;
-          goalpoint.push_back({enemygoal, -270});
-          goalpoint.push_back({enemygoal, 0});
-          goalpoint.push_back({enemygoal, 270});
-          Eigen::Vector2d target = chooselocation(goalpoint, enemy_robots);
+          Eigen::Vector2d target = {enemygoal, -270 * ballysign};
           const double power     = 50;
           kick_->kick_to(target.x(), target.y());
           kick_->set_dribble(3);
@@ -253,8 +249,7 @@ std::vector<std::shared_ptr<action::base>> setplay::execute() {
         }
         for (auto receiver_id : receiver_ids_) {
           if (receiver_id == shooter_id_) {
-            std::vector<Eigen::Vector2d> goalpoint;
-            Eigen::Vector2d target = {enemygoal, 270 * ballysign};
+            Eigen::Vector2d target = {enemygoal, -270 * ballysign};
             const double power     = 50;
             kick_->kick_to(target.x(), target.y());
             kick_->set_dribble(7);
@@ -293,7 +288,8 @@ Eigen::Vector2d setplay::chooselocation(std::vector<Eigen::Vector2d> targets,
     for (auto& enemy_robot_p : enemy_robots) {
       auto& enemy_robot = std::get<1>(enemy_robot_p);
       // ボールと目的位置の間に敵ロボットがいるかしらべたかったがこれだとがばがばなので要修正
-      if ((ball.x() - enemy_robot.x()) * (target.x() - enemy_robot.x()) < 0) {
+      if ((ball.x() - enemy_robot.x()) * (target.x() - enemy_robot.x()) < 0 &&
+          (ball.y() - enemy_robot.y()) * (target.y() - enemy_robot.y()) < 0) {
         const Eigen::Vector3d to_target(target.x() - ball.x(), target.y() - ball.y(), 0);
         const Eigen::Vector3d to_enemy(enemy_robot.x() - ball.x(), enemy_robot.y() - ball.y(),
                                        0);
