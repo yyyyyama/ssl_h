@@ -212,7 +212,7 @@ std::vector<std::shared_ptr<action::base>> defense::execute() {
     const auto enemy_robots = is_yellow_ ? world_.robots_blue() : world_.robots_yellow();
     for (auto it : enemy_robots) {
       const Eigen::Vector2d tmp{(it.second).x(), (it.second).y()};
-      if ((ball - tmp).norm() < 300) {
+      if ((ball - tmp).norm() < 650) {
         continue;
       }
       enemy_list.emplace_back(enemy{it.first, tmp, (it.second).theta(), 0.0, 0});
@@ -234,45 +234,65 @@ std::vector<std::shared_ptr<action::base>> defense::execute() {
         it.score = point--;
       }
     }
-    //    {
-    //      //ボール<->敵<->ゴールの角度で決める
-    //      for (auto& it : enemy_list) {
-    //        const auto goal_theta =
-    //            std::atan2(goal.y() - it.position.y(), goal.x() - it.position.x());
-    //        const auto ball_theta =
-    //            std::atan2(ball.y() - it.position.y(), ball.x() - it.position.x());
-    //        it.valuation = goal_theta + ball_theta;
-    //      }
-    //
-    //      //角度が小さいに昇順ソート
-    //      std::sort(enemy_list.begin(), enemy_list.end(),
-    //                [](const enemy& a, const enemy& b) { return (a.valuation < b.valuation);
-    //                });
-    //
-    //      auto point = enemy_list.size();
-    //      for (auto& it : enemy_list) {
-    //        it.score = point--;
-    //      }
-    //    }
+//    {
+//      //ボール<->敵<->ゴールの角度で決める
+//      for (auto& it : enemy_list) {
+//        const auto goal_theta =
+//            std::atan2(goal.y() - it.position.y(), goal.x() - it.position.x());
+//        const auto ball_theta =
+//            std::atan2(ball.y() - it.position.y(), ball.x() - it.position.x());
+//        it.valuation = goal_theta + ball_theta;
+//      }
+//
+//      //角度が小さいに昇順ソート
+//      std::sort(enemy_list.begin(), enemy_list.end(),
+//                [](const enemy& a, const enemy& b) { return (a.valuation < b.valuation); });
+//
+//      auto point = enemy_list.size();
+//      for (auto& it : enemy_list) {
+//        it.score = point--;
+//      }
+//    }
     //点数が大きい順に並べ替える
     std::sort(enemy_list.begin(), enemy_list.end(),
               [](const enemy& a, const enemy& b) { return (a.score > b.score); });
 
-    //    auto marking_it = marking_.begin();
-    //    auto enemy_it   = enemy_list.begin();
-    //    while (marking_it != marking_.end() && enemy_it != enemy_list.end()) {
-    //      (*marking_it++)->mark_robot((*enemy_it++).id);
-    //    }
+    //パスカットのため先頭に捩じ込む
     {
+      //暫定的なボールに最も近い敵ロボットのにゃん
+      Eigen::Vector2d position{0.0, 0.0};
+      auto theta      = 0.0;
+      unsigned int id = 0;
+
+      //最小値を比べるための変数
+      auto min_val = 0xffff;
+
+      for (auto enemy_it : enemy_robots) {
+        const Eigen::Vector2d tmp{(enemy_it.second).x(), (enemy_it.second).y()};
+        auto len = (tmp - ball).norm();
+        if (len < min_val) {
+          min_val   = len;
+          id        = (enemy_it.first);
+          position = tmp;
+          theta     = (enemy_it.second).theta();
+        }
+      }
+      enemy_list.insert(enemy_list.begin(), enemy{id, position, theta, 0.0, 0});
+    }
+
+    //近い順に割り当てる
+    {
+      //マーキングに割り当てられたロボットのidとactionのペア
       std::map<unsigned int, mark> mark_list;
       const auto mark_robots = is_yellow_ ? world_.robots_yellow() : world_.robots_blue();
       for (auto& it : marking_) {
-				if(mark_robots.count(it->id())){
-        const mark robot{{mark_robots.at(it->id()).x(), mark_robots.at(it->id()).y()}, it};
-        mark_list.insert(std::make_pair(it->id(), robot));
-				}
+        if (mark_robots.count(it->id())) {
+          const mark robot{{mark_robots.at(it->id()).x(), mark_robots.at(it->id()).y()}, it};
+          mark_list.insert(std::make_pair(it->id(), robot));
+        }
       }
 
+      //敵を起点として最近傍探索
       for (auto enemy_it = enemy_list.begin();
            !mark_list.empty() && enemy_it != enemy_list.end(); enemy_it++) {
         unsigned int id = 0;
@@ -284,6 +304,9 @@ std::vector<std::shared_ptr<action::base>> defense::execute() {
           }
         }
         mark_list.at(id).action->mark_robot(enemy_it->id);
+        if (enemy_it == enemy_list.begin()) {
+          mark_list.at(id).action->set_radius(600.0);
+        }
         mark_list.erase(id);
       }
     }
