@@ -212,7 +212,7 @@ std::vector<std::shared_ptr<action::base>> defense::execute() {
     const auto enemy_robots = is_yellow_ ? world_.robots_blue() : world_.robots_yellow();
     for (auto it : enemy_robots) {
       const Eigen::Vector2d tmp{(it.second).x(), (it.second).y()};
-      if ((ball - tmp).norm() < 650) {
+      if (((ball - tmp).norm() < 650) || (tmp.x() > 0)) {
         continue;
       }
       enemy_list.emplace_back(enemy{it.first, tmp, (it.second).theta(), 0.0, 0});
@@ -234,32 +234,29 @@ std::vector<std::shared_ptr<action::base>> defense::execute() {
         it.score = point--;
       }
     }
-//    {
-//      //ボール<->敵<->ゴールの角度で決める
-//      for (auto& it : enemy_list) {
-//        const auto goal_theta =
-//            std::atan2(goal.y() - it.position.y(), goal.x() - it.position.x());
-//        const auto ball_theta =
-//            std::atan2(ball.y() - it.position.y(), ball.x() - it.position.x());
-//        it.valuation = goal_theta + ball_theta;
-//      }
-//
-//      //角度が小さいに昇順ソート
-//      std::sort(enemy_list.begin(), enemy_list.end(),
-//                [](const enemy& a, const enemy& b) { return (a.valuation < b.valuation); });
-//
-//      auto point = enemy_list.size();
-//      for (auto& it : enemy_list) {
-//        it.score = point--;
-//      }
-//    }
-    //点数が大きい順に並べ替える
-    std::sort(enemy_list.begin(), enemy_list.end(),
-              [](const enemy& a, const enemy& b) { return (a.score > b.score); });
-
+    //    {
+    //      //ボール<->敵<->ゴールの角度で決める
+    //      for (auto& it : enemy_list) {
+    //        const auto goal_theta =
+    //            std::atan2(goal.y() - it.position.y(), goal.x() - it.position.x());
+    //        const auto ball_theta =
+    //            std::atan2(ball.y() - it.position.y(), ball.x() - it.position.x());
+    //        it.valuation = goal_theta + ball_theta;
+    //      }
+    //
+    //      //角度が小さいに昇順ソート
+    //      std::sort(enemy_list.begin(), enemy_list.end(),
+    //                [](const enemy& a, const enemy& b) { return (a.valuation < b.valuation);
+    //                });
+    //
+    //      auto point = enemy_list.size();
+    //      for (auto& it : enemy_list) {
+    //        it.score = point--;
+    //      }
+    //    }
     //パスカットのため先頭に捩じ込む
     {
-      //暫定的なボールに最も近い敵ロボットのにゃん
+      //暫定的なボールに最も近い敵ロボットにゃん
       Eigen::Vector2d position{0.0, 0.0};
       auto theta      = 0.0;
       unsigned int id = 0;
@@ -271,14 +268,20 @@ std::vector<std::shared_ptr<action::base>> defense::execute() {
         const Eigen::Vector2d tmp{(enemy_it.second).x(), (enemy_it.second).y()};
         auto len = (tmp - ball).norm();
         if (len < min_val) {
-          min_val   = len;
-          id        = (enemy_it.first);
+          min_val  = len;
+          id       = (enemy_it.first);
           position = tmp;
-          theta     = (enemy_it.second).theta();
+          theta    = (enemy_it.second).theta();
         }
       }
-      enemy_list.insert(enemy_list.begin(), enemy{id, position, theta, 0.0, 0});
+      enemy_list.insert(
+          enemy_list.begin(),
+          enemy{id, position, theta, 0.0, static_cast<unsigned int>(enemy_list.size() + 1)});
     }
+
+    //点数が大きい順に並べ替える
+    std::sort(enemy_list.begin(), enemy_list.end(),
+              [](const enemy& a, const enemy& b) { return (a.score > b.score); });
 
     //近い順に割り当てる
     {
@@ -308,6 +311,15 @@ std::vector<std::shared_ptr<action::base>> defense::execute() {
           mark_list.at(id).action->set_radius(600.0);
         }
         mark_list.erase(id);
+      }
+
+      //もしマークロボットが溢れたらこうなるにゃん
+      if (!mark_list.empty()) {
+        int i = 1;
+        for (auto& it : mark_list) {
+          (it.second).action->mark_robot(enemy_list.begin()->id);
+          (it.second).action->set_radius(600 + 200 * i++);
+        }
       }
     }
   }
