@@ -71,17 +71,12 @@ model::command kick_action::execute() {
   model::command command(id_);
   model::command::position_t robot_pos;
 
-  // 角度を調整するときの許容誤差(rad)
-  // const double margin = 0.01;
   // executeが呼ばれる間にボールがこれだけ移動したら蹴ったと判定する長さ(mm)
   const double kick_decision = 60;
 
   const double direction1 = mode_ == mode::goal ? robot_theta : atand3;
   const double direction2 = mode_ == mode::goal ? atand1 : atand3;
-  double dis              = 300;
-  if (dribble_ != 3) {
-    dis = 250;
-  }
+  const double dis        = dribble_ != 3 ? 200 : 250;
 
   if (std::hypot(old_ball_x - ball_x, old_ball_y - ball_y) > kick_decision && advanceflag_) {
     // executeが呼ばれる間の時間でボールが一定以上移動していたら蹴ったと判定
