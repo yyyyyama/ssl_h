@@ -32,7 +32,7 @@ private:
   double y_;
   double old_ball_x;
   double old_ball_y;
-  int dribble_ = 3;
+  int dribble_   = 3;
   double margin_ = 0.07;
   model::command::kick_flag_t kick_type_;
   bool finishflag_  = false;
