@@ -1,3 +1,4 @@
+#include <iostream>
 #include <cmath>
 #include <map>
 
@@ -309,7 +310,9 @@ std::vector<std::shared_ptr<action::base>> defense::execute() {
         mark_list.at(id).action->mark_robot(enemy_it->id);
         if (enemy_it == enemy_list.begin()) {
           mark_list.at(id).action->set_radius(600.0);
-        }
+        }else{
+          mark_list.at(id).action->set_radius(250.0);
+				}
         mark_list.erase(id);
       }
 
@@ -318,7 +321,7 @@ std::vector<std::shared_ptr<action::base>> defense::execute() {
         int i = 1;
         for (auto& it : mark_list) {
           (it.second).action->mark_robot(enemy_list.begin()->id);
-          (it.second).action->set_radius(600 + 200 * i++);
+          (it.second).action->set_radius(600 + 300 * i++);
         }
       }
     }
