@@ -1,5 +1,6 @@
 #ifndef AI_SERVER_GAME_AGENT_SETPLAY_H
 #define AI_SERVER_GAME_AGENT_SETPLAY_H
+
 #include <memory>
 #include <vector>
 #include <Eigen/Core>
@@ -33,15 +34,15 @@ private:
   unsigned int kicker_id_;
   unsigned int shooter_id_;
   const std::vector<unsigned int> receiver_ids_;
-  Eigen::Vector2d ballv_;
+  Eigen::Vector2d prev_ball_vel_;
   std::shared_ptr<action::kick_action> kick_;
   std::shared_ptr<action::receive> receive_;
   std::vector<std::shared_ptr<action::base>> baseaction_;
   Eigen::Vector2d passpos_;
   std::vector<Eigen::Vector2d> positions_;
 
-  Eigen::Vector2d chooselocation(std::vector<Eigen::Vector2d> targets,
-                                 model::world::robots_list enemy_robots, int dist = 1);
+  Eigen::Vector2d find_location(std::vector<Eigen::Vector2d> targets,
+                                model::world::robots_list enemy_robots, int dist = 1);
   double vectorangle(Eigen::Vector2d vec);
 };
 } // agent
