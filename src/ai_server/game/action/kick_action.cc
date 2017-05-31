@@ -33,7 +33,7 @@ void kick_action::set_dribble(int dribble) {
   dribble_ = dribble;
 }
 
-void kick_action::set_anglemargin(double margin) {
+void kick_action::set_angle_margin(double margin) {
   margin_ = margin;
 }
 
@@ -76,14 +76,14 @@ model::command kick_action::execute() {
 
   const double direction1 = mode_ == mode::goal ? robot_theta : atand3;
   const double direction2 = mode_ == mode::goal ? atand1 : atand3;
-  const double dis        = dribble_ != 3 ? 200 : 250;
+  const double dist       = dribble_ != 3 ? 200 : 250;
 
   if (std::hypot(old_ball_x - ball_x, old_ball_y - ball_y) > kick_decision && advanceflag_) {
     // executeが呼ばれる間の時間でボールが一定以上移動していたら蹴ったと判定
     robot_pos    = {robot_x, robot_y, robot_theta};
     finishflag_  = true;
     advanceflag_ = false;
-  } else if (std::hypot(to_robot_x, to_robot_y) > dis && !aroundflag_) {
+  } else if (std::hypot(to_robot_x, to_robot_y) > dist && !aroundflag_) {
     // ロボットがボールから250以上離れていればボールに近づく処理
     robot_pos = {ball_x, ball_y, direction1};
     if (dribble_ != 3) command.set_dribble(dribble_);

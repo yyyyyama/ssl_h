@@ -200,7 +200,7 @@ std::vector<std::shared_ptr<action::base>> setplay::execute() {
       const double power = line_flag ? 50 : 150;
       kick_->kick_to(passpos_.x(), passpos_.y());
       kick_->set_dribble(0);
-      kick_->set_anglemargin(0.04);
+      kick_->set_angle_margin(0.04);
       auto kick_type =
           line_flag ? model::command::kick_type_t::line : model::command::kick_type_t::chip;
       kick_->set_kick_type({kick_type, power});
@@ -254,7 +254,7 @@ std::vector<std::shared_ptr<action::base>> setplay::execute() {
         kick_->kick_to(target.x(), target.y());
         kick_->set_dribble(0);
         kick_->set_mode(action::kick_action::mode::ball);
-        kick_->set_anglemargin(0.04);
+        kick_->set_angle_margin(0.04);
         kick_->set_kick_type({model::command::kick_type_t::line, power});
         baseaction_.push_back(kick_);
       } else {
@@ -267,7 +267,7 @@ std::vector<std::shared_ptr<action::base>> setplay::execute() {
           kick_->kick_to(target.x(), target.y());
           kick_->set_dribble(0);
           kick_->set_mode(action::kick_action::mode::ball);
-          kick_->set_anglemargin(0.03);
+          kick_->set_angle_margin(0.03);
           kick_->set_kick_type({model::command::kick_type_t::line, power});
           baseaction_.push_back(kick_);
         } else {
