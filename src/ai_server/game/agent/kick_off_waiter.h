@@ -13,7 +13,7 @@ namespace agent {
 
 class kick_off_waiter : public base {
 public:
-  enum class kickoff_mode { attack, defense } mode_ = kickoff_mode::attack;
+  enum class kickoff_mode { attack, defense };
   kick_off_waiter(const model::world& world, bool is_yellow,
                   const std::vector<unsigned int>& ids);
   std::vector<std::shared_ptr<action::base>> execute() override;
@@ -21,7 +21,8 @@ public:
   kickoff_mode mode();
 
 private:
-  const std::vector<unsigned int>& ids_;
+  const std::vector<unsigned int> ids_;
+  kickoff_mode mode_;
 };
 }
 }
