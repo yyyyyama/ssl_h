@@ -13,6 +13,15 @@ namespace ai_server {
 namespace controller {
 
 class state_feedback_controller : public base {
+  /* ------------------------------------
+  ロボットの状態を3*3行列で表す
+         x,    vx,    ax
+         y,    vy,    ay
+     theta, omega, alpha
+
+  各要素を列ベクトルで
+  ------------------------------------ */
+
 private:
   double cycle_;                         // 制御周期
   const static double k_;                // 極,収束の速さ

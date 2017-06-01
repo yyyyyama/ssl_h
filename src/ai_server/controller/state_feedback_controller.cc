@@ -44,10 +44,10 @@ state_feedback_controller::state_feedback_controller(double cycle)
 velocity_t state_feedback_controller::update(const model::robot& robot,
                                              const position_t& setpoint) {
   calculate_regulator(robot);
-  Eigen::RowVector3d set;
+  Eigen::Vector3d set;
   set << setpoint.x, setpoint.y, setpoint.theta;
-  Eigen::Vector3d e_p     = set - estimated_robot_.row(0);
-  Eigen::Vector3d delta_p = convert(e_p, estimated_robot_.z());
+  Eigen::Vector3d e_p     = set - estimated_robot_.col(0);
+  Eigen::Vector3d delta_p = convert(e_p, estimated_robot_(2, 0));
 
   Eigen::Vector3d target;
   target.x() = sliding_mode_[0].control_pos(-delta_p.x());
@@ -72,9 +72,10 @@ velocity_t state_feedback_controller::update(const model::robot& robot,
                                              const velocity_t& setpoint) {
   calculate_regulator(robot);
 
-  Eigen::RowVector3d set;
+  Eigen::Vector3d set;
   set << setpoint.vx, setpoint.vy, setpoint.omega;
-  Eigen::Vector3d target = convert(set, estimated_robot_(0, 2));
+
+  Eigen::Vector3d target = convert(set, estimated_robot_(2, 0));
 
   // 加速度，速度制限
   double u_angle     = std::atan2(target.y(), target.x()); // 今回指令速度の方向
@@ -104,7 +105,7 @@ velocity_t state_feedback_controller::update(const model::robot& robot,
   target.y() = u_speed * std::sin(u_angle);
   // 速度が大きいときに角速度が大きくなりすぎないように
   double omega_limit = pi<double>() * std::exp(-std::hypot(target.x(), target.y()) / 2000.0);
-  target.z()         = clamp(target.z(), -omega_limit, omega_limit);
+  target.z()         = clamp(util::wrap_to_pi(delta_v.z()) * 2, -omega_limit, omega_limit);
 
   u_[0] = u_[0] + (std::pow(k_, 2) / std::pow(omega_, 2)) * target;
 
@@ -120,7 +121,7 @@ velocity_t state_feedback_controller::update(const model::robot& robot,
 
 void state_feedback_controller::calculate_regulator(const model::robot& robot) {
   // 前回制御入力をフィールド基準に座標変換
-  Eigen::RowVector3d pre_u;
+  Eigen::Vector3d pre_u;
   double u_direction = std::atan2(u_[1].y(), u_[1].x());
   pre_u.x() =
       u_[1].x() * std::cos(u_direction) + u_[1].y() * std::cos(u_direction + half_pi<double>());
@@ -131,8 +132,8 @@ void state_feedback_controller::calculate_regulator(const model::robot& robot) {
   // smith_predictorでvisionの遅れ時間の補間
   estimated_robot_ = smith_predictor_.interpolate(robot, pre_u);
 
-  // ロボット状態を座標変換
-  e_[0] = convert(estimated_robot_.row(1), estimated_robot_(0, 2));
+  // ロボット速度を座標変換
+  e_[0] = convert(estimated_robot_.col(1), estimated_robot_(2, 0));
 
   // 双一次変換
   // s=(2/T)*(Z-1)/(Z+1)としてPIDcontrollerを離散化
@@ -142,7 +143,7 @@ void state_feedback_controller::calculate_regulator(const model::robot& robot) {
     ui_[0](i) = cycle_ * ki_(i) * (e_[0](i) + e_[1](i)) / 2.0 + ui_[1](i);
     ud_[0](i) = 2.0 * kd_(i) * (e_[0](i) - e_[1](i)) / cycle_ - ud_[1](i);
   }
-  u_[0] = (up_[0] + ui_[0] + ud_[0]);
+  u_[0] = up_[0] + ui_[0] + ud_[0];
 }
 
 Eigen::Vector3d state_feedback_controller::convert(const Eigen::Vector3d raw,
