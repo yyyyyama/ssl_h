@@ -49,9 +49,9 @@ std::vector<std::shared_ptr<action::base>> setplay::execute() {
 
   // パス以降の処理でボールの軌道が大きく変わったら的に取られたと判定し、agent終了
   if (state_ >= state::receive) {
-    Eigen::Vector2d shooter = util::math::position(our_robots.at(shooter_id_));
+    Eigen::Vector2d shooter_pos = util::math::position(our_robots.at(shooter_id_));
     if (std::abs(util::wrap_to_pi(vectorangle(ball_vec) - vectorangle(prev_ball_vel_))) > 1.0 &&
-        (shooter - ball_pos).norm() > 3000 && (kicker_pos - ball_pos).norm() > 500) {
+        (shooter_pos - ball_pos).norm() > 3000 && (kicker_pos - ball_pos).norm() > 500) {
       state_ = state::finished;
     }
   }
@@ -77,7 +77,7 @@ std::vector<std::shared_ptr<action::base>> setplay::execute() {
       // ロボットを指定位置へ移動させる
       if (positions_.size() == 0) {
         // 初めて呼ばれた時はレシーバたちの位置を決める
-        /*現状固定なので動的に求めたい{{{*/
+        // 現状固定なので動的に求めたい{{{
         int i = 0;
         for (auto receiver_id : receiver_ids_) {
           const double rad   = std::abs(ball_pos.y()) > 1500 ? -0.4 : -1.0;
@@ -100,7 +100,7 @@ std::vector<std::shared_ptr<action::base>> setplay::execute() {
             positions_[i].x() = enemygoal_x - 1500;
           }
           i++;
-        } /*}}}*/
+        } // }}}
       }
       int i          = 0;
       bool movedflag = true;
@@ -158,17 +158,17 @@ std::vector<std::shared_ptr<action::base>> setplay::execute() {
       } else {
         // ロボットが移動できていなかったら移動を続ける
         for (i = 0; i < receiver_ids_.size(); i++) {
-          const Eigen::Vector2d receiver =
+          const Eigen::Vector2d receiver_pos =
               util::math::position(our_robots.at(receiver_ids_[i]));
           auto move              = make_action<action::move>(receiver_ids_[i]);
-          const double to_target = vectorangle(positions_[i] - receiver);
-          const int dist         = (positions_[i] - receiver).norm();
+          const double to_target = vectorangle(positions_[i] - receiver_pos);
+          const int dist         = (positions_[i] - receiver_pos).norm();
           bool close_flag        = dist < 10;
 
           const int speed = dist < 400 ? dist : fdir;
-          move->move_to(receiver.x() + (close_flag ? 0 : speed * std::cos(to_target)),
-                        receiver.y() + (close_flag ? 0 : speed * std::sin(to_target)),
-                        vectorangle(ball_pos - receiver));
+          move->move_to(receiver_pos.x() + (close_flag ? 0 : speed * std::cos(to_target)),
+                        receiver_pos.y() + (close_flag ? 0 : speed * std::sin(to_target)),
+                        vectorangle(ball_pos - receiver_pos));
           baseaction_.push_back(move);
         }
         if ((ball_pos - kicker_pos).norm() > 500) {
@@ -207,21 +207,22 @@ std::vector<std::shared_ptr<action::base>> setplay::execute() {
       baseaction_.push_back(kick_);
 
       for (auto receiver_id : receiver_ids_) {
-        const auto receiver = util::math::position(our_robots.at(receiver_id));
+        const auto receiver_pos = util::math::position(our_robots.at(receiver_id));
         if (receiver_id != shooter_id_) {
           auto move = make_action<action::move>(receiver_id);
-          move->move_to(receiver.x(), receiver.y(), vectorangle(ball_pos - receiver));
+          move->move_to(receiver_pos.x(), receiver_pos.y(),
+                        vectorangle(ball_pos - receiver_pos));
           baseaction_.push_back(move);
         } else {
           const Eigen::Vector2d target = {passpos_.x(), passpos_.y()};
           auto move                    = make_action<action::move>(shooter_id_);
-          const double to_target       = vectorangle(target - receiver);
-          const int dist               = (target - receiver).norm();
+          const double to_target       = vectorangle(target - receiver_pos);
+          const int dist               = (target - receiver_pos).norm();
           bool close_flag              = dist < 50;
           const int speed              = dist < 400 ? dist : fdir;
           move->move_to(passpos_.x() + (close_flag ? 0 : speed * std::cos(to_target)),
                         passpos_.y() + (close_flag ? 0 : speed * std::sin(to_target)),
-                        vectorangle(ball_pos - receiver));
+                        vectorangle(ball_pos - receiver_pos));
           baseaction_.push_back(move);
         }
       }
@@ -290,7 +291,7 @@ std::vector<std::shared_ptr<action::base>> setplay::execute() {
 bool setplay::finished() {
   return state_ == state::finished;
 }
-// いい感じの場所を選ぶ関数/*{{{*/
+// いい感じの場所を選ぶ関数{{{
 Eigen::Vector2d setplay::find_location(std::vector<Eigen::Vector2d> targets,
                                        model::world::robots_list enemy_robots, int dist) {
   const auto& ball = world_.ball();
@@ -321,11 +322,11 @@ Eigen::Vector2d setplay::find_location(std::vector<Eigen::Vector2d> targets,
     }
   }
   return result;
-} /*}}}*/
-// ベクトルを渡すと角度を返してくれるもの/*{{{*/
+} // }}}
+// ベクトルを渡すと角度を返してくれるもの{{{
 double setplay::vectorangle(Eigen::Vector2d vec) {
   return std::atan2(vec.y(), vec.x());
-} /*}}}*/
+} // }}}
 } // agent
 } // game
 } // ai_server
