@@ -17,7 +17,9 @@ const double state_feedback_controller::zeta_  = 1.0;
 const double state_feedback_controller::omega_ = 49.17;
 
 state_feedback_controller::state_feedback_controller(double cycle)
-    : cycle_(cycle), sliding_mode_{cycle_, cycle_}, smith_predictor_(cycle_, zeta_, omega_) {
+    : cycle_(cycle),
+      velocity_generator_{cycle_, cycle_},
+      smith_predictor_(cycle_, zeta_, omega_) {
   // 状態フィードバックゲイン
   // (s+k)^2=s^2+2ks+k^2=0
   // |sI-A|=s^2+(2ζω-k2ω^2)s+ω^2-k1ω^2
@@ -45,8 +47,8 @@ velocity_t state_feedback_controller::update(const model::robot& robot,
   Eigen::Vector3d delta_p = convert(e_p, estimated_robot_(2, 0));
 
   Eigen::Vector3d target;
-  target.x() = sliding_mode_[0].control_pos(-delta_p.x());
-  target.y() = sliding_mode_[1].control_pos(-delta_p.y());
+  target.x() = velocity_generator_[0].control_pos(-delta_p.x());
+  target.y() = velocity_generator_[1].control_pos(-delta_p.y());
   // 速度が大きいときに角速度が大きくなりすぎないように
   double omega_limit = pi<double>() * std::exp(-std::hypot(target.x(), target.y()) / 2000.0);
   target.z()         = clamp(util::wrap_to_pi(delta_p.z()) * 2, -omega_limit, omega_limit);
@@ -71,8 +73,8 @@ velocity_t state_feedback_controller::update(const model::robot& robot,
   set << setpoint.vx, setpoint.vy, setpoint.omega;
   Eigen::Vector3d target = convert(set, estimated_robot_(2, 0));
 
-  target.x() = sliding_mode_[0].control_vel(target.x());
-  target.y() = sliding_mode_[1].control_vel(target.y());
+  target.x() = velocity_generator_[0].control_vel(target.x());
+  target.y() = velocity_generator_[1].control_vel(target.y());
   // 速度が大きいときに角速度が大きくなりすぎないように
   double omega_limit = pi<double>() * std::exp(-std::hypot(target.x(), target.y()) / 2000.0);
   target.z()         = clamp(set.z(), -omega_limit, omega_limit);

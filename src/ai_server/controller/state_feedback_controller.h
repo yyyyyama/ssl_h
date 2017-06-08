@@ -6,7 +6,7 @@
 #include <vector>
 
 #include "ai_server/controller/detail/smith_predictor.h"
-#include "ai_server/controller/detail/sliding_mode_controller.h"
+#include "ai_server/controller/detail/velocity_generator.h"
 #include "base.h"
 
 namespace ai_server {
@@ -36,7 +36,7 @@ private:
   Eigen::Vector3d ud_[2];           // 操作量(微分,1フレーム前まで)
   Eigen::Vector3d u_[2];            // 操作量(1フレーム前まで)
   Eigen::Vector3d e_[2];            // 偏差(1フレーム前まで)
-  detail::sliding_mode_controller sliding_mode_[2];
+  detail::velocity_generator velocity_generator_[2];
   detail::smith_predictor smith_predictor_;
 
   // レギュレータ部

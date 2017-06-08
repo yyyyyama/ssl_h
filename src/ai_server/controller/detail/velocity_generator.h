@@ -1,13 +1,13 @@
-#ifndef AI_SERVER_CONTROLLER_SLIDING_MODE_CONTROLLER_H
-#define AI_SERVER_CONTROLLER_SLIDING_MODE_CONTROLLER_H
+#ifndef AI_SERVER_CONTROLLER_DETAIL_VELOCITY_GENERATOR_H
+#define AI_SERVER_CONTROLLER_DETAIL_VELOCITY_GENERATOR_H
 
 namespace ai_server {
 namespace controller {
 namespace detail {
 
-/// @class  sliding mode control
-/// @brief  速度生成用コントローラ
-class sliding_mode_controller {
+/// @class  velocity_generator
+/// @brief  速度生成器
+class velocity_generator {
 private:
   double v_target_;                 // 目標指令速度
   double cycle_;                    // 周期
@@ -19,7 +19,7 @@ private:
 public:
   /// @brief  コンストラクタ
   /// @param  cycle 制御周期
-  sliding_mode_controller(double cycle);
+  velocity_generator(double cycle);
 
   /// @brief  位置制御計算関数
   /// @param  delta_p  位置偏差(現在位置-目標位置)
@@ -34,4 +34,4 @@ public:
 } // controller
 } // ai_server
 
-#endif // AI_SERVER_CONTROLLER_SLIDING_MODE_CONTROLLER_H
+#endif // AI_SERVER_CONTROLLER_DETAIL_VELOCITY_GENERATOR_H
