@@ -12,9 +12,9 @@ kick_off_waiter::kick_off_waiter(const model::world& world, bool is_yellow,
 
 std::vector<std::shared_ptr<action::base>> kick_off_waiter::execute() {
   std::vector<std::shared_ptr<action::base>> exe;
-  const auto& robots = is_yellow_ ? world_.robots_yellow() : world_.robots_blue();
-  auto tmp_ids       = ids_;
-  auto ids_size      = ids_.size();
+  const auto robots = is_yellow_ ? world_.robots_yellow() : world_.robots_blue();
+  auto tmp_ids      = ids_;
+  auto ids_size     = ids_.size();
 
   //攻撃側
   if (mode_ == kickoff_mode::attack) {
@@ -41,6 +41,7 @@ std::vector<std::shared_ptr<action::base>> kick_off_waiter::execute() {
       enemies_id.push_back(enemy.first);
     }
 
+    //敵キッカーをマーク候補から除外
     const auto ball_near_it = std::min_element(
         enemies_id.cbegin(), enemies_id.cend(), [&enemies, &ball](auto& a, auto& b) {
           return std::hypot(enemies.at(a).x() - ball.x(), enemies.at(a).y() - ball.y()) <
@@ -64,20 +65,24 @@ std::vector<std::shared_ptr<action::base>> kick_off_waiter::execute() {
     move->move_to(x, y, theta);
     exe.push_back(move);
 
-    //他は敵のxが小さい順にマーク
+    //敵をセンターラインに近い順にソート
+    std::sort(enemies_id.begin(), enemies_id.end(),
+              [&](auto& a, auto& b) { return enemies.at(a).x() < enemies.at(b).x(); });
+
+    //敵をセンターラインに近い順にマーク
     for (int i = 0; i < ids_size - 1; i++) {
       if (tmp_ids.empty()) {
         return exe;
       }
 
       //マーク位置の決定
-      const auto enemy_it = std::min_element(
-          enemies_id.cbegin(), enemies_id.cend(),
-          [&enemies](auto& a, auto& b) { return enemies.at(a).x() < enemies.at(b).x(); });
-      double y     = enemies.at(*enemy_it).y();
-      double x     = -700;
-      double theta = 0;
-      enemies_id.erase(enemy_it);
+      if ((enemies_id.begin() + i) == enemies_id.end()) {
+        return exe;
+      }
+      auto enemy_it = enemies_id.begin() + i;
+      double y      = enemies.at(*enemy_it).y();
+      double x      = -700;
+      double theta  = 0;
 
       //マークするロボットの決定
       const auto it =
