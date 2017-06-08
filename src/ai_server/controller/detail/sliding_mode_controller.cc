@@ -1,3 +1,4 @@
+#include <boost/algorithm/clamp.hpp>
 #include <boost/math/special_functions/sign.hpp>
 #include <cmath>
 
@@ -7,8 +8,10 @@ namespace ai_server {
 namespace controller {
 namespace detail {
 
-const double sliding_mode_controller::a_max_ = 4000.0;
-const double sliding_mode_controller::kp_    = 1.0;
+const double sliding_mode_controller::a_max_       = 4000.0;
+const double sliding_mode_controller::a_min_       = 2500.0;
+const double sliding_mode_controller::reach_speed_ = 1000.0;
+const double sliding_mode_controller::kp_          = 1.0;
 
 sliding_mode_controller::sliding_mode_controller(double cycle) : cycle_(cycle) {
   v_target_ = 0.0;
@@ -41,14 +44,19 @@ double sliding_mode_controller::control_pos(const double delta_p) {
   return v_target_;
 }
 
-double sliding_mode_controller::control_vel(const double delta_v) {
-  double state = delta_v;
-  if (std::abs(state) < a_max_ * cycle_) {
-    v_target_ += kp_ * delta_v; // stateが0になるように速度を保つ
+double sliding_mode_controller::control_vel(const double target) {
+  double state = v_target_ - target;
+  // 制限加速度計算
+  // 速度によって加速度が変化,初動でスリップしないように
+  double optimized_accel = v_target_ * (a_max_ - a_min_) / reach_speed_ + a_min_;
+  optimized_accel        = boost::algorithm::clamp(optimized_accel, a_min_, a_max_);
+
+  if (std::abs(state) < optimized_accel * cycle_) {
+    v_target_ = target;
   } else if (state < 0) {
-    v_target_ += a_max_ * cycle_; // stateが-なら加速
+    v_target_ += optimized_accel * cycle_; // stateが-なら加速
   } else {
-    v_target_ -= a_max_ * cycle_; // stateが+なら減速
+    v_target_ -= optimized_accel * cycle_; // stateが+なら減速
   }
   return v_target_;
 }

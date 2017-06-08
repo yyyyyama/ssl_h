@@ -12,14 +12,9 @@ using boost::algorithm::clamp;
 using boost::math::constants::half_pi;
 using boost::math::constants::pi;
 
-const double state_feedback_controller::k_                = 49.17;
-const double state_feedback_controller::zeta_             = 1.0;
-const double state_feedback_controller::omega_            = 49.17;
-const double state_feedback_controller::max_velocity_     = 5000.0; // 最大速度
-const double state_feedback_controller::max_acceleration_ = 3500.0; // 最大加速度
-const double state_feedback_controller::min_acceleration_ = 2500.0; // 速度ゼロ時の加速度
-// optimized_accelがmax_accelに到達するときのロボット速度
-const double state_feedback_controller::reach_speed_ = 1000.0;
+const double state_feedback_controller::k_     = 49.17;
+const double state_feedback_controller::zeta_  = 1.0;
+const double state_feedback_controller::omega_ = 49.17;
 
 state_feedback_controller::state_feedback_controller(double cycle)
     : cycle_(cycle), sliding_mode_{cycle_, cycle_}, smith_predictor_(cycle_, zeta_, omega_) {
@@ -74,38 +69,13 @@ velocity_t state_feedback_controller::update(const model::robot& robot,
 
   Eigen::Vector3d set;
   set << setpoint.vx, setpoint.vy, setpoint.omega;
-
   Eigen::Vector3d target = convert(set, estimated_robot_(2, 0));
 
-  // 加速度，速度制限
-  double u_angle     = std::atan2(target.y(), target.x()); // 今回指令速度の方向
-  double u_speed     = std::hypot(target.x(), target.y()); // 今回指令速度の大きさ
-  double robot_speed = std::hypot(u_[1].x(), u_[1].y());
-  double delta_speed = u_speed - robot_speed; // 速さ偏差(今回指令とロボット速さの差)
-  // 速度に応じて加速度を変化(初動でのスリップ防止)
-  // 制限加速度計算
-  double optimized_accel =
-      robot_speed * (max_acceleration_ - min_acceleration_) / reach_speed_ + min_acceleration_;
-  optimized_accel = clamp(optimized_accel, min_acceleration_, max_acceleration_);
-  // 加速度制限
-  if (delta_speed / cycle_ > optimized_accel) {
-    if (std::abs(u_speed) > std::abs(robot_speed)) {
-      u_speed = robot_speed + (optimized_accel * cycle_); // +方向加速
-    }
-  } else if (delta_speed / cycle_ < -optimized_accel) {
-    if (std::abs(u_speed) > std::abs(robot_speed)) {
-      u_speed = robot_speed - (optimized_accel * cycle_); // -方向加速
-    }
-  }
-  // 速度制限
-  u_speed = clamp(u_speed, 0.0, max_velocity_);
-
-  // 成分速度再計算
-  target.x() = u_speed * std::cos(u_angle);
-  target.y() = u_speed * std::sin(u_angle);
+  target.x() = sliding_mode_[0].control_vel(target.x());
+  target.y() = sliding_mode_[1].control_vel(target.y());
   // 速度が大きいときに角速度が大きくなりすぎないように
   double omega_limit = pi<double>() * std::exp(-std::hypot(target.x(), target.y()) / 2000.0);
-  target.z()         = clamp(util::wrap_to_pi(delta_v.z()) * 2, -omega_limit, omega_limit);
+  target.z()         = clamp(set.z(), -omega_limit, omega_limit);
 
   u_[0] = u_[0] + (std::pow(k_, 2) / std::pow(omega_, 2)) * target;
 
