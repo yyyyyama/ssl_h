@@ -1,9 +1,7 @@
 #include <algorithm>
 #include <cmath>
-#include <tuple>
 #include <unordered_map>
 #include "regular.h"
-#include "ai_server/model/robot.h"
 #include "ai_server/model/command.h"
 
 namespace ai_server {
