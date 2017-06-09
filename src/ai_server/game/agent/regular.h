@@ -28,11 +28,9 @@ private:
   // マーキング相手を組み直す
   void set_marking(unsigned int& chase_ball_id, bool is_ball_chase);
 
-  // ターゲットに最も近いロボットIDを返す(can_idsがconstになってない方は、can_idsから返り値の要素が削除される）
-  unsigned int nearest_robot_id(double target_x, double target_y,
-                                std::vector<unsigned int>& can_ids) const;
-  unsigned int nearest_robot_id(double target_x, double target_y,
-                                const std::vector<unsigned int>& can_ids) const;
+  // ターゲットに最も近いロボットIDのイテレータを返す
+  std::vector<unsigned int>::const_iterator nearest_id_itr(double target_x, double target_y,
+                                       const std::vector<unsigned int>& can_ids) const;
 
   // IDと重要度
   struct id_importance_ {

@@ -14,7 +14,7 @@ regular::regular(const model::world& world, bool is_yellow,
                  const std::vector<unsigned int> ids)
     : base(world, is_yellow), ids_(ids),is_chase_(true),chase_finished_(false),kick_finished_(false) {
   const auto ball = world_.ball();
-  chase_id_  = nearest_robot_id(ball.x(), ball.y(), ids_); //ボール追従ロボ登録
+  chase_id_  = *nearest_id_itr(ball.x(), ball.y(), ids_); //ボール追従ロボ登録
   set_marking(chase_id_, is_chase_);
 }
 
@@ -30,7 +30,7 @@ void regular::set_ball_chase(bool ball_chase) {
       chase_finished_ = false;
       kick_finished_   = false;
       const auto ball = world_.ball();
-      chase_id_ = nearest_robot_id(ball.x(), ball.y(), ids_); // ボール追従ロボ登録
+      chase_id_ = *nearest_id_itr(ball.x(), ball.y(), ids_); // ボール追従ロボ登録
     }
 
     set_marking(chase_id_, is_chase_);
@@ -46,7 +46,7 @@ std::vector<std::shared_ptr<action::base>> regular::execute() {
       if (kick_finished_) {
         // ReTry
         const auto ball                 = world_.ball();
-        unsigned int tmp_chase_id = nearest_robot_id(ball.x(), ball.y(), ids_);
+        unsigned int tmp_chase_id = *nearest_id_itr(ball.x(), ball.y(), ids_);
 
         if (chase_id_ != tmp_chase_id) {
           chase_id_  = tmp_chase_id;
@@ -113,8 +113,10 @@ void regular::set_marking(unsigned int& chase_ball_id, bool ball_chase) {
   // マーキングを担当するロボットを割り当て
   for (auto that_robot : that_importance_list) {
     if (!unadded_ids.empty()) {
-      tmp_id = nearest_robot_id(those_robots.at(that_robot.id).x(),
+      auto id_itr= nearest_id_itr(those_robots.at(that_robot.id).x(),
                                    those_robots.at(that_robot.id).x(), unadded_ids);
+      tmp_id=*id_itr;
+      unadded_ids.erase(id_itr);
       marking_ = std::make_shared<action::marking>(world_, is_yellow_, tmp_id);
       marking_->mark_robot(that_robot.id);
       marking_->set_mode(action::marking::mark_mode::shoot_block);
@@ -126,28 +128,14 @@ void regular::set_marking(unsigned int& chase_ball_id, bool ball_chase) {
   }
 }
 
-unsigned int regular::nearest_robot_id(double target_x, double target_y,
-                                       std::vector<unsigned int>& can_ids) const {
+
+std::vector<unsigned int>::const_iterator regular::nearest_id_itr(double target_x, double target_y,
+                                      const std::vector<unsigned int>& can_ids) const {
   const auto ids_robots = is_yellow_ ? world_.robots_yellow() : world_.robots_blue();
-  const std::vector<unsigned int>::iterator id_itr = std::min_element(
-      can_ids.begin(), can_ids.end(),
-      [&target_x, &target_y, ids_robots](unsigned int a, unsigned int b) {
+  return std::min_element(can_ids.begin(), can_ids.end(),[&target_x, &target_y, ids_robots](unsigned int a, unsigned int b) {
         return std::hypot(ids_robots.at(a).x() - target_x, ids_robots.at(a).y() - target_y) <
                std::hypot(ids_robots.at(b).x() - target_x, ids_robots.at(b).y() - target_y);
       });
-  unsigned int ret_id = *id_itr;
-  can_ids.erase(id_itr);
-  return ret_id;
-}
-
-unsigned int regular::nearest_robot_id(double target_x, double target_y,
-                                       const std::vector<unsigned int>& can_ids) const {
-  const auto ids_robots = is_yellow_ ? world_.robots_yellow() : world_.robots_blue();
-  return *std::min_element(can_ids.begin(), can_ids.end(), [&target_x, &target_y, ids_robots](
-                                                               unsigned int a, unsigned int b) {
-    return std::hypot(ids_robots.at(a).x() - target_x, ids_robots.at(a).y() - target_y) <
-           std::hypot(ids_robots.at(b).x() - target_x, ids_robots.at(b).y() - target_y);
-  });
 }
 
 } // agent
