@@ -6,6 +6,9 @@
 namespace ai_server {
 namespace game {
 namespace action {
+unsigned int marking::id() {
+  return id_;
+}
 void marking::mark_robot(unsigned int enemy_id) {
   enemy_id_ = enemy_id;
 }
@@ -24,9 +27,7 @@ model::command marking::execute() {
   //指定されたロボットが見えなかったらその位置で停止
   if (!enemy_robots.count(enemy_id_)) {
     //その場で停止するために現在の位置を取得したい
-    const auto my_robots = is_yellow_ ? world_.robots_yellow() : world_.robots_blue();
-    const auto& my_robot = my_robots.at(id_);
-    ally_robot.set_position({my_robot.x(), my_robot.y(), my_robot.theta()});
+    ally_robot.set_velocity({0.0, 0.0, 0.0});
     return ally_robot;
   }
   const auto& enemy_robot = enemy_robots.at(enemy_id_);
