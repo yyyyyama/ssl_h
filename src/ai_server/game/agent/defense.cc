@@ -222,12 +222,13 @@ std::vector<std::shared_ptr<action::base>> defense::execute() {
     {
       //ボールとの距離で点数決め
       for (auto& it : enemy_list) {
-        it.valuation = (ball - it.position).norm();
+        it.valuation = it.position.y();
       }
 
       //距離が近い順に昇順ソート
-      std::sort(enemy_list.begin(), enemy_list.end(),
-                [](const enemy& a, const enemy& b) { return (a.valuation < b.valuation); });
+      std::sort(enemy_list.begin(), enemy_list.end(), [&ball](const enemy& a, const enemy& b) {
+        return std::signbit(ball.y()) ? a.valuation > b.valuation : a.valuation < b.valuation;
+      });
 
       //点数の初期化
       auto point = enemy_list.size();
@@ -235,29 +236,9 @@ std::vector<std::shared_ptr<action::base>> defense::execute() {
         it.score = point--;
       }
     }
-    //    {
-    //      //ボール<->敵<->ゴールの角度で決める
-    //      for (auto& it : enemy_list) {
-    //        const auto goal_theta =
-    //            std::atan2(goal.y() - it.position.y(), goal.x() - it.position.x());
-    //        const auto ball_theta =
-    //            std::atan2(ball.y() - it.position.y(), ball.x() - it.position.x());
-    //        it.valuation = goal_theta + ball_theta;
-    //      }
-    //
-    //      //角度が小さいに昇順ソート
-    //      std::sort(enemy_list.begin(), enemy_list.end(),
-    //                [](const enemy& a, const enemy& b) { return (a.valuation < b.valuation);
-    //                });
-    //
-    //      auto point = enemy_list.size();
-    //      for (auto& it : enemy_list) {
-    //        it.score = point--;
-    //      }
-    //    }
     //パスカットのため先頭に捩じ込む
     {
-      //暫定的なボールに最も近い敵ロボットにゃん
+      //暫定的なボールに最も近い敵ロボット
       Eigen::Vector2d position{0.0, 0.0};
       auto theta      = 0.0;
       unsigned int id = 0;
@@ -316,8 +297,29 @@ std::vector<std::shared_ptr<action::base>> defense::execute() {
         mark_list.erase(id);
       }
 
-      //もしマークロボットが溢れたらこうなるにゃん
+      //もしマークロボットが溢れたらこうなる
       if (!mark_list.empty()) {
+        {
+          //ボール<->敵<->ゴールの角度で決める
+          for (auto& it : enemy_list) {
+            const auto goal_theta =
+                std::atan2(goal.y() - it.position.y(), goal.x() - it.position.x());
+            const auto ball_theta =
+                std::atan2(ball.y() - it.position.y(), ball.x() - it.position.x());
+            it.valuation = goal_theta + ball_theta;
+          }
+
+          //角度が小さいに昇順ソート
+          std::sort(enemy_list.begin(), enemy_list.end(),
+                    [](const enemy& a, const enemy& b) { return (a.valuation > b.valuation); });
+
+          auto point = enemy_list.size();
+          for (auto& it : enemy_list) {
+            it.score = point--;
+          }
+        }
+        //敵を起点として最近傍探索
+        //先頭は無理矢理ねじ込んだやつだから除外
         for (auto enemy_it = enemy_list.begin() + 1;
              !mark_list.empty() && enemy_it != enemy_list.end(); enemy_it++) {
           unsigned int id = 0;
@@ -357,7 +359,13 @@ std::vector<std::shared_ptr<action::base>> defense::execute() {
           // A:ボールが敵陣地なので多分そこまで動く必要はない
           // B:ボールが自陣地なので壁の補強をしなければ
           const auto demarcation = 2500.0; //縄張りの大きさ
-          if (((ball - goal).norm() < demarcation) && (marking_.size() == 0)) { // C
+          /*					if(!marking_.empty()){
+						
+					}else*/ if (((ball - goal)
+                                                                                .norm() <
+                                                                            demarcation) ||
+                                                                           !marking_
+                                                                                .empty()) { // C
             //ゴール前でディフェンスする
 
             {
