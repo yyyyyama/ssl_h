@@ -130,10 +130,12 @@ void regular::set_marking(unsigned int& chase_ball_id, bool ball_chase) {
 std::vector<unsigned int>::const_iterator regular::nearest_id_itr(double target_x, double target_y,
                                       const std::vector<unsigned int>& can_ids) const {
   const auto ids_robots = is_yellow_ ? world_.robots_yellow() : world_.robots_blue();
+  if(!can_ids.empty()){
   return std::min_element(can_ids.begin(), can_ids.end(),[&target_x, &target_y, ids_robots](unsigned int a, unsigned int b) {
         return std::hypot(ids_robots.at(a).x() - target_x, ids_robots.at(a).y() - target_y) <
                std::hypot(ids_robots.at(b).x() - target_x, ids_robots.at(b).y() - target_y);
       });
+  }
 }
 
 } // agent
