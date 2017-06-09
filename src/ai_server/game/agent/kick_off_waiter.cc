@@ -79,10 +79,9 @@ std::vector<std::shared_ptr<action::base>> kick_off_waiter::execute() {
       if ((enemies_id.begin() + i) == enemies_id.end()) {
         return exe;
       }
-      auto enemy_it = enemies_id.begin() + i;
-      double y      = enemies.at(*enemy_it).y();
-      double x      = -700;
-      double theta  = 0;
+      double y     = enemies.at(enemy_it[i]).y();
+      double x     = -700;
+      double theta = 0;
 
       //マークするロボットの決定
       const auto it =
