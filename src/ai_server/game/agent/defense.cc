@@ -358,13 +358,7 @@ std::vector<std::shared_ptr<action::base>> defense::execute() {
           // A:ボールが敵陣地なので多分そこまで動く必要はない
           // B:ボールが自陣地なので壁の補強をしなければ
           const auto demarcation = 2500.0; //縄張りの大きさ
-          /*					if(!marking_.empty()){
-						
-					}else*/ if (((ball - goal)
-                                                                                .norm() <
-                                                                            demarcation) ||
-                                                                           !marking_
-                                                                                .empty()) { // C
+          if (((ball - goal).norm() < demarcation) || !marking_.empty()) { // C
             //ゴール前でディフェンスする
 
             {
