@@ -207,7 +207,6 @@ std::vector<std::shared_ptr<action::base>> defense::execute() {
   //マーキングの処理.
   //
   //
-  //
   {
     std::vector<enemy> enemy_list;
     const auto enemy_robots = is_yellow_ ? world_.robots_blue() : world_.robots_yellow();
