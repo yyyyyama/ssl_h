@@ -79,7 +79,7 @@ std::vector<std::shared_ptr<action::base>> kick_off_waiter::execute() {
       if ((enemies_id.begin() + i) == enemies_id.end()) {
         return exe;
       }
-      double y     = enemies.at(enemy_it[i]).y();
+      double y     = enemies.at(enemies_id[i]).y();
       double x     = -700;
       double theta = 0;
 
