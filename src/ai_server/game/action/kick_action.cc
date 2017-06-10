@@ -29,6 +29,14 @@ void kick_action::set_mode(mode mod) {
   mode_ = mod;
 }
 
+void kick_action::set_dribble(int dribble) {
+  dribble_ = dribble;
+}
+
+void kick_action::set_angle_margin(double margin) {
+  margin_ = margin;
+}
+
 model::command kick_action::execute() {
   using boost::math::constants::pi;
   using boost::math::constants::two_pi;
@@ -63,23 +71,23 @@ model::command kick_action::execute() {
   model::command command(id_);
   model::command::position_t robot_pos;
 
-  // 角度を調整するときの許容誤差(rad)
-  const double margin = 0.07;
   // executeが呼ばれる間にボールがこれだけ移動したら蹴ったと判定する長さ(mm)
-  const double kick_decision = 15;
+  const double kick_decision = 60;
 
   const double direction1 = mode_ == mode::goal ? robot_theta : atand3;
   const double direction2 = mode_ == mode::goal ? atand1 : atand3;
+  const double dist       = dribble_ != 3 ? 200 : 250;
 
   if (std::hypot(old_ball_x - ball_x, old_ball_y - ball_y) > kick_decision && advanceflag_) {
     // executeが呼ばれる間の時間でボールが一定以上移動していたら蹴ったと判定
     robot_pos    = {robot_x, robot_y, robot_theta};
     finishflag_  = true;
     advanceflag_ = false;
-  } else if (std::hypot(to_robot_x, to_robot_y) > 250 && !aroundflag_) {
+  } else if (std::hypot(to_robot_x, to_robot_y) > dist && !aroundflag_) {
     // ロボットがボールから250以上離れていればボールに近づく処理
     robot_pos = {ball_x, ball_y, direction1};
-  } else if (std::abs(dth) > margin) {
+    if (dribble_ != 3) command.set_dribble(dribble_);
+  } else if (std::abs(dth) > margin_) {
     // ロボット、ボール、蹴りたい位置が一直線に並んでいなければボールを中心にまわる処理
     aroundflag_ = std::hypot(to_robot_x, to_robot_y) < 350;
     if (util::wrap_to_pi(atand1 - atand2) > 0) {
@@ -91,11 +99,13 @@ model::command kick_action::execute() {
       robot_pos = {robot_x - std::abs(dth) * 200 * std::sin(atand2 + 0.20),
                    robot_y + std::abs(dth) * 200 * std::cos(atand2 + 0.20), direction2};
     }
-  } else if (std::abs(atand1 - robot_theta) > margin &&
-             std::abs(atand1 - robot_theta) < two_pi<double>() - margin) {
+    if (dribble_ != 3) command.set_dribble(dribble_);
+  } else if (std::abs(atand1 - robot_theta) > margin_ &&
+             std::abs(atand1 - robot_theta) < two_pi<double>() - margin_) {
     // 位置をそのままにロボットがボールを蹴れる向きにする処理
     aroundflag_ = false;
     robot_pos   = {robot_x, robot_y, atand1};
+    if (dribble_ != 3) command.set_dribble(dribble_);
   } else {
     // キックフラグをセットし、ボールの位置まで移動する処理
     robot_pos = {ball_x, ball_y, atand1};
