@@ -321,7 +321,7 @@ std::vector<std::shared_ptr<action::base>> defense::execute() {
                                              const auto l2 = enemy_pos - b.second.position;
                                              return l1.norm() < l2.norm();
                                            });
-					const auto& r = std::get<1>(*it);
+          const auto& r = std::get<1>(*it);
           r.action->mark_robot(enemy_it->id);
           r.action->set_mode(action::marking::mark_mode::shoot_block);
           mark_list.erase(it);
