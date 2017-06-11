@@ -7,14 +7,14 @@ namespace ai_server {
 namespace controller {
 namespace detail {
 
-const double sliding_mode_controller::a_max_ = 2000.0;
+const double sliding_mode_controller::a_max_ = 4000.0;
 const double sliding_mode_controller::kp_    = 1.0;
 
 sliding_mode_controller::sliding_mode_controller(double cycle) : cycle_(cycle) {
   v_target_ = 0.0;
 }
 
-double sliding_mode_controller::control(const double delta_p) {
+double sliding_mode_controller::control_pos(const double delta_p) {
   double a_required = std::abs(delta_p) * std::pow(kp_, 2);
   double state;
 
@@ -33,10 +33,22 @@ double sliding_mode_controller::control(const double delta_p) {
 
   if (std::abs(state) < a_max_ * cycle_) {
     v_target_ = -kp_ * delta_p; // stateが0になるように速度を保つ
-  } else if (state < 0) {       // stateが-なら加速
-    v_target_ += a_max_ * cycle_;
-  } else { // stateが+なら減速
-    v_target_ -= a_max_ * cycle_;
+  } else if (state < 0) {
+    v_target_ += a_max_ * cycle_; // stateが-なら加速
+  } else {
+    v_target_ -= a_max_ * cycle_; // stateが+なら減速
+  }
+  return v_target_;
+}
+
+double sliding_mode_controller::control_vel(const double delta_v) {
+  double state = delta_v;
+  if (std::abs(state) < a_max_ * cycle_) {
+    v_target_ += kp_ * delta_v; // stateが0になるように速度を保つ
+  } else if (state < 0) {
+    v_target_ += a_max_ * cycle_; // stateが-なら加速
+  } else {
+    v_target_ -= a_max_ * cycle_; // stateが+なら減速
   }
   return v_target_;
 }

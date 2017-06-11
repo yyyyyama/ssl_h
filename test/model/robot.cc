@@ -34,6 +34,15 @@ BOOST_AUTO_TEST_CASE(test001) {
 
   rob.set_omega(15.0);
   BOOST_TEST(rob.omega() == 15.0);
+
+  rob.set_ax(16.0);
+  BOOST_TEST(rob.ax() == 16.0);
+
+  rob.set_ay(17.0);
+  BOOST_TEST(rob.ay() == 17.0);
+
+  rob.set_alpha(18.0);
+  BOOST_TEST(rob.alpha() == 18.0);
 }
 
 BOOST_AUTO_TEST_CASE(test002) {
