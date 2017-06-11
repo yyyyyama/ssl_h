@@ -26,22 +26,22 @@ world& world::operator=(const world& others) {
 }
 
 model::field world::field() const {
-  std::lock_guard<std::mutex> lock(mutex_);
+  std::shared_lock<std::shared_timed_mutex> lock(mutex_);
   return field_;
 }
 
 model::ball world::ball() const {
-  std::lock_guard<std::mutex> lock(mutex_);
+  std::shared_lock<std::shared_timed_mutex> lock(mutex_);
   return ball_;
 }
 
 world::robots_list world::robots_blue() const {
-  std::lock_guard<std::mutex> lock(mutex_);
+  std::shared_lock<std::shared_timed_mutex> lock(mutex_);
   return robots_blue_;
 }
 
 world::robots_list world::robots_yellow() const {
-  std::lock_guard<std::mutex> lock(mutex_);
+  std::shared_lock<std::shared_timed_mutex> lock(mutex_);
   return robots_yellow_;
 }
 
