@@ -11,6 +11,13 @@ namespace model {
 
 world::world() : field_{}, ball_{}, robots_blue_{}, robots_yellow_{} {}
 
+world::world(model::field&& field, model::ball&& ball, robots_list&& robots_blue,
+             robots_list&& robots_yellow)
+    : field_(std::move(field)),
+      ball_(std::move(ball)),
+      robots_blue_(std::move(robots_blue)),
+      robots_yellow_(std::move(robots_yellow)) {}
+
 world::world(const world& others) {
   set_field(others.field());
   set_ball(others.ball());

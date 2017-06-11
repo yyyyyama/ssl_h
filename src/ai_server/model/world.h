@@ -24,6 +24,9 @@ public:
 
   world();
 
+  world(model::field&& field, model::ball&& ball, robots_list&& robots_blue,
+        robots_list&& robots_yellow);
+
   // コピーコンストラクタ
   world(const world& others);
   world(world&& others);
