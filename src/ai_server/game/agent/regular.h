@@ -39,7 +39,7 @@ private:
     double importance;
 
     bool operator<(const id_importance_& next) const {
-      return importance > next.importance; //ソート基準=重要度が高い順
+      return importance < next.importance; //ソート基準=重要度が低い順
     }
   };
 
