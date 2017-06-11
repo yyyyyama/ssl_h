@@ -2,6 +2,7 @@
 #define AI_SERVER_CONTROLLER_STATE_FEEDBACK_CONTROLLER_H
 
 #include <Eigen/Core>
+#include <Eigen/Geometry>
 #include <memory>
 #include <vector>
 

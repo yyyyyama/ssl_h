@@ -93,13 +93,8 @@ velocity_t state_feedback_controller::update(const model::robot& robot,
 
 void state_feedback_controller::calculate_regulator(const model::robot& robot) {
   // 前回制御入力をフィールド基準に座標変換
-  Eigen::Vector3d pre_u;
-  double u_direction = std::atan2(u_[1].y(), u_[1].x());
-  pre_u.x() =
-      u_[1].x() * std::cos(u_direction) + u_[1].y() * std::cos(u_direction + half_pi<double>());
-  pre_u.y() =
-      u_[1].x() * std::sin(u_direction) + u_[1].y() * std::sin(u_direction + half_pi<double>());
-  pre_u.z() = u_[1].z();
+  double u_direction    = std::atan2(u_[1].y(), u_[1].x());
+  Eigen::Vector3d pre_u = Eigen::AngleAxisd(u_direction, Eigen::Vector3d::UnitZ()) * u_[1];
 
   // smith_predictorでvisionの遅れ時間の補間
   estimated_robot_ = smith_predictor_.interpolate(robot, pre_u);
@@ -120,13 +115,7 @@ void state_feedback_controller::calculate_regulator(const model::robot& robot) {
 
 Eigen::Vector3d state_feedback_controller::convert(const Eigen::Vector3d raw,
                                                    const double robot_theta) {
-  Eigen::Vector3d target;
-  target.x() =
-      raw.x() * std::cos(-robot_theta) + raw.y() * std::cos(half_pi<double>() - robot_theta);
-  target.y() =
-      raw.x() * std::sin(-robot_theta) + raw.y() * std::sin(half_pi<double>() - robot_theta);
-  target.z() = raw.z();
-
+  Eigen::Vector3d target = Eigen::AngleAxisd(-robot_theta, Eigen::Vector3d::UnitZ()) * raw;
   return target;
 }
 
