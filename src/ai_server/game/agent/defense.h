@@ -42,8 +42,8 @@ public:
 
 private:
   unsigned int keeper_id_;
-  const std::vector<unsigned int>& wall_ids_;
-  const std::vector<unsigned int>& marking_ids_;
+  const std::vector<unsigned int> wall_ids_;
+  const std::vector<unsigned int> marking_ids_;
   std::shared_ptr<action::guard> keeper_;
   std::vector<std::shared_ptr<action::guard>> wall_;
   std::vector<std::shared_ptr<action::marking>> marking_;
