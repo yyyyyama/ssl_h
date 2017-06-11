@@ -45,9 +45,9 @@ model::command marking::execute() {
       break;
     case mark_mode::shoot_block:                 //シュートを阻止
       const auto length = (goal - enemy).norm(); //敵機とゴールの距離
-      tmp               = std::signbit(1200 - length / 2)
+      tmp               = std::signbit(1400 - length / 2)
                 ? 0
-                : 1200 - length / 2; //敵機-ゴール中央の中間地点とゴールラインの差
+                : 1400 - length / 2; //敵機-ゴール中央の中間地点とゴールラインの差
       ratio    = (length / 2 + tmp) / length;
       position = (1 - ratio) * goal + ratio * enemy;
       tmp_pos  = enemy;
