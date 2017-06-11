@@ -1,9 +1,5 @@
-#include <cmath>
 #include <mutex>
-#include <queue>
-#include <vector>
 
-#include "ai_server/util/algorithm.h"
 #include "world.h"
 
 namespace ai_server {

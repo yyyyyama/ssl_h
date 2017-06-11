@@ -9,8 +9,6 @@
 #include "field.h"
 #include "robot.h"
 
-#include "ssl-protos/vision/wrapperpacket.pb.h"
-
 namespace ai_server {
 namespace model {
 
