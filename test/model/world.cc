@@ -57,13 +57,9 @@ BOOST_AUTO_TEST_CASE(nyan) {
     BOOST_TEST(w.robots_yellow().size() == 2);
     BOOST_TEST(w.robots_yellow().count(2) == 1);
     BOOST_TEST(w.robots_yellow().count(4) == 1);
-  }
 
-  {
-    // コピーコンストラクタ, コピー代入演算子が正しく動作するか
-
-    ai_server::model::world w2(w);
-
+    ai_server::model::world w2{std::move(field), std::move(ball), std::move(robots_blue),
+                               std::move(robots_yellow)};
     BOOST_TEST(w2.field().length() == 1);
     BOOST_TEST(w2.ball().x() = 123);
     BOOST_TEST(w2.robots_blue().size() == 2);
@@ -72,22 +68,44 @@ BOOST_AUTO_TEST_CASE(nyan) {
     BOOST_TEST(w2.robots_yellow().size() == 2);
     BOOST_TEST(w2.robots_yellow().count(2) == 1);
     BOOST_TEST(w2.robots_yellow().count(4) == 1);
+  }
 
-    ai_server::model::world w3 = w;
+  {
+    auto check = [](const auto& copy, const auto& original) {
+      BOOST_TEST(copy.field().length() == original.field().length());
+      BOOST_TEST(copy.ball().x() = original.ball().x());
+      BOOST_TEST(copy.robots_blue().size() == original.robots_blue().size());
+      BOOST_TEST(copy.robots_blue().count(1) == original.robots_blue().count(1));
+      BOOST_TEST(copy.robots_blue().count(3) == original.robots_blue().count(3));
+      BOOST_TEST(copy.robots_yellow().size() == original.robots_yellow().size());
+      BOOST_TEST(copy.robots_yellow().count(1) == original.robots_yellow().count(1));
+      BOOST_TEST(copy.robots_yellow().count(3) == original.robots_yellow().count(3));
+    };
 
-    BOOST_TEST(w3.field().length() == 1);
-    BOOST_TEST(w3.ball().x() = 123);
-    BOOST_TEST(w3.robots_blue().size() == 2);
-    BOOST_TEST(w3.robots_blue().count(1) == 1);
-    BOOST_TEST(w3.robots_blue().count(3) == 1);
-    BOOST_TEST(w3.robots_yellow().size() == 2);
-    BOOST_TEST(w3.robots_yellow().count(2) == 1);
-    BOOST_TEST(w3.robots_yellow().count(4) == 1);
+    // コピーコンストラクタが正しく動作するか
+    ai_server::model::world w2(w);
+    check(w2, w);
+
+    // コピー代入演算子が正しく動作するか
+    ai_server::model::world w3;
+    w3 = w;
+    check(w3, w);
 
     // コピーなのでwを変更してもw2, w3は変化しない
+    const auto prev_ball = w.ball();
     w.set_ball(ai_server::model::ball{12, 34, 56});
     BOOST_TEST(w2.ball().x() = 123);
     BOOST_TEST(w3.ball().x() = 123);
+    w.set_ball(prev_ball);
+
+    // ムーブコンストラクタが正しく動作するか
+    ai_server::model::world w4(std::move(w3));
+    check(w4, w);
+
+    // ムーブ代入演算子が正しく動作するか
+    ai_server::model::world w5;
+    w5 = std::move(w4);
+    check(w5, w);
   }
 }
 
