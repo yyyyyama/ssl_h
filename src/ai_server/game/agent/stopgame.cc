@@ -100,10 +100,6 @@ std::vector<std::shared_ptr<action::base>> stopgame::execute() {
     }
 
     if (std::hypot(targetx - robotx, targety - roboty) > 100) {
-      // 安全な速度にして移動
-      const double to_target    = std::atan2(targety - roboty, targetx - robotx);
-      targetx                   = robotx + 300 * std::cos(to_target);
-      targety                   = roboty + 300 * std::sin(to_target);
       auto move                 = std::make_shared<action::move>(world_, is_yellow_, id);
       const double to_balltheta = std::atan2(bally - robot.y(), ballx - robot.x());
       move->move_to(targetx, targety, to_balltheta);
