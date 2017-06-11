@@ -1,4 +1,5 @@
 #include <cmath>
+#include <mutex>
 #include <queue>
 #include <vector>
 
@@ -15,6 +16,14 @@ world::world(const world& others) {
   set_ball(others.ball());
   set_robots_blue(others.robots_blue());
   set_robots_yellow(others.robots_yellow());
+ }
+
+world::world(world&& others) {
+  std::unique_lock<std::shared_timed_mutex> lock(others.mutex_);
+  std::swap(field_, others.field_);
+  std::swap(ball_, others.ball_);
+  std::swap(robots_blue_, others.robots_blue_);
+  std::swap(robots_yellow_, others.robots_yellow_);
 }
 
 world& world::operator=(const world& others) {
@@ -22,6 +31,17 @@ world& world::operator=(const world& others) {
   set_ball(others.ball());
   set_robots_blue(others.robots_blue());
   set_robots_yellow(others.robots_yellow());
+  return *this;
+}
+
+world& world::operator=(world&& others) {
+  std::unique_lock<std::shared_timed_mutex> lock1(mutex_, std::defer_lock);
+  std::unique_lock<std::shared_timed_mutex> lock2(others.mutex_, std::defer_lock);
+  std::lock(lock1, lock2);
+  std::swap(field_, others.field_);
+  std::swap(ball_, others.ball_);
+  std::swap(robots_blue_, others.robots_blue_);
+  std::swap(robots_yellow_, others.robots_yellow_);
   return *this;
 }
 

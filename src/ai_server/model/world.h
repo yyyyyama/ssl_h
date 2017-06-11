@@ -26,7 +26,10 @@ public:
 
   // コピーコンストラクタ
   world(const world& others);
+  world(world&& others);
+
   world& operator=(const world& others);
+  world& operator=(world&& others);
 
   model::field field() const;
   model::ball ball() const;
