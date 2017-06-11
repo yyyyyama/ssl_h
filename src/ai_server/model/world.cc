@@ -34,10 +34,13 @@ world::world(world&& others) {
 }
 
 world& world::operator=(const world& others) {
-  set_field(others.field());
-  set_ball(others.ball());
-  set_robots_blue(others.robots_blue());
-  set_robots_yellow(others.robots_yellow());
+  std::unique_lock<std::shared_timed_mutex> lock1(mutex_, std::defer_lock);
+  std::shared_lock<std::shared_timed_mutex> lock2(others.mutex_, std::defer_lock);
+  std::lock(lock1, lock2);
+  field_         = others.field_;
+  ball_          = others.ball_;
+  robots_blue_   = others.robots_blue_;
+  robots_yellow_ = others.robots_yellow_;
   return *this;
 }
 
