@@ -13,7 +13,7 @@ namespace ai_server {
 namespace model {
 
 /// @class   world
-/// @brief   SSL-Visionからデータを内部で扱いやすい形式に処理する
+/// @brief   SSL-Visionからのデータを表現するクラス
 class world {
   mutable std::shared_timed_mutex mutex_;
 
@@ -25,7 +25,6 @@ public:
   world(model::field&& field, model::ball&& ball, robots_list&& robots_blue,
         robots_list&& robots_yellow);
 
-  // コピーコンストラクタ
   world(const world& others);
   world(world&& others);
 
