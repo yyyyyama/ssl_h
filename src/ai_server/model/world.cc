@@ -14,12 +14,11 @@ world::world(model::field&& field, model::ball&& ball, robots_list&& robots_blue
       robots_blue_(std::move(robots_blue)),
       robots_yellow_(std::move(robots_yellow)) {}
 
-world::world(const world& others) {
-  set_field(others.field());
-  set_ball(others.ball());
-  set_robots_blue(others.robots_blue());
-  set_robots_yellow(others.robots_yellow());
- }
+world::world(const world& others)
+    : field_(others.field()),
+      ball_(others.ball()),
+      robots_blue_(others.robots_blue()),
+      robots_yellow_(others.robots_yellow()) {}
 
 world::world(world&& others) {
   std::unique_lock<std::shared_timed_mutex> lock(others.mutex_);
