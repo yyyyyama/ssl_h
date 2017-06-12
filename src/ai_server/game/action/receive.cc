@@ -38,8 +38,8 @@ model::command receive::execute() {
   const auto ball_pos    = util::math::position(world_.ball());
   const auto ball_vec    = util::math::velocity(world_.ball());
 
-  const auto& passer    = robots.at(passer_id_);
-  const auto passer_pos = util::math::position(passer);
+  const auto& passer      = robots.at(passer_id_);
+  const auto passer_pos   = util::math::position(passer);
   const auto passer_theta = util::wrap_to_pi(passer.theta());
 
   //ボールがめっちゃ近くに来たら受け取ったと判定
@@ -52,7 +52,7 @@ model::command receive::execute() {
 
   decltype(util::math::position(passer)) tmp;
   if (ball_vec.norm() < 0.5) {
-    tmp = passer_pos + Eigen::Vector2d{std::cos(passer_theta),std::sin(passer_theta)};
+    tmp = passer_pos + Eigen::Vector2d{std::cos(passer_theta), std::sin(passer_theta)};
   } else {
     tmp = ball_vec;
   }
@@ -64,7 +64,10 @@ model::command receive::execute() {
   const auto target = (ball_pos + dot * normalize);
   const auto theta  = std::atan2(-normalize.y(), -normalize.x());
 
-  command.set_position({target.x(), target.y(), theta});
+  const auto target_vec{(target - robot_pos) * 8};
+
+  const auto omega = theta - robot_theta;
+  command.set_velocity({target_vec.x(), target_vec.y(), omega});
 
   flag_ = false;
   return command;
