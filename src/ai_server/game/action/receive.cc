@@ -40,6 +40,7 @@ model::command receive::execute() {
 
   const auto& passer    = robots.at(passer_id_);
   const auto passer_pos = util::math::position(passer);
+  const auto passer_theta = util::wrap_to_pi(passer.theta());
 
   //ボールがめっちゃ近くに来たら受け取ったと判定
   //現状だとボールセンサに反応があるか分からないので
@@ -50,8 +51,8 @@ model::command receive::execute() {
   }
 
   decltype(util::math::position(passer)) tmp;
-  if (ball_vec.norm() < 6.0) {
-    tmp = passer_pos - ball_pos;
+  if (ball_vec.norm() < 0.5) {
+    tmp = passer_pos + Eigen::Vector2d{std::cos(passer_theta),std::sin(passer_theta)};
   } else {
     tmp = ball_vec;
   }
@@ -63,8 +64,7 @@ model::command receive::execute() {
   const auto target = (ball_pos + dot * normalize);
   const auto theta  = std::atan2(-normalize.y(), -normalize.x());
 
-  const auto omega = theta - robot_theta;
-  command.set_position({target.x(), target.y(), omega});
+  command.set_position({target.x(), target.y(), theta});
 
   flag_ = false;
   return command;
