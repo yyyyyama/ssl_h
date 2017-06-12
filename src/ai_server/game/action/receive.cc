@@ -13,6 +13,12 @@ void receive::set_dribble(int dribble) {
 int receive::dribble() {
   return dribble_;
 }
+void receive::set_passer(unsigned int passer_id) {
+  passer_id_ = passer_id;
+}
+unsigned int receive::passer() {
+  return passer_id_;
+}
 model::command receive::execute() {
   //それぞれ自機を生成
   model::command command(id_);
@@ -21,7 +27,7 @@ model::command receive::execute() {
   command.set_dribble(dribble_);
 
   const auto& robots = is_yellow_ ? world_.robots_yellow() : world_.robots_blue();
-  if (!robots.count(id_)) {
+  if (!robots.count(id_) || !robots.count(passer_id_)) {
     command.set_velocity({0.0, 0.0, 0.0});
     return command;
   }
@@ -32,6 +38,9 @@ model::command receive::execute() {
   const auto ball_pos    = util::math::position(world_.ball());
   const auto ball_vec    = util::math::velocity(world_.ball());
 
+  const auto& passer    = robots.at(passer_id_);
+  const auto passer_pos = util::math::position(passer);
+
   //ボールがめっちゃ近くに来たら受け取ったと判定
   //現状だとボールセンサに反応があるか分からないので
   if ((robot_pos - ball_pos).norm() < 120) {
@@ -39,8 +48,16 @@ model::command receive::execute() {
     command.set_velocity({0.0, 0.0, 0.0});
     return command;
   }
+
+  decltype(util::math::position(passer)) tmp;
+  if (ball_vec.norm() < 6.0) {
+    tmp = passer_pos - ball_pos;
+  } else {
+    tmp = ball_vec;
+  }
+
   const auto length    = robot_pos - ball_pos;
-  const auto normalize = ball_vec.normalized();
+  const auto normalize = tmp.normalized();
   const auto dot       = normalize.dot(length);
   //目標位置と角度
   const auto target = (ball_pos + dot * normalize);
