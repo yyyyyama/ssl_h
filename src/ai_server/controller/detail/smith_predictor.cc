@@ -8,7 +8,7 @@ namespace detail {
 smith_predictor::smith_predictor(const double cycle, const double zeta, const double omega)
     : cycle_(cycle), zeta_(zeta), omega_(omega) {
   for (int i = 0; i < 7; i++) {
-    u_[i].Eigen::Vector3d::Zero(3);
+    u_[i] = Eigen::Vector3d::Zero();
   }
 }
 

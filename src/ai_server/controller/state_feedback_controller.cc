@@ -30,19 +30,18 @@ state_feedback_controller::state_feedback_controller(double cycle)
   ki_ << 0.0, 0.0, 0.0;
   kd_ << k2, k2, 0.0;
   for (int i = 0; i < 2; i++) {
-    up_[i].Eigen::Vector3d::Zero(3);
-    ui_[i].Eigen::Vector3d::Zero(3);
-    ud_[i].Eigen::Vector3d::Zero(3);
-    u_[i].Eigen::Vector3d::Zero(3);
-    e_[i].Eigen::Vector3d::Zero(3);
+    up_[i] = Eigen::Vector3d::Zero();
+    ui_[i] = Eigen::Vector3d::Zero();
+    ud_[i] = Eigen::Vector3d::Zero();
+    u_[i]  = Eigen::Vector3d::Zero();
+    e_[i]  = Eigen::Vector3d::Zero();
   }
 }
 
 velocity_t state_feedback_controller::update(const model::robot& robot,
                                              const position_t& setpoint) {
   calculate_regulator(robot);
-  Eigen::Vector3d set;
-  set << setpoint.x, setpoint.y, setpoint.theta;
+  Eigen::Vector3d set     = {setpoint.x, setpoint.y, setpoint.theta};
   Eigen::Vector3d e_p     = set - estimated_robot_.col(0);
   Eigen::Vector3d delta_p = convert(e_p, estimated_robot_(2, 0));
 
@@ -105,11 +104,10 @@ void state_feedback_controller::calculate_regulator(const model::robot& robot) {
   // 双一次変換
   // s=(2/T)*(Z-1)/(Z+1)としてPIDcontrollerを離散化
   // C=Kp+Ki/s+Kds
-  for (int i = 0; i < 3; i++) {
-    up_[0](i) = kp_(i) * e_[0](i);
-    ui_[0](i) = cycle_ * ki_(i) * (e_[0](i) + e_[1](i)) / 2.0 + ui_[1](i);
-    ud_[0](i) = 2.0 * kd_(i) * (e_[0](i) - e_[1](i)) / cycle_ - ud_[1](i);
-  }
+  up_[0] = kp_.array() * e_[0].array();
+  ui_[0] = cycle_ * ki_.array() * (e_[0].array() + e_[1].array()) / 2.0 + ui_[1].array();
+  ud_[0] = 2.0 * kd_.array() * (e_[0].array() - e_[1].array() / cycle_ - ud_[1].array());
+
   u_[0] = up_[0] + ui_[0] + ud_[0];
 }
 
