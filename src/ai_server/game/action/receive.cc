@@ -50,18 +50,22 @@ model::command receive::execute() {
     return command;
   }
 
-  decltype(util::math::position(passer)) tmp;
+  decltype(util::math::position(passer)) normalize;
+  decltype(util::math::position(passer)) position;
+
   if (ball_vec.norm() < 0.5) {
-    tmp = passer_pos + Eigen::Vector2d{std::cos(passer_theta), std::sin(passer_theta)};
+    normalize = Eigen::Vector2d{std::cos(passer_theta), std::sin(passer_theta)};
+    position  = passer_pos;
   } else {
-    tmp = ball_vec;
+    normalize = ball_vec.normalized();
+    position  = ball_pos;
   }
 
-  const auto length    = robot_pos - ball_pos;
-  const auto normalize = tmp.normalized();
-  const auto dot       = normalize.dot(length);
+  const auto length = robot_pos - position;
+  const auto dot    = normalize.dot(length);
+
   //目標位置と角度
-  const auto target = (ball_pos + dot * normalize);
+  const auto target = (position + dot * normalize);
   const auto theta  = std::atan2(-normalize.y(), -normalize.x());
 
   const auto target_vec{(target - robot_pos) * 8};
