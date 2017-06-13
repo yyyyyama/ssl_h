@@ -8,13 +8,6 @@ namespace ai_server {
 namespace game {
 namespace action {
 
-kick_action::kick_action(const model::world& world, bool is_yellow, unsigned int id)
-    : base(world, is_yellow, id) {
-  const auto ball = world.ball();
-  old_ball_x      = ball.x();
-  old_ball_y      = ball.y();
-}
-
 void kick_action::kick_to(double x, double y) {
   x_ = x;
   y_ = y;
@@ -80,35 +73,54 @@ model::command kick_action::execute() {
 
   if (std::hypot(old_ball_x - ball_x, old_ball_y - ball_y) > kick_decision && advanceflag_) {
     // executeが呼ばれる間の時間でボールが一定以上移動していたら蹴ったと判定
-    robot_pos    = {robot_x, robot_y, robot_theta};
+    robot_pos = {robot_x, robot_y, robot_theta};
+    command.set_position(robot_pos);
     finishflag_  = true;
     advanceflag_ = false;
   } else if (std::hypot(to_robot_x, to_robot_y) > dist && !aroundflag_) {
     // ロボットがボールから250以上離れていればボールに近づく処理
     robot_pos = {ball_x, ball_y, direction1};
-    if (dribble_ != 3) command.set_dribble(dribble_);
+    command.set_position(robot_pos);
+    if (dribble_ != 0) command.set_dribble(dribble_);
+  } else if (std::abs(atand2 + pi<double>() - robot_theta) > 0.25 &&
+             std::abs(atand2 + pi<double>() - robot_theta) < two_pi<double>() - 0.25) {
+    // 位置をそのままにロボットがボールを蹴れる向きにする処理
+    robot_pos = {robot_x, robot_y, util::wrap_to_2pi(atand2 + pi<double>())};
+    command.set_position(robot_pos);
+    if (dribble_ != 0) command.set_dribble(dribble_);
   } else if (std::abs(dth) > margin_) {
     // ロボット、ボール、蹴りたい位置が一直線に並んでいなければボールを中心にまわる処理
     aroundflag_ = std::hypot(to_robot_x, to_robot_y) < 350;
     if (util::wrap_to_pi(atand1 - atand2) > 0) {
       // 時計回り
-      robot_pos = {robot_x + std::abs(dth) * 200 * std::sin(atand2 - 0.20),
-                   robot_y - std::abs(dth) * 200 * std::cos(atand2 - 0.20), direction2};
+      const double param = std::abs(dth) > 0.20 ? 350 : 35;
+      const double si    = std::sin(atand2) * param;
+      const double co    = -std::cos(atand2) * param;
+      if (std::isnan(robot_me.vx()) || std::isnan(robot_me.vy())) {
+        command.set_velocity({si, co, -param / std::hypot(to_robot_x, to_robot_y) / 1.3});
+      } else {
+        command.set_velocity({si, co,
+                              -std::hypot(robot_me.vx(), robot_me.vy()) /
+                                  std::hypot(to_robot_x, to_robot_y) / 1.3});
+      }
     } else {
       // 反時計回り
-      robot_pos = {robot_x - std::abs(dth) * 200 * std::sin(atand2 + 0.20),
-                   robot_y + std::abs(dth) * 200 * std::cos(atand2 + 0.20), direction2};
+      const double param = std::abs(dth) > 0.20 ? 350 : 35;
+      const double si    = -std::sin(atand2) * param;
+      const double co    = std::cos(atand2) * param;
+      if (std::isnan(robot_me.vx()) || std::isnan(robot_me.vy())) {
+        command.set_velocity({si, co, param / std::hypot(to_robot_x, to_robot_y) / 1.3});
+      } else {
+        command.set_velocity({si, co,
+                              std::hypot(robot_me.vx(), robot_me.vy()) /
+                                  std::hypot(to_robot_x, to_robot_y) / 1.3});
+      }
     }
-    if (dribble_ != 3) command.set_dribble(dribble_);
-  } else if (std::abs(atand1 - robot_theta) > margin_ &&
-             std::abs(atand1 - robot_theta) < two_pi<double>() - margin_) {
-    // 位置をそのままにロボットがボールを蹴れる向きにする処理
-    aroundflag_ = false;
-    robot_pos   = {robot_x, robot_y, atand1};
-    if (dribble_ != 3) command.set_dribble(dribble_);
+    if (dribble_ != 0) command.set_dribble(dribble_);
   } else {
     // キックフラグをセットし、ボールの位置まで移動する処理
     robot_pos = {ball_x, ball_y, atand1};
+    command.set_position(robot_pos);
     command.set_kick_flag(kick_type_);
     advanceflag_ = true;
   }
@@ -117,7 +129,6 @@ model::command kick_action::execute() {
   old_ball_x = ball_x;
   old_ball_y = ball_y;
 
-  command.set_position(robot_pos);
   return command;
 };
 

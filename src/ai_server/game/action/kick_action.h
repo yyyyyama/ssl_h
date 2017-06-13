@@ -11,9 +11,10 @@ namespace action {
 
 class kick_action : public base {
 public:
+  using base::base;
+
   enum class mode { goal, ball } mode_ = mode::goal;
 
-  kick_action(const model::world& world, bool is_yellow, unsigned int id);
   void kick_to(double x, double y);
 
   void set_kick_type(const model::command::kick_flag_t& kick_type);
