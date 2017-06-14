@@ -1,10 +1,13 @@
 #ifndef AI_SERVER_GAME_AGENT_REGULAR_H
 #define AI_SERVER_GAME_AGENT_REGULAR_H
 
+#include <queue>
+#include <unordered_map>
 #include "base.h"
 #include "ai_server/game/action/chase_ball.h"
 #include "ai_server/game/action/kick_action.h"
 #include "ai_server/game/action/marking.h"
+#include "ai_server/game/action/no_operation.h"
 
 namespace ai_server {
 namespace game {
@@ -18,35 +21,42 @@ public:
   std::vector<std::shared_ptr<action::base>> execute() override;
 
 private:
+  // 構造体：IDと重要度
+  struct id_importance_ {
+    unsigned int id;
+    double importance;
+
+    bool operator<(const id_importance_& next) const {
+      return importance < next.importance;
+    }
+  };
+
   const std::vector<unsigned int> ids_;
   bool is_chase_;
   unsigned int chase_id_;
   bool chase_finished_;
   bool kick_finished_;
-  std::vector<std::shared_ptr<action::marking>> mark_actions_;
-
-  // マーキング相手を組み直す
-  void set_marking(unsigned int& chase_ball_id, bool is_ball_chase);
-
-  // ターゲットに最も近いロボットIDのイテレータを返す
-  std::vector<unsigned int>::const_iterator nearest_id_itr(double target_x, double target_y,
-                                       const std::vector<unsigned int>& can_ids) const;
-
-  // IDと重要度
-  struct id_importance_ {
-    // ID, 重要度
-    unsigned int id;
-    double importance;
-
-    bool operator<(const id_importance_& next) const {
-      return importance < next.importance; //ソート基準=重要度が低い順
-    }
-  };
-
+  std::priority_queue<id_importance_> importance_list_;
+  std::unordered_map<unsigned int, std::shared_ptr<action::marking>> ids_marking_;
+  std::unordered_map<unsigned int, std::shared_ptr<action::no_operation>> ids_no_op_;
+  std::vector<unsigned int> flow_ids_; // マーキング割り当ての際にあふれたロボットID
+  std::vector<unsigned int> no_ids_; // no_operationを割り当てられたID
   // Action
-  std::shared_ptr<action::marking> marking_;
   std::shared_ptr<action::chase_ball> chase_ball_;
   std::shared_ptr<action::kick_action> kick_action_;
+
+  // マーキングをaction生成から組み直す
+  void reset_marking(unsigned int& chase_ball_id, bool is_ball_chase);
+
+  // マーキングの設定( change_all : マーキングの割当を全て変更する時はtrue)
+  void set_marking(bool change_all);
+
+  // 敵IDと重要度を設定、ソートした結果を返す
+  std::priority_queue<id_importance_> importance_list_now();
+  
+  // ターゲットに最も近いロボットIDのイテレータを返す
+  std::vector<unsigned int>::const_iterator nearest_id_itr(
+      double target_x, double target_y, const std::vector<unsigned int>& can_ids) const;
 };
 
 } // agent
