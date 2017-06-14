@@ -9,21 +9,6 @@ const model::world& world_updater::world_model() const {
   return world_;
 }
 
-void world_updater::clear_ball_filters() {
-  std::lock_guard<std::mutex> lock(mutex_);
-
-  ball_filters_.clear();
-  ball_filter_initializers_.clear();
-}
-
-void world_updater::clear_robot_filters() {
-  std::lock_guard<std::mutex> lock(mutex_);
-
-  robots_blue_filters_.clear();
-  robots_yellow_filters_.clear();
-  robot_filter_initializers_.clear();
-}
-
 void world_updater::update(const ssl_protos::vision::Packet& packet) {
   if (packet.has_detection()) {
     process_packet(packet.detection());
@@ -132,18 +117,6 @@ model::ball world_updater::build_ball_data(
       ret.set_x(ball_data->x());
       ret.set_y(ball_data->y());
       ret.set_z(ball_data->z());
-
-      // Filterが設定されていたらそれを適用する
-      if (!ball_filter_initializers_.empty()) {
-        // Filterが初期化されていなければ初期化する
-        if (ball_filters_.empty()) {
-          ball_filters_ = init_filters(ball_filter_initializers_);
-        }
-
-        for (auto&& f : ball_filters_) {
-          f->apply(ret, captured_time);
-        }
-      }
     }
   }
 
@@ -188,21 +161,6 @@ model::world::robots_list world_updater::build_robots_list(
       ret[robot_id].set_x(robot_data->x());
       ret[robot_id].set_y(robot_data->y());
       ret[robot_id].set_theta(robot_data->orientation());
-
-      // Filterが設定されていたらそれを適用する
-      if (std::get<0>(reliable_element->second) == camera_id &&
-          !robot_filter_initializers_.empty()) {
-        auto& filters_ = is_yellow ? robots_yellow_filters_ : robots_blue_filters_;
-
-        // Filterが初期化されていなければ初期化する
-        if (filters_.count(robot_id) == 0) {
-          filters_.emplace(robot_id, init_filters(robot_filter_initializers_));
-        }
-
-        for (auto&& f : filters_[robot_id]) {
-          f->apply(ret[robot_id], captured_time);
-        }
-      }
     }
 
     // イテレータを次のロボットIDの位置まで進める
