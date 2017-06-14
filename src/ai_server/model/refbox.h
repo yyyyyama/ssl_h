@@ -52,7 +52,7 @@ public:
     post_game
   };
   enum class game_command {
-    half,
+    halt,
     stop,
     normal_start,
     force_start,

@@ -7,7 +7,7 @@ refbox::refbox() : team_yellow_("yellow"), team_blue_("blue") {
   packet_timestamp_ = 0;
   stage_time_left_  = 0;
   stage_            = refbox::stage_name::normal_first_half_pre;
-  command_          = refbox::game_command::half;
+  command_          = refbox::game_command::halt;
 }
 
 int refbox::packet_timestamp() const {
