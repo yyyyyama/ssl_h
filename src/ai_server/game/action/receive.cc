@@ -50,24 +50,27 @@ model::command receive::execute() {
     return command;
   }
 
-  decltype(util::math::position(passer)) normalize;
-  decltype(util::math::position(passer)) position;
+  decltype(util::math::position(passer)) normalize; //正面に移動したい対象の単位ベクトル
+  decltype(util::math::position(passer)) position; //正面に移動したい対象の位置
 
-  if (ball_vec.norm() < 0.5) {
+  if (ball_vec.norm() < 0.5) { // passerの正面に移動したい
     normalize = Eigen::Vector2d{std::cos(passer_theta), std::sin(passer_theta)};
     position  = passer_pos;
-  } else {
+  } else { //ボールの移動予測地点に移動したい
     normalize = ball_vec.normalized();
     position  = ball_pos;
   }
 
+  //対象とreceiverの距離
   const auto length = robot_pos - position;
-  const auto dot    = normalize.dot(length);
+  //内積より,対象と自分の直交する位置
+  const auto dot = normalize.dot(length);
 
   //目標位置と角度
   const auto target = (position + dot * normalize);
   const auto theta  = std::atan2(-normalize.y(), -normalize.x());
 
+  //位置から速度へ
   const auto target_vec{(target - robot_pos) * 8};
 
   const auto omega = theta - robot_theta;
