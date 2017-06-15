@@ -34,7 +34,7 @@ public:
   /// @brief  現在状態の推定
   /// @param  robot ロボット
   /// @param  u (前回)制御入力
-  Eigen::Matrix3d interpolate(const model::robot& robot, const Eigen::Vector3d u);
+  Eigen::Matrix3d interpolate(const model::robot& robot, const Eigen::Vector3d& u);
 };
 
 } // detail

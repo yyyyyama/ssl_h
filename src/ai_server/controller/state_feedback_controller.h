@@ -44,7 +44,7 @@ private:
   void calculate_regulator(const model::robot& robot);
 
   // フィールド基準座標系からロボット基準座標系に変換
-  Eigen::Vector3d convert(const Eigen::Vector3d raw, const double robot_theta);
+  Eigen::Vector3d convert(const Eigen::Vector3d& raw, const double robot_theta);
 
 public:
   // コンストラクタ

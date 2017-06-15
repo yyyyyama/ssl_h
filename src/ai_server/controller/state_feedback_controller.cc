@@ -110,7 +110,7 @@ void state_feedback_controller::calculate_regulator(const model::robot& robot) {
   u_[0] = up_[0] + ui_[0] + ud_[0];
 }
 
-Eigen::Vector3d state_feedback_controller::convert(const Eigen::Vector3d raw,
+Eigen::Vector3d state_feedback_controller::convert(const Eigen::Vector3d& raw,
                                                    const double robot_theta) {
   Eigen::Vector3d target = Eigen::AngleAxisd(-robot_theta, Eigen::Vector3d::UnitZ()) * raw;
   return target;

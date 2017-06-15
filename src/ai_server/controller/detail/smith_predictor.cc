@@ -13,7 +13,7 @@ smith_predictor::smith_predictor(const double cycle, const double zeta, const do
 }
 
 Eigen::Matrix3d smith_predictor::interpolate(const model::robot& robot,
-                                             const Eigen::Vector3d u) {
+                                             const Eigen::Vector3d& u) {
   u_[0] = u; // 受け取った制御入力を最新入力として
 
   // 受け取ったロボットの状態(無駄時間分の遅れ含む)
