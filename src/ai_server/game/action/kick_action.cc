@@ -2,6 +2,7 @@
 #include <cmath>
 
 #include "ai_server/util/math.h"
+#include "ai_server/util/math/to_vector.h"
 #include "kick_action.h"
 
 namespace ai_server {
@@ -64,15 +65,15 @@ model::command kick_action::execute() {
   model::command command(id_);
   model::command::position_t robot_pos;
 
-  // executeが呼ばれる間にボールがこれだけ移動したら蹴ったと判定する長さ(mm)
-  const double kick_decision = 60;
+  // ボールがこの速度を超えたら終了
+  const double finish_velocity = 1;
 
-  const double direction1 = mode_ == mode::goal ? robot_theta : atand3;
+  const double direction1 = atand3;
   const double direction2 = mode_ == mode::goal ? atand1 : atand3;
   const double dist       = dribble_ != 3 ? 200 : 250;
 
-  if (std::hypot(old_ball_x - ball_x, old_ball_y - ball_y) > kick_decision && advanceflag_) {
-    // executeが呼ばれる間の時間でボールが一定以上移動していたら蹴ったと判定
+  if (util::math::velocity(ball).norm() > finish_velocity && advanceflag_) {
+    // ボールが一定速度以上になったら蹴ったと判定
     robot_pos = {robot_x, robot_y, robot_theta};
     command.set_position(robot_pos);
     finishflag_  = true;
