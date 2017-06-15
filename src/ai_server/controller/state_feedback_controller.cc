@@ -26,9 +26,9 @@ state_feedback_controller::state_feedback_controller(double cycle)
   // 2k=2ζω-k2ω^2,k^2=ω^2-k1ω^2
   double k1 = 1 - std::pow(k_, 2) / std::pow(omega_, 2);
   double k2 = 2 * (zeta_ * omega_ - k_) / std::pow(omega_, 2);
-  kp_ << k1, k1, 0.0;
-  ki_ << 0.0, 0.0, 0.0;
-  kd_ << k2, k2, 0.0;
+  kp_       = {k1, k1, 0.0};
+  ki_       = {0.0, 0.0, 0.0};
+  kd_       = {k2, k2, 0.0};
   for (int i = 0; i < 2; i++) {
     up_[i] = Eigen::Vector3d::Zero();
     ui_[i] = Eigen::Vector3d::Zero();
@@ -68,8 +68,7 @@ velocity_t state_feedback_controller::update(const model::robot& robot,
                                              const velocity_t& setpoint) {
   calculate_regulator(robot);
 
-  Eigen::Vector3d set;
-  set << setpoint.vx, setpoint.vy, setpoint.omega;
+  Eigen::Vector3d set    = {setpoint.vx, setpoint.vy, setpoint.omega};
   Eigen::Vector3d target = convert(set, estimated_robot_(2, 0));
 
   target.x() = velocity_generator_[0].control_vel(target.x());
