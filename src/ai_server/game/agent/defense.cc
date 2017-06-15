@@ -381,27 +381,18 @@ std::vector<std::shared_ptr<action::base>> defense::execute() {
           //ボールにもっとも近いやつがシューターだと仮定
           //
 
-          //暫定的なボールに最も近い敵ロボット
-          unsigned int enemy_robot_id = 0;
+          // ボールに最も近い敵ロボットを求める
+          const auto it = std::min_element(
+              enemy_robots.cbegin(), enemy_robots.cend(), [&ball](auto&& a, auto&& b) {
+                const auto l1 = Eigen::Vector2d{a.second.x(), a.second.y()} - ball;
+                const auto l2 = Eigen::Vector2d{b.second.x(), b.second.y()} - ball;
+                return l1.norm() < l2.norm();
+              });
 
-          //最小値を比べるための変数
-          auto min_val = 0xffff;
-
-          for (auto enemy_it : enemy_robots) {
-            auto len =
-                std::hypot((enemy_it.second).x() - ball.x(), (enemy_it.second).y() - ball.y());
-            if (len < min_val) {
-              min_val        = len;
-              enemy_robot_id = (enemy_it.first);
-            }
-          }
-
+          // 先頭に捩じ込む
+          const auto& r = std::get<1>(*it);
           //キーパーのy座標は敵シューターの視線の先
-          if (enemy_robots.count(enemy_robot_id)) {
-            keeper.y() = (1000.0 * std::tan(enemy_robots.at(enemy_robot_id).theta())) * (-1);
-          } else {
-            keeper.y() = keeper_c.y();
-          }
+          keeper.y() = (1000.0 * std::tan(r.theta())) * (-1);
 
           //ゴールの範囲を超えたら跳びでないようにする
           if (keeper.y() > 410) {
