@@ -48,8 +48,8 @@ private:
   // chase id をセットする
   void set_chase_id();
 
-  // マーキングをaction生成から組み直す
-  void reset_marking(unsigned int& chase_ball_id, bool is_ball_chase);
+  // 担当割り当てを全て組み直す
+  void reset_all();
 
   // マーキングの設定( change_all : マーキングの割当を全て変更する時はtrue)
   void set_marking(bool change_all);
