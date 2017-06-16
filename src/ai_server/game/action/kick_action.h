@@ -14,6 +14,7 @@ public:
   using base::base;
 
   enum class mode { goal, ball } mode_ = mode::goal;
+  enum class state { move, kick, finished } state_ = state::move;
 
   void kick_to(double x, double y);
 
@@ -24,6 +25,7 @@ public:
   void set_dribble(int dribble);
   // 目標位置と打つ角度の許容誤差
   void set_angle_margin(double margin);
+  state get_state();
 
   model::command execute() override;
 
@@ -32,8 +34,6 @@ public:
 private:
   double x_;
   double y_;
-  double old_ball_x;
-  double old_ball_y;
   int dribble_   = 3;
   double margin_ = 0.07;
   model::command::kick_flag_t kick_type_;

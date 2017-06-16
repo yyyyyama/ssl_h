@@ -12,6 +12,8 @@
 
 #include "setplay.h"
 
+#include <iostream>
+
 namespace ai_server {
 namespace game {
 namespace agent {
@@ -45,6 +47,8 @@ std::vector<std::shared_ptr<action::base>> setplay::execute() {
   const double ballysign           = ball.y() > 0 ? 1.0 : -1.0;
   double enemygoal_x               = world_.field().x_max();
 
+  std::cout << "ball"<<ball_pos.x() << ", " << ball_pos.y() << ", " << ball_vec.norm() << std::endl;
+
   // パス以降の処理でボールの軌道が大きく変わったら的に取られたと判定し、agent終了
   if (state_ >= state::receive) {
     Eigen::Vector2d shooter_pos = util::math::position(our_robots.at(shooter_id_));
@@ -58,9 +62,8 @@ std::vector<std::shared_ptr<action::base>> setplay::execute() {
   // キックフラグが立ったら次の状態に移行
   if (kick_->finished()) {
     if (state_ == state::pass) {
-      receive_ = make_action<action::receive>(shooter_id_);
-      kick_    = make_action<action::kick_action>(shooter_id_);
-      state_   = state::receive;
+      kick_  = make_action<action::kick_action>(shooter_id_);
+      state_ = state::receive;
     } else {
       state_ = state::finished;
     }
@@ -144,7 +147,8 @@ std::vector<std::shared_ptr<action::base>> setplay::execute() {
           }
         }
         if (pos_ == pos::near) {
-          passpos_ = {1000, 0};
+          auto shooter = our_robots.at(shooter_id_);
+          passpos_     = {shooter.x(), shooter.y()};
         } else if (pos_ == pos::mid) {
           auto shooter = our_robots.at(shooter_id_);
           passpos_     = {shooter.x(), shooter.y()};
@@ -155,6 +159,7 @@ std::vector<std::shared_ptr<action::base>> setplay::execute() {
         baseaction_.push_back(make_action<action::no_operation>(kicker_id_));
         for (auto receiver_id : receiver_ids_)
           baseaction_.push_back(make_action<action::no_operation>(receiver_id));
+        receive_ = make_action<action::receive>(shooter_id_);
       } else {
         // ロボットが移動できていなかったら移動を続ける
         for (i = 0; i < receiver_ids_.size(); i++) {
@@ -199,7 +204,7 @@ std::vector<std::shared_ptr<action::base>> setplay::execute() {
         line_flag = false;
       }
 
-      const double power = line_flag ? 40 : 150;
+      const double power = line_flag ? 30 : 200;
       kick_->kick_to(passpos_.x(), passpos_.y());
       kick_->set_dribble(0);
       kick_->set_angle_margin(0.02);
@@ -216,25 +221,35 @@ std::vector<std::shared_ptr<action::base>> setplay::execute() {
                         vectorangle(ball_pos - receiver_pos));
           baseaction_.push_back(move);
         } else {
-          const Eigen::Vector2d target = {passpos_.x(), passpos_.y()};
-          auto move                    = make_action<action::move>(shooter_id_);
-          const double to_target       = vectorangle(target - receiver_pos);
-          const int dist               = (target - receiver_pos).norm();
-          bool close_flag              = dist < 50;
-          move->move_to(passpos_.x() + (close_flag ? 0 : dist * std::cos(to_target)),
-                        passpos_.y() + (close_flag ? 0 : dist * std::sin(to_target)),
-                        vectorangle(ball_pos - receiver_pos));
-          baseaction_.push_back(move);
+          if (kick_->get_state() == action::kick_action::state::kick) {
+            std::cout << "state_receive" << std::endl;
+            receive_->set_dribble(9);
+            receive_->set_passer(kicker_id_);
+            baseaction_.push_back(receive_);
+          } else {
+            std::cout << "state_move" << std::endl;
+            const Eigen::Vector2d target = {passpos_.x(), passpos_.y()};
+            auto move                    = make_action<action::move>(shooter_id_);
+            const double to_target       = vectorangle(target - receiver_pos);
+            const int dist               = (target - receiver_pos).norm();
+            bool close_flag              = dist < 50;
+            move->move_to(passpos_.x() + (close_flag ? 0 : dist * std::cos(to_target)),
+                          passpos_.y() + (close_flag ? 0 : dist * std::sin(to_target)),
+                          vectorangle(ball_pos - receiver_pos));
+            baseaction_.push_back(move);
+          }
         }
       }
       break;
     }
     case state::receive: {
+      std::cout << "state_reeeee" << std::endl;
       // パスを受け取る
       baseaction_.push_back(make_action<action::no_operation>(kicker_id_));
       for (auto receiver_id : receiver_ids_) {
         if (receiver_id == shooter_id_) {
           if (!receive_->finished()) {
+            receive_->set_passer(kicker_id_);
             receive_->set_dribble(9);
             baseaction_.push_back(receive_);
           } else {
@@ -249,6 +264,7 @@ std::vector<std::shared_ptr<action::base>> setplay::execute() {
       }
     }
     case state::shoot: {
+      std::cout << "shoot" << std::endl;
       // シュートを撃つ
       if (receiver_ids_.size() == 0) {
         Eigen::Vector2d target = {enemygoal_x, -100 * ballysign};
@@ -264,7 +280,7 @@ std::vector<std::shared_ptr<action::base>> setplay::execute() {
       }
       for (auto receiver_id : receiver_ids_) {
         if (receiver_id == shooter_id_) {
-          Eigen::Vector2d target = {enemygoal_x, -270 * ballysign};
+          Eigen::Vector2d target = {enemygoal_x, -100 * ballysign};
           const double power     = 50;
           kick_->kick_to(target.x(), target.y());
           kick_->set_dribble(0);
@@ -279,6 +295,7 @@ std::vector<std::shared_ptr<action::base>> setplay::execute() {
       break;
     }
     case state::finished: {
+      std::cerr << "finished" << std::endl;
       // 終了
       baseaction_.push_back(make_action<action::no_operation>(kicker_id_));
       for (auto receiver_id : receiver_ids_) {
