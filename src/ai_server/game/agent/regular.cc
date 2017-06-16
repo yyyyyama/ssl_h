@@ -13,8 +13,12 @@ regular::regular(const model::world& world, bool is_yellow, const std::vector<un
       is_chase_(true),
       chase_finished_(false),
       kick_finished_(false) {
-  const auto ball = world_.ball();
-  chase_id_       = *nearest_id_itr(ball.x(), ball.y(), ids_); // ボール追従ロボ登録
+  // markingとno_operationのアクションを生成
+  for (auto id : ids_) {
+    ids_no_op_[id] = std::make_shared<action::no_operation>(world_, is_yellow_, id);
+    ids_marking_[id] = std::make_shared<action::marking>(world_, is_yellow_, id);
+  }
+  set_chase_id();
   reset_marking(chase_id_, is_chase_);
 }
 
@@ -26,8 +30,7 @@ void regular::set_ball_chase(bool ball_chase) {
   if (is_chase_ != ball_chase) {
     is_chase_ = ball_chase;
     if (is_chase_) {
-      const auto ball = world_.ball();
-      chase_id_ = *nearest_id_itr(ball.x(), ball.y(), ids_); // ボール追従ロボ登録
+      set_chase_id();
     }
     reset_marking(chase_id_, is_chase_);
   }
@@ -41,8 +44,7 @@ std::vector<std::shared_ptr<action::base>> regular::execute() {
     if (chase_finished_) {
       if (kick_finished_) {
         // ReTry
-        const auto ball = world_.ball();
-        chase_id_       = *nearest_id_itr(ball.x(), ball.y(), ids_);
+        set_chase_id();
         reset_marking(chase_id_, is_chase_);
 
       } else {
@@ -65,7 +67,9 @@ std::vector<std::shared_ptr<action::base>> regular::execute() {
 
   for (auto id_marking : ids_marking_) {
     if (std::find(no_ids_.begin(), no_ids_.end(), id_marking.first) == no_ids_.end()) {
-      actions.push_back(id_marking.second); // markingを割り当て
+      if(id_marking.first!=chase_id_){
+       actions.push_back(id_marking.second); // markingを割り当て
+      }
     } else {
       actions.push_back(ids_no_op_.at(id_marking.first)); // no_operationを割り当て
     }
@@ -74,13 +78,16 @@ std::vector<std::shared_ptr<action::base>> regular::execute() {
   return actions;
 }
 
+// chase id をセットする
+void regular::set_chase_id(){
+  const auto ball = world_.ball();
+  chase_id_       = *nearest_id_itr(ball.x(), ball.y(), ids_); // ボール追従ロボ登録
+}
+
 // マーキングをaction生成から組み直す
 void regular::reset_marking(unsigned int& chase_ball_id, bool ball_chase) {
   const auto those_robots = !is_yellow_ ? world_.robots_yellow() : world_.robots_blue();
   std::vector<unsigned int> unadded_ids; // まだ動作の割り当てられていない味方ロボットのID
-
-  ids_marking_.erase(ids_marking_.begin(), ids_marking_.end());
-  ids_no_op_.erase(ids_no_op_.begin(), ids_no_op_.end());
 
   chase_finished_ = false;
   kick_finished_  = false;
@@ -89,14 +96,6 @@ void regular::reset_marking(unsigned int& chase_ball_id, bool ball_chase) {
   if (ball_chase) {
     chase_ball_  = std::make_shared<action::chase_ball>(world_, is_yellow_, chase_ball_id);
     kick_action_ = std::make_shared<action::kick_action>(world_, is_yellow_, chase_ball_id);
-  }
-  
-  // markingとno_operationのアクションを生成
-  for (auto id : ids_) {
-    ids_no_op_[id] = std::make_shared<action::no_operation>(world_, is_yellow_, id);
-    if (!(ball_chase && id == chase_id_)) {
-      ids_marking_[id] = std::make_shared<action::marking>(world_, is_yellow_, id);
-    }
   }
 
   set_marking(true);
@@ -109,8 +108,10 @@ void regular::set_marking(bool change_all) {
     const auto those_robots = !is_yellow_ ? world_.robots_yellow() : world_.robots_blue();
     std::vector<unsigned int> unadded_ids; // まだ動作の割り当てられていない味方ロボットのID
 
-    for (auto id_marking : ids_marking_) {
-      unadded_ids.push_back(id_marking.first); // IDを取得
+    for(auto id : ids_){
+      if(id!=chase_id_){
+        unadded_ids.push_back(id);
+      }
     }
 
     // change_allをtrueにする必要があるかを調べる

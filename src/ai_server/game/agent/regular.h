@@ -44,6 +44,9 @@ private:
   // Action
   std::shared_ptr<action::chase_ball> chase_ball_;
   std::shared_ptr<action::kick_action> kick_action_;
+  
+  // chase id をセットする
+  void set_chase_id();
 
   // マーキングをaction生成から組み直す
   void reset_marking(unsigned int& chase_ball_id, bool is_ball_chase);
