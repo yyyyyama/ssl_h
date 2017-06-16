@@ -13,15 +13,12 @@ namespace agent {
 
 class halt : public base {
 public:
-    halt(const model::world& world, bool is_yellow, 
-            const std::vector<unsigned int>& ids);
-    std::vector<std::shared_ptr<action::base>> execute() override;
+  halt(const model::world& world, bool is_yellow, const std::vector<unsigned int>& ids);
+  std::vector<std::shared_ptr<action::base>> execute() override;
 
 private:
-    std::vector<unsigned int> ids_;
-
+  std::vector<unsigned int> ids_;
 };
-
 }
 }
 }
