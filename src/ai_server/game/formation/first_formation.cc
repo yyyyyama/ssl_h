@@ -6,14 +6,18 @@ namespace formation {
 
 first_formation::first_formation(const model::world& world, const model::refbox& refcommand,
                                  bool is_yellow, const std::vector<unsigned int>& ids)
-    : base(world, is_yellow),
-      refcommand_(refcommand),
-      keeper_(5),
+    : base(world, is_yellow, refcommand),
       kicker_(0),
       ids_(ids),
       wall_number_(2),
       before_ball_(world.ball()),
-      kicked_flag_(false) {}
+      kicked_flag_(false) {
+  if (is_yellow_) {
+    keeper_ = refcommand_.team_yellow().goalie();
+  } else {
+    keeper_ = refcommand_.team_blue().goalie();
+  }
+}
 
 std::vector<std::shared_ptr<agent::base>> first_formation::execute() {
   before_command_       = current_command_;
@@ -24,10 +28,10 @@ std::vector<std::shared_ptr<agent::base>> first_formation::execute() {
   exe_.clear();
 
   //壁を決定する,変更があった場合にはothers_も更新する
-  wall_decide();
+  decide_wall();
   //壁,キッカーなどの役割を決定
   if (current_command_ == command::stop && before_command_ != current_command_) {
-    kicker_decide();
+    decide_kicker();
     except_keeper();
     waiter();
   }
@@ -144,7 +148,6 @@ std::vector<std::shared_ptr<agent::base>> first_formation::execute() {
 //ボールを蹴ったか判定
 bool first_formation::kicked() {
   const auto ball = world_.ball();
-  std::cout << ball.x() << " : " << before_ball_.x() << std::endl;
   if (std::hypot(ball.x() - before_ball_.x(), ball.y() - before_ball_.y()) > 80) {
     before_ball_ = ball;
     return true;
@@ -157,7 +160,7 @@ bool first_formation::kicked() {
 ///////////////////////////////////////////////////////
 
 //壁の数を決定する
-void first_formation::wall_number_decide() {
+void first_formation::decide_wall_number() {
   wall_number_ = 2;
 
   if (ids_.size() < 4) {
@@ -166,7 +169,7 @@ void first_formation::wall_number_decide() {
 }
 
 //壁にするロボットを決定
-void first_formation::wall_decide() {
+void first_formation::decide_wall() {
   //壁が見えているか判定
   for (auto id = wall_.begin(); id != wall_.end(); ++id) {
     const auto wall_it =
@@ -184,7 +187,7 @@ void first_formation::wall_decide() {
 
   if (std::all_of(ids_.begin(), ids_.end(),
                   [&our_robots](auto&& id) { return our_robots.count(id); })) {
-    wall_number_decide();
+    decide_wall_number();
     wall_.clear();
 
     //キーパーを候補から除外
@@ -204,7 +207,7 @@ void first_formation::wall_decide() {
 }
 
 //キッカーを決定
-void first_formation::kicker_decide() {
+void first_formation::decide_kicker() {
   const auto our_robots = is_yellow_ ? world_.robots_yellow() : world_.robots_blue();
   const auto ball       = world_.ball();
   auto tmp_ids          = others_; //キーパー,壁以外のロボットを抽出
@@ -296,17 +299,6 @@ void first_formation::defense(agent::defense::defense_mode mode, bool mark_flag)
     df_ = std::make_shared<agent::defense>(world_, is_yellow_, keeper_, dummy, dummy);
   df_->set_mode(mode);
   exe_.push_back(df_);
-};
-
-void first_formation::pk_waiter() {
-  if (current_command_ == command::penalty_attack ||
-      current_command_ == command::penalty_attack_start) {
-    pk_waiter_ = std::make_shared<agent::penalty_kick_waiter>(world_, is_yellow_, waiter_);
-  } else {
-    pk_waiter_ =
-        std::make_shared<agent::penalty_kick_waiter>(world_, is_yellow_, except_keeper_);
-  }
-  exe_.push_back(pk_waiter_);
 };
 
 void first_formation::pk(bool start_flag) {
