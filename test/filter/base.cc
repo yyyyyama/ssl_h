@@ -95,6 +95,10 @@ BOOST_AUTO_TEST_CASE(manual) {
   // nulloptでも問題ない
   value = std::experimental::nullopt;
   BOOST_CHECK_NO_THROW(f.add_prefix());
+
+  // 関数が登録されていなくても例外で落ちない
+  test_filter2 bad_filter{{}, {}, ""};
+  BOOST_CHECK_NO_THROW(bad_filter.add_prefix());
 }
 
 BOOST_AUTO_TEST_SUITE_END()
