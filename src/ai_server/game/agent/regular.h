@@ -7,6 +7,7 @@
 #include "ai_server/game/action/chase_ball.h"
 #include "ai_server/game/action/kick_action.h"
 #include "ai_server/game/action/marking.h"
+#include "ai_server/game/action/move.h"
 #include "ai_server/game/action/no_operation.h"
 
 namespace ai_server {
@@ -39,24 +40,24 @@ private:
   std::priority_queue<id_importance_> importance_list_;
   std::unordered_map<unsigned int, std::shared_ptr<action::marking>> ids_marking_;
   std::unordered_map<unsigned int, std::shared_ptr<action::no_operation>> ids_no_op_;
-  std::vector<unsigned int> flow_ids_; // マーキング割り当ての際にあふれたロボットID
-  std::vector<unsigned int> no_ids_; // no_operationを割り当てられたID
+  std::vector<unsigned int> flow_ids_; // マーキング割り当ての際に余ったロボットID(=補欠)
+  std::vector<unsigned int> no_op_ids_; // no_operationを割り当てられたID
   // Action
   std::shared_ptr<action::chase_ball> chase_ball_;
   std::shared_ptr<action::kick_action> kick_action_;
-  
-  // chase id をセットする
-  void set_chase_id();
 
-  // 担当割り当てを全て組み直す
+  // chase id_の候補を取得
+  unsigned int get_chase_id();
+
+  // 全て組み直す
   void reset_all();
 
   // マーキングの設定( change_all : マーキングの割当を全て変更する時はtrue)
   void set_marking(bool change_all);
 
   // 敵IDと重要度を設定、ソートした結果を返す
-  std::priority_queue<id_importance_> importance_list_now();
-  
+  std::priority_queue<id_importance_> get_importance_list();
+
   // ターゲットに最も近いロボットIDのイテレータを返す
   std::vector<unsigned int>::const_iterator nearest_id_itr(
       double target_x, double target_y, const std::vector<unsigned int>& can_ids) const;
