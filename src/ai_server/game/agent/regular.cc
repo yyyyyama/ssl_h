@@ -42,8 +42,8 @@ std::vector<std::shared_ptr<action::base>> regular::execute() {
     auto chase_id_tmp = get_chase_id();
     if (std::hypot(ids_robots.at(chase_id_).x() - ball.x(),
                    ids_robots.at(chase_id_).y() - ball.y()) > 1000 &&
-        std::hypot(ids_robots.at(chase_id_).x() - ids_robots.at(chase_id_tmp).x(),
-                   ids_robots.at(chase_id_).y() - ids_robots.at(chase_id_tmp).y()) > 1000) {
+       std::hypot(ids_robots.at(chase_id_).x() - ball.x(),ids_robots.at(chase_id_).y() - ball.y()) -
+        std::hypot(ids_robots.at(chase_id_tmp).x()-ball.x(),ids_robots.at(chase_id_tmp).y()-ball.y()) > 600) {
       reset_all();
     }
 
