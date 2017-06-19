@@ -20,6 +20,9 @@ void guard::set_kick_type(const model::command::kick_flag_t& kick_type) {
 void guard::set_dribble(int dribble) {
   dribble_ = dribble;
 }
+void set_magnification(int magnification){
+	magnification_=magnification;
+}
 int guard::dribble() {
   return dribble_;
 }
@@ -43,10 +46,8 @@ model::command guard::execute() {
   const auto robot_theta = util::wrap_to_pi(robot.theta());
   const auto omega       = theta_ - robot_theta;
 
-  //速度の係数
-  const auto c = ((pos_ - robot_pos) * 10.0).norm() > 1400.0 ? 5.0 : 10.0;
 
-  const Eigen::Vector2d vec{(pos_ - robot_pos) * c};
+  const Eigen::Vector2d vec{(pos_ - robot_pos).normalize()*magnification_};
 
   //位置のマージン
   const auto margin = vec.norm() < 1400 ? 10.0 : 80.0;
