@@ -50,7 +50,7 @@ private:
   void except_keeper(); //キーパー以外のロボットを抽出
 
   //コマンドを使いやすい形に変形
-  command command_make(model::refbox::game_command command);
+  command convert_command(model::refbox::game_command command);
   //ボールを蹴ったか判定
   bool kicked();
 
@@ -66,10 +66,10 @@ private:
   std::vector<unsigned int> ids_;
 
   bool kicked_flag_;
-  model::refbox::game_command before_refcommand_;
-  command before_command_;
+  model::refbox::game_command previous_refcommand_;
+  command previous_command_;
   command current_command_;
-  model::ball before_ball_;
+  model::ball previous_ball_;
 
   std::vector<std::shared_ptr<agent::base>> exe_;
   std::shared_ptr<agent::penalty_kick> pk_;

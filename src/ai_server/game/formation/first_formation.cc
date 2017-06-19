@@ -10,7 +10,7 @@ first_formation::first_formation(const model::world& world, const model::refbox&
       kicker_(0),
       ids_(ids),
       wall_number_(2),
-      before_ball_(world.ball()),
+      previous_ball_(world.ball()),
       kicked_flag_(false) {
   if (is_yellow_) {
     keeper_ = refcommand_.team_yellow().goalie();
@@ -20,24 +20,29 @@ first_formation::first_formation(const model::world& world, const model::refbox&
 }
 
 std::vector<std::shared_ptr<agent::base>> first_formation::execute() {
-  before_command_       = current_command_;
-  current_command_      = command_make(refcommand_.command());
+  previous_command_       = current_command_;
+  current_command_      = convert_command(refcommand_.command());
   const auto our_robots = is_yellow_ ? world_.robots_yellow() : world_.robots_blue();
   const auto ball       = world_.ball();
-  before_refcommand_    = refcommand_.command();
+  previous_refcommand_    = refcommand_.command();
   exe_.clear();
 
   //壁を決定する,変更があった場合にはothers_も更新する
   decide_wall();
   //壁,キッカーなどの役割を決定
-  if (current_command_ == command::stop && before_command_ != current_command_) {
+  if (current_command_ == command::stop && previous_command_ != current_command_) {
     decide_kicker();
     except_keeper();
     waiter();
   }
 
-  if (std::all_of(ids_.begin(), ids_.end(),
+  //全て見えない場合は何もしない
+  if (std::none_of(ids_.begin(), ids_.end(),
                   [&our_robots](auto&& id) { return our_robots.count(id); })) {
+    std::vector<std::shared_ptr<agent::base>> dummy;
+    return dummy;
+  }
+
     // commandによってagentを使い分ける
     switch (current_command_) {
       case command::halt:
@@ -140,16 +145,17 @@ std::vector<std::shared_ptr<agent::base>> first_formation::execute() {
         halt();
         break;
     }
-  }
-  before_ball_ = world_.ball();
+  
+  previous_ball_ = world_.ball();
+  
   return exe_;
 }
 
 //ボールを蹴ったか判定
 bool first_formation::kicked() {
   const auto ball = world_.ball();
-  if (std::hypot(ball.x() - before_ball_.x(), ball.y() - before_ball_.y()) > 80) {
-    before_ball_ = ball;
+  if (std::hypot(ball.x() - previous_ball_.x(), ball.y() - previous_ball_.y()) > 80) {
+    previous_ball_ = ball;
     return true;
   }
   return false;
@@ -302,7 +308,7 @@ void first_formation::defense(agent::defense::defense_mode mode, bool mark_flag)
 };
 
 void first_formation::pk(bool start_flag) {
-  if (current_command_ != before_command_) {
+  if (current_command_ != previous_command_) {
     if (current_command_ == command::penalty_defense) {
       pk_ = std::make_shared<agent::penalty_kick>(world_, is_yellow_, kicker_, except_keeper_);
       pk_->set_mode(agent::penalty_kick::penalty_mode::defense);
@@ -329,7 +335,7 @@ void first_formation::kickoff_waiter(agent::kick_off_waiter::kickoff_mode mode) 
 }
 
 void first_formation::kickoff(bool start_flag) {
-  if (current_command_ != before_command_ &&
+  if (current_command_ != previous_command_ &&
       current_command_ != command::kickoff_attack_start) {
     kickoff_ = std::make_shared<agent::kick_off>(world_, is_yellow_, kicker_);
   }
@@ -350,7 +356,7 @@ void first_formation::regular(bool chase_flag) {
 }
 
 //コマンドを使いやすい形に変換
-first_formation::command first_formation::command_make(model::refbox::game_command command) {
+first_formation::command first_formation::convert_command(model::refbox::game_command command) {
   using cmd = ai_server::model::refbox::game_command;
 
   switch (command) {
@@ -360,25 +366,25 @@ first_formation::command first_formation::command_make(model::refbox::game_comma
       return command::halt;
 
     case cmd::normal_start:
-      if (before_refcommand_ == cmd::prepare_kickoff_yellow) {
+      if (previous_refcommand_ == cmd::prepare_kickoff_yellow) {
         if (is_yellow_) {
           return command::kickoff_attack_start;
         } else {
           return command::kickoff_defense;
         }
-      } else if (before_refcommand_ == cmd::prepare_kickoff_blue) {
+      } else if (previous_refcommand_ == cmd::prepare_kickoff_blue) {
         if (!is_yellow_) {
           return command::kickoff_attack_start;
         } else {
           return command::kickoff_defense;
         }
-      } else if (before_refcommand_ == cmd::prepare_penalty_yellow) {
+      } else if (previous_refcommand_ == cmd::prepare_penalty_yellow) {
         if (is_yellow_) {
           return command::penalty_attack_start;
         } else {
           return command::penalty_defense;
         }
-      } else if (before_refcommand_ == cmd::prepare_penalty_blue) {
+      } else if (previous_refcommand_ == cmd::prepare_penalty_blue) {
         if (!is_yellow_) {
           return command::penalty_attack_start;
         } else {
