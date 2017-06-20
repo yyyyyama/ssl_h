@@ -50,9 +50,6 @@ private:
   // 全て組み直す
   void update_formation();
 
-  // マーキングの設定(マーキングの割当を全て変更する時はtrue)
-  void set_marking(bool change_all);
-
   // マーキングの設定(通常)
   void set_marking_normal();
 
