@@ -70,7 +70,7 @@ std::vector<std::shared_ptr<action::base>> regular::execute() {
     }
   }
 
-  set_marking(false);
+  set_marking_normal();
 
   for (auto id_marking : marking_) {
     if (!has_chaser_ || id_marking.first != chaser_id_) {
@@ -99,8 +99,6 @@ unsigned int regular::select_chaser() {
 
 // 全て組み直す
 void regular::update_formation() {
-  const auto those_robots = !is_yellow_ ? world_.robots_yellow() : world_.robots_blue();
-
   chase_finished_ = false;
   kick_finished_  = false;
 
@@ -112,74 +110,66 @@ void regular::update_formation() {
     kick_action_ = std::make_shared<action::kick_action>(world_, is_yellow_, chaser_id_);
   }
 
-  set_marking(true);
+  set_marking_all();
 }
 
-// マーキングの設定
-void regular::set_marking(bool change_all) {
+// マーキングの設定(通常)
+void regular::set_marking_normal() {
+  bool set_all  = false;
+  auto list_new = make_importance_list();
+  auto list_old = importance_list_;
+
+  // 敵の数or優先度順が変化したら一から再設定
+  if (list_new.size() == list_old.size()) {
+    while (!list_new.empty()) {
+      if (list_new.top().id != list_old.top().id) {
+        set_all = true;
+        break;
+      }
+      list_new.pop();
+      list_old.pop();
+    }
+  } else {
+    set_all = true;
+  }
+
+  if (set_all) {
+    set_marking_all();
+  } else {
+    make_markers(true);
+  }
+}
+
+// マーキングの設定（全て再設定）
+void regular::set_marking_all() {
+  make_markers(false);
+  make_markers(true);
+}
+
+// マーキング割り当て
+void regular::make_markers(bool use_follower) {
   if (marking_.empty() || no_op_.empty()) {
     return;
   }
+
+  importance_list_        = make_importance_list();
   const auto ball         = world_.ball();
   const auto those_robots = !is_yellow_ ? world_.robots_yellow() : world_.robots_blue();
-
-  // change_allをtrueにする必要があるかを調べる
-  if (!change_all) {
-    auto list_new = make_importance_list();
-    auto list_old = importance_list_;
-
-    // 敵の数or優先度順が変化したらchange_allをtrue
-    if (list_new.size() == list_old.size()) {
-      while (!list_new.empty()) {
-        if (list_new.top().id != list_old.top().id) {
-          change_all = true;
-          break;
-        }
-        list_new.pop();
-        list_old.pop();
+  std::vector<unsigned int> tmp_ids;
+  auto tmp_list           = importance_list_;
+  
+  if(use_follower){
+    tmp_ids=followers_ids_;
+  }else{
+    for(auto id: ids_){
+      if(!has_chaser_ || id!=chaser_id_){
+        tmp_ids.push_back(id);
       }
-    } else {
-      change_all = true;
     }
   }
+  
 
-  importance_list_ = make_importance_list();
-
-  if (change_all) {
-    // 一から設定し直す
-    folloers_ids_.erase(folloers_ids_.begin(), folloers_ids_.end());
-    for (auto id : ids_) {
-      if (!has_chaser_ || id != chaser_id_) {
-        folloers_ids_.push_back(id);
-      }
-    }
-
-    //常にマークにつくロボットを登録
-    auto tmp_list = importance_list_;
-    while (!tmp_list.empty()) {
-      if (folloers_ids_.empty()) {
-        break;
-      } else {
-        auto tmp_id_itr = nearest_id(folloers_ids_, those_robots.at(tmp_list.top().id).x(),
-                                     those_robots.at(tmp_list.top().id).y());
-        if (tmp_id_itr != folloers_ids_.end()) {
-          marking_.at(*tmp_id_itr)->mark_robot(tmp_list.top().id);
-          marking_.at(*tmp_id_itr)->set_mode(action::marking::mark_mode::shoot_block);
-          marking_.at(*tmp_id_itr)->set_radius(600.0);
-          std::printf("*%d marks -> %d\n", *tmp_id_itr, tmp_list.top().id);
-          folloers_ids_.erase(tmp_id_itr); // 最後に要素を消去
-        }
-      }
-
-      tmp_list.pop();
-    }
-  }
-
-  // 余ったロボットは、状況に応じて登録する
-  no_op_ids_    = folloers_ids_;
-  auto tmp_list = importance_list_;
-
-  while (!no_op_ids_.empty()) {
+  while (!tmp_ids.empty()) {
     if (tmp_list.empty()) {
       break;
     } else {
@@ -190,20 +180,37 @@ void regular::set_marking(bool change_all) {
       const double ball_robot_theta =
           std::atan2(ball.y() - those_robots.at(tmp_list.top().id).y(),
                      ball.x() - those_robots.at(tmp_list.top().id).x()); //ボール->敵ロボの角度
-      if (std::abs(goal_robot_theta - ball_robot_theta) > std::atan2(1.0, 3.0)) {
-        // マーキングロボットが重ならない時のみ2台目のマークをたてる
-        auto tmp_id_itr = nearest_id(no_op_ids_, those_robots.at(tmp_list.top().id).x(),
+      if (!use_follower ||
+          std::abs(goal_robot_theta - ball_robot_theta) > std::atan2(1.0, 3.0)) {
+        // use_follower=false || マーキングロボットが重ならない時
+        auto tmp_id_itr = nearest_id(tmp_ids, those_robots.at(tmp_list.top().id).x(),
                                      those_robots.at(tmp_list.top().id).y());
-        if (tmp_id_itr != no_op_ids_.end()) {
+        if (tmp_id_itr != tmp_ids.end()) {
           marking_.at(*tmp_id_itr)->mark_robot(tmp_list.top().id);
-          marking_.at(*tmp_id_itr)->set_mode(action::marking::mark_mode::kick_block);
-          marking_.at(*tmp_id_itr)->set_radius(400.0);
-          std::printf("-%d marks -> %d\n", *tmp_id_itr, tmp_list.top().id);
-          no_op_ids_.erase(tmp_id_itr); // 最後に要素を消去
+          if (use_follower) {
+            // 余ったロボット
+            marking_.at(*tmp_id_itr)->set_mode(action::marking::mark_mode::kick_block);
+            marking_.at(*tmp_id_itr)->set_radius(400.0);
+            std::printf("-%d marks -> %d\n", *tmp_id_itr, tmp_list.top().id);
+          } else {
+            // 常にマークにつくロボット
+            marking_.at(*tmp_id_itr)->mark_robot(tmp_list.top().id);
+            marking_.at(*tmp_id_itr)->set_mode(action::marking::mark_mode::shoot_block);
+            marking_.at(*tmp_id_itr)->set_radius(600.0);
+            std::printf("*%d marks -> %d\n", *tmp_id_itr, tmp_list.top().id);
+          }
+          tmp_ids.erase(tmp_id_itr); // 最後に要素を消去
         }
       }
     }
     tmp_list.pop();
+  }
+
+  if (use_follower) {
+    no_op_ids_ = tmp_ids; // 最後まで余ったロボット
+  } else {
+    followers_ids_ = tmp_ids; // 余ったロボット
+    no_op_ids_     = tmp_ids; // 整合性維持
   }
 }
 
@@ -215,7 +222,7 @@ std::priority_queue<regular::id_importance_> regular::make_importance_list() {
 
   for (auto that_rob : those_robots) {
     id = that_rob.first;
-    if (those_robots.at(id).x() < world_.field().x_max() * 0.7) {
+    if (those_robots.at(id).x() < world_.field().x_max() * 0.65) {
       double score = 0.0; // 敵のマーク重要度を得点として格納する
       score += std::hypot(world_.field().x_max() - world_.field().x_min(),
                           world_.field().y_max() - world_.field().y_min()) -

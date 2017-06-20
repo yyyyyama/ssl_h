@@ -38,7 +38,7 @@ private:
   std::priority_queue<id_importance_> importance_list_;
   std::unordered_map<unsigned int, std::shared_ptr<action::marking>> marking_;
   std::unordered_map<unsigned int, std::shared_ptr<action::no_operation>> no_op_;
-  std::vector<unsigned int> folloers_ids_; // マーキング割り当ての際に余ったロボットID(=補欠)
+  std::vector<unsigned int> followers_ids_; // マーキング割り当ての際に余ったロボットID(=補欠)
   std::vector<unsigned int> no_op_ids_; // no_operationを割り当てられたID
   // Action
   std::shared_ptr<action::chase_ball> chase_ball_;
@@ -52,6 +52,15 @@ private:
 
   // マーキングの設定(マーキングの割当を全て変更する時はtrue)
   void set_marking(bool change_all);
+
+  // マーキングの設定(通常)
+  void set_marking_normal();
+
+  // マーキングの設定(全て再設定)
+  void set_marking_all();
+
+  // マーキング割り当て
+  void make_markers(bool use_follower);
 
   // 敵IDと重要度を設定、ソートした結果を返す
   std::priority_queue<id_importance_> make_importance_list();
