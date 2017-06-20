@@ -104,8 +104,7 @@ void regular::update_formation() {
 
   // ボールを追いかける担当のロボットを登録
   if (has_chaser_) {
-    chaser_id_ = select_chaser();
-    std::printf("chase_id:%d\n", chaser_id_);
+    chaser_id_   = select_chaser();
     chase_ball_  = std::make_shared<action::chase_ball>(world_, is_yellow_, chaser_id_);
     kick_action_ = std::make_shared<action::kick_action>(world_, is_yellow_, chaser_id_);
   }
@@ -119,18 +118,44 @@ void regular::set_marking_normal() {
   auto list_new = make_importance_list();
   auto list_old = importance_list_;
 
-  // 敵の数or優先度順が変化したら一から再設定
-  if (list_new.size() == list_old.size()) {
-    while (!list_new.empty()) {
-      if (list_new.top().id != list_old.top().id) {
-        set_all = true;
-        break;
+  // ==状況==
+  // 1 新しく取得したマーク対象の数が味方より多い
+  // 2 新しく取得したマーク対象の数と味方の数が等しい
+  // 3 新しく取得したマーク対象の数が味方より少ない
+  // --判定--
+  // 1 -> 1 重要度順が[味方の数]番目まで同じならset_allしない
+  // 1 -> 2 重要度順が[味方の数]番目まで同じならset_allしない
+  // 1 -> 3 set_allする
+  // 2 -> 1 重要度順が[味方の数]番目まで同じならset_allしない
+  // 2 -> 2 set_allしない
+  // 2 -> 3 set_allする
+  // 3 -> 1 set_allする
+  // 3 -> 2 set_allする
+  // 3 -> 3 set_allしない
+
+  if (ids_.size() <= list_new.size() || (ids_.size() <= list_new.size() + 1 && has_chaser_)) {
+    // マーキングロボの数が、マーク対象の数以下の時
+    if (list_new.size() != list_old.size() || list_new.size() != ids_.size()) {
+      //マーキング対象の数＝味方ロボットの数 の状態が続いているなら更新しない
+      unsigned int c = 0; // カウンター
+      while (!list_new.empty() && !list_old.empty()) {
+        if (list_new.top().id != list_old.top().id || c >= ids_.size()) {
+          break;
+        }
+        c++;
+        list_new.pop();
+        list_old.pop();
       }
-      list_new.pop();
-      list_old.pop();
+      if (c < ids_.size()) {
+        // 味方数の所まで順番が一緒ではない時
+        set_all = true;
+      }
     }
   } else {
-    set_all = true;
+    // マーキングロボの数が、マーク対象の数より多いとき
+    if (list_new.size() != list_old.size()) {
+      set_all = true;
+    }
   }
 
   if (set_all) {
@@ -156,18 +181,17 @@ void regular::make_markers(bool use_follower) {
   const auto ball         = world_.ball();
   const auto those_robots = !is_yellow_ ? world_.robots_yellow() : world_.robots_blue();
   std::vector<unsigned int> tmp_ids;
-  auto tmp_list           = importance_list_;
-  
-  if(use_follower){
-    tmp_ids=followers_ids_;
-  }else{
-    for(auto id: ids_){
-      if(!has_chaser_ || id!=chaser_id_){
+  auto tmp_list = importance_list_;
+
+  if (use_follower) {
+    tmp_ids = followers_ids_;
+  } else {
+    for (auto id : ids_) {
+      if (!has_chaser_ || id != chaser_id_) {
         tmp_ids.push_back(id);
       }
     }
   }
-  
 
   while (!tmp_ids.empty()) {
     if (tmp_list.empty()) {
@@ -191,13 +215,11 @@ void regular::make_markers(bool use_follower) {
             // 余ったロボット
             marking_.at(*tmp_id_itr)->set_mode(action::marking::mark_mode::kick_block);
             marking_.at(*tmp_id_itr)->set_radius(400.0);
-            std::printf("-%d marks -> %d\n", *tmp_id_itr, tmp_list.top().id);
           } else {
             // 常にマークにつくロボット
             marking_.at(*tmp_id_itr)->mark_robot(tmp_list.top().id);
             marking_.at(*tmp_id_itr)->set_mode(action::marking::mark_mode::shoot_block);
             marking_.at(*tmp_id_itr)->set_radius(600.0);
-            std::printf("*%d marks -> %d\n", *tmp_id_itr, tmp_list.top().id);
           }
           tmp_ids.erase(tmp_id_itr); // 最後に要素を消去
         }
