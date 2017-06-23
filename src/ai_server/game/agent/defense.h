@@ -1,20 +1,20 @@
 #ifndef AI_SERVER_GAME_ACTION_DEFENSE_H
 #define AI_SERVER_GAME_ACTION_DEFENSE_H
 
-#include <vector>
-#include <memory>
 #include <Eigen/Dense>
+#include <memory>
+#include <vector>
 
-#include "ai_server/game/agent/base.h"
-#include "ai_server/game/action/marking.h"
 #include "ai_server/game/action/guard.h"
+#include "ai_server/game/action/marking.h"
+#include "ai_server/game/agent/base.h"
 
 namespace ai_server {
 namespace game {
 namespace agent {
 
 class defense : public base {
-public:
+ public:
   struct enemy {
     //ロボットのid
     unsigned int id;
@@ -40,7 +40,9 @@ public:
   void set_mode(agent::defense::defense_mode mode);
   std::vector<std::shared_ptr<action::base>> execute() override;
 
-private:
+ private:
+  bool near_ = false;
+  double theta_ = 0.0;
   unsigned int keeper_id_;
   const std::vector<unsigned int> wall_ids_;
   const std::vector<unsigned int> marking_ids_;
@@ -51,8 +53,9 @@ private:
   std::vector<Eigen::Vector2d> wall_target_;
   Eigen::Vector2d orientation_;
   defense_mode mode_;
+  Eigen::Vector2d ball_;
 };
 }
 }
 }
-#endif // AI_SERVER_GAME_ACTION_DEFENSE_H
+#endif  // AI_SERVER_GAME_ACTION_DEFENSE_H
