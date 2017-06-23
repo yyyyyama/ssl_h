@@ -54,6 +54,7 @@ class defense : public base {
   Eigen::Vector2d orientation_;
   defense_mode mode_;
   Eigen::Vector2d ball_;
+  std::vector<Eigen::Vector2d> data_;
 };
 }
 }
