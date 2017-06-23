@@ -16,18 +16,18 @@ namespace agent {
 
 class regular : public base {
 public:
-  regular(const model::world& world, bool is_yellow, const std::vector<unsigned int> ids);
+  regular(const model::world& world, bool is_yellow, const std::vector<unsigned int>& ids);
   bool has_chaser() const;
-  void use_chaser(bool chase_ball); // 全てのロボットをマーキングにする時はfalse
+  void use_chaser(bool use_chaser); // 全てのロボットをマーキングにする時はfalse
   std::vector<std::shared_ptr<action::base>> execute() override;
 
 private:
   // 構造体：IDと重要度
-  struct id_importance_ {
+  struct id_importance {
     unsigned int id;
     double importance;
 
-    bool operator<(const id_importance_& next) const;
+    bool operator<(const id_importance& next) const;
   };
 
   const std::vector<unsigned int> ids_;
@@ -35,10 +35,10 @@ private:
   unsigned int chaser_id_;
   bool chase_finished_;
   bool kick_finished_;
-  std::priority_queue<id_importance_> importance_list_;
+  std::priority_queue<id_importance> importance_list_;
   std::unordered_map<unsigned int, std::shared_ptr<action::marking>> marking_;
   std::unordered_map<unsigned int, std::shared_ptr<action::no_operation>> no_op_;
-  std::vector<unsigned int> followers_ids_; // マーキング割り当ての際に余ったロボットID(=補欠)
+  std::vector<unsigned int> follower_ids_; // マーキング割り当ての際に余ったロボットID(=補欠)
   std::vector<unsigned int> no_op_ids_; // no_operationを割り当てられたID
   // Action
   std::shared_ptr<action::chase_ball> chase_ball_;
@@ -57,10 +57,10 @@ private:
   void set_marking_all();
 
   // マーキング割り当て
-  void make_markers(bool use_follower);
+  void make_markers(bool follower_only);
 
   // 敵IDと重要度を設定、ソートした結果を返す
-  std::priority_queue<id_importance_> make_importance_list();
+  std::priority_queue<id_importance> make_importance_list();
 
   // ターゲットに最も近いロボットIDのイテレータを返す
   std::vector<unsigned int>::const_iterator nearest_id(const std::vector<unsigned int>& can_ids,

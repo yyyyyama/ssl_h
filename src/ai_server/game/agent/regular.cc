@@ -6,7 +6,8 @@ namespace ai_server {
 namespace game {
 namespace agent {
 
-regular::regular(const model::world& world, bool is_yellow, const std::vector<unsigned int> ids)
+regular::regular(const model::world& world, bool is_yellow,
+                 const std::vector<unsigned int>& ids)
     : base(world, is_yellow),
       ids_(ids),
       has_chaser_(true),
@@ -24,9 +25,9 @@ bool regular::has_chaser() const {
   return has_chaser_;
 }
 
-void regular::use_chaser(bool chase_ball) {
-  if (has_chaser_ != chase_ball) {
-    has_chaser_ = chase_ball;
+void regular::use_chaser(bool use_chaser) {
+  if (has_chaser_ != use_chaser) {
+    has_chaser_ = use_chaser;
     update_formation();
   }
 }
@@ -168,11 +169,10 @@ void regular::set_marking_normal() {
 // マーキングの設定（全て再設定）
 void regular::set_marking_all() {
   make_markers(false);
-  make_markers(true);
 }
 
 // マーキング割り当て
-void regular::make_markers(bool use_follower) {
+void regular::make_markers(bool follower_only) {
   if (marking_.empty() || no_op_.empty()) {
     return;
   }
@@ -183,8 +183,8 @@ void regular::make_markers(bool use_follower) {
   std::vector<unsigned int> tmp_ids;
   auto tmp_list = importance_list_;
 
-  if (use_follower) {
-    tmp_ids = followers_ids_;
+  if (follower_only) {
+    tmp_ids = follower_ids_;
   } else {
     for (auto id : ids_) {
       if (!has_chaser_ || id != chaser_id_) {
@@ -204,14 +204,14 @@ void regular::make_markers(bool use_follower) {
       const double ball_robot_theta =
           std::atan2(ball.y() - those_robots.at(tmp_list.top().id).y(),
                      ball.x() - those_robots.at(tmp_list.top().id).x()); //ボール->敵ロボの角度
-      if (!use_follower ||
+      if (!follower_only ||
           std::abs(goal_robot_theta - ball_robot_theta) > std::atan2(1.0, 3.0)) {
-        // use_follower=false || マーキングロボットが重ならない時
+        // follower_only=false || マーキングロボットが重ならない時
         auto tmp_id_itr = nearest_id(tmp_ids, those_robots.at(tmp_list.top().id).x(),
                                      those_robots.at(tmp_list.top().id).y());
         if (tmp_id_itr != tmp_ids.end()) {
           marking_.at(*tmp_id_itr)->mark_robot(tmp_list.top().id);
-          if (use_follower) {
+          if (follower_only) {
             // 余ったロボット
             marking_.at(*tmp_id_itr)->set_mode(action::marking::mark_mode::kick_block);
             marking_.at(*tmp_id_itr)->set_radius(400.0);
@@ -228,17 +228,17 @@ void regular::make_markers(bool use_follower) {
     tmp_list.pop();
   }
 
-  if (use_follower) {
+  if (follower_only) {
     no_op_ids_ = tmp_ids; // 最後まで余ったロボット
   } else {
-    followers_ids_ = tmp_ids; // 余ったロボット
-    no_op_ids_     = tmp_ids; // 整合性維持
+    follower_ids_ = tmp_ids; // 余ったロボット
+    make_markers(true);      // followerから割り当て
   }
 }
 
 // 敵IDと重要度を設定、ソートした結果を返す
-std::priority_queue<regular::id_importance_> regular::make_importance_list() {
-  std::priority_queue<regular::id_importance_> tmp_list;
+std::priority_queue<regular::id_importance> regular::make_importance_list() {
+  std::priority_queue<regular::id_importance> tmp_list;
   const auto those_robots = !is_yellow_ ? world_.robots_yellow() : world_.robots_blue();
   unsigned int id; // 敵ロボットのID
 
@@ -267,7 +267,7 @@ std::vector<unsigned int>::const_iterator regular::nearest_id(
   });
 }
 
-bool regular::id_importance_::operator<(const id_importance_& next) const {
+bool regular::id_importance::operator<(const id_importance& next) const {
   return importance < next.importance;
 }
 
