@@ -1,3 +1,4 @@
+#include <iostream>
 #include <cmath>
 
 #include "ai_server/game/action/guard.h"
@@ -49,7 +50,8 @@ model::command guard::execute() {
   const Eigen::Vector2d vec{(pos_ - robot_pos).normalized() * magnification_};
 
   //位置のマージン
-  const auto margin = vec.norm() < 1400 ? 10.0 : 80.0;
+  	
+  const auto margin = vec.norm() < 1400 ? 10.0 : 90.0;
 
   //目標位置に居るなら終わり
   //目標位置から現在地の距離
@@ -59,7 +61,7 @@ model::command guard::execute() {
     flag_ = true;
     return command;
   }
-
+		
   command.set_velocity({vec.x(), vec.y(), omega});
 
   flag_ = false;

@@ -23,7 +23,7 @@ public:
 
 private:
   Eigen::Vector2d pos_{0.0, 0.0};
-  double magnification_ = 10.0;
+  double magnification_ = 5.0;
   double theta_         = 0.0;
   int dribble_;
   model::command::kick_flag_t kick_type_ = {model::command::kick_type_t::none, 0.0};
