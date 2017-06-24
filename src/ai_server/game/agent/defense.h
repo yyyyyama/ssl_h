@@ -14,7 +14,7 @@ namespace game {
 namespace agent {
 
 class defense : public base {
- public:
+public:
   struct enemy {
     //ロボットのid
     unsigned int id;
@@ -40,9 +40,7 @@ class defense : public base {
   void set_mode(agent::defense::defense_mode mode);
   std::vector<std::shared_ptr<action::base>> execute() override;
 
- private:
-  bool near_ = false;
-  double theta_ = 0.0;
+private:
   unsigned int keeper_id_;
   const std::vector<unsigned int> wall_ids_;
   const std::vector<unsigned int> marking_ids_;
@@ -54,9 +52,8 @@ class defense : public base {
   Eigen::Vector2d orientation_;
   defense_mode mode_;
   Eigen::Vector2d ball_;
-  std::vector<Eigen::Vector2d> data_;
 };
 }
 }
 }
-#endif  // AI_SERVER_GAME_ACTION_DEFENSE_H
+#endif // AI_SERVER_GAME_ACTION_DEFENSE_H
