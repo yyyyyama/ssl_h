@@ -11,7 +11,7 @@ namespace action {
 
 class kick_action : public base {
 public:
-  using base::base;
+  kick_action(const model::world& world, bool is_yellow, unsigned int id);
 
   enum class mode { goal, ball } mode_ = mode::goal;
   enum class state { move, kick, finished } state_ = state::move;
@@ -34,12 +34,14 @@ public:
 private:
   double x_;
   double y_;
-  int dribble_   = 3;
-  double margin_ = 0.07;
+  int dribble_   = 0;
+  double margin_ = 0.2;
   model::command::kick_flag_t kick_type_;
   bool finishflag_  = false;
   bool aroundflag_  = false;
   bool advanceflag_ = false;
+  double old_ball_x;
+  double old_ball_y;
 };
 } // namespace action
 } // namespace game
