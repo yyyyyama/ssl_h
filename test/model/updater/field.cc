@@ -7,7 +7,9 @@
 #include "ai_server/model/updater/field.h"
 #include "ssl-protos/vision/geometry.pb.h"
 
-BOOST_AUTO_TEST_CASE(field) {
+BOOST_AUTO_TEST_SUITE(updater_field)
+
+BOOST_AUTO_TEST_CASE(normal) {
   ai_server::model::updater::field fu;
 
   {
@@ -99,3 +101,5 @@ BOOST_AUTO_TEST_CASE(field) {
     BOOST_TEST(f.penalty_line_length() == 500);
   }
 }
+
+BOOST_AUTO_TEST_SUITE_END()
