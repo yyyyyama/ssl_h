@@ -38,8 +38,10 @@ private:
   unsigned int chaser_id_;
 
   std::priority_queue<id_importance> importance_list_;
-  std::unordered_map<unsigned int, std::shared_ptr<action::marking>> first_marking_; // 1枚目のマーキング
-  std::unordered_map<unsigned int, std::shared_ptr<action::marking>> second_marking_; // 2枚目のマーキング
+  std::unordered_map<unsigned int, std::shared_ptr<action::marking>>
+      first_marking_; // 1枚目のマーキング
+  std::unordered_map<unsigned int, std::shared_ptr<action::marking>>
+      second_marking_; // 2枚目のマーキング
   std::unordered_map<unsigned int, std::shared_ptr<action::no_operation>> no_op_;
   std::vector<unsigned int> follower_ids_; // マーキング割り当ての際に余ったロボットID(=補欠)
   std::vector<unsigned int> no_op_ids_; // no_operationを割り当てられたID

@@ -15,7 +15,7 @@ regular::regular(const model::world& world, bool is_yellow,
       has_chaser_(true),
       need_update_(false) {
   set_chaser(select_chaser()); // Chaser の初期化
-  update_all_marking();           // マーキングの初期化
+  update_all_marking();        // マーキングの初期化
 }
 
 bool regular::has_chaser() const {
@@ -52,8 +52,8 @@ std::vector<std::shared_ptr<action::base>> regular::execute() {
         chaser_ball - std::hypot(ids_robots.at(chaser_id_tmp).x() - ball.x(),
                                  ids_robots.at(chaser_id_tmp).y() - ball.y()) >
             1000) {
-      regular::set_chaser(chaser_id_tmp);  // chaserを再設定
-      need_update_ = true;               // マーキングの再構成
+      regular::set_chaser(chaser_id_tmp); // chaserを再設定
+      need_update_ = true;                // マーキングの再構成
     }
 
     // chaser の動き
@@ -273,7 +273,6 @@ void regular::update_second_marking() {
 
   // 余ったらno_op_を割り当てる
   if (!tmp_ids.empty()) {
-    auto field=world_.field();
     for (auto id : tmp_ids) {
       no_op_[id] = std::make_shared<action::no_operation>(world_, is_yellow_, id);
     }
