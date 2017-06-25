@@ -1,7 +1,6 @@
 #define BOOST_TEST_DYN_LINK
 #define BOOST_TEST_MODULE updater_field_test
 
-#include <stdexcept>
 #include <boost/test/unit_test.hpp>
 
 #include "ai_server/model/updater/field.h"
