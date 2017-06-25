@@ -31,12 +31,15 @@ private:
   };
 
   const std::vector<unsigned int> ids_;
-  bool has_chaser_;
-  unsigned int chaser_id_;
   bool chase_finished_;
   bool kick_finished_;
+  bool has_chaser_;
+  bool need_update_;
+  unsigned int chaser_id_;
+
   std::priority_queue<id_importance> importance_list_;
-  std::unordered_map<unsigned int, std::shared_ptr<action::marking>> marking_;
+  std::unordered_map<unsigned int, std::shared_ptr<action::marking>> first_marking_; // 1枚目のマーキング
+  std::unordered_map<unsigned int, std::shared_ptr<action::marking>> second_marking_; // 2枚目のマーキング
   std::unordered_map<unsigned int, std::shared_ptr<action::no_operation>> no_op_;
   std::vector<unsigned int> follower_ids_; // マーキング割り当ての際に余ったロボットID(=補欠)
   std::vector<unsigned int> no_op_ids_; // no_operationを割り当てられたID
@@ -47,17 +50,14 @@ private:
   // chase id_の候補を取得
   unsigned int select_chaser();
 
-  // 全て組み直す
-  void update_formation();
+  // chaserを設定し、chaserに必要なアクションを割り当てる
+  void set_chaser(const unsigned int new_chaser_id);
 
-  // マーキングの設定(通常)
-  void set_marking_normal();
+  // マーキングの再構成(全て)
+  void update_all_marking();
 
-  // マーキングの設定(全て再設定)
-  void set_marking_all();
-
-  // マーキング割り当て
-  void make_markers(bool follower_only);
+  // マーキングの再構成(2枚目のマーキングのみ)
+  void update_second_marking();
 
   // 敵IDと重要度を設定、ソートした結果を返す
   std::priority_queue<id_importance> make_importance_list();
