@@ -9,7 +9,6 @@
 #include <unordered_map>
 #include <vector>
 
-#include "ai_server/filter/base.h"
 #include "world.h"
 
 #include "ssl-protos/vision/wrapperpacket.pb.h"
@@ -36,50 +35,9 @@ class world_updater {
   /// カメラ台数分の最新のdetectionパケットを保持する
   std::unordered_map<unsigned int, ssl_protos::vision::Frame> detection_packets_;
 
-  /// ボール用のFilterを初期化するための関数オブジェクト
-  std::vector<std::function<std::unique_ptr<filter::base<model::ball>>()>>
-      ball_filter_initializers_;
-  /// ロボット用のFilterを初期化するための関数オブジェクト
-  std::vector<std::function<std::unique_ptr<filter::base<model::robot>>()>>
-      robot_filter_initializers_;
-
-  /// ボール用のFilter
-  std::vector<std::unique_ptr<filter::base<model::ball>>> ball_filters_;
-  /// 青ロボット用のFilter
-  std::unordered_map<unsigned int, std::vector<std::unique_ptr<filter::base<model::robot>>>>
-      robots_blue_filters_;
-  /// 黄ロボット用のFilter
-  std::unordered_map<unsigned int, std::vector<std::unique_ptr<filter::base<model::robot>>>>
-      robots_yellow_filters_;
-
 public:
   /// @brief                  WorldModelを取得する
   const model::world& world_model() const;
-
-  /// @brief                  ボール用のFilterを追加する
-  /// @param args             Filterのコンストラクタの引数
-  template <class Filter, class... Args>
-  void add_ball_filter(Args... args) {
-    ball_filter_initializers_.emplace_back(
-        [args...] { return std::make_unique<Filter>(args...); });
-    ball_filters_.clear();
-  }
-
-  /// @brief                  ロボット用のFilterを追加する
-  /// @param args             Filterのコンストラクタの引数
-  template <class Filter, class... Args>
-  void add_robot_filter(Args... args) {
-    robot_filter_initializers_.emplace_back(
-        [args...] { return std::make_unique<Filter>(args...); });
-    robots_blue_filters_.clear();
-    robots_yellow_filters_.clear();
-  }
-
-  /// @brief                  ボール用に設定されたFilterを解除する
-  void clear_ball_filters();
-
-  /// @brief                  ロボット用に設定されたFilterを解除する
-  void clear_robot_filters();
 
   /// @brief                  内部の状態を更新する
   /// @param packet           SSL-Visionのパース済みパケット
@@ -122,18 +80,6 @@ private:
       bool is_yellow, unsigned int camera_id,
       std::chrono::high_resolution_clock::time_point captured_time, const robots_table& table,
       const model::world::robots_list& prev_data);
-
-  /// @brief                      Filterをすべて初期化する
-  /// @param filter_initializers  Filterを初期化するための関数オブジェクト
-  template <class T>
-  static std::vector<std::unique_ptr<filter::base<T>>> init_filters(
-      const std::vector<std::function<std::unique_ptr<filter::base<T>>()>>&
-          filter_initializers) {
-    std::vector<std::unique_ptr<filter::base<T>>> ret(filter_initializers.size());
-    std::transform(filter_initializers.cbegin(), filter_initializers.cend(), ret.begin(),
-                   [](auto& initializer) { return initializer(); });
-    return ret;
-  }
 };
 
 } // namespace model
