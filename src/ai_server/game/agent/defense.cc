@@ -1,5 +1,4 @@
 #include <cmath>
-#include <iostream>
 #include <map>
 
 #include "ai_server/game/agent/defense.h"
