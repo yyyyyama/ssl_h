@@ -12,8 +12,15 @@ namespace action {
 kick_action::kick_action(const model::world& world, bool is_yellow, unsigned int id)
     : base(world, is_yellow, id) {
   const auto ball = world.ball();
-  old_ball_x      = ball.x();
-  old_ball_y      = ball.y();
+  old_ball_x_     = ball.x();
+  old_ball_y_     = ball.y();
+  mode_           = mode::goal;
+  state_          = running_state::move;
+  dribble_        = 0;
+  margin_         = 0.2;
+  finishflag_     = false;
+  aroundflag_     = false;
+  advanceflag_    = false;
 }
 
 void kick_action::kick_to(double x, double y) {
@@ -38,7 +45,7 @@ void kick_action::set_angle_margin(double margin) {
   margin_ = margin;
 }
 
-kick_action::state kick_action::get_state() {
+const kick_action::running_state kick_action::state() {
   return state_;
 }
 
@@ -81,16 +88,17 @@ model::command kick_action::execute() {
   const double direction1 = atand3;
   const double direction2 = mode_ == mode::goal ? atand1 : atand3;
   const double dist       = dribble_ != 3 ? 200 : 250;
-  if ((std::hypot(old_ball_x - ball_x, old_ball_y - ball_y) > kick_decision && advanceflag_) ||
+  if ((std::hypot(old_ball_x_ - ball_x, old_ball_y_ - ball_y) > kick_decision &&
+       advanceflag_) ||
       finishflag_) {
     // executeが呼ばれる間の時間でボールが一定以上移動していたら蹴ったと判定
     command.set_velocity({0, 0, 0});
     finishflag_  = true;
-    state_       = state::finished;
+    state_       = running_state::finished;
     advanceflag_ = false;
   } else if (std::hypot(to_robot_x, to_robot_y) > dist && !aroundflag_) {
     // ロボットがボールから250以上離れていればボールに近づく処理
-    state_ = state::move;
+    state_ = running_state::move;
     if (ball_vel.norm() < 100) {
       robot_pos = {ball_x, ball_y, direction1};
       command.set_position(robot_pos);
@@ -108,7 +116,7 @@ model::command kick_action::execute() {
     command.set_position(robot_pos);
     if (dribble_ != 0) command.set_dribble(dribble_);
   } else if (std::abs(dth) > margin_ / 2 ||
-             (std::abs(dth) > margin_ / 4 && state_ != state::kick)) {
+             (std::abs(dth) > margin_ / 4 && state_ != running_state::kick)) {
     // ロボット、ボール、蹴りたい位置が一直線に並んでいなければボールを中心にまわる処理
     aroundflag_ = std::hypot(to_robot_x, to_robot_y) < 350;
     if (util::wrap_to_pi(atand1 - atand2) > 0) {
@@ -147,7 +155,7 @@ model::command kick_action::execute() {
     if (dribble_ != 0) command.set_dribble(dribble_);
   } else {
     // キックフラグをセットし、ボールの位置まで移動する処理
-    state_           = state::kick;
+    state_           = running_state::kick;
     const double coe = std::abs(dth) > margin_ / 4 ? 100 : 0;
     const double si = std::sin(atand2) * coe * (util::wrap_to_pi(atand1 - atand2) > 0 ? 1 : -1);
     const double co = std::cos(atand2) * coe * (util::wrap_to_pi(atand1 - atand2) > 0 ? -1 : 1);
@@ -161,8 +169,8 @@ model::command kick_action::execute() {
   }
 
   // 前のボールの位置を更新
-  old_ball_x = ball_x;
-  old_ball_y = ball_y;
+  old_ball_x_ = ball_x;
+  old_ball_y_ = ball_y;
 
   return command;
 };

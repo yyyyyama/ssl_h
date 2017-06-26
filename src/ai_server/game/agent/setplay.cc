@@ -219,7 +219,7 @@ std::vector<std::shared_ptr<action::base>> setplay::execute() {
                         vectorangle(ball_pos - receiver_pos));
           baseaction_.push_back(move);
         } else {
-          if (kick_->get_state() == action::kick_action::state::kick) {
+          if (kick_->state() == action::kick_action::running_state::kick) {
             receive_->set_dribble(8);
             receive_->set_passer(kicker_id_);
             baseaction_.push_back(receive_);
