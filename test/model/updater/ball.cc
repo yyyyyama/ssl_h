@@ -155,8 +155,7 @@ BOOST_AUTO_TEST_CASE(on_updated_filter) {
   model::updater::ball bu;
 
   // mock_filter1を設定
-  const auto fp =
-      std::dynamic_pointer_cast<mock_filter1>(bu.set_filter<mock_filter1>(123, 456).lock());
+  const auto fp = bu.set_filter<mock_filter1>(123, 456).lock();
 
   // tをhigh_resolution_clockの型に変換する関数 (長すぎ)
   auto duration_cast = [](auto t) {
@@ -266,8 +265,7 @@ BOOST_AUTO_TEST_CASE(manual_filter) {
   model::updater::ball bu;
 
   // mock_filter2を設定
-  const auto fp =
-      std::dynamic_pointer_cast<mock_filter2>(bu.set_filter<mock_filter2>(123, 456).lock());
+  const auto fp = bu.set_filter<mock_filter2>(123, 456).lock();
 
   // set_filterの引数に与えた値がFilterのコンストラクタに正しく渡されているか
   BOOST_TEST(fp->arg1 == 123);

@@ -52,25 +52,25 @@ public:
   /// @param args      Filterの引数
   /// @return          初期化されたFilterへのポインタ
   template <class Filter, class... Args>
-  std::weak_ptr<std::enable_if_t<std::is_base_of<on_updated_filter_type, Filter>::value,
-                                 on_updated_filter_type>>
+  std::weak_ptr<
+      std::enable_if_t<std::is_base_of<on_updated_filter_type, Filter>::value, Filter>>
   set_filter(Args&&... args) {
     std::unique_lock<std::shared_timed_mutex> lock(mutex_);
-    on_updated_filter_ = std::make_shared<Filter>(std::forward<Args>(args)...);
     manual_filter_.reset();
-    return on_updated_filter_;
+    auto p             = std::make_shared<Filter>(std::forward<Args>(args)...);
+    on_updated_filter_ = p;
+    return p;
   }
 
   /// @brief           更新タイミングがmanualなFilterを設定する
   /// @param args      Filterの引数
   /// @return          初期化されたFilterへのポインタ
   template <class Filter, class... Args>
-  std::weak_ptr<
-      std::enable_if_t<std::is_base_of<manual_filter_type, Filter>::value, manual_filter_type>>
+  std::weak_ptr<std::enable_if_t<std::is_base_of<manual_filter_type, Filter>::value, Filter>>
   set_filter(Args&&... args) {
     std::unique_lock<std::shared_timed_mutex> lock(mutex_);
     on_updated_filter_.reset();
-    manual_filter_ = std::make_shared<Filter>(
+    auto p = std::make_shared<Filter>(
         // 最新の値を取得する関数オブジェクト
         [this] {
           std::shared_lock<std::shared_timed_mutex> lock(mutex_);
@@ -87,7 +87,8 @@ public:
         },
         // 残りの引数
         std::forward<Args>(args)...);
-    return manual_filter_;
+    manual_filter_ = p;
+    return p;
   }
 };
 
