@@ -156,7 +156,7 @@ std::vector<std::shared_ptr<action::base>> regular::execute() {
       actions.push_back(no.second);
     }
   }
-printf("\n");
+
   return actions;
 }
 
