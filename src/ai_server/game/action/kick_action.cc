@@ -45,7 +45,7 @@ void kick_action::set_angle_margin(double margin) {
   margin_ = margin;
 }
 
-kick_action::running_state kick_action::state() const{
+kick_action::running_state kick_action::state() const {
   return state_;
 }
 
