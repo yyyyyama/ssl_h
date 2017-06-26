@@ -25,7 +25,7 @@ public:
   void set_dribble(int dribble);
   // 目標位置と打つ角度の許容誤差
   void set_angle_margin(double margin);
-  const running_state state();
+  running_state state() const;
 
   model::command execute() override;
 
