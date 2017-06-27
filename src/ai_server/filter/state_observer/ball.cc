@@ -35,6 +35,12 @@ model::ball ball::update(const model::ball& ball,
       1000;
   prev_time_ = time;
 
+  auto h1 = [](double fric) { return -2 * lambda_observer_ - (fric + air_registance_); };
+
+  auto h2 = [h1](double fric) {
+    return std::pow(lambda_observer_, 2) - h1(fric) * (fric + air_registance_);
+  };
+
   auto theta = std::atan(ball_.vx() / ball_.vy());
 
   // x軸方向について状態推定
@@ -48,11 +54,11 @@ model::ball ball::update(const model::ball& ball,
     auto fric_coef_tuned = std::abs(friction_ * cos_theta / ball_.vx());
 
     A << 0, 1, 0, -(fric_coef_tuned + air_registance_);
-    h << -2 * lambda_observer_ - (fric_coef_tuned + air_registance_), std::pow(lambda_observer_, 2) + 2 * lambda_observer_ + (fric_coef_tuned + air_registance_) * (fric_coef_tuned + air_registance_);
+    h << h1(fric_coef_tuned), h2(fric_coef_tuned);
   } else {
     // 摩擦が線形の領域。
     A << 0, 1, 0, -(fric_coef_ + air_registance_);
-    h << -2 * lambda_observer_ - (fric_coef_ + air_registance_), std::pow(lambda_observer_, 2) + 2 * lambda_observer_ + (fric_coef_ + air_registance_) * (fric_coef_ + air_registance_);
+    h << h1(fric_coef_), h2(fric_coef_);
   }
 
   // 状態観測器の状態方程式は一般に
@@ -74,11 +80,11 @@ model::ball ball::update(const model::ball& ball,
     auto fric_coef_tuned = std::abs(friction_ * sin_theta / ball_.vy());
 
     A << 0, 1, 0, -(fric_coef_tuned + air_registance_);
-    h << -2 * lambda_observer_ - (fric_coef_tuned + air_registance_), std::pow(lambda_observer_, 2) + 2 * lambda_observer_ + (fric_coef_tuned + air_registance_) * (fric_coef_tuned + air_registance_);
+    h << h1(fric_coef_tuned), h2(fric_coef_tuned);
   } else {
     // 摩擦が線形の領域。
     A << 0, 1, 0, -(fric_coef_ + air_registance_);
-    h << -2 * lambda_observer_ - (fric_coef_ + air_registance_), std::pow(lambda_observer_, 2) + 2 * lambda_observer_ + (fric_coef_ + air_registance_) * (fric_coef_ + air_registance_);
+    h << h1(fric_coef_), h2(fric_coef_);
   }
 
   C << 1, 0;
