@@ -24,10 +24,9 @@ ball::ball(const model::ball& ball, std::chrono::high_resolution_clock::time_poi
 
 model::ball ball::update(const model::ball& ball,
                          std::chrono::high_resolution_clock::time_point time) {
-  static Eigen::Matrix<double, 2, 2> A;
-  static Eigen::Matrix<double, 1, 2> C;
-  static Eigen::Matrix<double, 2, 1> h;
-  C << 1, 0;
+  Eigen::Matrix<double, 2, 2> A;
+  static const Eigen::Matrix<double, 1, 2> C(1, 0);
+  Eigen::Matrix<double, 2, 1> h;
 
   // 前回呼び出しからの経過時刻[s]
   auto passed_time =
@@ -84,7 +83,6 @@ model::ball ball::update(const model::ball& ball,
   ball_.set_x(to_pos(x_hat_[0]));
   ball_.set_vx(to_vel(x_hat_[0]));
 
-
   // y軸方向についても同様に状態推定
   auto sin_theta = std::sin(theta);
 
@@ -105,7 +103,6 @@ model::ball ball::update(const model::ball& ball,
   x_hat_[1] += x_hat_dot;
   ball_.set_y(to_pos(x_hat_[1]));
   ball_.set_vy(to_vel(x_hat_[1]));
-
 
   return ball_;
 }

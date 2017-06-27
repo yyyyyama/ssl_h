@@ -17,24 +17,25 @@ private:
   static constexpr double ball_radius_   = 42.67 / 2000; // ボールの半径[m]
   static constexpr double air_viscosity_ = 1.822e-5;     // 空気の粘度[Pa・s]
   static constexpr double air_registance_ =
-      6 * M_PI * air_viscosity_ * ball_radius_; // ボールの空気抵抗[kg/s]
-  static constexpr double friction_ = fric_coef_ * ball_weight_ * 9.8; // 床とボールの摩擦力[N]
+      6 * M_PI * air_viscosity_ * ball_radius_; // ボールの粘性抵抗係数[kg/s]
+  static constexpr double friction_ =
+      fric_coef_ * ball_weight_ * 9.8; // 床とボールの最大動摩擦力[N]
   static constexpr double quant_limit_x_ =
       6000 / 1000; // カメラの量子化限界(幅方向)。フィールド幅[mm] / カメラ分解能
   static constexpr double quant_limit_y_ =
-      9000 / 1000; // カメラの量子化限界(奥行き方向)。フィールド奥行き[mm] / カメラ分解能
+      9000 / 1000;                               // カメラの量子化限界(奥行き方向)。フィールド奥行き[mm] / カメラ分解能
   static constexpr double lambda_observer_ = -9; // ボールの状態オブザーバの極
 
   model::ball ball_;
   std::chrono::high_resolution_clock::time_point prev_time_; // 前回呼び出された時刻
-  std::array<Eigen::Matrix<double, 2, 1>, 2> x_hat_;    // 状態変数行列 [位置, 速度]T
+  std::array<Eigen::Matrix<double, 2, 1>, 2> x_hat_; // 状態変数行列 [位置, 速度]T
 
 public:
   ball() = delete;
 
   // @brief コンストラクタ
   // @param ball ボールの初期位置
-  // @param time インスタンス生成時の時刻 
+  // @param time インスタンス生成時の時刻
   explicit ball(const model::ball& ball, std::chrono::high_resolution_clock::time_point time);
   ball(const ball&) = default;
 
