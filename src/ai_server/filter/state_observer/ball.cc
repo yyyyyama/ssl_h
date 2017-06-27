@@ -16,8 +16,8 @@ constexpr double ball::lambda_observer_;
 
 ball::ball(const model::ball& ball, std::chrono::high_resolution_clock::time_point time)
     : ball_(ball), prev_time_(time) {
-  x_hat_[0] << (int)(ball.x() / quant_limit_x_) * quant_limit_x_, ball.vx();
-  x_hat_[1] << (int)(ball.y() / quant_limit_y_) * quant_limit_y_, ball.vx();
+  x_hat_[0] << (int)(ball.x() / quant_limit_x_) * quant_limit_x_, 0;
+  x_hat_[1] << (int)(ball.y() / quant_limit_y_) * quant_limit_y_, 0;
   ball_.set_vx(0);
   ball_.set_vy(0);
 }
