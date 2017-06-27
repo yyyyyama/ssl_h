@@ -35,6 +35,20 @@ model::ball ball::update(const model::ball& ball,
       1000;
   prev_time_ = time;
 
+  // 状態変数行列から位置を取り出すやつ
+  auto to_pos = [](const Eigen::Matrix<double, 2, 1>& x_hat) {
+    Eigen::Matrix<double, 1, 2> C;
+    C << 1, 0;
+    return C * x_hat;
+  };
+
+  // 状態変数行列から速度を取り出すやつ
+  auto to_vel = [](const Eigen::Matrix<double, 2, 1>& x_hat) {
+    Eigen::Matrix<double, 1, 2> C;
+    C << 0, 1;
+    return C * x_hat;
+  };
+
   auto h1 = [](double fric) { return -2 * lambda_observer_ - (fric + air_registance_); };
 
   auto h2 = [h1](double fric) {
@@ -67,9 +81,8 @@ model::ball ball::update(const model::ball& ball,
   x_hat_dot = (A - h * C) * x_hat_[0] + h * (int)(ball.x() / quant_limit_x_) * quant_limit_x_;
   x_hat_dot *= passed_time;
   x_hat_[0] += x_hat_dot;
-  ball_.set_x(C * x_hat_[0]);
-  C << 0, 1;
-  ball_.set_vx(C * x_hat_[0]);
+  ball_.set_x(to_pos(x_hat_[0]));
+  ball_.set_vx(to_vel(x_hat_[0]));
 
 
   // y軸方向についても同様に状態推定
@@ -87,13 +100,11 @@ model::ball ball::update(const model::ball& ball,
     h << h1(fric_coef_), h2(fric_coef_);
   }
 
-  C << 1, 0;
   x_hat_dot = (A - h * C) * x_hat_[1] + h * (int)(ball.y() / quant_limit_y_) * quant_limit_y_;
   x_hat_dot *= passed_time;
   x_hat_[1] += x_hat_dot;
-  ball_.set_y(C * x_hat_[1]);
-  C << 0, 1;
-  ball_.set_vy(C * x_hat_[1]);
+  ball_.set_y(to_pos(x_hat_[1]));
+  ball_.set_vy(to_vel(x_hat_[1]));
 
 
   return ball_;
