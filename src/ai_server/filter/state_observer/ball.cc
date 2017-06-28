@@ -16,8 +16,8 @@ constexpr double ball::lambda_observer_;
 
 ball::ball(const model::ball& ball, std::chrono::high_resolution_clock::time_point time)
     : ball_(ball), prev_time_(time) {
-  x_hat_[0] << (int)(ball.x() / quant_limit_x_) * quant_limit_x_, 0;
-  x_hat_[1] << (int)(ball.y() / quant_limit_y_) * quant_limit_y_, 0;
+  x_hat_[0] << std::floor(ball.x() / quant_limit_x_) * quant_limit_x_, 0;
+  x_hat_[1] << std::floor(ball.y() / quant_limit_y_) * quant_limit_y_, 0;
   ball_.set_vx(0);
   ball_.set_vy(0);
 }
@@ -75,7 +75,8 @@ model::ball ball::update(const model::ball& ball,
   // 状態観測器の状態方程式は一般に
   // x_hat_dot = (A - hC) * x_hat_ + h * y
   Eigen::Matrix<double, 2, 1> x_hat_dot;
-  x_hat_dot = (A - h * C) * x_hat_[0] + h * (int)(ball.x() / quant_limit_x_) * quant_limit_x_;
+  x_hat_dot =
+      (A - h * C) * x_hat_[0] + h * std::floor(ball.x() / quant_limit_x_) * quant_limit_x_;
   x_hat_dot *= passed_time;
   x_hat_[0] += x_hat_dot;
   ball_.set_x(to_pos(x_hat_[0]));
@@ -96,7 +97,8 @@ model::ball ball::update(const model::ball& ball,
     h << h1(fric_coef_), h2(fric_coef_);
   }
 
-  x_hat_dot = (A - h * C) * x_hat_[1] + h * (int)(ball.y() / quant_limit_y_) * quant_limit_y_;
+  x_hat_dot =
+      (A - h * C) * x_hat_[1] + h * std::floor(ball.y() / quant_limit_y_) * quant_limit_y_;
   x_hat_dot *= passed_time;
   x_hat_[1] += x_hat_dot;
   ball_.set_y(to_pos(x_hat_[1]));
