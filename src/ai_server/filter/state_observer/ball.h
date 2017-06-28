@@ -33,16 +33,16 @@ private:
 public:
   ball() = delete;
 
-  // @brief コンストラクタ
-  // @param ball ボールの初期位置
-  // @param time インスタンス生成時の時刻
+  /// @brief コンストラクタ
+  /// @param ball ボールの初期位置
+  /// @param time インスタンス生成時の時刻
   explicit ball(const model::ball& ball, std::chrono::high_resolution_clock::time_point time);
   ball(const ball&) = default;
 
-  // @brief	状態オブザーバの状態を更新する
-  // @param ball Visionが観測したのボール情報
-  // @param time Visionがフレームをキャプチャした時刻
-  // @return 状態推定後のボール情報
+  /// @brief	状態オブザーバの状態を更新する
+  /// @param ball Visionが観測したのボール情報
+  /// @param time Visionがフレームをキャプチャした時刻
+  /// @return 状態推定後のボール情報
   model::ball update(const model::ball& ball,
                      std::chrono::high_resolution_clock::time_point time) override;
 
@@ -52,4 +52,4 @@ public:
 } // namespace filter
 } // namespace ai_server
 
-#endif // AI_SERVER_FILTER_STATE_OBSERVER_H
+#endif // AI_SERVER_FILTER_STATE_OBSERVER_BALL_H
