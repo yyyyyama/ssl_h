@@ -52,7 +52,7 @@ model::ball ball::update(const model::ball& ball,
     return std::pow(lambda_observer_, 2) - h1(fric) * (fric + air_registance_);
   };
 
-  auto theta = std::atan(ball_.vx() / ball_.vy());
+  auto theta = std::atan2(ball_.vx(), ball_.vy());
 
   // x軸方向について状態推定
   auto cos_theta = std::cos(theta);
