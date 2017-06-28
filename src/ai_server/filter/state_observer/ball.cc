@@ -29,10 +29,8 @@ model::ball ball::update(const model::ball& ball,
   Eigen::Matrix<double, 2, 1> h;
 
   // 前回呼び出しからの経過時刻[s]
-  auto passed_time =
-      (double)std::chrono::duration_cast<std::chrono::milliseconds>(time - prev_time_).count() /
-      1000;
-  prev_time_ = time;
+  auto passed_time = std::chrono::duration<double>(time - prev_time_).count();
+  prev_time_       = time;
 
   // 状態変数行列から位置を取り出すやつ
   auto to_pos = [](const Eigen::Matrix<double, 2, 1>& x_hat) {
