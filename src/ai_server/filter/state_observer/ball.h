@@ -1,5 +1,5 @@
-#ifndef AI_SERVER_FILTER_STATE_OBSERVER_H
-#define AI_SERVER_FILTER_STATE_OBSERVER_H
+#ifndef AI_SERVER_FILTER_STATE_OBSERVER_BALL_H
+#define AI_SERVER_FILTER_STATE_OBSERVER_BALL_H
 
 #include "ai_server/filter/base.h"
 #include "ai_server/model/world.h"
