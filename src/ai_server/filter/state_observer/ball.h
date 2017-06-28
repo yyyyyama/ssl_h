@@ -2,7 +2,7 @@
 #define AI_SERVER_FILTER_STATE_OBSERVER_BALL_H
 
 #include "ai_server/filter/base.h"
-#include "ai_server/model/world.h"
+#include "ai_server/model/ball.h"
 #include <Eigen/Core>
 #include <array>
 
