@@ -11,23 +11,19 @@ first_formation::first_formation(const model::world& world, const model::refbox&
       ids_(ids),
       wall_number_(2),
       previous_ball_(world.ball()),
-      kicked_flag_(false) {
-  if (is_yellow_) {
-    keeper_ = refcommand_.team_yellow().goalie();
-  } else {
-    keeper_ = refcommand_.team_blue().goalie();
-  }
-}
+      kicked_flag_(false),
+      regular_flag_(true) {}
 
 std::vector<std::shared_ptr<agent::base>> first_formation::execute() {
-  previous_command_       = current_command_;
+  previous_command_     = current_command_;
   current_command_      = convert_command(refcommand_.command());
   const auto our_robots = is_yellow_ ? world_.robots_yellow() : world_.robots_blue();
   const auto ball       = world_.ball();
-  previous_refcommand_    = refcommand_.command();
+  previous_refcommand_  = refcommand_.command();
   exe_.clear();
 
   //壁を決定する,変更があった場合にはothers_も更新する
+  decide_keeper();
   decide_wall();
   //壁,キッカーなどの役割を決定
   if (current_command_ == command::stop && previous_command_ != current_command_) {
@@ -38,116 +34,213 @@ std::vector<std::shared_ptr<agent::base>> first_formation::execute() {
 
   //全て見えない場合は何もしない
   if (std::none_of(ids_.begin(), ids_.end(),
-                  [&our_robots](auto&& id) { return our_robots.count(id); })) {
+                   [&our_robots](auto&& id) { return our_robots.count(id); })) {
     std::vector<std::shared_ptr<agent::base>> dummy;
     return dummy;
   }
 
-    // commandによってagentを使い分ける
-    switch (current_command_) {
-      case command::halt:
+  // commandによってagentを使い分ける
+  switch (current_command_) {
+    case command::halt:
+      if (current_command_ != previous_command_) { //コマンドが切り替わった時だけ初期化
+        reset_flag();
         halt();
-        break;
+      }
+      exe_.push_back(halt_);
+      break;
 
-      case command::stop:
-        kicked_flag_ = false;
+    case command::stop:
+      if (current_command_ != previous_command_) {
+        reset_flag();
         stop();
         defense(agent::defense::defense_mode::normal_mode, false);
-        break;
+      }
+      exe_.push_back(stop_);
+      exe_.push_back(df_);
+      break;
 
-      case command::kickoff_attack_start:
-        if (kickoff_->finished()) {
+    case command::kickoff_attack_start:
+      //定常状態に入る
+      if (kickoff_->finished()) {
+        if (regular_flag_) { //定常状態に入った時に初期化、regular_flag_をfalseにしておく
           regular(true);
           defense(agent::defense::defense_mode::normal_mode, false);
-          break;
+          regular_flag_ = false;
         }
+        exe_.push_back(regular_);
+        exe_.push_back(df_);
+        break;
+      }
+
+      if (current_command_ != previous_command_) { //コマンドが切り替わった時だけ初期化
+        reset_flag();
         kickoff(true);
-        kickoff_waiter(agent::kick_off_waiter::kickoff_mode::attack);
+        kickoff_waiter(agent::kick_off_waiter::kickoff_mode::attack, true);
         defense(agent::defense::defense_mode::normal_mode, false);
-        break;
+      }
+      exe_.push_back(kickoff_);
+      exe_.push_back(kickoff_waiter_);
+      exe_.push_back(df_);
+      break;
 
-      case command::penalty_attack_start:
-        if (pk_->finished()) {
+    case command::penalty_attack_start:
+      //定常状態に入る
+      if (pk_->finished()) {
+        if (regular_flag_) {
           regular(true);
           defense(agent::defense::defense_mode::normal_mode, false);
-          break;
+          regular_flag_ = false;
         }
-        pk(true);
-        defense(agent::defense::defense_mode::normal_mode, false);
+        exe_.push_back(regular_);
+        exe_.push_back(df_);
         break;
+      }
 
-      case command::force_start:
+      if (current_command_ != previous_command_) { //コマンドが切り替わった時だけ初期化
+        pk(true, true);
+        defense(agent::defense::defense_mode::normal_mode, false);
+      }
+      exe_.push_back(pk_);
+      exe_.push_back(df_);
+      break;
+
+    case command::force_start:
+      if (current_command_ != previous_command_) { //コマンドが切り替わった時だけ初期化
+        reset_flag();
         regular(true);
         defense(agent::defense::defense_mode::normal_mode, false);
-        break;
+      }
+      exe_.push_back(regular_);
+      exe_.push_back(df_);
+      break;
 
-      case command::kickoff_attack:
+    case command::kickoff_attack:
+      if (current_command_ != previous_command_) { //コマンドが切り替わった時だけ初期化
+        reset_flag();
         kickoff(false);
-        kickoff_waiter(agent::kick_off_waiter::kickoff_mode::attack);
+        kickoff_waiter(agent::kick_off_waiter::kickoff_mode::attack, true);
         defense(agent::defense::defense_mode::normal_mode, false);
-        break;
+      }
+      exe_.push_back(kickoff_);
+      exe_.push_back(kickoff_waiter_);
+      exe_.push_back(df_);
+      break;
 
-      case command::kickoff_defense:
-        if (kicked_flag_) {
+    case command::kickoff_defense:
+      //定常状態に入る
+      if (kicked_flag_) {
+        if (regular_flag_) {
           regular(true);
           defense(agent::defense::defense_mode::normal_mode, false);
-          break;
+          regular_flag_ = false;
         }
-        kicked_flag_ = kicked();
-        kickoff_waiter(agent::kick_off_waiter::kickoff_mode::defense);
-        defense(agent::defense::defense_mode::normal_mode, false);
+        exe_.push_back(regular_);
+        exe_.push_back(df_);
         break;
+      }
 
-      case command::penalty_attack:
-        pk(false);
+      kicked_flag_ = kicked();
+      if (current_command_ != previous_command_) { //コマンドが切り替わった時だけ初期化
+        reset_flag();
+        kickoff_waiter(agent::kick_off_waiter::kickoff_mode::defense, false);
         defense(agent::defense::defense_mode::normal_mode, false);
-        break;
+      }
+      exe_.push_back(kickoff_waiter_);
+      exe_.push_back(df_);
+      break;
 
-      case command::penalty_defense:
-        if (kicked_flag_) {
+    case command::penalty_attack:
+      if (current_command_ != previous_command_) { //コマンドが切り替わった時だけ初期化
+        reset_flag();
+        pk(false, true);
+        defense(agent::defense::defense_mode::normal_mode, false);
+      }
+      exe_.push_back(pk_);
+      exe_.push_back(df_);
+      break;
+
+    case command::penalty_defense:
+      //定常状態に入る
+      if (kicked_flag_) {
+        if (regular_flag_) {
           regular(true);
           defense(agent::defense::defense_mode::normal_mode, false);
-          break;
+          regular_flag_ = false;
         }
-        kicked_flag_ = kicked();
-        pk(false);
+        exe_.push_back(regular_);
+        exe_.push_back(df_);
+        break;
+      }
+
+      kicked_flag_ = kicked();
+      if (current_command_ != previous_command_) { //コマンドが切り替わった時だけ初期化
+        reset_flag();
+        pk(false, false);
         defense(agent::defense::defense_mode::pk_mode, false);
-        break;
+      }
+      exe_.push_back(pk_);
+      exe_.push_back(df_);
+      break;
 
-      case command::setplay_attack:
-        if (kicked_flag_) {
+    case command::setplay_attack:
+      ////定常状態に入る
+      if (kicked_flag_) {
+        if (regular_flag_) {
           regular(true);
           defense(agent::defense::defense_mode::normal_mode, false);
-          break;
+          regular_flag_ = false;
         }
-        kicked_flag_ = kicked();
+        exe_.push_back(regular_);
+        exe_.push_back(df_);
+        break;
+      }
+      kicked_flag_ = kicked();
+      if (current_command_ != previous_command_) { //コマンドが切り替わった時だけ初期化
         setplay();
         defense(agent::defense::defense_mode::normal_mode, false);
-        break;
+      }
+      exe_.push_back(setplay_);
+      exe_.push_back(df_);
+      break;
 
-      case command::setplay_defense:
-        if (kicked_flag_) {
+    case command::setplay_defense:
+      //定常状態に入る
+      if (kicked_flag_) {
+        if (regular_flag_) {
           regular(true);
           defense(agent::defense::defense_mode::normal_mode, false);
-          break;
+          regular_flag_ = false;
         }
-        kicked_flag_ = kicked();
-        if (ball.x() < -3500) { //コーナーキックの場合はマークを使う
-          defense(agent::defense::defense_mode::normal_mode, true);
+        exe_.push_back(regular_);
+        exe_.push_back(df_);
+        break;
+      }
 
-        } else {
+      kicked_flag_ = kicked();
+      if (ball.x() < -3500) { //コーナーキックの場合はマークを使う
+        if (current_command_ != previous_command_) { //コマンドが切り替わった時だけ初期化
+          reset_flag();
+          defense(agent::defense::defense_mode::normal_mode, true);
+        }
+        exe_.push_back(df_);
+      } else {
+        if (current_command_ != previous_command_) { //コマンドが切り替わった時だけ初期化
+          reset_flag();
           regular(false);
           defense(agent::defense::defense_mode::normal_mode, false);
         }
-        break;
+        exe_.push_back(regular_);
+        exe_.push_back(df_);
+      }
+      break;
 
-      default:
-        halt();
-        break;
-    }
-  
+    default:
+      halt();
+      break;
+  }
+
   previous_ball_ = world_.ball();
-  
+
   return exe_;
 }
 
@@ -161,9 +254,24 @@ bool first_formation::kicked() {
   return false;
 }
 
+//蹴ったか判定するフラグと定常状態に入ったか判定するフラグを初期化する
+void first_formation::reset_flag() {
+  kicked_flag_  = false;
+  regular_flag_ = true;
+}
+
 ///////////////////////////////////////////////////////
 //              idを割り振る関数                       //
 ///////////////////////////////////////////////////////
+
+// refboxからキーパーのidを得る
+void first_formation::decide_keeper() {
+  if (is_yellow_) {
+    keeper_ = refcommand_.team_yellow().goalie();
+  } else {
+    keeper_ = refcommand_.team_blue().goalie();
+  }
+}
 
 //壁の数を決定する
 void first_formation::decide_wall_number() {
@@ -278,18 +386,17 @@ void first_formation::except_keeper() {
 ///////////////////////////////////////////////////////
 void first_formation::halt() {
   halt_ = std::make_shared<agent::halt>(world_, is_yellow_, ids_);
-  exe_.push_back(halt_);
 }
 
 void first_formation::stop() {
   stop_ = std::make_shared<agent::stopgame>(world_, is_yellow_, others_);
-  exe_.push_back(stop_);
 }
 
+//引数でディフェンスモード,マークの有無を指定
 void first_formation::defense(agent::defense::defense_mode mode, bool mark_flag) {
   std::vector<unsigned int> dummy;
   // normalかpkか判定
-  if (mode == agent::defense::defense_mode::normal_mode)
+  if (mode == agent::defense::defense_mode::normal_mode) {
     if (mark_flag) {
       //壁を1台以下にして,あとはマークにつく
       for (auto it = wall_.begin(); wall_.size() > 1; it++) {
@@ -301,58 +408,55 @@ void first_formation::defense(agent::defense::defense_mode mode, bool mark_flag)
     } else {
       df_ = std::make_shared<agent::defense>(world_, is_yellow_, keeper_, wall_, dummy);
     }
-  else
+  } else {
     df_ = std::make_shared<agent::defense>(world_, is_yellow_, keeper_, dummy, dummy);
+  }
   df_->set_mode(mode);
-  exe_.push_back(df_);
-};
+}
 
-void first_formation::pk(bool start_flag) {
-  if (current_command_ != previous_command_) {
-    if (current_command_ == command::penalty_defense) {
-      pk_ = std::make_shared<agent::penalty_kick>(world_, is_yellow_, kicker_, except_keeper_);
-      pk_->set_mode(agent::penalty_kick::penalty_mode::defense);
-    } else if (current_command_ == command::penalty_attack) {
+//引数でstart_flag,攻撃,守備を指定
+void first_formation::pk(bool start_flag, bool attack) {
+  if (!start_flag) { // normal_startが入ったときは初期化しない
+    if (attack) {
       pk_ = std::make_shared<agent::penalty_kick>(world_, is_yellow_, kicker_, waiter_);
       pk_->set_mode(agent::penalty_kick::penalty_mode::attack);
+    } else {
+      pk_ = std::make_shared<agent::penalty_kick>(world_, is_yellow_, kicker_, except_keeper_);
+      pk_->set_mode(agent::penalty_kick::penalty_mode::defense);
     }
   }
 
   pk_->set_start_flag(start_flag);
-  exe_.push_back(pk_);
 }
 
-void first_formation::kickoff_waiter(agent::kick_off_waiter::kickoff_mode mode) {
+//引数で攻撃,守備を指定
+void first_formation::kickoff_waiter(agent::kick_off_waiter::kickoff_mode mode, bool attack) {
   //攻撃と守備でロボットの台数を変える
-  if (current_command_ == command::kickoff_attack ||
-      current_command_ == command::kickoff_attack_start) {
+  if (attack) {
     kickoff_waiter_ = std::make_shared<agent::kick_off_waiter>(world_, is_yellow_, waiter_);
   } else {
     kickoff_waiter_ = std::make_shared<agent::kick_off_waiter>(world_, is_yellow_, others_);
   }
   kickoff_waiter_->set_mode(mode);
-  exe_.push_back(kickoff_waiter_);
 }
 
+//引数でstart_flagを指定
 void first_formation::kickoff(bool start_flag) {
-  if (current_command_ != previous_command_ &&
-      current_command_ != command::kickoff_attack_start) {
+  if (!start_flag ||
+      (start_flag && kickoff_ == nullptr)) { // normal_startが入ったときは初期化しない
     kickoff_ = std::make_shared<agent::kick_off>(world_, is_yellow_, kicker_);
   }
   kickoff_->set_start_flag(start_flag);
-  exe_.push_back(kickoff_);
 }
 
 void first_formation::setplay() {
   setplay_ = std::make_shared<agent::setplay>(world_, is_yellow_, kicker_, waiter_);
-  exe_.push_back(setplay_);
 }
 
 //引数でchase_ballを指定
 void first_formation::regular(bool chase_flag) {
   regular_ = std::make_shared<agent::regular>(world_, is_yellow_, others_);
-  regular_->set_ball_chase(chase_flag);
-  exe_.push_back(regular_);
+  regular_->use_chaser(chase_flag);
 }
 
 //コマンドを使いやすい形に変換
