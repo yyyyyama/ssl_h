@@ -16,8 +16,8 @@ constexpr double ball::lambda_observer_;
 
 ball::ball(const model::ball& ball, std::chrono::high_resolution_clock::time_point time)
     : ball_(ball), prev_time_(time) {
-  x_hat_[0] << std::floor(ball.x() / quant_limit_x_) * quant_limit_x_, 0;
-  x_hat_[1] << std::floor(ball.y() / quant_limit_y_) * quant_limit_y_, 0;
+  x_hat_[0] = {std::floor(ball.x() / quant_limit_x_) * quant_limit_x_, 0};
+  x_hat_[1] = {std::floor(ball.y() / quant_limit_y_) * quant_limit_y_, 0};
   ball_.set_vx(0);
   ball_.set_vy(0);
 }
@@ -25,7 +25,7 @@ ball::ball(const model::ball& ball, std::chrono::high_resolution_clock::time_poi
 model::ball ball::update(const model::ball& ball,
                          std::chrono::high_resolution_clock::time_point time) {
   Eigen::Matrix<double, 2, 2> A;
-  static const Eigen::Matrix<double, 1, 2> C(1, 0);
+  static const Eigen::Matrix<double, 1, 2> C = {1, 0};
   Eigen::Matrix<double, 2, 1> h;
 
   // 前回呼び出しからの経過時刻[s]
@@ -34,15 +34,13 @@ model::ball ball::update(const model::ball& ball,
 
   // 状態変数行列から位置を取り出すやつ
   auto to_pos = [](const Eigen::Matrix<double, 2, 1>& x_hat) {
-    Eigen::Matrix<double, 1, 2> C;
-    C << 1, 0;
+    Eigen::Matrix<double, 1, 2> C = {1, 0};
     return C * x_hat;
   };
 
   // 状態変数行列から速度を取り出すやつ
   auto to_vel = [](const Eigen::Matrix<double, 2, 1>& x_hat) {
-    Eigen::Matrix<double, 1, 2> C;
-    C << 0, 1;
+    Eigen::Matrix<double, 1, 2> C = {0, 1};
     return C * x_hat;
   };
 
@@ -64,12 +62,14 @@ model::ball ball::update(const model::ball& ball,
     // 摩擦が飽和している領域。速度に応じて摩擦係数を調整することで対処
     auto fric_coef_tuned = std::abs(friction_ * cos_theta / ball_.vx());
 
-    A << 0, 1, 0, -(fric_coef_tuned + air_registance_);
-    h << h1(fric_coef_tuned), h2(fric_coef_tuned);
+    A << 0, 1,                                   // a11  a12
+        0, -(fric_coef_tuned + air_registance_); // a21  a22
+    h = {h1(fric_coef_tuned), h2(fric_coef_tuned)};
   } else {
     // 摩擦が線形の領域。
-    A << 0, 1, 0, -(fric_coef_ + air_registance_);
-    h << h1(fric_coef_), h2(fric_coef_);
+    A << 0, 1,                              // a11  a12
+        0, -(fric_coef_ + air_registance_); // a21  a22
+    h = {h1(fric_coef_), h2(fric_coef_)};
   }
 
   // 状態観測器の状態方程式は一般に
@@ -89,12 +89,14 @@ model::ball ball::update(const model::ball& ball,
     // 摩擦力が飽和している領域
     auto fric_coef_tuned = std::abs(friction_ * sin_theta / ball_.vy());
 
-    A << 0, 1, 0, -(fric_coef_tuned + air_registance_);
-    h << h1(fric_coef_tuned), h2(fric_coef_tuned);
+    A << 0, 1,                                   // a11  a12
+        0, -(fric_coef_tuned + air_registance_); // a21  a22
+    h = {h1(fric_coef_tuned), h2(fric_coef_tuned)};
   } else {
     // 摩擦が線形の領域。
-    A << 0, 1, 0, -(fric_coef_ + air_registance_);
-    h << h1(fric_coef_), h2(fric_coef_);
+    A << 0, 1,                              // a11  a12
+        0, -(fric_coef_ + air_registance_); // a21  a22
+    h = {h1(fric_coef_), h2(fric_coef_)};
   }
 
   x_hat_dot =
