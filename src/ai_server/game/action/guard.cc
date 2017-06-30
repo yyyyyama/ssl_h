@@ -20,6 +20,9 @@ void guard::set_kick_type(const model::command::kick_flag_t& kick_type) {
 void guard::set_dribble(int dribble) {
   dribble_ = dribble;
 }
+void guard::set_halt(bool halt_flag) {
+  halt_flag_ = halt_flag;
+}
 void guard::set_magnification(double magnification) {
   magnification_ = magnification;
 }
@@ -36,7 +39,7 @@ model::command guard::execute() {
   command.set_dribble(dribble_);
 
   const auto robots = is_yellow_ ? world_.robots_yellow() : world_.robots_blue();
-  if (!robots.count(id_)) {
+  if (!robots.count(id_) || halt_flag_) {
     command.set_velocity({0.0, 0.0, 0.0});
     return command;
   }
@@ -50,7 +53,7 @@ model::command guard::execute() {
 
   //位置のマージン
 
-  const auto margin = vec.norm() < 1400 ? 10.0 : 90.0;
+  const auto margin = vec.norm() > 1000.0 ? 80.0 : 40.0;
 
   //目標位置に居るなら終わり
   //目標位置から現在地の距離

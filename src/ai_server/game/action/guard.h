@@ -18,6 +18,7 @@ public:
   void set_dribble(int dribble);
   int dribble();
   void set_magnification(double magnification);
+  void set_halt(bool halt_flag);
   model::command execute() override;
   bool finished() const override;
 
@@ -28,6 +29,7 @@ private:
   int dribble_;
   model::command::kick_flag_t kick_type_ = {model::command::kick_type_t::none, 0.0};
   bool flag_                             = false;
+	bool halt_flag_=false;
 };
 }
 }
