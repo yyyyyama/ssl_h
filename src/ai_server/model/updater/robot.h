@@ -49,7 +49,6 @@ public:
   void clear_filter(unsigned int id);
 
   /// @brief           設定された全てのFilterを解除する
-  /// @param id        Filterを解除するロボットのID
   void clear_all_filters();
 
   /// @brief           更新タイミングがon_updatedなFilterを設定する
