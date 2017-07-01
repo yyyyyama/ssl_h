@@ -349,13 +349,17 @@ std::vector<std::shared_ptr<action::base>> defense::execute() {
     Eigen::Vector2d keeper(Eigen::Vector2d::Zero());
     const auto my_robots    = is_yellow_ ? world_.robots_yellow() : world_.robots_blue();
     const auto enemy_robots = is_yellow_ ? world_.robots_blue() : world_.robots_yellow();
-    if (my_robots.count(keeper_id_)) {
-      const auto& keeper_robot = my_robots.at(keeper_id_);
-      const Eigen::Vector2d keeper_c(keeper_robot.x(), keeper_robot.y());
-
-      //傾き
-      const auto m = (ball.y() - ball_pos.y()) / (ball.x() - ball_pos.x());
-      const auto b = ball_pos.y() - m * ball_pos.x();
+    if (!enemy_robots.empty()) {
+      //敵のシューターを線形探索する
+      //ボールにもっとも近いやつがシューターだと仮定
+      // ボールに最も近い敵ロボットを求める
+      const auto it = std::min_element(
+          enemy_robots.cbegin(), enemy_robots.cend(), [&ball](auto&& a, auto&& b) {
+            const auto l1 = Eigen::Vector2d{a.second.x(), a.second.y()} - ball;
+            const auto l2 = Eigen::Vector2d{b.second.x(), b.second.y()} - ball;
+            return l1.norm() < l2.norm();
+          });
+      const auto r = std::get<1>(*it);
 
       switch (mode_) {
         case defense_mode::normal_mode: {
@@ -363,96 +367,54 @@ std::vector<std::shared_ptr<action::base>> defense::execute() {
           // そもそもマーキング状態なら別の処理
           // C:ボールが縄張りに入ってきた！やばーい
           // B:ボールが自陣地なので壁の補強をしなければ
-          const auto demarcation1 = 2500.0; //縄張りの大きさ
+          const auto demarcation1 = 3500.0; //縄張りの大きさ
+
           if (((ball_ - goal).norm() < demarcation1) || !marking_.empty()) { // C
             //ゴール前でディフェンスする
-            //ボールが直線か斜めかで処理を分る
-            //ボールが直線か斜めかで処理を分る
-            if (std::abs(ball.y()) < 410) {
-              keeper.x() = goal.x() + 110.0;
-              keeper.y() = keeper.x() * m + b;
-              //ゴールの範囲を超えたら跳びでないようにする
-              if (keeper.y() > 410) {
-                keeper.y() = 410;
-              } else if (keeper.y() < -410) {
-                keeper.y() = -410;
-              }
-            } else {
-              const auto length = (goal - ball).norm(); //基準点<->ボール
-
-              const auto ratio = (500) / length; //全体に対してのキーパー位置の比
-
-              keeper = (1 - ratio) * goal + ratio * ball;
-            }
+            const auto length = (goal - ball).norm(); //基準点<->ボール
+            const auto ratio  = (500) / length; //全体に対してのキーパー位置の比
+            keeper            = (1 - ratio) * goal + ratio * ball;
           } else { // B*/
                    //壁のすぐ後ろで待機
-                   //基準点からちょっと下がったキーパの位置
-
-            //ボールが直線か斜めかで処理を分る
-            if (std::abs(ball.y()) < 410) {
-              keeper.y() = keeper.x() * m + b;
-              //ゴールの範囲を超えたら跳びでないようにする
-              if (keeper.y() > 410) {
-                keeper.y() = 410;
-              } else if (keeper.y() < -410) {
-                keeper.y() = -410;
-              }
-              keeper.x() =
-                  std::sqrt(std::pow(1000, 2) - std::pow(keeper.y() - goal.y(), 2)) + goal.x();
-            } else {
-              const auto length = (goal - ball).norm(); //基準点<->ボール
-
-              const auto ratio = (1000) / length; //全体に対してのキーパー位置の比
-
-              keeper = (1 - ratio) * goal + ratio * ball;
-            }
+            //基準点からちょっと下がったキーパの位置
+            const auto length = (goal - ball).norm(); //基準点<->ボール
+            const auto ratio  = (1100) / length; //全体に対してのキーパー位置の比
+            keeper            = (1 - ratio) * goal + ratio * ball;
           }
+          const auto tmp = (ball_vec.norm() * 1.8 < 1000.0) ? 1000.0 : ball_vec.norm() * 1.8;
+          keeper_->set_magnification(tmp);
+          keeper_->set_dribble(0);
           break;
         }
-        case defense_mode::pk_mode: {
-          if (!enemy_robots.empty()) {
-            //敵のシューターを線形探索する
-            //
-            //
-            //ボールにもっとも近いやつがシューターだと仮定
-            //
+        case defense_mode::pk_normal_mode: {
+          //キーパーのy座標は敵シューターの視線の先
+          keeper.y() = (1000.0 * std::tan(r.theta())) * (-1);
 
-            // ボールに最も近い敵ロボットを求める
-            const auto it = std::min_element(
-                enemy_robots.cbegin(), enemy_robots.cend(), [&ball](auto&& a, auto&& b) {
-                  const auto l1 = Eigen::Vector2d{a.second.x(), a.second.y()} - ball;
-                  const auto l2 = Eigen::Vector2d{b.second.x(), b.second.y()} - ball;
-                  return l1.norm() < l2.norm();
-                });
-
-            const auto r = std::get<1>(*it);
-            //キーパーのy座標は敵シューターの視線の先
-            keeper.y() = (1000.0 * std::tan(r.theta())) * (-1);
-
-            //ゴールの範囲を超えたら跳びでないようにする
-            if (keeper.y() > 410) {
-              keeper.y() = 410;
-            } else if (keeper.y() < -410) {
-              keeper.y() = -410;
-            }
-
-            //ロボットの大きさ分ずらす
-            keeper.x() = goal.x() + 110.0;
-            break;
+          //ゴールの範囲を超えたら跳びでないようにする
+          if (keeper.y() > 410) {
+            keeper.y() = 410;
+          } else if (keeper.y() < -410) {
+            keeper.y() = -410;
           }
+
+          //ロボットの大きさ分ずらす
+          keeper.x() = goal.x() + 110.0;
+
+          keeper_->set_magnification(3500.0);
+          keeper_->set_dribble(0);
+          break;
+        }
+        case defense_mode::pk_extention_mode: {
+          keeper = ball_pos;
+          keeper.x() += 45.0;
+          keeper_->set_magnification(6000.0);
+          keeper_->set_dribble(9);
+          break;
         }
       }
-      keeper_target_ = keeper;
-
       keeper_->move_to(keeper.x(), keeper.y(), ball_theta);
-      const auto tmp = (ball_vec.norm() < 2500.0) ? 2500.0 : ball_vec.norm() * 1.0;
-      keeper_->set_magnification(tmp);
-    } else {
-      keeper_->move_to(keeper_target_.x(), keeper_target_.y(), 0.0);
-      keeper_->set_magnification((ball_vec.norm() < 2500.0) ? 2500.0 : ball_vec.norm() * 1.0);
+      re_wall.push_back(keeper_); //配列を返すためにキーパーを統合する
     }
-    keeper_->set_dribble(0);
-    re_wall.push_back(keeper_); //配列を返すためにキーパーを統合する
   }
 
   return re_wall; //返す
