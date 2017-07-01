@@ -79,6 +79,13 @@ void robot<Color>::update(const ssl_protos::vision::Frame& detection) {
       }();
       reliables[robot_id] = value;
 
+      // 2つのFilterが設定されておらず, かつfilter_initializer_が設定されていたら
+      // filter_initializer_でFilterを初期化する
+      if (filter_initializer_ && !on_updated_filters_.count(robot_id) &&
+          !manual_filters_.count(robot_id)) {
+        on_updated_filters_[robot_id] = filter_initializer_();
+      }
+
       if (on_updated_filters_.count(robot_id)) {
         // on_updated_filter_が設定されていたらFilterを通した値を使う
         robots_[robot_id] = on_updated_filters_.at(robot_id)->update(value, captured_time);
@@ -127,6 +134,12 @@ void robot<Color>::clear_all_filters() {
   std::unique_lock<std::shared_timed_mutex> lock(mutex_);
   on_updated_filters_.clear();
   manual_filters_.clear();
+}
+
+template <model::team_color Color>
+void robot<Color>::clear_default_filter() {
+  std::unique_lock<std::shared_timed_mutex> lock(mutex_);
+  filter_initializer_ = decltype(filter_initializer_){};
 }
 
 // 必要なチームカラーで明示的なtemplateのインスタンス化を行う

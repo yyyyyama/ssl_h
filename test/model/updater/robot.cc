@@ -457,6 +457,113 @@ BOOST_AUTO_TEST_CASE(manual_filter) {
   }
 }
 
+BOOST_AUTO_TEST_CASE(default_filter) {
+  model::updater::robot<model::team_color::blue> ru;
+
+  // ID1にmock_filter2を設定
+  const auto fp1 = ru.set_filter<mock_filter2>(1, 123, 456);
+  // デフォルトのFilterとしてmock_filter1を設定
+  ru.set_default_filter<mock_filter1>(123, 456);
+
+  {
+    ssl_protos::vision::Frame f;
+    f.set_camera_id(0);
+
+    auto rb1 = f.add_robots_blue();
+    rb1->set_robot_id(1);
+    rb1->set_x(10);
+    rb1->set_y(11);
+    rb1->set_orientation(12);
+    rb1->set_confidence(94.0);
+
+    auto rb3 = f.add_robots_blue();
+    rb3->set_robot_id(3);
+    rb3->set_x(30);
+    rb3->set_y(31);
+    rb3->set_orientation(32);
+    rb3->set_confidence(95.0);
+
+    auto rb5 = f.add_robots_blue();
+    rb5->set_robot_id(5);
+    rb5->set_x(50);
+    rb5->set_y(51);
+    rb5->set_orientation(52);
+    rb5->set_confidence(96.0);
+
+    ru.update(f);
+  }
+
+  {
+    ai_server::model::robot r;
+    const auto rb = ru.value();
+
+    // 検出された青ロボは2台
+    BOOST_TEST(rb.size() == 2);
+
+    // ID1の青ロボが存在しない
+    // (検出はされているが, manualなFilterが登録されているので)
+    BOOST_TEST(!rb.count(1));
+
+    // ID3の青ロボが存在
+    // mock_filter1が適用された値になっている
+    BOOST_CHECK_NO_THROW(r = rb.at(3));
+    BOOST_TEST(r.vx() == 60);
+    BOOST_TEST(r.ay() == 93);
+
+    // ID5の青ロボが存在
+    // mock_filter1が適用された値になっている
+    BOOST_CHECK_NO_THROW(r = rb.at(5));
+    BOOST_TEST(r.vx() == 100);
+    BOOST_TEST(r.ay() == 153);
+  }
+
+  // default_filterを解除
+  ru.clear_default_filter();
+
+  {
+    ssl_protos::vision::Frame f;
+    f.set_camera_id(1);
+
+    auto rb7 = f.add_robots_blue();
+    rb7->set_robot_id(7);
+    rb7->set_x(70);
+    rb7->set_y(71);
+    rb7->set_orientation(72);
+    rb7->set_confidence(94.0);
+
+    ru.update(f);
+  }
+
+  {
+    ai_server::model::robot r;
+    const auto rb = ru.value();
+
+    // 検出された青ロボは3台
+    BOOST_TEST(rb.size() == 3);
+
+    // ID1の青ロボが存在しない
+    BOOST_TEST(!rb.count(1));
+
+    // ID3の青ロボが存在
+    BOOST_CHECK_NO_THROW(r = rb.at(3));
+    BOOST_TEST(r.vx() == 60);
+    BOOST_TEST(r.ay() == 93);
+
+    // ID5の青ロボが存在
+    BOOST_CHECK_NO_THROW(r = rb.at(5));
+    BOOST_TEST(r.vx() == 100);
+    BOOST_TEST(r.ay() == 153);
+
+    // ID7の青ロボが存在
+    // filter_initializer_が初期化されたので, mock_filter1は適用されていない
+    BOOST_CHECK_NO_THROW(r = rb.at(7));
+    BOOST_TEST(r.id() == 7);
+    BOOST_TEST(r.x() == 70);
+    BOOST_TEST(r.y() == 71);
+    BOOST_TEST(r.theta() == 72);
+  }
+}
+
 BOOST_AUTO_TEST_CASE(clear_filter) {
   model::updater::robot<model::team_color::blue> ru;
 

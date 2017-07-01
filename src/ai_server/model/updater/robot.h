@@ -1,6 +1,7 @@
 #ifndef AI_SERVER_MODEL_WORLD_UPDATER_ROBOT_H
 #define AI_SERVER_MODEL_WORLD_UPDATER_ROBOT_H
 
+#include <functional>
 #include <memory>
 #include <shared_mutex>
 #include <tuple>
@@ -50,6 +51,13 @@ public:
 
   /// @brief           設定された全てのFilterを解除する
   void clear_all_filters();
+
+  /// @brief           設定されたデフォルトのFilterを解除する
+  ///
+  /// あくまでfilter_initializer_を空にするだけなので,
+  /// 既にfilter_initializer_によって初期化されたものを解除したい場合は
+  /// clear_filter()などを呼ぶ必要がある
+  void clear_default_filter();
 
   /// @brief           更新タイミングがon_updatedなFilterを設定する
   /// @param id        Filterを設定するロボットのID
@@ -103,6 +111,18 @@ public:
     return p;
   }
 
+  /// @brief           デフォルトのFilterを設定する
+  /// @param args      Filterの引数
+  ///
+  /// set_filter()でFilterが設定されていないロボットが使うFilterを設定する
+  /// ここで設定できるものは更新タイミングがon_updatedなFilterのみとする
+  template <class Filter, class... Args>
+  auto set_default_filter(Args... args)
+      -> std::enable_if_t<std::is_base_of<on_updated_filter_type, Filter>::value> {
+    std::unique_lock<std::shared_timed_mutex> lock(mutex_);
+    filter_initializer_ = [args...] { return std::make_shared<Filter>(args...); };
+  }
+
 private:
   mutable std::shared_timed_mutex mutex_;
 
@@ -122,6 +142,8 @@ private:
   std::unordered_map<unsigned int, std::shared_ptr<on_updated_filter_type>> on_updated_filters_;
   /// 更新タイミングがmanualなFilter
   std::unordered_map<unsigned int, std::shared_ptr<manual_filter_type>> manual_filters_;
+  /// Filterを初期化するための関数オブジェクト
+  std::function<std::shared_ptr<on_updated_filter_type>()> filter_initializer_;
 };
 
 } // namespace updater
