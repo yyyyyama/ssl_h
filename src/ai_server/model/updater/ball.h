@@ -19,21 +19,10 @@ namespace updater {
 /// @class   ball
 /// @brief   SSL-VisionのDetectionパケットでボールの情報を更新する
 class ball {
-  mutable std::shared_timed_mutex mutex_;
-
-  /// 最終的な値
-  model::ball ball_;
-
-  /// 各カメラで検出されたボールの生データ
-  std::unordered_map<unsigned int, ssl_protos::vision::Ball> raw_balls_;
-  /// 検出された中で最も確かとされる値
-  std::experimental::optional<model::ball> reliable_ball_;
-
-  // 各種Filter
+  /// 更新タイミングがon_updatedなFilterの型
   using on_updated_filter_type = filter::base<model::ball, filter::timing::on_updated>;
-  using manual_filter_type     = filter::base<model::ball, filter::timing::manual>;
-  std::shared_ptr<on_updated_filter_type> on_updated_filter_;
-  std::shared_ptr<manual_filter_type> manual_filter_;
+  /// 更新タイミングがmanualなFilterの型
+  using manual_filter_type = filter::base<model::ball, filter::timing::manual>;
 
 public:
   ball();
@@ -90,6 +79,22 @@ public:
     manual_filter_ = p;
     return p;
   }
+
+private:
+  mutable std::shared_timed_mutex mutex_;
+
+  /// 最終的な値
+  model::ball ball_;
+
+  /// 各カメラで検出されたボールの生データ
+  std::unordered_map<unsigned int, ssl_protos::vision::Ball> raw_balls_;
+  /// 検出された中から選ばれた, 最も確かとされる値
+  std::experimental::optional<model::ball> reliable_ball_;
+
+  /// 更新タイミングがon_updatedなFilter
+  std::shared_ptr<on_updated_filter_type> on_updated_filter_;
+  /// 更新タイミングがmanualなFilter
+  std::shared_ptr<manual_filter_type> manual_filter_;
 };
 
 } // namespace updater
