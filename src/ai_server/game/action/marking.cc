@@ -46,6 +46,11 @@ model::command marking::execute() {
       position = (-ratio * enemy + ball) / tmp;
       tmp_pos  = ball;
       break;
+		case mark_mode::corner_block:
+      ratio      = radius_/((enemy - ball).norm()+radius_); //ボール - 目標位置の比
+      position = (-ratio * enemy + 1*ball) / (1-ratio);
+      tmp_pos  = ball;
+			break;
     case mark_mode::shoot_block:                 //シュートを阻止
       const auto length = (goal - enemy).norm(); //敵機とゴールの距離
       tmp               = std::signbit(1400 - length / 2)
@@ -60,6 +65,12 @@ model::command marking::execute() {
   const auto theta = util::wrap_to_2pi(
       std::atan2(position.y() - tmp_pos.y(), position.x() - tmp_pos.x()) + pi<double>());
 
+	//目標位置が外側に行ったらその場で停止
+	if(std::abs(position.x())>4500.0 || std::abs(position.y())>3000.0){
+    ally_robot.set_velocity({0.0, 0.0, 0.0});
+    return ally_robot;
+	}
+	
   //計算した値を自機にセット
   ally_robot.set_position({position.x(), position.y(), theta});
 
