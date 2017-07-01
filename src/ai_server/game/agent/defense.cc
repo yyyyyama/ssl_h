@@ -75,6 +75,7 @@ std::vector<std::shared_ptr<action::base>> defense::execute() {
   keeper_->set_halt(false);
   //ゴールの座標
   const Eigen::Vector2d goal(world_.field().x_min(), 0.0);
+  const Eigen::Vector2d goal_e(world_.field().x_max(), 0.0);
 
   const auto ball_theta = std::atan2(ball.y() - goal.y(), ball.x() - goal.x());
 
@@ -346,7 +347,6 @@ std::vector<std::shared_ptr<action::base>> defense::execute() {
   //
   {
     Eigen::Vector2d keeper(Eigen::Vector2d::Zero());
-    const auto my_robots    = is_yellow_ ? world_.robots_yellow() : world_.robots_blue();
     const auto enemy_robots = is_yellow_ ? world_.robots_blue() : world_.robots_yellow();
     if (!enemy_robots.empty()) {
       //敵のシューターを線形探索する
@@ -366,23 +366,35 @@ std::vector<std::shared_ptr<action::base>> defense::execute() {
           // そもそもマーキング状態なら別の処理
           // C:ボールが縄張りに入ってきた！やばーい
           // B:ボールが自陣地なので壁の補強をしなければ
-          const auto demarcation1 = 3500.0; //縄張りの大きさ
+          const auto demarcation1 = 1300.0; //クリアする範囲
+          const auto demarcation2 = 400.0;  //クリアする範囲
+          const auto demarcation3 = 3500.0; //縄張りの大きさ
 
-          if (((ball_ - goal).norm() < demarcation1) || !marking_.empty()) { // C
+          if ((ball_ - goal).norm() < demarcation1 && (ball_ - goal).norm() > demarcation2 &&
+              ball_vec.norm() < 500.0) {
+            const auto ratio =
+                40.0 / ((goal_e - ball_pos).norm() + 40.0); //ボール - 目標位置の比
+            keeper = (-ratio * goal_e + 1 * ball_pos) / (1 - ratio);
+            keeper_->set_kick_type({model::command::kick_type_t::chip, 255});
+            keeper_->set_dribble(9);
+          } else if (((ball_ - goal).norm() < demarcation3) || !marking_.empty()) { // C
             //ゴール前でディフェンスする
             const auto length = (goal - ball).norm(); //基準点<->ボール
             const auto ratio  = (500) / length; //全体に対してのキーパー位置の比
             keeper            = (1 - ratio) * goal + ratio * ball;
+            keeper_->set_kick_type({model::command::kick_type_t::none, 0});
+            keeper_->set_dribble(0);
           } else { // B*/
                    //壁のすぐ後ろで待機
             //基準点からちょっと下がったキーパの位置
             const auto length = (goal - ball).norm(); //基準点<->ボール
             const auto ratio  = (1100) / length; //全体に対してのキーパー位置の比
             keeper            = (1 - ratio) * goal + ratio * ball;
+            keeper_->set_kick_type({model::command::kick_type_t::none, 0});
+            keeper_->set_dribble(0);
           }
           const auto tmp = (ball_vec.norm() * 1.8 < 1000.0) ? 1000.0 : ball_vec.norm() * 1.8;
           keeper_->set_magnification(tmp);
-          keeper_->set_dribble(0);
           break;
         }
         case defense_mode::pk_normal_mode: {
