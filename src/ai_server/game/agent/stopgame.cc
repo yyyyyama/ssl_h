@@ -6,6 +6,7 @@
 #include "ai_server/util/math.h"
 
 #include "stopgame.h"
+#include<iostream>
 
 namespace ai_server {
 namespace game {
@@ -33,8 +34,8 @@ std::vector<std::shared_ptr<action::base>> stopgame::execute() {
   const auto ball            = world_.ball();
   const double ballx         = ball.x();
   const double bally         = ball.y();
-  const double ballxsign     = ballx > 0 ? 1.0 : -1.0;
-  const double ballysign     = bally > 0 ? 1.0 : -1.0;
+  const double ballxsign     = ((ballx > 0) || (std::abs(ballx)< 250))? 1.0 : -1.0;
+  const double ballysign     = ((bally > 0) || (std::abs(bally)< 250))? 1.0 : -1.0;
   const double enemygoalsign = world_.field().x_max() > 0 ? 1.0 : -1.0;
 
   double targetx;
@@ -65,13 +66,13 @@ std::vector<std::shared_ptr<action::base>> stopgame::execute() {
       // 中間
       if (id == nearest_robot_) {
         // ボールを追いかけるロボット
-        targetx = robot.x() > ballx ? ballx + 650 : ballx - 650;
+        targetx = ballx - 650;
         targety = bally;
       } else {
         // それ以外
         targetx = ballx - enemygoalsign * i * 500;
         targety = bally - dist * ballysign * (i % 2 == 0 ? -i : i) / 2;
-        if (std::abs(bally) > 3000) targety = bally - dist * ballysign * (i - 1);
+        if (std::abs(targety) > 3000) targety = bally - dist * ballysign * (i - 1);
         i++;
       }
     }
