@@ -29,6 +29,9 @@ void guard::set_magnification(double magnification) {
 int guard::dribble() {
   return dribble_;
 }
+unsigned int guard::id(){
+	return id_;
+}
 model::command guard::execute() {
   //それぞれ自機を生成
   model::command command(id_);

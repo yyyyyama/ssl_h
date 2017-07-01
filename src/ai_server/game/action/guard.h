@@ -14,6 +14,7 @@ public:
   using base::base;
   void move_to(double x, double y, double theta);
   void set_kick_type(const model::command::kick_flag_t& kick_type);
+	unsigned int id();
   model::command::kick_flag_t kick_type();
   void set_dribble(int dribble);
   int dribble();
