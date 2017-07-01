@@ -31,7 +31,6 @@ defense::defense(const model::world& world, bool is_yellow, unsigned int keeper_
   for (auto it : wall_ids_) {
     wall_.emplace_back(std::make_shared<action::guard>(world_, is_yellow_, it));
   }
-  wall_target_.resize(wall_.size());
 
   //壁用のaction
   for (auto it : marking_ids_) {
@@ -54,18 +53,15 @@ std::vector<std::shared_ptr<action::base>> defense::execute() {
   const Eigen::Vector2d ball(ball_pos + ball_k);
 
   //状態を遷移させるためのボールの位置
-  if (ball_vec.norm() < 100.0) {
+  if (ball_vec.norm() < 80.0) {
     ball_ = ball_pos;
   }
-
   //ボールがゴールより後ろに来たら現状維持
   if (ball.x() < world_.field().x_min() || ball.x() > world_.field().x_max()) {
-    auto target_it = wall_target_.begin();
     for (auto wall_it : wall_) {
-      wall_it->move_to((*target_it).x(), (*target_it).y(), 0.0);
-      target_it++;
+      wall_it->set_halt(true);
     }
-    keeper_->move_to(keeper_target_.x(), keeper_target_.y(), 0.0);
+    keeper_->set_halt(true);
 
     std::vector<std::shared_ptr<action::base>> re_wall{
         wall_.begin(), wall_.end()}; //型を合わせるために無理矢理作り直す
@@ -73,7 +69,10 @@ std::vector<std::shared_ptr<action::base>> defense::execute() {
 
     return re_wall;
   }
-
+  for (auto wall_it : wall_) {
+    wall_it->set_halt(false);
+  }
+  keeper_->set_halt(false);
   //ゴールの座標
   const Eigen::Vector2d goal(world_.field().x_min(), 0.0);
 
@@ -87,7 +86,7 @@ std::vector<std::shared_ptr<action::base>> defense::execute() {
   //比
   {
     //半径
-    const auto radius = 1400.0;
+    const auto radius = 1380.0;
 
     const auto length = (goal - ball).norm(); //ボール<->ゴール
 
@@ -112,7 +111,7 @@ std::vector<std::shared_ptr<action::base>> defense::execute() {
       //基準点からどれだけずらすか
       auto shift_ = 0.0;
       //縄張りの大きさ
-      const auto demarcation = 3000.0;
+      const auto demarcation = 3500.0;
       //壁の数によってずらしていく倍率が変わるのでその倍率
       auto magnification = 0.0;
 
@@ -139,7 +138,7 @@ std::vector<std::shared_ptr<action::base>> defense::execute() {
         }
 
         //敵がめっちゃ近づいたら閉める
-        if ((ball - goal).norm() < demarcation) {
+        if ((ball_ - goal).norm() < demarcation) {
           //前に出てる場合じゃねぇ
           odd = orientation_;
         }
@@ -149,9 +148,9 @@ std::vector<std::shared_ptr<action::base>> defense::execute() {
         shift_        = 200;
       } else { //偶数
         magnification = 2.0;
-        shift_        = 190.0;
+        shift_        = 220.0;
         //敵がめっちゃ近づいたら閉める
-        if ((ball - goal).norm() < demarcation) {
+        if ((ball_ - goal).norm() < demarcation) {
           shift_ = 90;
         }
       }
@@ -194,15 +193,14 @@ std::vector<std::shared_ptr<action::base>> defense::execute() {
     }
     //実際にアクションを詰めて返す
     {
-      auto target_it     = target.begin();
-      auto old_target_it = wall_target_.begin();
+      auto target_it = target.begin();
       for (auto wall_it : wall_) {
         wall_it->move_to((*target_it).x(), (*target_it).y(), ball_theta);
         wall_it->set_kick_type({model::command::kick_type_t::chip, 255});
         wall_it->set_dribble(0);
-        const auto tmp = (ball_vec.norm() < 1500.0) ? 1500.0 : ball_vec.norm() * 0.8;
+        const auto tmp = (ball_vec.norm() * 1.8 < 1000.0) ? 1000.0 : ball_vec.norm() * 1.8;
         wall_it->set_magnification(tmp);
-        (*old_target_it++) = (*target_it++);
+        target_it++;
       }
     }
   }
@@ -293,6 +291,7 @@ std::vector<std::shared_ptr<action::base>> defense::execute() {
           r.action->set_radius(250.0);
           if (enemy_it == enemy_list.begin()) {
             r.action->set_radius(600.0);
+            r.action->set_mode(game::action::marking::mark_mode::corner_block);
           }
           mark_list.erase(it);
         }
