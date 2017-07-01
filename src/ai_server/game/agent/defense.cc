@@ -194,6 +194,26 @@ std::vector<std::shared_ptr<action::base>> defense::execute() {
     }
     //実際にアクションを詰めて返す
     {
+      const auto my_robots = is_yellow_ ? world_.robots_yellow() : world_.robots_blue();
+
+      //距離が近い順に昇順ソート
+      std::sort(wall_.begin(), wall_.end(), [&goal, &my_robots](const auto& a, const auto& b) {
+        return std::atan2(my_robots.at(a->id()).y() - goal.y(),
+                          my_robots.at(a->id()).x() - goal.x()) <
+               std::atan2(my_robots.at(b->id()).y() - goal.y(),
+                          my_robots.at(b->id()).x() - goal.x());
+
+      });
+
+      //距離が近い順に昇順ソート
+      std::sort(target.begin(), target.end(),
+                [&goal, &my_robots](const auto& a, const auto& b) {
+                  return std::atan2(a.y() - goal.y(), a.x() - goal.x()) <
+                         std::atan2(b.y() - goal.y(), b.x() - goal.x());
+
+                });
+
+      //取り敢えず割り当てる
       auto target_it = target.begin();
       for (auto wall_it : wall_) {
         wall_it->move_to((*target_it).x(), (*target_it).y(), ball_theta);
@@ -205,7 +225,6 @@ std::vector<std::shared_ptr<action::base>> defense::execute() {
       }
     }
   }
-
   //型を合わせるために無理矢理作り直す
   std::vector<std::shared_ptr<action::base>> re_wall{wall_.begin(), wall_.end()};
 
