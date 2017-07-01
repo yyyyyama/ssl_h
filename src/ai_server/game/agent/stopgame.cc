@@ -6,7 +6,6 @@
 #include "ai_server/util/math.h"
 
 #include "stopgame.h"
-#include <iostream>
 
 namespace ai_server {
 namespace game {
@@ -58,9 +57,8 @@ std::vector<std::shared_ptr<action::base>> stopgame::execute() {
       } else {
         // それ以外
         targetx = ballx - enemygoalsign * i * 500;
-          targety = bally - dist * ballysign * (i % 2 == 0 ? -i : i) / 2;
-        if (std::abs(targety) > 3000)
-          targety = bally - dist * ballysign * (i-1);
+        targety = bally - dist * ballysign * (i % 2 == 0 ? -i : i) / 2;
+        if (std::abs(targety) > 3000) targety = bally - dist * ballysign * (i - 1);
         i++;
       }
     } else {
@@ -72,9 +70,8 @@ std::vector<std::shared_ptr<action::base>> stopgame::execute() {
       } else {
         // それ以外
         targetx = ballx - enemygoalsign * i * 500;
-          targety = bally - dist * ballysign * (i % 2 == 0 ? -i : i) / 2;
-        if (std::abs(bally) > 3000)
-          targety = bally - dist * ballysign * (i-1);
+        targety = bally - dist * ballysign * (i % 2 == 0 ? -i : i) / 2;
+        if (std::abs(bally) > 3000) targety = bally - dist * ballysign * (i - 1);
         i++;
       }
     }
