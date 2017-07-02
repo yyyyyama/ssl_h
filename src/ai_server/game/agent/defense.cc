@@ -155,34 +155,11 @@ std::vector<std::shared_ptr<action::base>> defense::execute() {
           shift_ = 90;
         }
       }
-
-      //移動した量
-      const Eigen::Vector2d move(ball.x(), ball.y());
-
-      //計算の為に中心にずらした場合の座標
-      Eigen::Vector2d after_ball(ball.x() - move.x(), ball.y() - move.y());
-
-      Eigen::Vector2d after_base(orientation_.x() - move.x(), orientation_.y() - move.y());
-
-      // x軸から角度
-      const auto alpha = util::wrap_to_2pi(
-          std::atan2(after_base.y() - after_ball.y(), after_base.x() - after_ball.x()));
-      //回転行列
-      const Eigen::Rotation2Dd rotate(alpha);
-
-      after_base.x() = (after_base - after_ball).norm();
-      after_base.y() = 0.0;
-
       for (auto shift = shift_; wall_it != wall_.end();
            shift += (shift_ * magnification), wall_it += 2) {
-        //移動した先での仮の座標
-        const Eigen::Vector2d tmp1(after_base.x(), shift);
-        const Eigen::Vector2d tmp2(tmp1.x(), tmp1.y() * (-1));
-
-        //回転した後の正しい座標
-        target.push_back((rotate * tmp1) + move);
-        target.push_back((rotate * tmp2) + move);
-
+        const auto tmp = util::move(ball, orientation_, shift);
+        target.push_back(std::get<0>(tmp));
+        target.push_back(std::get<1>(tmp));
         //もしディフェンスエリアないに入ってしまっても順番が入れ替わらないようにする
         if ((ball - goal).norm() < 1400) {
           const auto tmp = target.back();
@@ -202,7 +179,6 @@ std::vector<std::shared_ptr<action::base>> defense::execute() {
                           my_robots.at(a->id()).x() - goal.x()) <
                std::atan2(my_robots.at(b->id()).y() - goal.y(),
                           my_robots.at(b->id()).x() - goal.x());
-
       });
 
       //距離が近い順に昇順ソート
@@ -210,10 +186,9 @@ std::vector<std::shared_ptr<action::base>> defense::execute() {
                 [&goal, &my_robots](const auto& a, const auto& b) {
                   return std::atan2(a.y() - goal.y(), a.x() - goal.x()) <
                          std::atan2(b.y() - goal.y(), b.x() - goal.x());
-
                 });
 
-      //取り敢えず割り当てる
+      //割り当てる
       auto target_it = target.begin();
       for (auto wall_it : wall_) {
         wall_it->move_to((*target_it).x(), (*target_it).y(), ball_theta);
