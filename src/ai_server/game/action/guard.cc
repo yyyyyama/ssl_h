@@ -29,8 +29,8 @@ void guard::set_magnification(double magnification) {
 int guard::dribble() {
   return dribble_;
 }
-unsigned int guard::id(){
-	return id_;
+unsigned int guard::id() {
+  return id_;
 }
 model::command guard::execute() {
   //それぞれ自機を生成
@@ -51,18 +51,22 @@ model::command guard::execute() {
   const Eigen::Vector2d robot_pos{robot.x(), robot.y()};
   const auto robot_theta = util::wrap_to_pi(robot.theta());
   const auto omega       = theta_ - robot_theta;
+  if ((robot_pos - pos_).norm() < 100.0) {
+    magnification_ = 1000.0;
+  }
 
   const Eigen::Vector2d vec{(pos_ - robot_pos).normalized() * magnification_};
 
   //位置のマージン
 
-  const auto margin = vec.norm() > 1000.0 ? 80.0 : 40.0;
+  // const auto margin = vec.norm() > 1000.0 ? 80.0 : 40.0;
+  const auto margin = 30.0;
 
   //目標位置に居るなら終わり
   //目標位置から現在地の距離
   const auto lengh = (robot_pos - pos_).norm();
   if (lengh < margin) {
-    command.set_velocity({0.0, 0.0, omega});
+    command.set_velocity({0.0, 0.0, 0.0});
     flag_ = true;
     return command;
   }
