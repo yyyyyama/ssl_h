@@ -11,6 +11,7 @@
 #include "ai_server/util/math/to_vector.h"
 
 #include "setplay.h"
+#include <iostream>
 
 namespace ai_server {
 namespace game {
@@ -19,7 +20,8 @@ namespace agent {
 setplay::setplay(const model::world& world, bool is_yellow, unsigned int kicker_id,
                  const std::vector<unsigned int>& receiver_ids)
     : base(world, is_yellow), kicker_id_(kicker_id), receiver_ids_(receiver_ids) {
-  kick_ = make_action<action::kick_action>(kicker_id_);
+  kick_     = make_action<action::kick_action>(kicker_id_);
+  shoot_pos = {world_.field().x_max(), 0};
 }
 
 std::vector<std::shared_ptr<action::base>> setplay::execute() {
@@ -49,21 +51,27 @@ std::vector<std::shared_ptr<action::base>> setplay::execute() {
   if (state_ >= state::receive) {
     Eigen::Vector2d shooter_pos = util::math::position(our_robots.at(shooter_id_));
     if (std::abs(util::wrap_to_pi(vectorangle(ball_vel) - vectorangle(prev_ball_vel_))) > 0.5 &&
-        (kicker_pos - ball_pos).norm() > 500 && ball_vel.norm() > 1500 &&
-        std::abs(ball_pos.x()) > 500 && std::abs(ball_pos.y()) > 1000 &&
-        !receive_->finished()) {
+        (kicker_pos - ball_pos).norm() > 500 && ball_vel.norm() > 1000 &&
+        std::abs(ball_pos.x()) > 300 && std::abs(ball_pos.y()) > 300 && !receive_->finished()) {
       state_ = state::finished;
     }
+    if ((shooter_pos - ball_pos).norm() < 500)
+      neflag = true;
+    else if (neflag && (shooter_pos - ball_pos).norm() > 1000)
+      state_ = state::finished;
   }
   prev_ball_vel_ = ball_vel;
 
   // キックフラグが立ったら次の状態に移行
   if (kick_->finished()) {
+    std::cout << "state" << static_cast<int>(state_) << std::endl;
     if (state_ == state::pass) {
+      std::cout << "kickaa" << std::endl;
       kick_  = make_action<action::kick_action>(shooter_id_);
       state_ = state::receive;
-    } else {
+    } else if (state_ == state::shoot) {
       state_ = state::finished;
+      std::cout << "3torareta" << std::endl;
     }
   }
   // レシーバの指定がない(ダイレクトシュート)時
@@ -81,16 +89,22 @@ std::vector<std::shared_ptr<action::base>> setplay::execute() {
         for (auto receiver_id : receiver_ids_) {
           const double rad   = std::abs(ball_pos.y()) > 1500 ? -0.4 : -0.7;
           const double theta = ballysign * (i / 2 + 1) * rad * (1.0 - 2 * (i % 2));
+          std::cout << "myonmyon" << receiver_id << ", " << i << ", " << theta << std::endl;
+          const double kick_off_coe = ball_pos.norm() > 250 ? 1.0 : -1.0;
           if (ball_pos.x() > 2000) {
             pos_ = pos::far;
             positions_.push_back(
-                {enemygoal_x - std::cos(theta) * 2000, std::sin(theta) * 3500});
+                {enemygoal_x - std::cos(theta) * (i + 1) * 2000, std::sin(theta) * 3000});
+            // {enemygoal_x - std::cos(theta) * 2000, std::sin(theta) * 2000});
           } else if (ball_pos.x() < -2000) {
             pos_ = pos::near;
-            positions_.push_back({ball_pos.x() + (i + 2) * 1500, std::sin(theta) * 3500});
+            // positions_.push_back({ball_pos.x() + (i + 2) * 1500, std::sin(theta) * 2000});
+            positions_.push_back({ball_pos.x() + (i + 2) * 1500, std::sin(theta) * 3000});
           } else {
             pos_ = pos::mid;
-            positions_.push_back({ball_pos.x() + (i + 1) * 1000, std::sin(theta) * 3500});
+            // positions_.push_back({ball_pos.x() + (i + 1) * 1000, std::sin(theta) * 2000});
+            positions_.push_back(
+                {ball_pos.x() + (i + 1) * 1000 * kick_off_coe, std::sin(theta) * 3000});
           }
           if (positions_[i].x() > enemygoal_x - 500) {
             positions_[i].x() = enemygoal_x - 500;
@@ -101,94 +115,13 @@ std::vector<std::shared_ptr<action::base>> setplay::execute() {
           i++;
         } // }}}
       }
-      int i          = 0;
-      bool movedflag = true;
-      // ロボットたちが指定位置に移動したか
-      for (auto receiver_id : receiver_ids_) {
-        if ((positions_[i] - util::math::position(our_robots.at(receiver_id))).norm() > 100) {
-          movedflag = false;
-          break;
-        }
-        i++;
-      }
-      if ((ball_pos - kicker_pos).norm() > 300 &&
-          std::abs(util::wrap_to_pi(vectorangle(ball_pos - kicker_pos) - kicker.theta())) <
-              0.15) {
-        movedflag = false;
-      }
-
-      // ロボットが指定位置に移動していたらパス状態へ移行
-      if (movedflag) {
-        state_ = state::pass;
-        double max_dist;
-        for (auto receiver_id : receiver_ids_) {
-          double min_dist = std::numeric_limits<double>::max();
-          auto& receiver  = our_robots.at(receiver_id);
-          for (auto enemy_robot_p : enemy_robots) {
-            auto enemy_robot = std::get<1>(enemy_robot_p);
-            if ((ball_pos.x() - enemy_robot.x()) *
-                    (receiver.x() - ball_pos.x() - enemy_robot.x()) <
-                0) {
-              Eigen::Vector3d to_shooter(receiver.x() - ball.x(), receiver.y() - ball.y(), 0);
-              Eigen::Vector3d to_enemy(enemy_robot.x() - ball.x(), enemy_robot.y() - ball.y(),
-                                       0);
-              const double distance =
-                  std::abs(to_shooter.cross(to_enemy).norm() / to_shooter.norm());
-              if (distance < min_dist) {
-                min_dist = distance;
-              }
-            }
-          }
-          if (min_dist > max_dist) {
-            max_dist    = min_dist;
-            shooter_id_ = receiver_id;
-          }
-        }
-        if (pos_ == pos::near) {
-          auto shooter = our_robots.at(shooter_id_);
-          passpos_     = {shooter.x(), shooter.y()};
-        } else if (pos_ == pos::mid) {
-          auto shooter = our_robots.at(shooter_id_);
-          passpos_     = {shooter.x(), shooter.y()};
-        } else {
-          auto shooter = our_robots.at(shooter_id_);
-          passpos_     = {shooter.x(), shooter.y()};
-        }
-        baseaction_.push_back(make_action<action::no_operation>(kicker_id_));
-        for (auto receiver_id : receiver_ids_)
-          baseaction_.push_back(make_action<action::no_operation>(receiver_id));
-        receive_ = make_action<action::receive>(shooter_id_);
-      } else {
-        // ロボットが移動できていなかったら移動を続ける
-        for (i = 0; i < receiver_ids_.size(); i++) {
-          const Eigen::Vector2d receiver_pos =
-              util::math::position(our_robots.at(receiver_ids_[i]));
-          auto move              = make_action<action::move>(receiver_ids_[i]);
-          const double to_target = vectorangle(positions_[i] - receiver_pos);
-          const int dist         = (positions_[i] - receiver_pos).norm();
-          bool close_flag        = dist < 10;
-
-          move->move_to(receiver_pos.x() + (close_flag ? 0 : dist * std::cos(to_target)),
-                        receiver_pos.y() + (close_flag ? 0 : dist * std::sin(to_target)),
-                        vectorangle(ball_pos - receiver_pos));
-          baseaction_.push_back(move);
-        }
-        if ((ball_pos - kicker_pos).norm() > 180) {
-          auto move            = make_action<action::move>(kicker_id_);
-          const double to_ball = vectorangle(ball_pos - kicker_pos);
-          move->move_to(ball_pos.x(), ball_pos.y(), to_ball);
-          baseaction_.push_back(move);
-        } else {
-          const Eigen::Vector2d receiver_pos = util::math::position(our_robots.at(kicker_id_));
-          auto move                          = make_action<action::move>(kicker_id_);
-          const double to_ball               = vectorangle(ball_pos - kicker_pos);
-          move->move_to(receiver_pos.x(), receiver_pos.y(), to_ball);
-          baseaction_.push_back(move);
-        }
-        break;
-      }
+      state_      = state::pass;
+      shooter_id_ = receiver_ids_[0];
+      passpos_    = {positions_[0].x(), positions_[0].y()};
+      receive_    = make_action<action::receive>(shooter_id_);
     }
     case state::pass: {
+      std::cout << "state_pass" << std::endl;
       // パスを出す
       kick_->set_mode(action::kick_action::mode::ball);
 
@@ -202,28 +135,41 @@ std::vector<std::shared_ptr<action::base>> setplay::execute() {
         line_flag = false;
       }
 
-      const double power = line_flag ? 40 : 200;
-      kick_->kick_to(passpos_.x(), passpos_.y());
-      kick_->set_dribble(3);
-      kick_->set_angle_margin(0.2);
-      auto kick_type =
-          line_flag ? model::command::kick_type_t::line : model::command::kick_type_t::chip;
-      kick_->set_kick_type({kick_type, power});
-      baseaction_.push_back(kick_);
+      bool movedflag = true;
+      // ロボットたちが指定位置に移動したか
+      if ((positions_[0] - util::math::position(our_robots.at(shooter_id_))).norm() > 1000) {
+        movedflag = false;
+      }
+      //
+      if (kick_->state() == action::kick_action::running_state::kick && !movedflag) {
+        baseaction_.push_back(make_action<action::no_operation>(kicker_id_));
+      } else {
+        const double power = line_flag ? 4 : 200;
+        kick_->kick_to(passpos_.x(), passpos_.y());
+        kick_->set_dribble(3);
+        kick_->set_angle_margin(0.10);
+        auto kick_type =
+            line_flag ? model::command::kick_type_t::line : model::command::kick_type_t::chip;
+        kick_->set_kick_type({kick_type, power});
+        baseaction_.push_back(kick_);
+      }
 
+      int i = 0;
       for (auto receiver_id : receiver_ids_) {
         const auto receiver_pos = util::math::position(our_robots.at(receiver_id));
         if (receiver_id != shooter_id_) {
           auto move = make_action<action::move>(receiver_id);
-          move->move_to(receiver_pos.x(), receiver_pos.y(),
+          move->move_to(positions_[i].x(), positions_[i].y(),
                         vectorangle(ball_pos - receiver_pos));
           baseaction_.push_back(move);
         } else {
-          if (kick_->state() == action::kick_action::running_state::kick) {
-            receive_->set_dribble(8);
+          if (kick_->state() == action::kick_action::running_state::kick && movedflag) {
+            std::cout << "iaia" << std::endl;
+            receive_->set_dribble(9);
             receive_->set_passer(kicker_id_);
             baseaction_.push_back(receive_);
           } else {
+            std::cout << "passposx" << passpos_.x() << "passposy" << passpos_.y() << std::endl;
             const Eigen::Vector2d target = {passpos_.x(), passpos_.y()};
             auto move                    = make_action<action::move>(shooter_id_);
             const double to_target       = vectorangle(target - receiver_pos);
@@ -235,20 +181,77 @@ std::vector<std::shared_ptr<action::base>> setplay::execute() {
             baseaction_.push_back(move);
           }
         }
+        i++;
       }
       break;
     }
     case state::receive: {
       // パスを受け取る
+      std::cout << "state_receive" << std::endl;
       baseaction_.push_back(make_action<action::no_operation>(kicker_id_));
       for (auto receiver_id : receiver_ids_) {
         if (receiver_id == shooter_id_) {
           if (!receive_->finished()) {
+            std::cout << "shsh1" << ball_pos.y() << std::endl;
             receive_->set_passer(kicker_id_);
-            receive_->set_dribble(8);
+            receive_->set_dribble(9);
             baseaction_.push_back(receive_);
           } else {
-            state_ = state::shoot;
+            std::cout << "shsh2" << std::endl;
+            // キーパー探索
+            const Eigen::Vector2d shooter_pos =
+                util::math::position(our_robots.at(shooter_id_));
+            double min_dist = std::numeric_limits<double>::max();
+            double to_keeper_theta;
+            for (auto& enemy_robot_p : enemy_robots) {
+              auto& enemy_robot = std::get<1>(enemy_robot_p);
+              // const double distance = (enemy_robot - Eigen::Vector2d{enemygoal_x, 0}).norm();
+              const double distance =
+                  std::hypot(enemy_robot.x() - enemygoal_x, enemy_robot.y() - 0);
+              if (distance > 1000) {
+                continue;
+              }
+              if (distance < min_dist) {
+                min_dist        = distance;
+                to_keeper_theta = std::atan2(enemy_robot.y() - shooter_pos.y(),
+                                             enemy_robot.x() - shooter_pos.x());
+              }
+            }
+            std::cout << "shpos hoge1 " << to_keeper_theta << std::endl;
+            if (min_dist != std::numeric_limits<double>::max()) {
+              std::cout << "shpos hoge2" << std::endl;
+              const double goal_max_plus_theta =
+                  vectorangle(Eigen::Vector2d{enemygoal_x, 500} - ball_pos);
+              const double goal_max_minus_theta =
+                  vectorangle(Eigen::Vector2d{enemygoal_x, -500} - ball_pos);
+              if (to_keeper_theta < goal_max_plus_theta &&
+                  to_keeper_theta > goal_max_minus_theta) {
+                std::cout << "shpos hoge3" << std::endl;
+                double shoot_theta;
+                if (goal_max_plus_theta - to_keeper_theta >
+                    to_keeper_theta - goal_max_minus_theta) {
+                  shoot_theta = (to_keeper_theta + goal_max_plus_theta) / 2;
+                  std::cout << "shpos hoge4 " << shoot_theta << std::endl;
+                } else {
+                  shoot_theta = (to_keeper_theta + goal_max_minus_theta) / 2;
+                  std::cout << "shpos " << to_keeper_theta << ", " << goal_max_plus_theta
+                            << ", " << goal_max_minus_theta << std::endl;
+                  std::cout << "shpos hoge5 " << shoot_theta << std::endl;
+                }
+                const Eigen::Vector2d shoot_vec = {std::cos(shoot_theta),
+                                                   std::sin(shoot_theta)};
+                std::cout << "shpos hoge6 " << shoot_vec.x() << ", " << shoot_vec.y()
+                          << std::endl;
+                shoot_pos = {enemygoal_x,
+                             ball_pos.y() +
+                                 shoot_vec.y() * (enemygoal_x - ball_pos.x()) / shoot_vec.x()};
+                std::cout << "shpos hoge8 " << enemygoal_x - ball_pos.x() << std::endl;
+                std::cout << "shpos hoge7 " << shoot_pos.x() << ", " << shoot_pos.y()
+                          << std::endl;
+              }
+            }
+            shoot_pos = {enemygoal_x, 0};
+            state_    = state::shoot;
           }
         } else {
           baseaction_.push_back(make_action<action::no_operation>(receiver_id));
@@ -259,14 +262,16 @@ std::vector<std::shared_ptr<action::base>> setplay::execute() {
       }
     }
     case state::shoot: {
+      std::cout << "shoot" << shoot_pos.y() << std::endl;
       // シュートを撃つ
       if (receiver_ids_.size() == 0) {
-        Eigen::Vector2d target = {enemygoal_x, -400 * ballysign};
+        // Eigen::Vector2d target = {enemygoal_x, -400 * ballysign};
+        Eigen::Vector2d target = {enemygoal_x, 0 * ballysign};
         const double power     = 50;
         kick_->kick_to(target.x(), target.y());
         kick_->set_dribble(0);
         kick_->set_mode(action::kick_action::mode::ball);
-        kick_->set_angle_margin(0.20);
+        kick_->set_angle_margin(0.15);
         kick_->set_kick_type({model::command::kick_type_t::line, power});
         baseaction_.push_back(kick_);
       } else {
@@ -274,12 +279,12 @@ std::vector<std::shared_ptr<action::base>> setplay::execute() {
       }
       for (auto receiver_id : receiver_ids_) {
         if (receiver_id == shooter_id_) {
-          Eigen::Vector2d target = {enemygoal_x, -400 * ballysign};
+          Eigen::Vector2d target = {enemygoal_x, 0 * ballysign};
           const double power     = 50;
           kick_->kick_to(target.x(), target.y());
-          kick_->set_dribble(0);
+          kick_->set_dribble(3);
           kick_->set_mode(action::kick_action::mode::ball);
-          kick_->set_angle_margin(0.20);
+          kick_->set_angle_margin(0.15);
           kick_->set_kick_type({model::command::kick_type_t::line, power});
           baseaction_.push_back(kick_);
         } else {
@@ -290,6 +295,7 @@ std::vector<std::shared_ptr<action::base>> setplay::execute() {
     }
     case state::finished: {
       // 終了
+      std::cerr << "finish" << std::endl;
       baseaction_.push_back(make_action<action::no_operation>(kicker_id_));
       for (auto receiver_id : receiver_ids_) {
         baseaction_.push_back(make_action<action::no_operation>(receiver_id));

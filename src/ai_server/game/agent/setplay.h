@@ -22,8 +22,6 @@ public:
   setplay(const model::world& world, bool is_yellow, unsigned int kicker_id,
           const std::vector<unsigned int>& receiver_id);
 
-  void set_extra_robots(const std::vector<unsigned int>& ids);
-
   std::vector<std::shared_ptr<action::base>> execute() override;
 
   bool finished();
@@ -39,7 +37,9 @@ private:
   std::shared_ptr<action::receive> receive_;
   std::vector<std::shared_ptr<action::base>> baseaction_;
   Eigen::Vector2d passpos_;
+  Eigen::Vector2d shoot_pos;
   std::vector<Eigen::Vector2d> positions_;
+  bool neflag = false;
 
   Eigen::Vector2d find_location(std::vector<Eigen::Vector2d> targets,
                                 model::world::robots_list enemy_robots, int dist = 1);

@@ -72,7 +72,7 @@ model::command receive::execute() {
   const auto theta   = std::atan2(to_ball.y(), to_ball.x());
 
   //位置から速度へ
-  const auto target_vec{(target - robot_pos) * 3};
+  const auto target_vec{(target - robot_pos) * 8};
 
   const auto omega = theta - robot_theta;
   command.set_velocity({target_vec.x(), target_vec.y(), omega});
