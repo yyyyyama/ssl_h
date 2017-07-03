@@ -52,6 +52,13 @@ inline auto acceleration(const T& obj)
   return {obj.ax(), obj.ay()};
 }
 
+/// @brief     acceleration_tを2次元のベクトル型に変換する
+/// @param obj 変換したいオブジェクト
+/// @return    Eigen::Vector2d{obj.ax, obj.ay}
+inline Eigen::Vector2d acceleration(const model::command::acceleration_t& obj) {
+  return {obj.ax, obj.ay};
+}
+
 } // namespace math
 } // namespace util
 } // namespace ai_server

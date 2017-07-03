@@ -31,6 +31,9 @@ BOOST_AUTO_TEST_CASE(to_vector) {
 
   const auto v = model::command::velocity_t{56, 78, 0};
   BOOST_TEST(util::math::velocity(v) == Eigen::Vector2d(56, 78));
+
+  const auto a = model::command::acceleration_t{90, 12, 0};
+  BOOST_TEST(util::math::acceleration(a) == Eigen::Vector2d(90, 12));
 }
 
 BOOST_AUTO_TEST_CASE(wrap_to_2pi, *boost::unit_test::tolerance(0.0000001)) {
