@@ -38,6 +38,10 @@ class robot {
   using manual_filter_type = filter::base<model::robot, filter::timing::manual>;
 
 public:
+  robot()             = default;
+  robot(const robot&) = delete;
+  robot& operator=(const robot&) = delete;
+
   /// @brief           Detectionパケットを処理し, ボールの情報を更新する
   /// @param detection SSL-VisionのDetectionパケット
   void update(const ssl_protos::vision::Frame& detection);

@@ -24,6 +24,9 @@ class field {
 public:
   field();
 
+  field(const field&) = delete;
+  field& operator=(const field&) = delete;
+
   /// @brief          Geometryパケットを処理し, フィールドの情報を更新する
   /// @param geometry SSL-VisionのGeometryパケット
   void update(const ssl_protos::vision::Geometry& geometry);
