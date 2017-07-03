@@ -53,6 +53,10 @@ velocity_t state_feedback_controller::update(const model::robot& robot,
   target.z()         = clamp(util::wrap_to_pi(delta_p.z()) * 2, -omega_limit, omega_limit);
 
   u_[0] = u_[0] + (std::pow(k_, 2) / std::pow(omega_, 2)) * target;
+  // nanが入ったら前回入力を今回値とする
+  if (std::isnan(u_[0].x()) || std::isnan(u_[0].y()) || std::isnan(u_[0].z())) {
+    u_[0] = u_[1];
+  }
 
   // 値の更新
   up_[1] = up_[0];
@@ -78,6 +82,10 @@ velocity_t state_feedback_controller::update(const model::robot& robot,
   target.z()         = clamp(set.z(), -omega_limit, omega_limit);
 
   u_[0] = u_[0] + (std::pow(k_, 2) / std::pow(omega_, 2)) * target;
+  // nanが入ったら前回入力を今回値とする
+  if (std::isnan(u_[0].x()) || std::isnan(u_[0].y()) || std::isnan(u_[0].z())) {
+    u_[0] = u_[1];
+  }
 
   // 値の更新
   up_[1] = up_[0];
