@@ -14,7 +14,7 @@ public:
   using base::base;
   void move_to(double x, double y, double theta);
   void set_kick_type(const model::command::kick_flag_t& kick_type);
-	unsigned int id();
+  unsigned int id();
   model::command::kick_flag_t kick_type();
   void set_dribble(int dribble);
   int dribble();
@@ -30,7 +30,7 @@ private:
   int dribble_;
   model::command::kick_flag_t kick_type_ = {model::command::kick_type_t::none, 0.0};
   bool flag_                             = false;
-	bool halt_flag_=false;
+  bool halt_flag_                        = false;
 };
 }
 }
