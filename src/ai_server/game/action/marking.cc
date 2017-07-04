@@ -3,11 +3,11 @@
 #include <boost/geometry/geometry.hpp>
 #include <boost/geometry/geometries/point_xy.hpp>
 #include <boost/geometry/geometries/polygon.hpp>
-#include <boost/geometry/geometry.hpp>
 #include <boost/assign/list_of.hpp>
 
 #include "ai_server/game/action/marking.h"
 #include "ai_server/util/math.h"
+#include "ai_server/util/math/geometry.h"
 
 namespace ai_server {
 namespace game {
@@ -75,26 +75,26 @@ model::command marking::execute() {
     //移動経路に他のものがあったらよける
     //判定の幅
     const auto mergin1 = 300.0;
-    const auto mergin2 = 600.0;
-    //軌道の三角
+    const auto mergin2 = 1000.0;
     polygon poly;
-    bg::exterior_ring(poly) = boost::assign::list_of<point>(my.x(), my.y())(
-        std::get<0>(util::move(my, position, mergin1)).x(),
-        std::get<0>(util::move(my, position, mergin1)).y())(
-        std::get<1>(util::move(my, position, mergin1)).x(),
-        std::get<1>(util::move(my, position, mergin1)).y())(my.x(), my.y());
+    bg::exterior_ring(poly) = [&my, &position, &mergin1] {
+      Eigen::Vector2d p1, p2;
+      std::tie(p1, p2) = util::calc_vertex(my, position, mergin1);
+      return boost::assign::list_of<point> //軌道の三角
+          (my.x(), my.y())(p1.x(), p1.y())(p2.x(), p2.y())(my.x(), my.y());
+    }();
     const point p_e(enemy.x(), enemy.y());
     const point p_b(ball.x(), ball.y());
     if (!bg::disjoint(p_e, poly)) {
-      const auto tmp_e  = util::move(my, enemy, mergin2);
+      const auto tmp_e  = util::calc_vertex(my, enemy, mergin2);
       const auto tmp_e1 = std::get<0>(tmp_e);
       const auto tmp_e2 = std::get<1>(tmp_e);
-      position          = std::abs(tmp_e1.y()) < std::abs(tmp_e2.y()) ? tmp_e1 : tmp_e2;
+      position          = (std::abs(tmp_e1.y()) < std::abs(tmp_e2.y())) ? tmp_e1 : tmp_e2;
     } else if (!bg::disjoint(p_b, poly)) {
-      const auto tmp_b  = util::move(my, ball, mergin2);
+      const auto tmp_b  = util::calc_vertex(my, ball, mergin2);
       const auto tmp_b1 = std::get<0>(tmp_b);
       const auto tmp_b2 = std::get<1>(tmp_b);
-      position          = std::abs(tmp_b1.y()) < std::abs(tmp_b2.y()) ? tmp_b1 : tmp_b2;
+      position          = (std::abs(tmp_b1.y()) < std::abs(tmp_b2.y())) ? tmp_b1 : tmp_b2;
     }
   }
   //向きをボールの方へ

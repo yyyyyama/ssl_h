@@ -3,6 +3,7 @@
 
 #include "ai_server/game/agent/defense.h"
 #include "ai_server/model/command.h"
+#include "ai_server/util/math/geometry.h"
 #include "ai_server/util/math.h"
 
 namespace ai_server {
@@ -53,7 +54,7 @@ std::vector<std::shared_ptr<action::base>> defense::execute() {
   const Eigen::Vector2d ball(ball_pos + ball_k);
 
   //状態を遷移させるためのボールの位置
-  if (ball_vec.norm() < 80.0) {
+  if (ball_vec.norm() < 150.0) {
     ball_ = ball_pos;
   }
   //ボールがゴールより後ろに来たら現状維持
@@ -139,7 +140,7 @@ std::vector<std::shared_ptr<action::base>> defense::execute() {
         }
 
         //敵がめっちゃ近づいたら閉める
-        if ((ball_ - goal).norm() < demarcation) {
+        if ((ball - goal).norm() < demarcation) {
           //前に出てる場合じゃねぇ
           odd = orientation_;
         }
@@ -149,15 +150,15 @@ std::vector<std::shared_ptr<action::base>> defense::execute() {
         shift_        = 200;
       } else { //偶数
         magnification = 2.0;
-        shift_        = 220.0;
+        shift_        = 190.0;
         //敵がめっちゃ近づいたら閉める
-        if ((ball_ - goal).norm() < demarcation) {
+        if ((ball - goal).norm() < demarcation) {
           shift_ = 90;
         }
       }
       for (auto shift = shift_; wall_it != wall_.end();
            shift += (shift_ * magnification), wall_it += 2) {
-        const auto tmp = util::move(ball, orientation_, shift);
+        const auto tmp = util::calc_vertex(ball, orientation_, shift);
         target.push_back(std::get<0>(tmp));
         target.push_back(std::get<1>(tmp));
         //もしディフェンスエリアないに入ってしまっても順番が入れ替わらないようにする
