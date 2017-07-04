@@ -288,8 +288,8 @@ void first_formation::decide_wall() {
   for (auto id = wall_.begin(); id != wall_.end(); ++id) {
     const auto wall_it =
         std::find_if(ids_.begin(), ids_.end(), [id](auto& i) { return i == *id; });
-    if (wall_it == ids_.end()) {
-      break; //見えていないなら作る
+    if (wall_it == ids_.end() || (wall_.size() != wall_number_)) {
+      break; //見えていない,数が合っていないなら作り直す
     }
     if (id == wall_.end() - 1) {
       return; //見えていたら作らない
