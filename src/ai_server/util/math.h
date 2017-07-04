@@ -36,11 +36,12 @@ T wrap_to_pi(T r) {
   return wrapped;
 }
 
-/// @brief     ある直線の始点と終点が与えられたとき,終点から左右に任意の長さ分ずらした2点を返す 
-/// @param begin ある直線についての始点 
+/// @brief     ある直線の始点と終点が与えられたとき,終点から左右に任意の長さ分ずらした2点を返す
+/// @param begin ある直線についての始点
 /// @param end ある直線についての終点
 /// @param shift 終点からずらしたい長さ
-/// @return   std::tuple<Eigen::Vector2d,Eigen::Vector2d>{終点から右にずらした点,終点から左にずらした点}
+/// @return
+/// std::tuple<Eigen::Vector2d,Eigen::Vector2d>{終点から右にずらした点,終点から左にずらした点}
 template <class T>
 auto move(Eigen::Vector2d begin, Eigen::Vector2d end, T shift) {
   //移動した量
