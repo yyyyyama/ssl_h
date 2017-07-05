@@ -158,7 +158,7 @@ std::vector<std::shared_ptr<action::base>> defense::execute() {
       }
       for (auto shift = shift_; wall_it != wall_.end();
            shift += (shift_ * magnification), wall_it += 2) {
-        const auto tmp = util::calc_vertex(ball, orientation_, shift);
+        const auto tmp = util::calc_isosceles_vertexes(ball, orientation_, shift);
         target.push_back(std::get<0>(tmp));
         target.push_back(std::get<1>(tmp));
         //もしディフェンスエリアないに入ってしまっても順番が入れ替わらないようにする

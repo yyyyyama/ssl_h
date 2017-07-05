@@ -59,7 +59,6 @@ model::command guard::execute() {
 
   //位置のマージン
 
-  // const auto margin = vec.norm() > 1000.0 ? 80.0 : 40.0;
   const auto margin = 30.0;
 
   //目標位置に居るなら終わり

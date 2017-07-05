@@ -79,19 +79,19 @@ model::command marking::execute() {
     polygon poly;
     bg::exterior_ring(poly) = [&my, &position, &mergin1] {
       Eigen::Vector2d p1, p2;
-      std::tie(p1, p2) = util::calc_vertex(my, position, mergin1);
+      std::tie(p1, p2) = util::calc_isosceles_vertexes(my, position, mergin1);
       return boost::assign::list_of<point> //軌道の三角
           (my.x(), my.y())(p1.x(), p1.y())(p2.x(), p2.y())(my.x(), my.y());
     }();
     const point p_e(enemy.x(), enemy.y());
     const point p_b(ball.x(), ball.y());
     if (!bg::disjoint(p_e, poly)) {
-      const auto tmp_e  = util::calc_vertex(my, enemy, mergin2);
+      const auto tmp_e  = util::calc_isosceles_vertexes(my, enemy, mergin2);
       const auto tmp_e1 = std::get<0>(tmp_e);
       const auto tmp_e2 = std::get<1>(tmp_e);
       position          = (std::abs(tmp_e1.y()) < std::abs(tmp_e2.y())) ? tmp_e1 : tmp_e2;
     } else if (!bg::disjoint(p_b, poly)) {
-      const auto tmp_b  = util::calc_vertex(my, ball, mergin2);
+      const auto tmp_b  = util::calc_isosceles_vertexes(my, ball, mergin2);
       const auto tmp_b1 = std::get<0>(tmp_b);
       const auto tmp_b2 = std::get<1>(tmp_b);
       position          = (std::abs(tmp_b1.y()) < std::abs(tmp_b2.y())) ? tmp_b1 : tmp_b2;
