@@ -8,6 +8,7 @@
 
 namespace ai_server {
 namespace util {
+namespace math {
 /// @brief     ある直線の始点と終点が与えられたとき,終点から左右に任意の長さ分ずらした2点を返す
 /// @param apex ある直線についての始点
 /// @param middle_base ある直線についての終点
@@ -25,6 +26,7 @@ auto calc_isosceles_vertexes(const Eigen::Matrix<T, 2, 1>& apex,
 
   //+-shiftずらして終点に足す
   return std::make_tuple((middle_base + normalize * shift), (middle_base + normalize * -shift));
+}
 }
 }
 }

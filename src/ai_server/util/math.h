@@ -2,6 +2,7 @@
 #define AI_SERVER_UTIL_MATH_H
 
 #include <boost/math/constants/constants.hpp>
+#include <cmath>
 
 namespace ai_server {
 namespace util {
