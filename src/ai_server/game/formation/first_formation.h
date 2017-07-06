@@ -42,9 +42,9 @@ public:
   std::vector<std::shared_ptr<agent::base>> execute() override;
 
 private:
-  void decide_keeper();
-  void decide_wall_number(); //壁の数を決定
-  void decide_wall();        //壁にするロボットを決定
+  void update_keeper();
+  void decide_wall_count(); //壁の数を決定
+  void decide_wall();       //壁にするロボットを決定
   void decide_kicker(); //壁,キーパー以外でボールに一番近いロボットをキッカーに決定
   void other_robots();  //キーパー,壁以外のロボットを抽出
   void waiter();        //キーパー,壁,キッカー以外のロボットを抽出
@@ -53,16 +53,16 @@ private:
   //コマンドを使いやすい形に変形
   command convert_command(model::refbox::game_command command);
   //ボールを蹴ったか判定
-  bool kicked();
+  bool kicked(model::ball ball);
 
   //役割に対するid
-  int wall_number_;                         //壁の数
   unsigned int keeper_;                     //キーパー
   std::vector<unsigned int> wall_;          //壁
   unsigned int kicker_;                     //キッカー
   std::vector<unsigned int> others_;        //キーパー,壁以外
   std::vector<unsigned int> waiter_;        //キーパー,壁,キッカー以外
   std::vector<unsigned int> except_keeper_; //キーパー以外
+  int wall_count_;                          //壁の数
 
   std::vector<unsigned int> ids_;
 
@@ -73,6 +73,8 @@ private:
   model::refbox::game_command previous_refcommand_;
   command previous_command_;
   command current_command_;
+  bool is_command_changed();
+
   model::ball previous_ball_;
 
   std::vector<std::shared_ptr<agent::base>> exe_;

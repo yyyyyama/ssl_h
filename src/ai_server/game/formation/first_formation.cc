@@ -7,26 +7,25 @@ namespace formation {
 first_formation::first_formation(const model::world& world, const model::refbox& refcommand,
                                  bool is_yellow, const std::vector<unsigned int>& ids)
     : base(world, is_yellow, refcommand),
-      kicker_(0),
       ids_(ids),
-      wall_number_(2),
-      previous_ball_(world.ball()),
       kicked_flag_(false),
-      regular_flag_(true) {}
+      regular_flag_(true),
+      previous_ball_(world.ball()) {}
 
 std::vector<std::shared_ptr<agent::base>> first_formation::execute() {
-  previous_command_     = current_command_;
-  current_command_      = convert_command(refcommand_.command());
+  const auto command = refcommand_.command();
+  current_command_   = convert_command(command);
+
   const auto our_robots = is_yellow_ ? world_.robots_yellow() : world_.robots_blue();
   const auto ball       = world_.ball();
-  previous_refcommand_  = refcommand_.command();
+
   exe_.clear();
 
   //壁を決定する,変更があった場合にはothers_も更新する
-  decide_keeper();
+  update_keeper();
   decide_wall();
   //壁,キッカーなどの役割を決定
-  if (current_command_ == command::stop && previous_command_ != current_command_) {
+  if (current_command_ == command::stop && is_command_changed()) {
     decide_kicker();
     except_keeper();
     waiter();
@@ -42,7 +41,7 @@ std::vector<std::shared_ptr<agent::base>> first_formation::execute() {
   // commandによってagentを使い分ける
   switch (current_command_) {
     case command::halt:
-      if (current_command_ != previous_command_) { //コマンドが切り替わった時だけ初期化
+      if (is_command_changed()) { //コマンドが切り替わった時だけ初期化
         reset_flag();
         halt();
       }
@@ -50,7 +49,7 @@ std::vector<std::shared_ptr<agent::base>> first_formation::execute() {
       break;
 
     case command::stop:
-      if (current_command_ != previous_command_) {
+      if (is_command_changed()) {
         reset_flag();
         stop();
         defense(agent::defense::defense_mode::normal_mode, false);
@@ -72,7 +71,7 @@ std::vector<std::shared_ptr<agent::base>> first_formation::execute() {
         break;
       }
 
-      if (current_command_ != previous_command_) { //コマンドが切り替わった時だけ初期化
+      if (is_command_changed()) { //コマンドが切り替わった時だけ初期化
         reset_flag();
         kickoff(true);
         kickoff_waiter(agent::kick_off_waiter::kickoff_mode::attack, true);
@@ -96,7 +95,7 @@ std::vector<std::shared_ptr<agent::base>> first_formation::execute() {
         break;
       }
 
-      if (current_command_ != previous_command_) { //コマンドが切り替わった時だけ初期化
+      if (is_command_changed()) { //コマンドが切り替わった時だけ初期化
         pk(true, true);
         defense(agent::defense::defense_mode::normal_mode, false);
       }
@@ -105,7 +104,7 @@ std::vector<std::shared_ptr<agent::base>> first_formation::execute() {
       break;
 
     case command::force_start:
-      if (current_command_ != previous_command_) { //コマンドが切り替わった時だけ初期化
+      if (is_command_changed()) { //コマンドが切り替わった時だけ初期化
         reset_flag();
         regular(true);
         defense(agent::defense::defense_mode::normal_mode, false);
@@ -115,7 +114,7 @@ std::vector<std::shared_ptr<agent::base>> first_formation::execute() {
       break;
 
     case command::kickoff_attack:
-      if (current_command_ != previous_command_) { //コマンドが切り替わった時だけ初期化
+      if (is_command_changed()) { //コマンドが切り替わった時だけ初期化
         reset_flag();
         kickoff(false);
         kickoff_waiter(agent::kick_off_waiter::kickoff_mode::attack, true);
@@ -139,8 +138,8 @@ std::vector<std::shared_ptr<agent::base>> first_formation::execute() {
         break;
       }
 
-      kicked_flag_ = kicked();
-      if (current_command_ != previous_command_) { //コマンドが切り替わった時だけ初期化
+      kicked_flag_ = kicked(ball);
+      if (is_command_changed()) { //コマンドが切り替わった時だけ初期化
         reset_flag();
         kickoff_waiter(agent::kick_off_waiter::kickoff_mode::defense, false);
         defense(agent::defense::defense_mode::normal_mode, false);
@@ -150,7 +149,7 @@ std::vector<std::shared_ptr<agent::base>> first_formation::execute() {
       break;
 
     case command::penalty_attack:
-      if (current_command_ != previous_command_) { //コマンドが切り替わった時だけ初期化
+      if (is_command_changed()) { //コマンドが切り替わった時だけ初期化
         reset_flag();
         pk(false, true);
         defense(agent::defense::defense_mode::normal_mode, false);
@@ -172,8 +171,8 @@ std::vector<std::shared_ptr<agent::base>> first_formation::execute() {
         break;
       }
 
-      kicked_flag_ = kicked();
-      if (current_command_ != previous_command_) { //コマンドが切り替わった時だけ初期化
+      kicked_flag_ = kicked(ball);
+      if (is_command_changed()) { //コマンドが切り替わった時だけ初期化
         reset_flag();
         pk(false, false);
         defense(agent::defense::defense_mode::pk_mode, false);
@@ -194,8 +193,8 @@ std::vector<std::shared_ptr<agent::base>> first_formation::execute() {
         exe_.push_back(df_);
         break;
       }
-      kicked_flag_ = kicked();
-      if (current_command_ != previous_command_) { //コマンドが切り替わった時だけ初期化
+      kicked_flag_ = kicked(ball);
+      if (is_command_changed()) { //コマンドが切り替わった時だけ初期化
         setplay();
         defense(agent::defense::defense_mode::normal_mode, false);
       }
@@ -216,15 +215,15 @@ std::vector<std::shared_ptr<agent::base>> first_formation::execute() {
         break;
       }
 
-      kicked_flag_ = kicked();
-      if (ball.x() < -3500) { //コーナーキックの場合はマークを使う
-        if (current_command_ != previous_command_) { //コマンドが切り替わった時だけ初期化
+      kicked_flag_ = kicked(ball);
+      if (ball.x() < -3500) {       //コーナーキックの場合はマークを使う
+        if (is_command_changed()) { //コマンドが切り替わった時だけ初期化
           reset_flag();
           defense(agent::defense::defense_mode::normal_mode, true);
         }
         exe_.push_back(df_);
       } else {
-        if (current_command_ != previous_command_) { //コマンドが切り替わった時だけ初期化
+        if (is_command_changed()) { //コマンドが切り替わった時だけ初期化
           reset_flag();
           regular(false);
           defense(agent::defense::defense_mode::normal_mode, false);
@@ -239,16 +238,16 @@ std::vector<std::shared_ptr<agent::base>> first_formation::execute() {
       break;
   }
 
-  previous_ball_ = world_.ball();
+  previous_ball_       = ball;
+  previous_command_    = current_command_;
+  previous_refcommand_ = command;
 
   return exe_;
 }
 
 //ボールを蹴ったか判定
-bool first_formation::kicked() {
-  const auto ball = world_.ball();
+bool first_formation::kicked(model::ball ball) {
   if (std::hypot(ball.x() - previous_ball_.x(), ball.y() - previous_ball_.y()) > 80) {
-    previous_ball_ = ball;
     return true;
   }
   return false;
@@ -260,12 +259,16 @@ void first_formation::reset_flag() {
   regular_flag_ = true;
 }
 
+bool first_formation::is_command_changed() {
+  return current_command_ != previous_command_;
+}
+
 ///////////////////////////////////////////////////////
 //              idを割り振る関数                       //
 ///////////////////////////////////////////////////////
 
 // refboxからキーパーのidを得る
-void first_formation::decide_keeper() {
+void first_formation::update_keeper() {
   if (is_yellow_) {
     keeper_ = refcommand_.team_yellow().goalie();
   } else {
@@ -274,43 +277,33 @@ void first_formation::decide_keeper() {
 }
 
 //壁の数を決定する
-void first_formation::decide_wall_number() {
-  wall_number_ = 2;
-
-  if (ids_.size() < 4) {
-    wall_number_ = 1;
-  }
+void first_formation::decide_wall_count() {
+  wall_count_ = ids_.size() < 4 ? 1 : 2;
 }
 
 //壁にするロボットを決定
 void first_formation::decide_wall() {
-  //壁が見えているか判定
-  for (auto id = wall_.begin(); id != wall_.end(); ++id) {
-    const auto wall_it =
-        std::find_if(ids_.begin(), ids_.end(), [id](auto& i) { return i == *id; });
-    if (wall_it == ids_.end() || (wall_.size() != wall_number_)) {
-      break; //見えていない,数が合っていないなら作り直す
-    }
-    if (id == wall_.end() - 1) {
-      return; //見えていたら作らない
-    }
-  }
   const auto our_robots = is_yellow_ ? world_.robots_yellow() : world_.robots_blue();
   const auto keeper     = keeper_;
   auto tmp_ids          = ids_;
+  //壁が見えているか判定 壁が見えていて,数が足りているとき作り直さない
+  if (wall_count_ == wall_.size() &&
+      std::all_of(wall_.begin(), wall_.end(),
+                  [&our_robots](auto&& id) { return our_robots.count(id); })) {
+    return;
+  }
 
   if (std::all_of(ids_.begin(), ids_.end(),
                   [&our_robots](auto&& id) { return our_robots.count(id); })) {
-    decide_wall_number();
+    decide_wall_count();
     wall_.clear();
 
     //キーパーを候補から除外
-    tmp_ids.erase(std::find_if(tmp_ids.begin(), tmp_ids.end(),
-                               [keeper](auto& i) { return i == keeper; }));
+    tmp_ids.erase(std::remove(tmp_ids.begin(), tmp_ids.end(), keeper));
 
-    // wall_numberの値だけ前か順に壁にする
+    // wall_countの値だけ前か順に壁にする
     auto wall_it = tmp_ids.begin();
-    for (int i = 0; i < wall_number_; i++) {
+    for (int i = 0; i < wall_count_; i++) {
       if (wall_it != tmp_ids.end()) {
         wall_.push_back(*wall_it);
       }
@@ -345,6 +338,7 @@ void first_formation::decide_kicker() {
 void first_formation::other_robots() {
   const auto our_robots = is_yellow_ ? world_.robots_yellow() : world_.robots_blue();
   const auto keeper     = keeper_;
+  const auto wall       = wall_;
   auto tmp_ids          = ids_;
 
   if (std::none_of(ids_.begin(), ids_.end(),
@@ -354,12 +348,11 @@ void first_formation::other_robots() {
   }
 
   //キーパー,壁を除外
+  tmp_ids.erase(std::remove(tmp_ids.begin(), tmp_ids.end(), keeper));
   tmp_ids.erase(
-      std::find_if(tmp_ids.begin(), tmp_ids.end(), [keeper](auto& i) { return i == keeper; }));
-  for (auto id = wall_.begin(); id != wall_.end(); ++id) {
-    tmp_ids.erase(
-        std::find_if(tmp_ids.begin(), tmp_ids.end(), [id](auto& i) { return i == *id; }));
-  }
+      std::remove_if(tmp_ids.begin(), tmp_ids.end(),
+                     [&wall](auto&& id) { return std::count(wall.begin(), wall.end(), id); }),
+      tmp_ids.end());
   others_ = tmp_ids;
 }
 
@@ -367,18 +360,16 @@ void first_formation::other_robots() {
 void first_formation::waiter() {
   auto tmp_ids = others_;
   auto kicker  = kicker_;
-  tmp_ids.erase(
-      std::find_if(tmp_ids.begin(), tmp_ids.end(), [kicker](auto& i) { return i == kicker; }));
+  tmp_ids.erase(std::remove(tmp_ids.begin(), tmp_ids.end(), kicker));
   waiter_ = tmp_ids;
 }
 
 //キーパー以外のロボットを抽出
 void first_formation::except_keeper() {
-  auto ids_tmp      = ids_;
+  auto tmp_ids      = ids_;
   const auto keeper = keeper_;
-  ids_tmp.erase(
-      std::find_if(ids_tmp.begin(), ids_tmp.end(), [keeper](auto& i) { return i == keeper; }));
-  except_keeper_ = ids_tmp;
+  tmp_ids.erase(std::remove(tmp_ids.begin(), tmp_ids.end(), keeper));
+  except_keeper_ = tmp_ids;
 }
 
 ///////////////////////////////////////////////////////
