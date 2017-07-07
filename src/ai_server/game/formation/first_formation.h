@@ -68,7 +68,6 @@ private:
 
   bool kicked_flag_; //ボールが蹴られたか判断するためのフラグ
   bool regular_flag_; //定常状態に遷移した際に、一回だけagentを初期化したいため必要
-  void reset_flag(); // kicked_flag_,regular_flag_を初期化
 
   model::refbox::game_command previous_refcommand_;
   command previous_command_;
@@ -88,14 +87,15 @@ private:
   std::shared_ptr<agent::setplay> setplay_;
 
   // agentを呼び出す関数
-  void pk(bool start_flag, bool attack);
-  void halt();
-  void defense(agent::defense::defense_mode mode, bool mark_flag);
-  void kickoff(bool start_flag);
-  void kickoff_waiter(agent::kick_off_waiter::kickoff_mode mode, bool attack);
-  void stop();
-  void regular(bool chase_flag);
-  void setplay();
+  std::shared_ptr<agent::penalty_kick> pk(bool start_flag, bool attack);
+  std::shared_ptr<agent::halt> halt();
+  std::shared_ptr<agent::defense> defense(agent::defense::defense_mode mode, bool mark_flag);
+  std::shared_ptr<agent::kick_off> kickoff(bool start_flag);
+  std::shared_ptr<agent::kick_off_waiter> kickoff_waiter(
+      agent::kick_off_waiter::kickoff_mode mode, bool attack);
+  std::shared_ptr<agent::stopgame> stop();
+  std::shared_ptr<agent::regular> regular(bool chase_flag);
+  std::shared_ptr<agent::setplay> setplay();
 };
 }
 }
