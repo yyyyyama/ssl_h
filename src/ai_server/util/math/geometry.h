@@ -5,6 +5,7 @@
 #include <Eigen/Dense>
 #include <cmath>
 #include <tuple>
+#include "ai_server/util/math.h"
 
 namespace ai_server {
 namespace util {
@@ -18,14 +19,29 @@ namespace math {
 template <class T, std::enable_if_t<std::is_floating_point<T>::value, std::nullptr_t> = nullptr>
 auto calc_isosceles_vertexes(const Eigen::Matrix<T, 2, 1>& apex,
                              const Eigen::Matrix<T, 2, 1>& middle_base, T shift) {
-  using boost::math::constants::half_pi;
+ using boost::math::constants::half_pi;
+ const Eigen::Vector2d move{apex};
 
-  const Eigen::Rotation2Dd rotate(half_pi<double>());
-  //正規化した物をpi/2回転させる
-  const auto normalize = rotate * ((apex - middle_base).normalized());
+  //計算の為に中心にずらした場合の座標
+  Eigen::Vector2d after_apex{apex - move};
 
-  //+-shiftずらして終点に足す
-  return std::make_tuple((middle_base + normalize * shift), (middle_base + normalize * -shift));
+  Eigen::Vector2d after_middle_base{middle_base - move};
+
+  // x軸から角度
+  const auto alpha = util::wrap_to_2pi(
+      std::atan2(after_middle_base.y() - after_apex.y(), after_middle_base.x() - after_apex.x()));
+  //回転行列
+  const Eigen::Rotation2D<T> rotate(alpha);
+
+  after_middle_base.x() = (after_middle_base - after_apex).norm();
+  after_middle_base.y() = 0.0;
+
+  //移動した先での仮の座標
+  const Eigen::Vector2d tmp1(after_middle_base.x(), shift);
+  const Eigen::Vector2d tmp2(tmp1.x(), tmp1.y() * (-1));
+	
+  //回転した後の正しい座標
+  return std::make_tuple((rotate * tmp1) + move, (rotate * tmp2) + move);
 }
 }
 }
