@@ -76,7 +76,6 @@ private:
 
   model::ball previous_ball_;
 
-  std::vector<std::shared_ptr<agent::base>> exe_;
   std::shared_ptr<agent::penalty_kick> pk_;
   std::shared_ptr<agent::halt> halt_;
   std::shared_ptr<agent::defense> df_;
