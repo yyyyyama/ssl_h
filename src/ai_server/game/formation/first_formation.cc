@@ -35,8 +35,7 @@ std::vector<std::shared_ptr<agent::base>> first_formation::execute() {
   //全て見えない場合は何もしない
   if (std::none_of(ids_.begin(), ids_.end(),
                    [&our_robots](auto&& id) { return our_robots.count(id); })) {
-    std::vector<std::shared_ptr<agent::base>> dummy;
-    return dummy;
+    return exe;
   }
 
   // commandによってagentを使い分ける
@@ -215,7 +214,6 @@ std::vector<std::shared_ptr<agent::base>> first_formation::execute() {
       break;
 
     default:
-      halt_ = halt();
       exe.emplace_back(halt());
       break;
   }
@@ -273,14 +271,10 @@ void first_formation::decide_wall() {
     //キーパーを候補から除外
     tmp_ids.erase(std::remove(tmp_ids.begin(), tmp_ids.end(), keeper));
 
-    // wall_countの値だけ前か順に壁にする
-    auto wall_it = tmp_ids.begin();
-    for (int i = 0; i < wall_count_; i++) {
-      if (wall_it != tmp_ids.end()) {
-        wall_.push_back(*wall_it);
-      }
-      wall_it++;
-    }
+    // wall_countの値だけ前から順に壁にする
+    std::copy_n(tmp_ids.begin(), std::min(wall_count_, tmp_ids.size()),
+                std::back_inserter(wall_));
+
     extract_other_robots();
   }
 }

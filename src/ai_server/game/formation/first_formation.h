@@ -62,7 +62,7 @@ private:
   std::vector<unsigned int> others_;        //キーパー,壁以外
   std::vector<unsigned int> waiter_;        //キーパー,壁,キッカー以外
   std::vector<unsigned int> except_keeper_; //キーパー以外
-  int wall_count_;                          //壁の数
+  unsigned long wall_count_;                //壁の数
 
   std::vector<unsigned int> ids_;
 
