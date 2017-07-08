@@ -4,14 +4,51 @@
 #include <boost/math/constants/constants.hpp>
 #include <boost/test/unit_test.hpp>
 
+#include "ai_server/model/ball.h"
 #include "ai_server/model/command.h"
 #include "ai_server/model/robot.h"
 #include "ai_server/util/math.h"
+#include "ai_server/util/math/affine.h"
 #include "ai_server/util/math/to_vector.h"
 
 using namespace ai_server;
 
 BOOST_AUTO_TEST_SUITE(math)
+
+BOOST_AUTO_TEST_CASE(affine, *boost::unit_test::tolerance(0.0000001)) {
+  // テスト用のオブジェクト
+  model::ball b{100, 200, 0};
+  model::robot r{0, 300, 400, 0};
+
+  {
+    // 何もしない変換
+    const auto mat = util::math::make_transformation_matrix(.0, .0, .0);
+
+    const auto b2 = util::math::transform(mat, b);
+    BOOST_TEST(b2.x() == b.x());
+    BOOST_TEST(b2.y() == b.y());
+
+    const auto r2 = util::math::transform(mat, r);
+    BOOST_TEST(r2.x() == r.x());
+    BOOST_TEST(r2.y() == r.y());
+    BOOST_TEST(r2.theta() == r.theta());
+  }
+
+  {
+    // 90度回転, x軸方向に10, y軸方向に20平行移動
+    using namespace boost::math::double_constants;
+    const auto mat = util::math::make_transformation_matrix(10.0, 20.0, half_pi);
+
+    const auto b2 = util::math::transform(mat, b);
+    BOOST_TEST(b2.x() == -b.y() + 10);
+    BOOST_TEST(b2.y() == b.x() + 20);
+
+    const auto r2 = util::math::transform(mat, r);
+    BOOST_TEST(r2.x() == -r.y() + 10);
+    BOOST_TEST(r2.y() == r.x() + 20);
+    BOOST_TEST(r2.theta() == 3 * half_pi);
+  }
+}
 
 BOOST_AUTO_TEST_CASE(to_vector) {
   model::robot r{};
