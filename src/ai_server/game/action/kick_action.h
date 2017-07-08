@@ -11,9 +11,11 @@ namespace action {
 
 class kick_action : public base {
 public:
-  enum class mode { goal, ball } mode_ = mode::goal;
-
   kick_action(const model::world& world, bool is_yellow, unsigned int id);
+
+  enum class mode { goal, ball };
+  enum class running_state { move, kick, finished };
+
   void kick_to(double x, double y);
 
   void set_kick_type(const model::command::kick_flag_t& kick_type);
@@ -23,22 +25,25 @@ public:
   void set_dribble(int dribble);
   // 目標位置と打つ角度の許容誤差
   void set_angle_margin(double margin);
+  running_state state() const;
 
   model::command execute() override;
 
   bool finished() const override;
 
 private:
+  mode mode_;
+  running_state state_;
   double x_;
   double y_;
-  double old_ball_x;
-  double old_ball_y;
-  int dribble_   = 3;
-  double margin_ = 0.07;
+  int dribble_;
+  double margin_;
   model::command::kick_flag_t kick_type_;
-  bool finishflag_  = false;
-  bool aroundflag_  = false;
-  bool advanceflag_ = false;
+  bool finishflag_;
+  bool aroundflag_;
+  bool advanceflag_;
+  double old_ball_x_;
+  double old_ball_y_;
 };
 } // namespace action
 } // namespace game
