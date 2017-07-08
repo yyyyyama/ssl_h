@@ -1,5 +1,5 @@
-#ifndef AI_SERVER_MODEL_WORLD_UPDATER_BALL_H
-#define AI_SERVER_MODEL_WORLD_UPDATER_BALL_H
+#ifndef AI_SERVER_MODEL_UPDATER_BALL_H
+#define AI_SERVER_MODEL_UPDATER_BALL_H
 
 #include <memory>
 #include <shared_mutex>
@@ -101,4 +101,4 @@ private:
 } // namespace model
 } // namespace ai_server
 
-#endif // AI_SERVER_MODEL_WORLD_UPDATER_BALL_H
+#endif // AI_SERVER_MODEL_UPDATER_BALL_H

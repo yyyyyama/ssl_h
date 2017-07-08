@@ -1,5 +1,5 @@
-#ifndef AI_SERVER_MODEL_WORLD_UPDATER_FIELD_H
-#define AI_SERVER_MODEL_WORLD_UPDATER_FIELD_H
+#ifndef AI_SERVER_MODEL_UPDATER_FIELD_H
+#define AI_SERVER_MODEL_UPDATER_FIELD_H
 
 #include <shared_mutex>
 #include "ai_server/model/field.h"
@@ -36,4 +36,4 @@ public:
 } // namespace model
 } // namespace ai_server
 
-#endif // AI_SERVER_MODEL_WORLD_UPDATER_FIELD_H
+#endif // AI_SERVER_MODEL_UPDATER_FIELD_H

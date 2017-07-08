@@ -1,5 +1,5 @@
-#ifndef AI_SERVER_MODEL_WORLD_UPDATER_WORLD_H
-#define AI_SERVER_MODEL_WORLD_UPDATER_WORLD_H
+#ifndef AI_SERVER_MODEL_UPDATER_WORLD_H
+#define AI_SERVER_MODEL_UPDATER_WORLD_H
 
 #include "ai_server/model/world.h"
 #include "ball.h"
@@ -53,4 +53,4 @@ public:
 } // namespace model
 } // namespace ai_server
 
-#endif // AI_SERVER_MODEL_WORLD_UPDATER_BALL_H
+#endif // AI_SERVER_MODEL_UPDATER_WORLD_H
