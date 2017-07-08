@@ -8,6 +8,8 @@
 
 #include <experimental/optional>
 
+#include <Eigen/Geometry>
+
 #include "ai_server/filter/base.h"
 #include "ai_server/model/ball.h"
 #include "ssl-protos/vision/detection.pb.h"
@@ -33,6 +35,10 @@ public:
 
   /// @brief           値を取得する
   model::ball value() const;
+
+  /// @brief           updaterに変換行列を設定する
+  /// @param matrix    変換行列
+  void set_transformation_matrix(const Eigen::Affine3d& matrix);
 
   /// @brief           設定されたFilterを解除する
   void clear_filter();
@@ -95,6 +101,9 @@ private:
   std::shared_ptr<on_updated_filter_type> on_updated_filter_;
   /// 更新タイミングがmanualなFilter
   std::shared_ptr<manual_filter_type> manual_filter_;
+
+  /// 変換行列
+  Eigen::Affine3d affine_;
 };
 
 } // namespace updater

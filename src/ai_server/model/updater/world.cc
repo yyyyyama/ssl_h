@@ -1,3 +1,4 @@
+#include "ai_server/util/math/affine.h"
 #include "world.h"
 #include "ssl-protos/vision/wrapperpacket.pb.h"
 
@@ -21,6 +22,16 @@ void world::update(const ssl_protos::vision::Packet& packet) {
 
 model::world world::value() const {
   return {field_.value(), ball_.value(), robots_blue_.value(), robots_yellow_.value()};
+}
+
+void world::set_transformation_matrix(const Eigen::Affine3d& matrix) {
+  ball_.set_transformation_matrix(matrix);
+  robots_blue_.set_transformation_matrix(matrix);
+  robots_yellow_.set_transformation_matrix(matrix);
+}
+
+void world::set_transformation_matrix(double x, double y, double theta) {
+  set_transformation_matrix(util::math::make_transformation_matrix(x, y, theta));
 }
 
 field& world::field_updater() {

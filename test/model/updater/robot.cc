@@ -4,13 +4,15 @@
 #include <boost/math/constants/constants.hpp>
 #include <boost/test/unit_test.hpp>
 
-#include "ai_server/model/updater/robot.h"
 #include "ai_server/filter/base.h"
+#include "ai_server/model/updater/robot.h"
+#include "ai_server/util/math/affine.h"
 
 using namespace std::chrono_literals;
 
 namespace filter = ai_server::filter;
 namespace model  = ai_server::model;
+namespace util   = ai_server::util;
 
 // 角度をいい感じに作りたかったので
 constexpr double rad(double deg) {
@@ -248,6 +250,39 @@ BOOST_AUTO_TEST_CASE(normal, *boost::unit_test::tolerance(0.0000001)) {
 
     // そして誰もいなくなった
     BOOST_TEST(rb.size() == 0);
+  }
+}
+
+BOOST_AUTO_TEST_CASE(transformation, *boost::unit_test::tolerance(0.0000001)) {
+  using namespace boost::math::double_constants;
+
+  model::updater::robot<model::team_color::blue> ru;
+  // 90度回転, x軸方向に10, y軸方向に20平行移動
+  ru.set_transformation_matrix(util::math::make_transformation_matrix(10.0, 20.0, half_pi));
+
+  {
+    ssl_protos::vision::Frame f;
+    f.set_camera_id(0);
+    f.set_t_capture(2.0);
+
+    auto rb1 = f.add_robots_blue();
+    rb1->set_robot_id(0);
+    rb1->set_x(100);
+    rb1->set_y(200);
+    rb1->set_orientation(0);
+    rb1->set_confidence(90.0);
+
+    ru.update(f);
+  }
+
+  {
+    const auto rb = ru.value();
+    ai_server::model::robot r;
+    BOOST_TEST(rb.size() == 1);
+    BOOST_CHECK_NO_THROW(r = rb.at(0));
+    BOOST_TEST(r.x() == -190.0);
+    BOOST_TEST(r.y() == 120.0);
+    BOOST_TEST(r.theta() == 3 * half_pi);
   }
 }
 

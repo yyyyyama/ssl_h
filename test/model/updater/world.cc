@@ -114,6 +114,75 @@ BOOST_AUTO_TEST_CASE(detection, *boost::unit_test::tolerance(0.0000001)) {
   }
 }
 
+BOOST_AUTO_TEST_CASE(transformation, *boost::unit_test::tolerance(0.0000001)) {
+  namespace bmc = boost::math::double_constants;
+
+  ai_server::model::updater::world wu{};
+  // 90度回転, x軸方向に10, y軸方向に20平行移動
+  wu.set_transformation_matrix(10, 20, bmc::half_pi);
+
+  {
+    ssl_protos::vision::Packet p;
+
+    auto md = p.mutable_detection();
+    md->set_camera_id(0);
+
+    auto b = md->add_balls();
+    b->set_x(1);
+    b->set_y(2);
+    b->set_z(3);
+    b->set_confidence(93.0);
+
+    auto rb1 = md->add_robots_blue();
+    rb1->set_robot_id(1);
+    rb1->set_x(10);
+    rb1->set_y(11);
+    rb1->set_orientation(bmc::sixth_pi);
+    rb1->set_confidence(94.0);
+
+    auto ry5 = md->add_robots_yellow();
+    ry5->set_robot_id(5);
+    ry5->set_x(500);
+    ry5->set_y(501);
+    ry5->set_orientation(bmc::pi);
+    ry5->set_confidence(96.0);
+
+    wu.update(p);
+  }
+
+  {
+    const auto w = wu.value();
+
+    // cam0で検出されたボール(1, 2, 3)
+    const auto b = w.ball();
+    BOOST_TEST(b.x() == 8.0);
+    BOOST_TEST(b.y() == 21.0);
+    BOOST_TEST(b.z() == 3);
+
+    ai_server::model::robot r;
+
+    // 検出された青ロボは1台
+    BOOST_TEST(w.robots_blue().size() == 1);
+
+    // ID1の青ロボが存在 (ID1の要素を参照してもstd::out_of_range例外が飛ばない)
+    BOOST_CHECK_NO_THROW(r = w.robots_blue().at(1));
+    BOOST_TEST(r.id() == 1);
+    BOOST_TEST(r.x() == -1.0);
+    BOOST_TEST(r.y() == 30.0);
+    BOOST_TEST(r.theta() == bmc::pi + bmc::two_thirds_pi);
+
+    // 検出された黃ロボは1台
+    BOOST_TEST(w.robots_yellow().size() == 1);
+
+    // ID5の黃ロボが存在
+    BOOST_CHECK_NO_THROW(r = w.robots_yellow().at(5));
+    BOOST_TEST(r.id() == 5);
+    BOOST_TEST(r.x() == -491.0);
+    BOOST_TEST(r.y() == 520.0);
+    BOOST_TEST(r.theta() == bmc::half_pi);
+  }
+}
+
 BOOST_AUTO_TEST_CASE(geometry) {
   ai_server::model::updater::world wu{};
 

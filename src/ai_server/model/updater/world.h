@@ -1,6 +1,8 @@
 #ifndef AI_SERVER_MODEL_UPDATER_WORLD_H
 #define AI_SERVER_MODEL_UPDATER_WORLD_H
 
+#include <Eigen/Geometry>
+
 #include "ai_server/model/world.h"
 #include "ball.h"
 #include "field.h"
@@ -38,6 +40,15 @@ public:
 
   /// @brief           値を取得する
   model::world value() const;
+
+  /// @brief           updaterに変換行列を設定する
+  /// @param matrix    変換行列
+  void set_transformation_matrix(const Eigen::Affine3d& matrix);
+  /// @brief           updaterに変換行列を設定する
+  /// @param x         x軸方向に平行移動する量
+  /// @param y         y軸方向に平行移動する量
+  /// @param theta     z軸を中心に回転する量
+  void set_transformation_matrix(double x, double y, double theta);
 
   /// @brief           フィールドのupdaterを取得する
   field& field_updater();
