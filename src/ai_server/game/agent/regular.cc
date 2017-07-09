@@ -310,6 +310,36 @@ std::vector<unsigned int>::const_iterator regular::nearest_id(
   });
 }
 
+// ゴールからからみたとき、指定位置と最も角度の近い敵ロボットID
+std::vector<unsigned int>::const_iterator regular::most_overlap_id(
+    std::vector<unsigned int>& those_ids,
+    const std::unordered_map<unsigned int, model::robot>& those_robots, double target_x,
+    double target_y) const {
+  const double gall_x = world_.field().x_min();                        // ゴールのx座標
+  const double target_theta = std::atan2(target_y, target_x - gall_x); // ゴールと指定地点の角度
+
+  return std::min_element(
+      those_ids.begin(), those_ids.end(),
+      [&gall_x, &target_theta, those_robots](unsigned int a, unsigned int b) {
+        if (those_robots.find(a) == those_robots.end()) {
+          // aのロボットがロストしている時
+          if (those_robots.find(b) != those_robots.end()) {
+            // bのロボットが見える時
+            return false;
+          }
+        }
+        if (those_robots.find(b) == those_robots.end()) {
+          // bのロボットがロストしている時
+          return true;
+        }
+        const double theta_a = std::atan2(those_robots.at(a).y(),
+                                          those_robots.at(a).x() - gall_x); // ロボットaの角度差
+        const double theta_b = std::atan2(those_robots.at(b).y(),
+                                          those_robots.at(b).x() - gall_x); // ロボットbの角度差
+        return std::abs(theta_a - target_theta) < std::abs(theta_b - target_theta);
+      });
+}
+
 bool regular::id_importance::operator<(const id_importance& next) const {
   return importance < next.importance; // 重要度で比較
 }
