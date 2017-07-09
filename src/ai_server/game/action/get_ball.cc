@@ -52,23 +52,23 @@ model::command get_ball::execute() {
 
   if (ball_vec.norm() < 1000.0) {
     //目標に向かって蹴る
-   	auto radius = 140;
+    auto radius = 140;
     {
       //目標位置に向いたら蹴る
       const auto theta =
           util::wrap_to_pi(std::atan2(target_.y() - robot.y(), target_.x() - robot.x()));
       if (std::abs(theta - robot_theta) < pi<double>() / 31.0) {
         command.set_kick_flag(
-             model::command::kick_flag_t{model::command::kick_type_t::line, 255});
+            model::command::kick_flag_t{model::command::kick_type_t::line, 255});
         command.set_dribble(0);
       } else {
         command.set_kick_flag(
             model::command::kick_flag_t{model::command::kick_type_t::none, 0});
         command.set_dribble(9);
       }
-			radius = 70;
+      radius = 70;
     }
-		//移動目標はボールのちょい後ろ
+    //移動目標はボールのちょい後ろ
     {
       //ロボットの中心から口までの距離
       const auto ratio =
@@ -77,7 +77,7 @@ model::command get_ball::execute() {
     }
     {
       //目標位置と自分の位置で四角を作る
-  		const auto mergin = 70.0;
+      const auto mergin = 70.0;
       polygon poly;
       const auto tmp          = util::math::calc_isosceles_vertexes(robot, position, mergin);
       bg::exterior_ring(poly) = boost::assign::list_of<point>(robot.x(), robot.y())(
