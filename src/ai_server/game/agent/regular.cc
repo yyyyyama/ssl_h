@@ -28,7 +28,7 @@ void regular::use_chaser(bool use_chaser) {
     need_update_ = true; // マーキング全体を再構成
 
     if (use_chaser) {
-      set_chaser(select_chaser()); // Cahserの設定
+      set_chaser(select_chaser()); // chaserの設定
     } else {
       // Chaserをリセット
       chase_ball_  = nullptr;
@@ -43,11 +43,12 @@ std::vector<std::shared_ptr<action::base>> regular::execute() {
   const auto ball       = world_.ball();
 
   if (has_chaser_) {
-    // chaserを交代させた方がいいときはchaserを変更し、マーキングを再構成する
-    const double chaser_ball = std::hypot(
-        ids_robots.at(chaser_id_).x() - ball.x(),
-        ids_robots.at(chaser_id_).y() - ball.y()); // 現在のchaserからボールまでの距離
+    // chaserを使う時
+
+    const double chaser_ball = std::hypot(ids_robots.at(chaser_id_).x() - ball.x(),
+                                          ids_robots.at(chaser_id_).y() - ball.y());
     const auto chaser_id_tmp = select_chaser();
+    // chserがボールに追いつけない && 他のロボットの方がボールに対して明らかに近い時は交代
     if (chaser_ball > 800 &&
         chaser_ball - std::hypot(ids_robots.at(chaser_id_tmp).x() - ball.x(),
                                  ids_robots.at(chaser_id_tmp).y() - ball.y()) >
@@ -56,14 +57,14 @@ std::vector<std::shared_ptr<action::base>> regular::execute() {
       need_update_ = true;                // マーキングの再構成
     }
 
-    // chaser の動き
+    // chaserへのaction割り当て
     if (chase_finished_) {
       if (kick_finished_) {
-        // 終了フラグをリセット
+        // 蹴り終わったらリセット
         kick_finished_  = false;
         chase_finished_ = false;
       } else {
-        // Kick Action
+        // Kick
         kick_action_->kick_to(world_.field().x_max(), 0.0);
         kick_action_->set_kick_type({model::command::kick_type_t::line, 50.0});
         kick_action_->set_mode(action::kick_action::mode::goal);
@@ -71,19 +72,21 @@ std::vector<std::shared_ptr<action::base>> regular::execute() {
         actions.push_back(kick_action_);
       }
     } else {
-      // Cahse Ball Action
+      // Cahse Ball
       chase_finished_ = chase_ball_->finished();
       actions.push_back(chase_ball_);
     }
   }
 
   if (!need_update_) {
-    // === 敵リストからの判定
+    // === 敵リストの変化状況を見て、必要ならマーキングを再構成
 
-    auto list_old = importance_list_;       // 古いほうの敵リスト
-    auto list_new = make_importance_list(); // 新しいほうの敵リスト
+    auto list_old = importance_list_;       // 古いほう
+    auto list_new = make_importance_list(); // 新しいほう
 
-    // ==状況==
+    // マークされていない敵の重要度が高くなり、マークする必要がでたときは再構成してマークする
+
+    // ==詳細な条件==
     // 1 新しく取得したマーク対象の数が味方より多い
     // 2 新しく取得したマーク対象の数と味方の数が等しい
     // 3 新しく取得したマーク対象の数が味方より少ない
@@ -99,13 +102,14 @@ std::vector<std::shared_ptr<action::base>> regular::execute() {
     // 3 -> 3 敵の数が変化している時のみset_allする
 
     if ((has_chaser_ ? ids_.size() - 1 : ids_.size()) <= list_new.size()) {
-      // マーキングロボの数が、マーク対象の数以下の時
+      // マーキングロボの数がマーク対象の数以下の時（条件：1->1,2->1,3->1, 1->2,2->2,3->2）
       if (list_new.size() != list_old.size() ||
           (has_chaser_ ? ids_.size() - 1 : ids_.size()) != list_new.size()) {
-        //マーキング対象の数＝味方ロボットの数 の状態が続いていない時
+        //マーキング対象の数＝味方ロボットの数 の状態が続いていない時(条件：1->3,3->3, 1->2,
+        // 3->2)
 
         // 敵リストの順番が何処まで同じか調べる
-        unsigned int c = 0; // カウンタ
+        unsigned int c = 0;
         while (!list_new.empty() && !list_old.empty()) {
           if (list_new.top().id != list_old.top().id || c >= ids_.size()) {
             break;
@@ -115,12 +119,13 @@ std::vector<std::shared_ptr<action::base>> regular::execute() {
           c++;
         }
         if (c < (has_chaser_ ? ids_.size() - 1 : ids_.size())) {
-          // 味方数の所まで順番が一緒ではない時
+          // 敵リストの順番が味方数の所まで同じではない時
+          // (条件3->1,3->2もここに入る)
           need_update_ = true;
         }
       }
     } else {
-      // マーキングロボの数が、マーク対象の数より多いとき
+      // マーキングロボの数が、マーク対象の数より多いとき(条件：3->3,2->3,1->3)
       if (list_new.size() != list_old.size()) {
         // 敵の数が変化している時
         need_update_ = true;
@@ -131,28 +136,28 @@ std::vector<std::shared_ptr<action::base>> regular::execute() {
   importance_list_ = make_importance_list(); // 敵リストの更新
 
   if (need_update_) {
-    update_all_marking(); // マーキングを再構成
+    update_all_marking(); // マーキング全体を再構成
   } else {
     update_second_marking(); // 2枚目のマーキングのみ再構成
   }
 
   // 1枚目のマーキング
   if (!first_marking_.empty()) {
-    for (auto mark : first_marking_) {
+    for (auto&& mark : first_marking_) {
       actions.push_back(mark.second);
     }
   }
 
   // 2枚目のマーキング
   if (!second_marking_.empty()) {
-    for (auto mark : second_marking_) {
+    for (auto&& mark : second_marking_) {
       actions.push_back(mark.second);
     }
   }
 
-  // いらない子 （将来的には3枚目）
+  // 余ったロボット
   if (!no_op_.empty()) {
-    for (auto no : no_op_) {
+    for (auto&& no : no_op_) {
       actions.push_back(no.second);
     }
   }
@@ -163,11 +168,12 @@ std::vector<std::shared_ptr<action::base>> regular::execute() {
 // chase id_の候補を取得
 unsigned int regular::select_chaser() {
   const auto ball = world_.ball();
-  auto tmp_id_itr = nearest_id(ids_, ball.x(), ball.y()); // ボールから最も近いロボット
+  // ボールから最も近いロボットを選ぶ
+  auto tmp_id_itr = nearest_id(ids_, ball.x(), ball.y());
   if (tmp_id_itr == ids_.end()) {
-    return chaser_id_;
+    return chaser_id_; // エラーの時は既に設定されている値を返す
   } else {
-    return *tmp_id_itr; // エラーの時は既に設定されている値を返す
+    return *tmp_id_itr;
   }
 }
 
@@ -195,20 +201,21 @@ void regular::update_all_marking() {
   follower_ids_.clear();
   first_marking_.clear();
 
-  // chacer_を除外する
-  for (auto id : ids_) {
+  // chacer_は省く
+  for (auto&& id : ids_) {
     if (!has_chaser_ || id != chaser_id_) {
       follower_ids_.push_back(id);
     }
   }
 
-  // === まず1枚目のマーキングを割り当てる
+  // === 1枚目のマーキング(シュートブロック)
 
   const auto those_robots = !is_yellow_ ? world_.robots_yellow() : world_.robots_blue();
   auto tmp_list           = importance_list_;
 
   // 全ての味方ロボットが割り当てられるか、敵を全てマークするまで続ける
   while (!follower_ids_.empty() && !tmp_list.empty()) {
+    // 対象から最も近いロボットに割り当てる
     const auto tmp_id_itr = nearest_id(follower_ids_, those_robots.at(tmp_list.top().id).x(),
                                        those_robots.at(tmp_list.top().id).y());
     if (tmp_id_itr != follower_ids_.end()) {
@@ -217,7 +224,7 @@ void regular::update_all_marking() {
       first_marking_.at(*tmp_id_itr)->mark_robot(tmp_list.top().id);
       first_marking_.at(*tmp_id_itr)->set_mode(action::marking::mark_mode::shoot_block);
       first_marking_.at(*tmp_id_itr)->set_radius(400.0);
-      follower_ids_.erase(tmp_id_itr); // 最後に要素を消去
+      follower_ids_.erase(tmp_id_itr); // 割り振ったら消す
     }
     tmp_list.pop();
   }
@@ -255,76 +262,81 @@ void regular::update_second_marking() {
                    ball.x() - those_robots.at(tmp_list.top().id).x()); //ボール->敵ロボの角度
 
     if (std::abs(goal_robot_theta - ball_robot_theta) > std::atan2(1.0, 3.0)) {
-      // マーキングロボットが重ならない時
+      // マーキングが重ならないように
       const auto tmp_id_itr = nearest_id(tmp_ids, those_robots.at(tmp_list.top().id).x(),
                                          those_robots.at(tmp_list.top().id).y());
       if (tmp_id_itr != tmp_ids.end()) {
-        // マーキングの割り当て
+        // マーキングの設定
         second_marking_[*tmp_id_itr] =
             std::make_shared<action::marking>(world_, is_yellow_, *tmp_id_itr);
         second_marking_.at(*tmp_id_itr)->mark_robot(tmp_list.top().id);
         second_marking_.at(*tmp_id_itr)->set_mode(action::marking::mark_mode::kick_block);
         second_marking_.at(*tmp_id_itr)->set_radius(400.0);
-        tmp_ids.erase(tmp_id_itr); // 最後に要素を消去
+        tmp_ids.erase(tmp_id_itr); // 割り振ったら消す
       }
     }
     tmp_list.pop();
   }
 
-  // 余ったらno_op_を割り当てる
+  // 余ったロボットにはno_op_を割り当てる
   if (!tmp_ids.empty()) {
-    for (auto id : tmp_ids) {
+    for (auto&& id : tmp_ids) {
       no_op_[id] = std::make_shared<action::no_operation>(world_, is_yellow_, id);
     }
   }
 }
 
-// 敵IDと重要度を設定、ソートした結果を返す
+// 敵リストの作成
 std::priority_queue<regular::id_importance> regular::make_importance_list() {
   std::priority_queue<regular::id_importance> tmp_list; // 一時的なリスト
   const auto our_robots = is_yellow_ ? world_.robots_yellow() : world_.robots_blue(); // 味方
   const auto those_robots = !is_yellow_ ? world_.robots_yellow() : world_.robots_blue(); // 敵
   const auto ball         = world_.ball(); // ボール
 
-  std::vector<unsigned int> those_ids_tmp; // 敵のIDの集まり
+  for (auto&& that_rob : those_robots) {
+    const auto id         = that_rob.first;       // 敵ロボットのID
+    const double that_x   = that_rob.second.x();  // 敵ロボのx座標
+    const double that_y   = that_rob.second.y();  // 敵ロボのy座標
+    const double robot_vx = that_rob.second.vx(); // ロボットのx速度
 
-  for (auto that_rob : those_robots) {
-    const auto id         = that_rob.first;           // 敵ロボットのID
-    const double that_x   = those_robots.at(id).x();  // 敵ロボのx座標
-    const double that_y   = those_robots.at(id).y();  // 敵ロボのy座標
-    const double robot_vx = those_robots.at(id).vx(); // ロボットのx速度
+    // ゴールとの距離
+    const double gall_dist = std::hypot(that_x - world_.field().x_min(), that_y);
+    // ボールとの距離
+    const double ball_dist = std::hypot(that_x - ball.x(), that_y - ball.y());
+    // ゴールからの角度
+    const double gall_angle = std::atan2(that_y, that_x - world_.field().x_min());
+    // ゴールからみたボールの角度
+    const double ball_gall_angle = std::atan2(ball.y(), ball.x() - world_.field().x_min());
 
-    const double gall_dist =
-        std::hypot(that_x - world_.field().x_min(), that_y); // ゴールとの距離
-    const double ball_dist = std::hypot(that_x - ball.x(), that_y - ball.y()); // ボールとの距離
-    const double gall_angle =
-        std::atan2(that_y, that_x - world_.field().x_min()); // ゴールからの角度
-    const double ball_gall_angle =
-        std::atan2(ball.y(), ball.x() - world_.field().x_min()); // ゴールからみたボールの角度
+    // 敵側に寄りすぎているか
+    bool too_front = that_x > world_.field().x_max() * 0.65;
+    // ペナルティエリア付近に居るか
+    bool near_penalty = gall_dist < 2000;
+    // ディフェンスの近くに居るか
+    bool near_difence =
+        std::abs(ball_gall_angle - gall_angle) > atan2(1.2, 4.0) && gall_dist < 4000;
 
-    bool too_front = that_x > world_.field().x_max() * 0.65; // 敵側に寄りすぎているか
-    bool near_penalty = gall_dist < 2000; // ペナルティエリア付近に居るか
-    bool near_difence = std::abs(ball_gall_angle - gall_angle) > atan2(1.2, 4.0) &&
-                        gall_dist < 4000; // ディフェンスの近くに居るか
+    // 対象となるエリアの中か
+    bool is_marking_area = !too_front && !near_penalty && !near_difence;
+    // ボールを持っているか
+    bool is_kicker = ball_dist < 1000;
 
-    bool is_marking_area = !too_front && !near_penalty && !near_difence; // 対象エリアの中か
-    bool is_kicker       = ball_dist < 1000; // ボールを持っているか
-
-    // リストに追加するかどうかを決める基準
+    // マーキングエリア内 && chaserとかぶらない時
     if (is_marking_area && !(has_chaser_ && is_kicker)) {
-      double score = 0.0; // 敵のマーク重要度を得点として格納する
+      // 敵のマーク重要度
+      double score = 0.0;
+      // 距離の正規化用に使う
+      const double gall_dist_max =
+          std::hypot(world_.field().x_max() - world_.field().x_min(), world_.field().y_max());
 
-      const double gall_dist_max = std::hypot(world_.field().x_max() - world_.field().x_min(),
-                                              world_.field().y_max()); // 距離の正規化用
-
-      // ここでのstd::cos()は、ロボットがゴールに対して正面(gall_angle=0)のときと真横からの時の優先度比
+      // ゴールに近い or ゴールに対して正面なほど優先度高め
       score += std::cos(gall_angle * 0.3) * (gall_dist_max - gall_dist) / gall_dist_max; // 位置
 
       // ある一定以上のスピードで移動している時
       if (std::abs(robot_vx) > 1100.0) {
-        // 距離のスコアが最も低いロボットが、Va以上の速度でこちらに迫ってきた時、重要度が最も高くなるようにする
-        // ※(ロボットが向こう側に移動した時は重要度を下げる)
-        // -robot_vx/Va*(<重要度を覆したい分のx幅>/gall_dist_max）
+        // こっち側に向かってくる程優先度高め
+        // 爆走してきた時に優先度TOPになるように
+        // -robot_vx/<爆走した時の速度>*(<重要度を覆したい分のx幅>/gall_dist_max）
         score -= robot_vx / 5000 * 0.8 * (world_.field().x_max() - world_.field().x_min()) /
                  gall_dist_max;
       }
@@ -333,7 +345,7 @@ std::priority_queue<regular::id_importance> regular::make_importance_list() {
     }
   }
 
-  // 敵同士の位置関係を参考にして、マークしない敵を取り除く
+  // マーキングのロボットが密集しないように、密集の元になる敵はリストから除外
   std::vector<unsigned int> added_list;
   std::priority_queue<regular::id_importance> list;
 
@@ -343,23 +355,24 @@ std::priority_queue<regular::id_importance> regular::make_importance_list() {
     const double that_y = those_robots.at(id).y(); //敵ロボのy座標
 
     if (!added_list.empty()) {
-      auto next_id =
-          most_overlap_id(added_list, those_robots, that_x, that_y); // 最も重なってそうなID
+      // 最も角度差が小さいID
+      auto next_id = most_overlap_id(added_list, those_robots, that_x, that_y);
       if (next_id != added_list.end()) {
-        const auto next_x = those_robots.at(*next_id).x(); // x座標
-        const auto next_y = those_robots.at(*next_id).y(); // y座標
+        const auto next_x = those_robots.at(*next_id).x();
+        const auto next_y = those_robots.at(*next_id).y();
+        // 最も角度が近いロボットとの角度差
         const auto smallest_theta =
             std::abs(std::atan2(that_y, that_x - world_.field().x_min()) -
-                     std::atan2(next_y, next_x - world_.field().x_min())); // 角度
+                     std::atan2(next_y, next_x - world_.field().x_min()));
 
         if (smallest_theta > std::atan2(1.0, 3.0)) {
-          // 重なっていない時
+          // ある程度の角度差が保たれている時
           list.push(tmp_list.top());
           added_list.push_back(id);
         }
       }
     } else {
-      // 参照したのがlistの先頭だった時
+      // 他に追加済みのロボットが無い時
       list.push(tmp_list.top());
       added_list.push_back(id);
     }
@@ -368,7 +381,7 @@ std::priority_queue<regular::id_importance> regular::make_importance_list() {
   return list;
 }
 
-// ターゲットに最も近いロボットIDのイテレータを返す
+// ターゲットに最も近いロボットID
 std::vector<unsigned int>::const_iterator regular::nearest_id(
     const std::vector<unsigned int>& can_ids, double target_x, double target_y) const {
   const auto ids_robots = is_yellow_ ? world_.robots_yellow() : world_.robots_blue();
@@ -393,12 +406,12 @@ std::vector<unsigned int>::const_iterator regular::most_overlap_id(
         if (those_robots.find(a) == those_robots.end()) {
           // aのロボットがロストしている時
           if (those_robots.find(b) != those_robots.end()) {
-            // bのロボットが見える時
+            // bのロボットが見える時はbを上位に
             return false;
           }
         }
         if (those_robots.find(b) == those_robots.end()) {
-          // bのロボットがロストしている時
+          // bのロボットがロストしている時はaを上位に
           return true;
         }
         const double theta_a = std::atan2(those_robots.at(a).y(),

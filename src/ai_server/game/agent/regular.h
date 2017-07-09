@@ -61,10 +61,10 @@ private:
   // マーキングの再構成(2枚目のマーキングのみ)
   void update_second_marking();
 
-  // 敵IDと重要度を設定、ソートした結果を返す
+  // 敵リストの作成
   std::priority_queue<id_importance> make_importance_list();
 
-  // ターゲットに最も近いロボットIDのイテレータを返す
+  // ターゲットに最も近いロボットID
   std::vector<unsigned int>::const_iterator nearest_id(const std::vector<unsigned int>& can_ids,
                                                        double target_x, double target_y) const;
 
