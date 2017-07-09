@@ -281,22 +281,91 @@ void regular::update_second_marking() {
 
 // 敵IDと重要度を設定、ソートした結果を返す
 std::priority_queue<regular::id_importance> regular::make_importance_list() {
-  std::priority_queue<regular::id_importance> tmp_list;
-  const auto those_robots = !is_yellow_ ? world_.robots_yellow() : world_.robots_blue();
-  unsigned int id; // 敵ロボットのID
+
+  std::priority_queue<regular::id_importance> tmp_list; // 一時的なリスト
+  const auto our_robots = is_yellow_ ? world_.robots_yellow() : world_.robots_blue(); // 味方
+  const auto those_robots = !is_yellow_ ? world_.robots_yellow() : world_.robots_blue(); // 敵
+  const auto ball         = world_.ball(); // ボール
+
+  std::vector<unsigned int> those_ids_tmp; // 敵のIDの集まり
 
   for (auto that_rob : those_robots) {
-    id = that_rob.first;
-    if (those_robots.at(id).x() < world_.field().x_max() * 0.65) {
+    const auto id         = that_rob.first;           // 敵ロボットのID
+    const double that_x   = those_robots.at(id).x();  // 敵ロボのx座標
+    const double that_y   = those_robots.at(id).y();  // 敵ロボのy座標
+    const double robot_vx = those_robots.at(id).vx(); // ロボットのx速度
+
+    const double gall_dist =
+        std::hypot(that_x - world_.field().x_min(), that_y); // ゴールとの距離
+    const double ball_dist = std::hypot(that_x - ball.x(), that_y - ball.y()); // ボールとの距離
+    const double gall_angle =
+        std::atan2(that_y, that_x - world_.field().x_min()); // ゴールからの角度
+    const double ball_gall_angle =
+        std::atan2(ball.y(), ball.x() - world_.field().x_min()); // ゴールからみたボールの角度
+        
+    bool too_front= that_x > world_.field().x_max() * 0.65; // 敵側に寄りすぎているか
+    bool near_penalty = gall_dist < 2000;  // ペナルティエリア付近に居るか
+    bool near_difence = std::abs(ball_gall_angle - gall_angle) > atan2(1.2, 4.0) && gall_dist < 4000; // ディフェンスの近くに居るか
+
+    bool is_marking_area =!too_front && !near_penalty && !near_difence; // 対象エリアの中か
+    bool is_kicker = ball_dist < 1000; // ボールを持っているか
+
+    // リストに追加するかどうかを決める基準
+    if (is_marking_area && !(has_chaser_ && is_kicker)) {
       double score = 0.0; // 敵のマーク重要度を得点として格納する
-      score += std::hypot(world_.field().x_max() - world_.field().x_min(),
-                          world_.field().y_max() - world_.field().y_min()) -
-               std::hypot(those_robots.at(id).x() - world_.field().x_min(),
-                          those_robots.at(id).y()); // 絶対位置による得点
+
+      const double gall_dist_max = std::hypot(world_.field().x_max() - world_.field().x_min(),
+                                              world_.field().y_max()); // 距離の正規化用
+
+      // ここでのstd::cos()は、ロボットがゴールに対して正面(gall_angle=0)のときと真横からの時の優先度比
+      score += std::cos(gall_angle * 0.3) * (gall_dist_max - gall_dist) / gall_dist_max; // 位置
+
+      // ある一定以上のスピードで移動している時
+      if (std::abs(robot_vx) > 1100.0) {
+        // 距離のスコアが最も低いロボットが、Va以上の速度でこちらに迫ってきた時、重要度が最も高くなるようにする
+        // ※(ロボットが向こう側に移動した時は重要度を下げる)
+        // -robot_vx/Va*(<重要度を覆したい分のx幅>/gall_dist_max）
+        score -= robot_vx / 5000 * 0.8 * (world_.field().x_max() - world_.field().x_min()) /
+                 gall_dist_max;
+      }
+
       tmp_list.push({id, score});
     }
   }
-  return tmp_list;
+
+  // 敵同士の位置関係を参考にして、マークしない敵を取り除く
+  std::vector<unsigned int> added_list;
+  std::priority_queue<regular::id_importance> list;
+
+  while (!tmp_list.empty()) {
+    const auto id       = tmp_list.top().id;       // 敵ロボのID
+    const double that_x = those_robots.at(id).x(); // 敵ロボのx座標
+    const double that_y = those_robots.at(id).y(); //敵ロボのy座標
+
+    if (!added_list.empty()) {
+      auto next_id =
+          most_overlap_id(added_list, those_robots, that_x, that_y); // 最も重なってそうなID
+      if (next_id != added_list.end()) {
+        const auto next_x = those_robots.at(*next_id).x(); // x座標
+        const auto next_y = those_robots.at(*next_id).y(); // y座標
+        const auto smallest_theta =
+            std::abs(std::atan2(that_y, that_x - world_.field().x_min()) -
+                     std::atan2(next_y, next_x - world_.field().x_min())); // 角度
+
+        if (smallest_theta > std::atan2(1.0, 3.0)) {
+          // 重なっていない時
+          list.push(tmp_list.top());
+          added_list.push_back(id);
+        }
+      }
+    } else {
+      // 参照したのがlistの先頭だった時
+      list.push(tmp_list.top());
+      added_list.push_back(id);
+    }
+    tmp_list.pop();
+  }
+  return list;
 }
 
 // ターゲットに最も近いロボットIDのイテレータを返す
