@@ -1,17 +1,23 @@
 #include <algorithm>
 #include <chrono>
 
+#include "ai_server/util/math/affine.h"
 #include "ball.h"
 
 namespace ai_server {
 namespace model {
 namespace updater {
 
-ball::ball() : ball_{} {}
+ball::ball() : ball_{}, affine_{Eigen::Translation3d{.0, .0, .0}} {}
 
 model::ball ball::value() const {
   std::shared_lock<std::shared_timed_mutex> lock(mutex_);
   return ball_;
+}
+
+void ball::set_transformation_matrix(const Eigen::Affine3d& matrix) {
+  std::unique_lock<std::shared_timed_mutex> lock(mutex_);
+  affine_ = matrix;
 }
 
 void ball::update(const ssl_protos::vision::Frame& detection) {
@@ -48,7 +54,8 @@ void ball::update(const ssl_protos::vision::Frame& detection) {
     // 選択された値のカメラIDとdetectionのカメラIDが一致していたらデータを更新する
     if (std::get<0>(*reliable) == camera_id) {
       const auto& value = std::get<1>(*reliable);
-      reliable_ball_    = model::ball{value.x(), value.y(), value.z()};
+      reliable_ball_ =
+          util::math::transform(affine_, model::ball{value.x(), value.y(), value.z()});
 
       if (on_updated_filter_) {
         // on_updated_filter_が設定されていたらFilterを通した値を使う

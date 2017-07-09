@@ -8,6 +8,8 @@
 #include <type_traits>
 #include <unordered_map>
 
+#include <Eigen/Geometry>
+
 #include "ai_server/filter/base.h"
 #include "ai_server/model/robot.h"
 #include "ai_server/model/team_color.h"
@@ -38,12 +40,18 @@ class robot {
   using manual_filter_type = filter::base<model::robot, filter::timing::manual>;
 
 public:
+  robot();
+
   /// @brief           Detectionパケットを処理し, ボールの情報を更新する
   /// @param detection SSL-VisionのDetectionパケット
   void update(const ssl_protos::vision::Frame& detection);
 
   /// @brief           値を取得する
   robots_list_type value() const;
+
+  /// @brief           updaterに変換行列を設定する
+  /// @param matrix    変換行列
+  void set_transformation_matrix(const Eigen::Affine3d& matrix);
 
   /// @brief           設定されたFilterを解除する
   /// @param id        Filterを解除するロボットのID
@@ -144,6 +152,9 @@ private:
   std::unordered_map<unsigned int, std::shared_ptr<manual_filter_type>> manual_filters_;
   /// Filterを初期化するための関数オブジェクト
   std::function<std::shared_ptr<on_updated_filter_type>()> filter_initializer_;
+
+  /// 変換行列
+  Eigen::Affine3d affine_;
 };
 
 } // namespace updater

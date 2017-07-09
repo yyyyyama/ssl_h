@@ -38,31 +38,30 @@ std::vector<std::shared_ptr<action::base>> setplay::execute() {
   baseaction_.clear();
 
   const Eigen::Vector2d kicker_pos = util::math::position(our_robots.at(kicker_id_));
+  const auto& kicker               = our_robots.at(kicker_id_);
   const auto& ball                 = world_.ball();
   const Eigen::Vector2d ball_pos   = util::math::position(ball);
-  const Eigen::Vector2d ball_vec   = util::math::velocity(ball);
+  const Eigen::Vector2d ball_vel   = util::math::velocity(ball);
   const double ballysign           = ball.y() > 0 ? 1.0 : -1.0;
   double enemygoal_x               = world_.field().x_max();
-
-  // これより遠いと速度制限
-  const double fdir = 600;
 
   // パス以降の処理でボールの軌道が大きく変わったら的に取られたと判定し、agent終了
   if (state_ >= state::receive) {
     Eigen::Vector2d shooter_pos = util::math::position(our_robots.at(shooter_id_));
-    if (std::abs(util::wrap_to_pi(vectorangle(ball_vec) - vectorangle(prev_ball_vel_))) > 1.0 &&
-        (shooter_pos - ball_pos).norm() > 3000 && (kicker_pos - ball_pos).norm() > 500) {
+    if (std::abs(util::wrap_to_pi(vectorangle(ball_vel) - vectorangle(prev_ball_vel_))) > 0.5 &&
+        (kicker_pos - ball_pos).norm() > 500 && ball_vel.norm() > 1500 &&
+        std::abs(ball_pos.x()) > 500 && std::abs(ball_pos.y()) > 1000 &&
+        !receive_->finished()) {
       state_ = state::finished;
     }
   }
-  prev_ball_vel_ = ball_vec;
+  prev_ball_vel_ = ball_vel;
 
   // キックフラグが立ったら次の状態に移行
   if (kick_->finished()) {
     if (state_ == state::pass) {
-      receive_ = make_action<action::receive>(shooter_id_);
-      kick_    = make_action<action::kick_action>(shooter_id_);
-      state_   = state::receive;
+      kick_  = make_action<action::kick_action>(shooter_id_);
+      state_ = state::receive;
     } else {
       state_ = state::finished;
     }
@@ -80,18 +79,18 @@ std::vector<std::shared_ptr<action::base>> setplay::execute() {
         // 現状固定なので動的に求めたい{{{
         int i = 0;
         for (auto receiver_id : receiver_ids_) {
-          const double rad   = std::abs(ball_pos.y()) > 1500 ? -0.4 : -1.0;
+          const double rad   = std::abs(ball_pos.y()) > 1500 ? -0.4 : -0.7;
           const double theta = ballysign * (i / 2 + 1) * rad * (1.0 - 2 * (i % 2));
           if (ball_pos.x() > 2000) {
             pos_ = pos::far;
             positions_.push_back(
-                {enemygoal_x - std::cos(theta) * 2000, std::sin(theta) * 3000});
+                {enemygoal_x - std::cos(theta) * 2000, std::sin(theta) * 3500});
           } else if (ball_pos.x() < -2000) {
             pos_ = pos::near;
-            positions_.push_back({ball_pos.x() + (i + 2) * 1500, std::sin(theta) * 3000});
+            positions_.push_back({ball_pos.x() + (i + 2) * 1500, std::sin(theta) * 3500});
           } else {
             pos_ = pos::mid;
-            positions_.push_back({ball_pos.x() + (i + 1) * 1000, std::sin(theta) * 2000});
+            positions_.push_back({ball_pos.x() + (i + 1) * 1000, std::sin(theta) * 3500});
           }
           if (positions_[i].x() > enemygoal_x - 500) {
             positions_[i].x() = enemygoal_x - 500;
@@ -112,7 +111,9 @@ std::vector<std::shared_ptr<action::base>> setplay::execute() {
         }
         i++;
       }
-      if ((ball_pos - kicker_pos).norm() > 700) {
+      if ((ball_pos - kicker_pos).norm() > 300 &&
+          std::abs(util::wrap_to_pi(vectorangle(ball_pos - kicker_pos) - kicker.theta())) <
+              0.15) {
         movedflag = false;
       }
 
@@ -144,7 +145,8 @@ std::vector<std::shared_ptr<action::base>> setplay::execute() {
           }
         }
         if (pos_ == pos::near) {
-          passpos_ = {1000, 0};
+          auto shooter = our_robots.at(shooter_id_);
+          passpos_     = {shooter.x(), shooter.y()};
         } else if (pos_ == pos::mid) {
           auto shooter = our_robots.at(shooter_id_);
           passpos_     = {shooter.x(), shooter.y()};
@@ -155,6 +157,7 @@ std::vector<std::shared_ptr<action::base>> setplay::execute() {
         baseaction_.push_back(make_action<action::no_operation>(kicker_id_));
         for (auto receiver_id : receiver_ids_)
           baseaction_.push_back(make_action<action::no_operation>(receiver_id));
+        receive_ = make_action<action::receive>(shooter_id_);
       } else {
         // ロボットが移動できていなかったら移動を続ける
         for (i = 0; i < receiver_ids_.size(); i++) {
@@ -165,20 +168,22 @@ std::vector<std::shared_ptr<action::base>> setplay::execute() {
           const int dist         = (positions_[i] - receiver_pos).norm();
           bool close_flag        = dist < 10;
 
-          const int speed = dist < 400 ? dist : fdir;
-          move->move_to(receiver_pos.x() + (close_flag ? 0 : speed * std::cos(to_target)),
-                        receiver_pos.y() + (close_flag ? 0 : speed * std::sin(to_target)),
+          move->move_to(receiver_pos.x() + (close_flag ? 0 : dist * std::cos(to_target)),
+                        receiver_pos.y() + (close_flag ? 0 : dist * std::sin(to_target)),
                         vectorangle(ball_pos - receiver_pos));
           baseaction_.push_back(move);
         }
-        if ((ball_pos - kicker_pos).norm() > 500) {
+        if ((ball_pos - kicker_pos).norm() > 180) {
           auto move            = make_action<action::move>(kicker_id_);
           const double to_ball = vectorangle(ball_pos - kicker_pos);
-          move->move_to(kicker_pos.x() + 500 * std::cos(to_ball),
-                        kicker_pos.y() + 500 * std::sin(to_ball), to_ball);
+          move->move_to(ball_pos.x(), ball_pos.y(), to_ball);
           baseaction_.push_back(move);
         } else {
-          baseaction_.push_back(make_action<action::no_operation>(kicker_id_));
+          const Eigen::Vector2d receiver_pos = util::math::position(our_robots.at(kicker_id_));
+          auto move                          = make_action<action::move>(kicker_id_);
+          const double to_ball               = vectorangle(ball_pos - kicker_pos);
+          move->move_to(receiver_pos.x(), receiver_pos.y(), to_ball);
+          baseaction_.push_back(move);
         }
         break;
       }
@@ -197,10 +202,10 @@ std::vector<std::shared_ptr<action::base>> setplay::execute() {
         line_flag = false;
       }
 
-      const double power = line_flag ? 50 : 150;
+      const double power = line_flag ? 40 : 200;
       kick_->kick_to(passpos_.x(), passpos_.y());
-      kick_->set_dribble(0);
-      kick_->set_angle_margin(0.04);
+      kick_->set_dribble(3);
+      kick_->set_angle_margin(0.2);
       auto kick_type =
           line_flag ? model::command::kick_type_t::line : model::command::kick_type_t::chip;
       kick_->set_kick_type({kick_type, power});
@@ -214,16 +219,21 @@ std::vector<std::shared_ptr<action::base>> setplay::execute() {
                         vectorangle(ball_pos - receiver_pos));
           baseaction_.push_back(move);
         } else {
-          const Eigen::Vector2d target = {passpos_.x(), passpos_.y()};
-          auto move                    = make_action<action::move>(shooter_id_);
-          const double to_target       = vectorangle(target - receiver_pos);
-          const int dist               = (target - receiver_pos).norm();
-          bool close_flag              = dist < 50;
-          const int speed              = dist < 400 ? dist : fdir;
-          move->move_to(passpos_.x() + (close_flag ? 0 : speed * std::cos(to_target)),
-                        passpos_.y() + (close_flag ? 0 : speed * std::sin(to_target)),
-                        vectorangle(ball_pos - receiver_pos));
-          baseaction_.push_back(move);
+          if (kick_->state() == action::kick_action::running_state::kick) {
+            receive_->set_dribble(8);
+            receive_->set_passer(kicker_id_);
+            baseaction_.push_back(receive_);
+          } else {
+            const Eigen::Vector2d target = {passpos_.x(), passpos_.y()};
+            auto move                    = make_action<action::move>(shooter_id_);
+            const double to_target       = vectorangle(target - receiver_pos);
+            const int dist               = (target - receiver_pos).norm();
+            bool close_flag              = dist < 50;
+            move->move_to(passpos_.x() + (close_flag ? 0 : dist * std::cos(to_target)),
+                          passpos_.y() + (close_flag ? 0 : dist * std::sin(to_target)),
+                          vectorangle(ball_pos - receiver_pos));
+            baseaction_.push_back(move);
+          }
         }
       }
       break;
@@ -234,7 +244,8 @@ std::vector<std::shared_ptr<action::base>> setplay::execute() {
       for (auto receiver_id : receiver_ids_) {
         if (receiver_id == shooter_id_) {
           if (!receive_->finished()) {
-            receive_->set_dribble(9);
+            receive_->set_passer(kicker_id_);
+            receive_->set_dribble(8);
             baseaction_.push_back(receive_);
           } else {
             state_ = state::shoot;
@@ -250,12 +261,12 @@ std::vector<std::shared_ptr<action::base>> setplay::execute() {
     case state::shoot: {
       // シュートを撃つ
       if (receiver_ids_.size() == 0) {
-        Eigen::Vector2d target = {enemygoal_x, -270 * ballysign};
+        Eigen::Vector2d target = {enemygoal_x, -400 * ballysign};
         const double power     = 50;
         kick_->kick_to(target.x(), target.y());
         kick_->set_dribble(0);
         kick_->set_mode(action::kick_action::mode::ball);
-        kick_->set_angle_margin(0.04);
+        kick_->set_angle_margin(0.20);
         kick_->set_kick_type({model::command::kick_type_t::line, power});
         baseaction_.push_back(kick_);
       } else {
@@ -263,12 +274,12 @@ std::vector<std::shared_ptr<action::base>> setplay::execute() {
       }
       for (auto receiver_id : receiver_ids_) {
         if (receiver_id == shooter_id_) {
-          Eigen::Vector2d target = {enemygoal_x, -270 * ballysign};
+          Eigen::Vector2d target = {enemygoal_x, -400 * ballysign};
           const double power     = 50;
           kick_->kick_to(target.x(), target.y());
           kick_->set_dribble(0);
           kick_->set_mode(action::kick_action::mode::ball);
-          kick_->set_angle_margin(0.03);
+          kick_->set_angle_margin(0.20);
           kick_->set_kick_type({model::command::kick_type_t::line, power});
           baseaction_.push_back(kick_);
         } else {

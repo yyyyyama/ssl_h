@@ -1,15 +1,18 @@
 #define BOOST_TEST_DYN_LINK
 #define BOOST_TEST_MODULE updater_ball_test
 
+#include <boost/math/constants/constants.hpp>
 #include <boost/test/unit_test.hpp>
 
-#include "ai_server/model/updater/ball.h"
 #include "ai_server/filter/base.h"
+#include "ai_server/model/updater/ball.h"
+#include "ai_server/util/math/affine.h"
 
 using namespace std::chrono_literals;
 
 namespace filter = ai_server::filter;
 namespace model  = ai_server::model;
+namespace util   = ai_server::util;
 
 BOOST_AUTO_TEST_SUITE(updater_ball)
 
@@ -124,6 +127,34 @@ BOOST_AUTO_TEST_CASE(normal) {
     BOOST_TEST(b.x() == 10);
     BOOST_TEST(b.y() == 20);
     BOOST_TEST(b.z() == 30);
+  }
+}
+
+BOOST_AUTO_TEST_CASE(transformation, *boost::unit_test::tolerance(0.0000001)) {
+  using namespace boost::math::double_constants;
+
+  model::updater::ball bu;
+  // 90度回転, x軸方向に10, y軸方向に20平行移動
+  bu.set_transformation_matrix(util::math::make_transformation_matrix(10.0, 20.0, half_pi));
+
+  {
+    ssl_protos::vision::Frame f;
+    f.set_camera_id(0);
+
+    auto b1 = f.add_balls();
+    b1->set_x(100);
+    b1->set_y(200);
+    b1->set_z(300);
+    b1->set_confidence(90.0);
+
+    bu.update(f);
+  }
+
+  {
+    const auto b = bu.value();
+    BOOST_TEST(b.x() == -190);
+    BOOST_TEST(b.y() == 120.0);
+    BOOST_TEST(b.z() == 300);
   }
 }
 

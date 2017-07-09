@@ -17,12 +17,14 @@ public:
   model::command::kick_flag_t kick_type();
   void set_dribble(int dribble);
   int dribble();
+  void set_magnification(double magnification);
   model::command execute() override;
   bool finished() const override;
 
 private:
   Eigen::Vector2d pos_{0.0, 0.0};
-  double theta_ = 0.0;
+  double magnification_ = 5.0;
+  double theta_         = 0.0;
   int dribble_;
   model::command::kick_flag_t kick_type_ = {model::command::kick_type_t::none, 0.0};
   bool flag_                             = false;

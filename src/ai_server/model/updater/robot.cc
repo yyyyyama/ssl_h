@@ -2,6 +2,8 @@
 #define AI_SERVER_MODEL_WORLD_UPDATER_ROBOT_IMPL_H
 
 #include <algorithm>
+
+#include "ai_server/util/math/affine.h"
 #include "robot.h"
 
 namespace ai_server {
@@ -18,6 +20,9 @@ const robot<model::team_color::blue>::source_function_pointer_type
 template <>
 const robot<model::team_color::yellow>::source_function_pointer_type
     robot<model::team_color::yellow>::src_ = &ssl_protos::vision::Frame::robots_yellow;
+
+template <model::team_color Color>
+robot<Color>::robot() : affine_{Eigen::Translation3d{.0, .0, .0}} {}
 
 template <model::team_color Color>
 void robot<Color>::update(const ssl_protos::vision::Frame& detection) {
@@ -73,10 +78,10 @@ void robot<Color>::update(const ssl_protos::vision::Frame& detection) {
       // 一致していたら値の更新を行う
       // (現在のカメラで新たに検出された or
       // 現在のカメラで検出された値のほうがconfidenceが高かった)
-      const auto value = [reliable] {
+      const auto value = util::math::transform(affine_, [reliable] {
         const auto r = std::get<1>(reliable->second);
         return model::robot{r->robot_id(), r->x(), r->y(), r->orientation()};
-      }();
+      }());
       reliables[robot_id] = value;
 
       // 2つのFilterが設定されておらず, かつfilter_initializer_が設定されていたら
@@ -120,6 +125,12 @@ template <model::team_color Color>
 typename robot<Color>::robots_list_type robot<Color>::value() const {
   std::shared_lock<std::shared_timed_mutex> lock(mutex_);
   return robots_;
+}
+
+template <model::team_color Color>
+void robot<Color>::set_transformation_matrix(const Eigen::Affine3d& matrix) {
+  std::unique_lock<std::shared_timed_mutex> lock(mutex_);
+  affine_ = matrix;
 }
 
 template <model::team_color Color>

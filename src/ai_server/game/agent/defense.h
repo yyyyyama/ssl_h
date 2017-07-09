@@ -1,13 +1,13 @@
 #ifndef AI_SERVER_GAME_ACTION_DEFENSE_H
 #define AI_SERVER_GAME_ACTION_DEFENSE_H
 
-#include <vector>
-#include <memory>
 #include <Eigen/Dense>
+#include <memory>
+#include <vector>
 
-#include "ai_server/game/agent/base.h"
-#include "ai_server/game/action/marking.h"
 #include "ai_server/game/action/guard.h"
+#include "ai_server/game/action/marking.h"
+#include "ai_server/game/agent/base.h"
 
 namespace ai_server {
 namespace game {
@@ -51,6 +51,7 @@ private:
   std::vector<Eigen::Vector2d> wall_target_;
   Eigen::Vector2d orientation_;
   defense_mode mode_;
+  Eigen::Vector2d ball_;
 };
 }
 }
