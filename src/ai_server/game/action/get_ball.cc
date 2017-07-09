@@ -50,42 +50,36 @@ model::command get_ball::execute() {
   //移動目標
   Eigen::Vector2d position{Eigen::Vector2d::Zero()};
 
-  //移動速度
-  auto speed = 0.0;
-  //マージン
-  const auto mergin1 = 200.0;
-  const auto mergin2 = 600.0;
-
   if (ball_vec.norm() < 1000.0) {
     //目標に向かって蹴る
-
-    //移動目標はボールのちょい後ろ
-    {
-      //ロボットの中心から口までの距離
-      const auto radius = 70;
-      const auto ratio =
-          radius / ((target_ - ball_pos).norm() + radius); //ボール - 目標位置の比
-      position = (-ratio * target_ + 1 * ball_pos) / (1 - ratio);
-    }
+   	auto radius = 140;
     {
       //目標位置に向いたら蹴る
       const auto theta =
           util::wrap_to_pi(std::atan2(target_.y() - robot.y(), target_.x() - robot.x()));
       if (std::abs(theta - robot_theta) < pi<double>() / 31.0) {
         command.set_kick_flag(
-            // model::command::kick_flag_t{model::command::kick_type_t::line, 255});
-            model::command::kick_flag_t{model::command::kick_type_t::none, 0});
+             model::command::kick_flag_t{model::command::kick_type_t::line, 255});
         command.set_dribble(0);
       } else {
         command.set_kick_flag(
             model::command::kick_flag_t{model::command::kick_type_t::none, 0});
-        command.set_dribble(4);
+        command.set_dribble(9);
       }
+			radius = 70;
+    }
+		//移動目標はボールのちょい後ろ
+    {
+      //ロボットの中心から口までの距離
+      const auto ratio =
+          radius / ((target_ - ball_pos).norm() + radius); //ボール - 目標位置の比
+      position = (-ratio * target_ + 1 * ball_pos) / (1 - ratio);
     }
     {
       //目標位置と自分の位置で四角を作る
+  		const auto mergin = 70.0;
       polygon poly;
-      const auto tmp          = util::math::calc_isosceles_vertexes(robot, position, mergin1);
+      const auto tmp          = util::math::calc_isosceles_vertexes(robot, position, mergin);
       bg::exterior_ring(poly) = boost::assign::list_of<point>(robot.x(), robot.y())(
           std::get<0>(tmp).x(), std::get<0>(tmp).y())(
           std::get<1>(tmp).x(), std::get<1>(tmp).y())(robot.x(), robot.y());
@@ -93,11 +87,11 @@ model::command get_ball::execute() {
       //間にボールがあったら回り込む
       if (!bg::disjoint(p, poly)) {
         //判定の幅
-        const auto mergin = 1000.0;
+        const auto mergin = 500.0;
         const auto tmp1 =
-            std::get<0>(util::math::calc_isosceles_vertexes(robot, ball_pos, mergin));
+            std::get<0>(util::math::calc_isosceles_vertexes(position, ball_pos, mergin));
         const auto tmp2 =
-            std::get<1>(util::math::calc_isosceles_vertexes(robot, ball_pos, mergin));
+            std::get<1>(util::math::calc_isosceles_vertexes(position, ball_pos, mergin));
 
         const auto tc = (ball_pos.x() - target_.x()) * (tmp1.y() - ball_pos.y()) +
                         (ball_pos.y() - target_.y()) * (ball_pos.x() - tmp1.x());
@@ -106,14 +100,8 @@ model::command get_ball::execute() {
         const auto tp = (ball_pos.x() - target_.x()) * (robot.y() - ball_pos.y()) +
                         (ball_pos.y() - target_.y()) * (ball_pos.x() - robot.x());
         position = std::signbit(tc) == std::signbit(tp) ? tmp1 : tmp2;
-        if (std::signbit(tc) == std::signbit(tp)) {
-          std::cout << "tmp1" << std::endl;
-        } else {
-          std::cout << "tmp2" << std::endl;
-        }
       }
     }
-    speed = 500.0;
   } else {
     //ボールがはやければ予測位置に行く
 
@@ -136,24 +124,13 @@ model::command get_ball::execute() {
     if (std::signbit(ball_vec.dot(position - ball_pos))) {
       position = ball;
     }
-    speed = ball_vec.norm() * 2.0 < 2000.0 ? 2000.0 : ball_vec.norm() * 2.0;
   }
-
 
   //目標位置からベクトルへ
   const auto theta =
       util::wrap_to_pi(std::atan2(ball_pos.y() - robot.y(), ball_pos.x() - robot.x()));
   const auto omega = (theta - robot_theta);
 
-  //目標位置が外側に行ったらその場で停止
-  if (std::abs(ball_pos.x()) > 4500.0 || std::abs(ball_pos.y()) > 3000.0) {
-    speed               = 1000.0;
-    const auto velocity = (position - robot).normalized() * speed;
-    command.set_velocity({velocity.x(), velocity.y(), omega});
-    return command;
-  }
-
-  // command.set_velocity({velocity.x(), velocity.y(), omega});
   command.set_position({position.x(), position.y(), theta});
 
   flag_ = false;
