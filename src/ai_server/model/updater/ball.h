@@ -29,6 +29,9 @@ class ball {
 public:
   ball();
 
+  ball(const ball&) = delete;
+  ball& operator=(const ball&) = delete;
+
   /// @brief           Detectionパケットを処理し, ボールの情報を更新する
   /// @param detection SSL-VisionのDetectionパケット
   void update(const ssl_protos::vision::Frame& detection);

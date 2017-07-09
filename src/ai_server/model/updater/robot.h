@@ -41,6 +41,8 @@ class robot {
 
 public:
   robot();
+  robot(const robot&) = delete;
+  robot& operator=(const robot&) = delete;
 
   /// @brief           Detectionパケットを処理し, ボールの情報を更新する
   /// @param detection SSL-VisionのDetectionパケット
