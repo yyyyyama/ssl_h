@@ -4,6 +4,8 @@
 #include "ai_server/util/math/to_vector.h"
 #include "ai_server/util/math.h"
 
+#include <iostream>
+
 namespace ai_server {
 namespace game {
 namespace action {
@@ -72,7 +74,12 @@ model::command receive::execute() {
   const auto theta   = std::atan2(to_ball.y(), to_ball.x());
 
   //位置から速度へ
-  const auto target_vec{(target - robot_pos) * 8};
+  Eigen::Vector2d target_vec{(target - robot_pos) * 8};
+  std::cout << "target__vec" << target_vec.x() << ", " << target_vec.y() << std::endl;
+  if ((robot_pos - ball_pos).norm() < 300 && ball_vec.norm() > 500) {
+    target_vec = target_vec + ball_vec / 3;
+  }
+  std::cout << "target_vec" << target_vec.x() << ", " << target_vec.y() << std::endl;
 
   const auto omega = theta - robot_theta;
   command.set_velocity({target_vec.x(), target_vec.y(), omega});
