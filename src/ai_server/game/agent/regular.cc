@@ -281,7 +281,6 @@ void regular::update_second_marking() {
 
 // 敵IDと重要度を設定、ソートした結果を返す
 std::priority_queue<regular::id_importance> regular::make_importance_list() {
-
   std::priority_queue<regular::id_importance> tmp_list; // 一時的なリスト
   const auto our_robots = is_yellow_ ? world_.robots_yellow() : world_.robots_blue(); // 味方
   const auto those_robots = !is_yellow_ ? world_.robots_yellow() : world_.robots_blue(); // 敵
@@ -302,13 +301,14 @@ std::priority_queue<regular::id_importance> regular::make_importance_list() {
         std::atan2(that_y, that_x - world_.field().x_min()); // ゴールからの角度
     const double ball_gall_angle =
         std::atan2(ball.y(), ball.x() - world_.field().x_min()); // ゴールからみたボールの角度
-        
-    bool too_front= that_x > world_.field().x_max() * 0.65; // 敵側に寄りすぎているか
-    bool near_penalty = gall_dist < 2000;  // ペナルティエリア付近に居るか
-    bool near_difence = std::abs(ball_gall_angle - gall_angle) > atan2(1.2, 4.0) && gall_dist < 4000; // ディフェンスの近くに居るか
 
-    bool is_marking_area =!too_front && !near_penalty && !near_difence; // 対象エリアの中か
-    bool is_kicker = ball_dist < 1000; // ボールを持っているか
+    bool too_front = that_x > world_.field().x_max() * 0.65; // 敵側に寄りすぎているか
+    bool near_penalty = gall_dist < 2000; // ペナルティエリア付近に居るか
+    bool near_difence = std::abs(ball_gall_angle - gall_angle) > atan2(1.2, 4.0) &&
+                        gall_dist < 4000; // ディフェンスの近くに居るか
+
+    bool is_marking_area = !too_front && !near_penalty && !near_difence; // 対象エリアの中か
+    bool is_kicker       = ball_dist < 1000; // ボールを持っているか
 
     // リストに追加するかどうかを決める基準
     if (is_marking_area && !(has_chaser_ && is_kicker)) {

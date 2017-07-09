@@ -67,7 +67,6 @@ private:
   // ターゲットに最も近いロボットIDのイテレータを返す
   std::vector<unsigned int>::const_iterator nearest_id(const std::vector<unsigned int>& can_ids,
                                                        double target_x, double target_y) const;
-                                                       
 
   // ゴールからからみたときの、指定位置と最も角度の近い敵ロボットID
   std::vector<unsigned int>::const_iterator most_overlap_id(
