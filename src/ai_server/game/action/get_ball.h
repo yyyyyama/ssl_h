@@ -19,7 +19,7 @@ public:
   bool finished() const override;
 
 private:
-  Eigen::Vector2d target_; // 蹴りたい方向
+  Eigen::Vector2d target_; // 蹴りたい目標
   bool flag_;
 };
 
