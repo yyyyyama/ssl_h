@@ -25,7 +25,6 @@ std::vector<std::shared_ptr<agent::base>> first_formation::execute() {
 
   //壁を決定する,変更があった場合にはothers_も更新する
   update_keeper();
-  decide_wall_count();
   decide_wall();
   //壁,キッカーなどの役割を決定
   if (current_command_ == command::stop && is_command_changed()) {
@@ -258,6 +257,7 @@ void first_formation::decide_wall() {
   const auto our_robots = is_yellow_ ? world_.robots_yellow() : world_.robots_blue();
   const auto keeper     = keeper_;
   auto tmp_ids          = ids_;
+  decide_wall_count();
   //壁が見えているか判定 壁が見えていて,数が足りているとき作り直さない
   if (wall_count_ == wall_.size() &&
       std::all_of(wall_.begin(), wall_.end(),
@@ -267,7 +267,6 @@ void first_formation::decide_wall() {
 
   if (std::all_of(ids_.begin(), ids_.end(),
                   [&our_robots](auto&& id) { return our_robots.count(id); })) {
-    decide_wall_count();
     wall_.clear();
 
     //キーパーを候補から除外
