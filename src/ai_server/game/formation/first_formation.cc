@@ -7,6 +7,7 @@ namespace formation {
 first_formation::first_formation(const model::world& world, const model::refbox& refcommand,
                                  bool is_yellow, const std::vector<unsigned int>& ids)
     : base(world, is_yellow, refcommand),
+      wall_count_(2),
       ids_(ids),
       kicked_flag_(false),
       regular_flag_(true),
@@ -24,6 +25,7 @@ std::vector<std::shared_ptr<agent::base>> first_formation::execute() {
 
   //壁を決定する,変更があった場合にはothers_も更新する
   update_keeper();
+  decide_wall_count();
   decide_wall();
   //壁,キッカーなどの役割を決定
   if (current_command_ == command::stop && is_command_changed()) {
