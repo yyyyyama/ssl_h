@@ -32,18 +32,6 @@ model::ball ball::update(const model::ball& ball,
   auto passed_time = std::chrono::duration<double>(time - prev_time_).count();
   prev_time_       = time;
 
-  // 状態変数行列から位置を取り出すやつ
-  auto to_pos = [](const Eigen::Matrix<double, 2, 1>& x_hat) {
-    Eigen::Matrix<double, 1, 2> C = {1, 0};
-    return C * x_hat;
-  };
-
-  // 状態変数行列から速度を取り出すやつ
-  auto to_vel = [](const Eigen::Matrix<double, 2, 1>& x_hat) {
-    Eigen::Matrix<double, 1, 2> C = {0, 1};
-    return C * x_hat;
-  };
-
   auto h1 = [](double fric) { return -2 * lambda_observer_ - (fric + air_registance_); };
 
   auto h2 = [h1](double fric) {
@@ -79,8 +67,8 @@ model::ball ball::update(const model::ball& ball,
       (A - h * C) * x_hat_[0] + h * std::floor(ball.x() / quant_limit_x_) * quant_limit_x_;
   x_hat_dot *= passed_time;
   x_hat_[0] += x_hat_dot;
-  ball_.set_x(to_pos(x_hat_[0]));
-  ball_.set_vx(to_vel(x_hat_[0]));
+  ball_.set_x(x_hat_[0](0));
+  ball_.set_vx(x_hat_[0](1));
 
   // y軸方向についても同様に状態推定
   auto sin_theta = std::sin(theta);
@@ -103,8 +91,8 @@ model::ball ball::update(const model::ball& ball,
       (A - h * C) * x_hat_[1] + h * std::floor(ball.y() / quant_limit_y_) * quant_limit_y_;
   x_hat_dot *= passed_time;
   x_hat_[1] += x_hat_dot;
-  ball_.set_y(to_pos(x_hat_[1]));
-  ball_.set_vy(to_vel(x_hat_[1]));
+  ball_.set_y(x_hat_[1](0));
+  ball_.set_vy(x_hat_[1](1));
 
   return ball_;
 }
