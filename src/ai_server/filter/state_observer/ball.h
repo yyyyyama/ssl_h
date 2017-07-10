@@ -5,6 +5,7 @@
 #include "ai_server/model/ball.h"
 #include <Eigen/Core>
 #include <array>
+#include <boost/math/constants/constants.hpp>
 
 namespace ai_server {
 namespace filter {
@@ -16,8 +17,9 @@ private:
   static constexpr double ball_weight_   = 45.93 / 1000; // ボールの重さ[kg]
   static constexpr double ball_radius_   = 42.67 / 2000; // ボールの半径[m]
   static constexpr double air_viscosity_ = 1.822e-5;     // 空気の粘度[Pa・s]
+  // ボールの粘性抵抗係数[kg/s]
   static constexpr double air_registance_ =
-      6 * M_PI * air_viscosity_ * ball_radius_; // ボールの粘性抵抗係数[kg/s]
+      6 * boost::math::double_constants::pi * air_viscosity_ * ball_radius_;
   static constexpr double friction_ =
       fric_coef_ * ball_weight_ * 9.8; // 床とボールの最大動摩擦力[N]
   static constexpr double quant_limit_x_ =
