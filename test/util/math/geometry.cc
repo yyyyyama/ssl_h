@@ -9,7 +9,7 @@ using namespace ai_server;
 
 BOOST_AUTO_TEST_SUITE(geometry)
 
-BOOST_AUTO_TEST_CASE(test001) {
+BOOST_AUTO_TEST_CASE(test001, *boost::unit_test::tolerance(0.0000001)) {
   const auto tmp1 = util::math::calc_isosceles_vertexes(Eigen::Vector2d{0.0, 0.0},
                                                         Eigen::Vector2d{0.0, 1.0}, 1.0);
   BOOST_TEST(std::get<0>(tmp1) == Eigen::Vector2d(-1.0, 1.0));
