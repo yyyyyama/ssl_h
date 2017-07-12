@@ -1,10 +1,13 @@
 #include <algorithm>
 #include <cmath>
 #include "regular.h"
+#include "ai_server/util/algorithm.h"
 
 namespace ai_server {
 namespace game {
 namespace agent {
+
+using ai_server::util::pop_each;
 
 regular::regular(const model::world& world, bool is_yellow,
                  const std::vector<unsigned int>& ids)
@@ -308,18 +311,22 @@ std::priority_queue<regular::id_importance> regular::make_importance_list() {
     // ゴールからみたボールの角度
     const double ball_gall_angle = std::atan2(ball.y(), ball.x() - world_.field().x_min());
 
-    // 敵側に寄りすぎているか
-    bool too_front = that_x > world_.field().x_max() * 0.65;
-    // ペナルティエリア付近に居るか
-    bool near_penalty = gall_dist < 2000;
-    // ディフェンスの近くに居るか
-    bool near_difence =
-        std::abs(ball_gall_angle - gall_angle) > atan2(1.2, 4.0) && gall_dist < 4000;
-
-    // 対象となるエリアの中か
-    bool is_marking_area = !too_front && !near_penalty && !near_difence;
     // ボールを持っているか
     bool is_kicker = ball_dist < 1000;
+
+    // has_chaserにマークを委託
+    if (has_chaser_ && is_kicker) {
+      continue;
+    }
+
+    // 対象となるエリアの中か
+    bool is_marking_area =
+        // 敵側に寄りすぎていないか
+        that_x < world_.field().x_max() * 0.65 &&
+        // ペナルティエリア付近にいないか
+        gall_dist > 2000 &&
+        // ディフェンスの近くにいないか
+        !(std::abs(ball_gall_angle - gall_angle) < atan2(1.2, 4.0) && gall_dist < 4000);
 
     // マーキングエリア内 && chaserとかぶらない時
     if (is_marking_area && !(has_chaser_ && is_kicker)) {
@@ -349,14 +356,18 @@ std::priority_queue<regular::id_importance> regular::make_importance_list() {
   std::vector<unsigned int> added_list;
   std::priority_queue<regular::id_importance> list;
 
-  while (!tmp_list.empty()) {
-    const auto id       = tmp_list.top().id;       // 敵ロボのID
+  pop_each(tmp_list, [&those_robots, &list, &added_list, this](auto&& item) {
+    const auto id       = item.id;                 // 敵ロボのID
     const double that_x = those_robots.at(id).x(); // 敵ロボのx座標
     const double that_y = those_robots.at(id).y(); //敵ロボのy座標
 
-    if (!added_list.empty()) {
+    if (added_list.empty()) {
+      // 初めて選ばれた要素のとき
+      list.push(item);
+      added_list.push_back(id);
+    } else {
       // 最も角度差が小さいID
-      auto next_id = most_overlap_id(added_list, those_robots, that_x, that_y);
+      auto next_id = most_overlapped_id(added_list, those_robots, that_x, that_y);
       if (next_id != added_list.end()) {
         const auto next_x = those_robots.at(*next_id).x();
         const auto next_y = those_robots.at(*next_id).y();
@@ -367,17 +378,12 @@ std::priority_queue<regular::id_importance> regular::make_importance_list() {
 
         if (smallest_theta > std::atan2(1.0, 3.0)) {
           // ある程度の角度差が保たれている時
-          list.push(tmp_list.top());
+          list.push(item);
           added_list.push_back(id);
         }
       }
-    } else {
-      // 他に追加済みのロボットが無い時
-      list.push(tmp_list.top());
-      added_list.push_back(id);
     }
-    tmp_list.pop();
-  }
+  });
   return list;
 }
 
@@ -393,33 +399,22 @@ std::vector<unsigned int>::const_iterator regular::nearest_id(
 }
 
 // ゴールからからみたとき、指定位置と最も角度の近い敵ロボットID
-std::vector<unsigned int>::const_iterator regular::most_overlap_id(
+std::vector<unsigned int>::const_iterator regular::most_overlapped_id(
     std::vector<unsigned int>& those_ids,
     const std::unordered_map<unsigned int, model::robot>& those_robots, double target_x,
     double target_y) const {
   const double gall_x = world_.field().x_min();                        // ゴールのx座標
   const double target_theta = std::atan2(target_y, target_x - gall_x); // ゴールと指定地点の角度
 
-  return std::min_element(
-      those_ids.begin(), those_ids.end(),
-      [&gall_x, &target_theta, those_robots](unsigned int a, unsigned int b) {
-        if (those_robots.find(a) == those_robots.end()) {
-          // aのロボットがロストしている時
-          if (those_robots.find(b) != those_robots.end()) {
-            // bのロボットが見える時はbを上位に
-            return false;
-          }
-        }
-        if (those_robots.find(b) == those_robots.end()) {
-          // bのロボットがロストしている時はaを上位に
-          return true;
-        }
-        const double theta_a = std::atan2(those_robots.at(a).y(),
-                                          those_robots.at(a).x() - gall_x); // ロボットaの角度差
-        const double theta_b = std::atan2(those_robots.at(b).y(),
-                                          those_robots.at(b).x() - gall_x); // ロボットbの角度差
-        return std::abs(theta_a - target_theta) < std::abs(theta_b - target_theta);
-      });
+  return std::min_element(those_ids.begin(), those_ids.end(), [&gall_x, &target_theta,
+                                                               those_robots](unsigned int a,
+                                                                             unsigned int b) {
+    // ロボットaの角度差
+    const double theta_a = std::atan2(those_robots.at(a).y(), those_robots.at(a).x() - gall_x);
+    // ロボットbの角度差
+    const double theta_b = std::atan2(those_robots.at(b).y(), those_robots.at(b).x() - gall_x);
+    return std::abs(theta_a - target_theta) < std::abs(theta_b - target_theta);
+  });
 }
 
 bool regular::id_importance::operator<(const id_importance& next) const {

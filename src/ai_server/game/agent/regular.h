@@ -69,7 +69,7 @@ private:
                                                        double target_x, double target_y) const;
 
   // ゴールからからみたときの、指定位置と最も角度の近い敵ロボットID
-  std::vector<unsigned int>::const_iterator most_overlap_id(
+  std::vector<unsigned int>::const_iterator most_overlapped_id(
       std::vector<unsigned int>& those_ids,
       const std::unordered_map<unsigned int, model::robot>& those_robots, double target_x,
       double target_y) const;
