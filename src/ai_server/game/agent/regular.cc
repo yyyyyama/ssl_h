@@ -329,7 +329,7 @@ std::priority_queue<regular::id_importance> regular::make_importance_list() {
         !(std::abs(ball_gall_angle - gall_angle) < atan2(1.2, 4.0) && gall_dist < 4000);
 
     // マーキングエリア内 && chaserとかぶらない時
-    if (is_marking_area && !(has_chaser_ && is_kicker)) {
+    if (is_marking_area) {
       // 敵のマーク重要度
       double score = 0.0;
       // 距離の正規化用に使う
