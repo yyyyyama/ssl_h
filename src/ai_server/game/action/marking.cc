@@ -12,9 +12,6 @@
 namespace ai_server {
 namespace game {
 namespace action {
-unsigned int marking::id() {
-  return id_;
-}
 void marking::mark_robot(unsigned int enemy_id) {
   enemy_id_ = enemy_id;
 }

@@ -1,26 +1,29 @@
+#include <boost/algorithm/clamp.hpp>
 #include <boost/math/special_functions/sign.hpp>
 #include <cmath>
 
-#include "sliding_mode_controller.h"
+#include "velocity_generator.h"
 
 namespace ai_server {
 namespace controller {
 namespace detail {
 
-const double sliding_mode_controller::a_max_ = 4000.0;
-const double sliding_mode_controller::kp_    = 1.0;
+const double velocity_generator::a_max_       = 4000.0;
+const double velocity_generator::a_min_       = 2500.0;
+const double velocity_generator::reach_speed_ = 1000.0;
+const double velocity_generator::kp_          = 1.0;
 
-sliding_mode_controller::sliding_mode_controller(double cycle) : cycle_(cycle) {
+velocity_generator::velocity_generator(double cycle) : cycle_(cycle) {
   v_target_ = 0.0;
 }
 
-double sliding_mode_controller::control_pos(const double delta_p) {
+double velocity_generator::control_pos(const double delta_p) {
   double a_required = std::abs(delta_p) * std::pow(kp_, 2);
   double state;
 
   // 必要な収束加速度が最大加速度を上回り,bangbang制御が必要か
   if (a_required < a_max_) {
-    // 普通のSlidingMode
+    // 普通のsliding_mode用state
     state = kp_ * delta_p + v_target_;
   } else {
     // bangbang制御をするための特別なstate関数
@@ -31,6 +34,7 @@ double sliding_mode_controller::control_pos(const double delta_p) {
     state     = sgn * std::sqrt(sgn * (delta_p - pm)) + (v_target_ - vm);
   }
 
+  // sliding_mode
   if (std::abs(state) < a_max_ * cycle_) {
     v_target_ = -kp_ * delta_p; // stateが0になるように速度を保つ
   } else if (state < 0) {
@@ -41,14 +45,19 @@ double sliding_mode_controller::control_pos(const double delta_p) {
   return v_target_;
 }
 
-double sliding_mode_controller::control_vel(const double delta_v) {
-  double state = delta_v;
-  if (std::abs(state) < a_max_ * cycle_) {
-    v_target_ += kp_ * delta_v; // stateが0になるように速度を保つ
+double velocity_generator::control_vel(const double target) {
+  double state = v_target_ - target;
+  // 制限加速度計算
+  // 速度によって加速度が変化,初動でスリップしないように
+  double optimized_accel = v_target_ * (a_max_ - a_min_) / reach_speed_ + a_min_;
+  optimized_accel        = boost::algorithm::clamp(optimized_accel, a_min_, a_max_);
+
+  if (std::abs(state) < optimized_accel * cycle_) {
+    v_target_ = target;
   } else if (state < 0) {
-    v_target_ += a_max_ * cycle_; // stateが-なら加速
+    v_target_ += optimized_accel * cycle_; // stateが-なら加速
   } else {
-    v_target_ -= a_max_ * cycle_; // stateが+なら減速
+    v_target_ -= optimized_accel * cycle_; // stateが+なら減速
   }
   return v_target_;
 }

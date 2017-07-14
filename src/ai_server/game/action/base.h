@@ -17,6 +17,9 @@ public:
 
   virtual ~base() = default;
 
+  /// @brief                  割り当てられているidを取得する
+  unsigned int id() const;
+
   /// @brief                  呼び出されたループでのロボットの命令を取得する
   virtual model::command execute() = 0;
 
