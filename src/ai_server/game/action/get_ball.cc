@@ -40,33 +40,32 @@ model::command get_ball::execute() {
   const auto& my_robot   = my_robots.at(id_);
   const auto robot       = util::math::position(my_robot);
   const auto robot_theta = util::wrap_to_pi(my_robot.theta());
-  const auto robot_vec   = util::math::velocity(my_robot);
 
   const auto ball_pos = util::math::position(world_.ball());
   const auto ball_vec = util::math::velocity(world_.ball());
-  // 2.0秒後のボールの位置
-  const Eigen::Vector2d ball = ball_pos + ball_vec * 2.0;
+  // 3.0秒後のボールの位置
+  const Eigen::Vector2d ball = ball_pos + ball_vec * 3.0;
 
   //移動目標
   Eigen::Vector2d position{Eigen::Vector2d::Zero()};
 
-  if (ball_vec.norm() < 1000.0) {
-    //目標に向かって蹴る
+  if (ball_vec.norm() < 500.0) {
     auto radius = 140;
+    //目標に向かって蹴る
     {
       //目標位置に向いたら蹴る
       const auto theta =
           util::wrap_to_pi(std::atan2(target_.y() - robot.y(), target_.x() - robot.x()));
       if (std::abs(theta - robot_theta) < pi<double>() / 31.0) {
         command.set_kick_flag(
-            model::command::kick_flag_t{model::command::kick_type_t::line, 255});
+            model::command::kick_flag_t{model::command::kick_type_t::line, 128});
         command.set_dribble(0);
+        radius = 95;
       } else {
         command.set_kick_flag(
             model::command::kick_flag_t{model::command::kick_type_t::none, 0});
         command.set_dribble(9);
       }
-      radius = 70;
     }
     //移動目標はボールのちょい後ろ
     {
@@ -77,7 +76,7 @@ model::command get_ball::execute() {
     }
     {
       //目標位置と自分の位置で四角を作る
-      const auto mergin = 70.0;
+      const auto mergin = 50.0;
       polygon poly;
       const auto tmp          = util::math::calc_isosceles_vertexes(robot, position, mergin);
       bg::exterior_ring(poly) = boost::assign::list_of<point>(robot.x(), robot.y())(
@@ -87,19 +86,19 @@ model::command get_ball::execute() {
       //間にボールがあったら回り込む
       if (!bg::disjoint(p, poly)) {
         //判定の幅
-        const auto mergin = 500.0;
+        const auto mergin = 250.0;
         const auto tmp1 =
-            std::get<0>(util::math::calc_isosceles_vertexes(position, ball_pos, mergin));
-        const auto tmp2 =
-            std::get<1>(util::math::calc_isosceles_vertexes(position, ball_pos, mergin));
+            std::get<0>(util::math::calc_isosceles_vertexes(robot, ball_pos, mergin));
+        // std::get<0>(util::math::calc_isosceles_vertexes(position, ball_pos, mergin));
+        position = tmp1;
+        // const auto tmp2 =
+        //    std::get<1>(util::math::calc_isosceles_vertexes(position, ball_pos, mergin));
 
-        const auto tc = (ball_pos.x() - target_.x()) * (tmp1.y() - ball_pos.y()) +
-                        (ball_pos.y() - target_.y()) * (ball_pos.x() - tmp1.x());
-        const auto td = (ball_pos.x() - target_.x()) * (tmp2.y() - ball_pos.y()) +
-                        (ball_pos.y() - target_.y()) * (ball_pos.x() - tmp2.x());
-        const auto tp = (ball_pos.x() - target_.x()) * (robot.y() - ball_pos.y()) +
-                        (ball_pos.y() - target_.y()) * (ball_pos.x() - robot.x());
-        position = std::signbit(tc) == std::signbit(tp) ? tmp1 : tmp2;
+        // const auto tc = (ball_pos.x() - target_.x()) * (tmp1.y() - ball_pos.y()) +
+        //                (ball_pos.y() - target_.y()) * (ball_pos.x() - tmp1.x());
+        // const auto tp = (ball_pos.x() - target_.x()) * (robot.y() - ball_pos.y()) +
+        //                (ball_pos.y() - target_.y()) * (ball_pos.x() - robot.x());
+        // position = std::signbit(tc) == std::signbit(tp) ? tmp1 : tmp2;
       }
     }
   } else {
@@ -120,16 +119,39 @@ model::command get_ball::execute() {
     //捕球させる
     command.set_dribble(9);
 
-    //自身のスピードが早いかボールより手前ならタンケッテのあれ
+    //ボールより手前ならタンケッテのあれ
     if (std::signbit(ball_vec.dot(position - ball_pos))) {
       position = ball;
+      {
+        //目標位置と自分の位置で四角を作る
+        const auto mergin = 250.0;
+        polygon poly;
+        const auto tmp          = util::math::calc_isosceles_vertexes(robot, position, mergin);
+        bg::exterior_ring(poly) = boost::assign::list_of<point>(robot.x(), robot.y())(
+            std::get<0>(tmp).x(), std::get<0>(tmp).y())(
+            std::get<1>(tmp).x(), std::get<1>(tmp).y())(robot.x(), robot.y());
+        const point p(ball_pos.x(), ball_pos.y());
+        //間にボールがあったら回り込む
+        if (!bg::disjoint(p, poly)) {
+          //判定の幅
+          const auto mergin = 500.0;
+          const auto tmp1 =
+              std::get<0>(util::math::calc_isosceles_vertexes(ball_pos, position, mergin));
+          const auto tmp2 =
+              std::get<1>(util::math::calc_isosceles_vertexes(ball_pos, position, mergin));
+
+          const auto tc = (ball_pos.x() - position.x()) * (tmp1.y() - position.y()) +
+                          (ball_pos.y() - position.y()) * (position.x() - tmp1.x());
+          const auto tp = (ball_pos.x() - position.x()) * (robot.y() - position.y()) +
+                          (ball_pos.y() - position.y()) * (position.x() - robot.x());
+          position = std::signbit(tc) == std::signbit(tp) ? tmp1 : tmp2;
+        }
+      }
     }
   }
 
-  //目標位置からベクトルへ
   const auto theta =
       util::wrap_to_pi(std::atan2(ball_pos.y() - robot.y(), ball_pos.x() - robot.x()));
-  const auto omega = (theta - robot_theta);
 
   command.set_position({position.x(), position.y(), theta});
 
