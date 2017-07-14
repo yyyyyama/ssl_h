@@ -3,6 +3,7 @@
 
 #include "ai_server/game/agent/defense.h"
 #include "ai_server/model/command.h"
+#include "ai_server/util/math/geometry.h"
 #include "ai_server/util/math.h"
 
 namespace ai_server {
@@ -31,7 +32,6 @@ defense::defense(const model::world& world, bool is_yellow, unsigned int keeper_
   for (auto it : wall_ids_) {
     wall_.emplace_back(std::make_shared<action::guard>(world_, is_yellow_, it));
   }
-  wall_target_.resize(wall_.size());
 
   //壁用のaction
   for (auto it : marking_ids_) {
@@ -54,18 +54,15 @@ std::vector<std::shared_ptr<action::base>> defense::execute() {
   const Eigen::Vector2d ball(ball_pos + ball_k);
 
   //状態を遷移させるためのボールの位置
-  if (ball_vec.norm() < 100.0) {
+  if (ball_vec.norm() < 150.0) {
     ball_ = ball_pos;
   }
-
   //ボールがゴールより後ろに来たら現状維持
   if (ball.x() < world_.field().x_min() || ball.x() > world_.field().x_max()) {
-    auto target_it = wall_target_.begin();
     for (auto wall_it : wall_) {
-      wall_it->move_to((*target_it).x(), (*target_it).y(), 0.0);
-      target_it++;
+      wall_it->set_halt(true);
     }
-    keeper_->move_to(keeper_target_.x(), keeper_target_.y(), 0.0);
+    keeper_->set_halt(true);
 
     std::vector<std::shared_ptr<action::base>> re_wall{
         wall_.begin(), wall_.end()}; //型を合わせるために無理矢理作り直す
@@ -73,9 +70,13 @@ std::vector<std::shared_ptr<action::base>> defense::execute() {
 
     return re_wall;
   }
-
+  for (auto wall_it : wall_) {
+    wall_it->set_halt(false);
+  }
+  keeper_->set_halt(false);
   //ゴールの座標
   const Eigen::Vector2d goal(world_.field().x_min(), 0.0);
+  const Eigen::Vector2d goal_e(world_.field().x_max(), 0.0);
 
   const auto ball_theta = std::atan2(ball.y() - goal.y(), ball.x() - goal.x());
 
@@ -87,7 +88,7 @@ std::vector<std::shared_ptr<action::base>> defense::execute() {
   //比
   {
     //半径
-    const auto radius = 1400.0;
+    const auto radius = 1380.0;
 
     const auto length = (goal - ball).norm(); //ボール<->ゴール
 
@@ -112,7 +113,7 @@ std::vector<std::shared_ptr<action::base>> defense::execute() {
       //基準点からどれだけずらすか
       auto shift_ = 0.0;
       //縄張りの大きさ
-      const auto demarcation = 3000.0;
+      const auto demarcation = 3500.0;
       //壁の数によってずらしていく倍率が変わるのでその倍率
       auto magnification = 0.0;
 
@@ -155,34 +156,11 @@ std::vector<std::shared_ptr<action::base>> defense::execute() {
           shift_ = 90;
         }
       }
-
-      //移動した量
-      const Eigen::Vector2d move(ball.x(), ball.y());
-
-      //計算の為に中心にずらした場合の座標
-      Eigen::Vector2d after_ball(ball.x() - move.x(), ball.y() - move.y());
-
-      Eigen::Vector2d after_base(orientation_.x() - move.x(), orientation_.y() - move.y());
-
-      // x軸から角度
-      const auto alpha = util::wrap_to_2pi(
-          std::atan2(after_base.y() - after_ball.y(), after_base.x() - after_ball.x()));
-      //回転行列
-      const Eigen::Rotation2Dd rotate(alpha);
-
-      after_base.x() = (after_base - after_ball).norm();
-      after_base.y() = 0.0;
-
       for (auto shift = shift_; wall_it != wall_.end();
            shift += (shift_ * magnification), wall_it += 2) {
-        //移動した先での仮の座標
-        const Eigen::Vector2d tmp1(after_base.x(), shift);
-        const Eigen::Vector2d tmp2(tmp1.x(), tmp1.y() * (-1));
-
-        //回転した後の正しい座標
-        target.push_back((rotate * tmp1) + move);
-        target.push_back((rotate * tmp2) + move);
-
+        const auto tmp = util::math::calc_isosceles_vertexes(ball, orientation_, shift);
+        target.push_back(std::get<0>(tmp));
+        target.push_back(std::get<1>(tmp));
         //もしディフェンスエリアないに入ってしまっても順番が入れ替わらないようにする
         if ((ball - goal).norm() < 1400) {
           const auto tmp = target.back();
@@ -194,19 +172,35 @@ std::vector<std::shared_ptr<action::base>> defense::execute() {
     }
     //実際にアクションを詰めて返す
     {
-      auto target_it     = target.begin();
-      auto old_target_it = wall_target_.begin();
+      const auto my_robots = is_yellow_ ? world_.robots_yellow() : world_.robots_blue();
+
+      //距離が近い順に昇順ソート
+      std::sort(wall_.begin(), wall_.end(), [&goal, &my_robots](const auto& a, const auto& b) {
+        return std::atan2(my_robots.at(a->id()).y() - goal.y(),
+                          my_robots.at(a->id()).x() - goal.x()) <
+               std::atan2(my_robots.at(b->id()).y() - goal.y(),
+                          my_robots.at(b->id()).x() - goal.x());
+      });
+
+      //距離が近い順に昇順ソート
+      std::sort(target.begin(), target.end(),
+                [&goal, &my_robots](const auto& a, const auto& b) {
+                  return std::atan2(a.y() - goal.y(), a.x() - goal.x()) <
+                         std::atan2(b.y() - goal.y(), b.x() - goal.x());
+                });
+
+      //割り当てる
+      auto target_it = target.begin();
       for (auto wall_it : wall_) {
         wall_it->move_to((*target_it).x(), (*target_it).y(), ball_theta);
         wall_it->set_kick_type({model::command::kick_type_t::chip, 255});
         wall_it->set_dribble(0);
-        const auto tmp = (ball_vec.norm() < 1500.0) ? 1500.0 : ball_vec.norm() * 0.8;
+        const auto tmp = (ball_vec.norm() * 1.8 < 1000.0) ? 1000.0 : ball_vec.norm() * 1.8;
         wall_it->set_magnification(tmp);
-        (*old_target_it++) = (*target_it++);
+        target_it++;
       }
     }
   }
-
   //型を合わせるために無理矢理作り直す
   std::vector<std::shared_ptr<action::base>> re_wall{wall_.begin(), wall_.end()};
 
@@ -293,6 +287,7 @@ std::vector<std::shared_ptr<action::base>> defense::execute() {
           r.action->set_radius(250.0);
           if (enemy_it == enemy_list.begin()) {
             r.action->set_radius(600.0);
+            r.action->set_mode(game::action::marking::mark_mode::corner_block);
           }
           mark_list.erase(it);
         }
@@ -347,15 +342,18 @@ std::vector<std::shared_ptr<action::base>> defense::execute() {
   //
   {
     Eigen::Vector2d keeper(Eigen::Vector2d::Zero());
-    const auto my_robots    = is_yellow_ ? world_.robots_yellow() : world_.robots_blue();
     const auto enemy_robots = is_yellow_ ? world_.robots_blue() : world_.robots_yellow();
-    if (my_robots.count(keeper_id_)) {
-      const auto& keeper_robot = my_robots.at(keeper_id_);
-      const Eigen::Vector2d keeper_c(keeper_robot.x(), keeper_robot.y());
-
-      //傾き
-      const auto m = (ball.y() - ball_pos.y()) / (ball.x() - ball_pos.x());
-      const auto b = ball_pos.y() - m * ball_pos.x();
+    if (!enemy_robots.empty()) {
+      //敵のシューターを線形探索する
+      //ボールにもっとも近いやつがシューターだと仮定
+      // ボールに最も近い敵ロボットを求める
+      const auto it = std::min_element(
+          enemy_robots.cbegin(), enemy_robots.cend(), [&ball](auto&& a, auto&& b) {
+            const auto l1 = Eigen::Vector2d{a.second.x(), a.second.y()} - ball;
+            const auto l2 = Eigen::Vector2d{b.second.x(), b.second.y()} - ball;
+            return l1.norm() < l2.norm();
+          });
+      const auto r = std::get<1>(*it);
 
       switch (mode_) {
         case defense_mode::normal_mode: {
@@ -363,96 +361,66 @@ std::vector<std::shared_ptr<action::base>> defense::execute() {
           // そもそもマーキング状態なら別の処理
           // C:ボールが縄張りに入ってきた！やばーい
           // B:ボールが自陣地なので壁の補強をしなければ
-          const auto demarcation1 = 2500.0; //縄張りの大きさ
-          if (((ball_ - goal).norm() < demarcation1) || !marking_.empty()) { // C
+          const auto demarcation1 = 1300.0; //クリアする範囲
+          const auto demarcation2 = 400.0;  //クリアする範囲
+          const auto demarcation3 = 3500.0; //縄張りの大きさ
+
+          if ((ball_ - goal).norm() < demarcation1 && (ball_ - goal).norm() > demarcation2 &&
+              ball_vec.norm() < 500.0) {
+            const auto ratio =
+                40.0 / ((goal_e - ball_pos).norm() + 40.0); //ボール - 目標位置の比
+            keeper = (-ratio * goal_e + 1 * ball_pos) / (1 - ratio);
+            keeper_->set_kick_type({model::command::kick_type_t::chip, 255});
+            keeper_->set_dribble(9);
+          } else if (((ball_ - goal).norm() < demarcation3) || !marking_.empty()) { // C
             //ゴール前でディフェンスする
-            //ボールが直線か斜めかで処理を分る
-            //ボールが直線か斜めかで処理を分る
-            if (std::abs(ball.y()) < 410) {
-              keeper.x() = goal.x() + 110.0;
-              keeper.y() = keeper.x() * m + b;
-              //ゴールの範囲を超えたら跳びでないようにする
-              if (keeper.y() > 410) {
-                keeper.y() = 410;
-              } else if (keeper.y() < -410) {
-                keeper.y() = -410;
-              }
-            } else {
-              const auto length = (goal - ball).norm(); //基準点<->ボール
-
-              const auto ratio = (500) / length; //全体に対してのキーパー位置の比
-
-              keeper = (1 - ratio) * goal + ratio * ball;
-            }
+            const auto length = (goal - ball).norm(); //基準点<->ボール
+            const auto ratio  = (500) / length; //全体に対してのキーパー位置の比
+            keeper            = (1 - ratio) * goal + ratio * ball;
+            keeper_->set_kick_type({model::command::kick_type_t::none, 0});
+            keeper_->set_dribble(0);
           } else { // B*/
                    //壁のすぐ後ろで待機
-                   //基準点からちょっと下がったキーパの位置
-
-            //ボールが直線か斜めかで処理を分る
-            if (std::abs(ball.y()) < 410) {
-              keeper.y() = keeper.x() * m + b;
-              //ゴールの範囲を超えたら跳びでないようにする
-              if (keeper.y() > 410) {
-                keeper.y() = 410;
-              } else if (keeper.y() < -410) {
-                keeper.y() = -410;
-              }
-              keeper.x() =
-                  std::sqrt(std::pow(1000, 2) - std::pow(keeper.y() - goal.y(), 2)) + goal.x();
-            } else {
-              const auto length = (goal - ball).norm(); //基準点<->ボール
-
-              const auto ratio = (1000) / length; //全体に対してのキーパー位置の比
-
-              keeper = (1 - ratio) * goal + ratio * ball;
-            }
+            //基準点からちょっと下がったキーパの位置
+            const auto length = (goal - ball).norm(); //基準点<->ボール
+            const auto ratio  = (1100) / length; //全体に対してのキーパー位置の比
+            keeper            = (1 - ratio) * goal + ratio * ball;
+            keeper_->set_kick_type({model::command::kick_type_t::none, 0});
+            keeper_->set_dribble(0);
           }
+          const auto tmp = (ball_vec.norm() * 1.8 < 1000.0) ? 1000.0 : ball_vec.norm() * 1.8;
+          keeper_->set_magnification(tmp);
           break;
         }
-        case defense_mode::pk_mode: {
-          if (!enemy_robots.empty()) {
-            //敵のシューターを線形探索する
-            //
-            //
-            //ボールにもっとも近いやつがシューターだと仮定
-            //
+        case defense_mode::pk_normal_mode: {
+          //キーパーのy座標は敵シューターの視線の先
+          keeper.y() = (1000.0 * std::tan(r.theta())) * (-1);
 
-            // ボールに最も近い敵ロボットを求める
-            const auto it = std::min_element(
-                enemy_robots.cbegin(), enemy_robots.cend(), [&ball](auto&& a, auto&& b) {
-                  const auto l1 = Eigen::Vector2d{a.second.x(), a.second.y()} - ball;
-                  const auto l2 = Eigen::Vector2d{b.second.x(), b.second.y()} - ball;
-                  return l1.norm() < l2.norm();
-                });
-
-            const auto r = std::get<1>(*it);
-            //キーパーのy座標は敵シューターの視線の先
-            keeper.y() = (1000.0 * std::tan(r.theta())) * (-1);
-
-            //ゴールの範囲を超えたら跳びでないようにする
-            if (keeper.y() > 410) {
-              keeper.y() = 410;
-            } else if (keeper.y() < -410) {
-              keeper.y() = -410;
-            }
-
-            //ロボットの大きさ分ずらす
-            keeper.x() = goal.x() + 110.0;
-            break;
+          //ゴールの範囲を超えたら跳びでないようにする
+          if (keeper.y() > 410) {
+            keeper.y() = 410;
+          } else if (keeper.y() < -410) {
+            keeper.y() = -410;
           }
+
+          //ロボットの大きさ分ずらす
+          keeper.x() = goal.x() + 110.0;
+
+          keeper_->set_magnification(3500.0);
+          keeper_->set_dribble(0);
+          break;
+        }
+        case defense_mode::pk_extention_mode: {
+          keeper = ball_pos;
+          keeper.x() += 45.0;
+          keeper_->set_magnification(6000.0);
+          keeper_->set_dribble(9);
+          break;
         }
       }
-      keeper_target_ = keeper;
-
       keeper_->move_to(keeper.x(), keeper.y(), ball_theta);
-      const auto tmp = (ball_vec.norm() < 2500.0) ? 2500.0 : ball_vec.norm() * 1.0;
-      keeper_->set_magnification(tmp);
-    } else {
-      keeper_->move_to(keeper_target_.x(), keeper_target_.y(), 0.0);
-      keeper_->set_magnification((ball_vec.norm() < 2500.0) ? 2500.0 : ball_vec.norm() * 1.0);
+      re_wall.push_back(keeper_); //配列を返すためにキーパーを統合する
     }
-    keeper_->set_dribble(0);
-    re_wall.push_back(keeper_); //配列を返すためにキーパーを統合する
   }
 
   return re_wall; //返す

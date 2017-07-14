@@ -160,7 +160,7 @@ std::vector<std::shared_ptr<agent::base>> first_formation::execute() {
         kicked_flag_  = false;
       }
       exe.emplace_back(pk(false, false));
-      exe.emplace_back(defense(agent::defense::defense_mode::pk_mode, false));
+      exe.emplace_back(defense(agent::defense::defense_mode::pk_normal_mode, false));
       break;
 
     case command::setplay_attack:

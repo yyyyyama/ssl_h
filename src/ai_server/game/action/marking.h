@@ -10,7 +10,7 @@ namespace action {
 class marking : public base {
 public:
   using base::base;
-  enum class mark_mode { kick_block, shoot_block };
+  enum class mark_mode { kick_block, shoot_block, corner_block };
   void mark_robot(unsigned int enemy_id);
   void set_mode(action::marking::mark_mode mode);
   void set_radius(double radius);
