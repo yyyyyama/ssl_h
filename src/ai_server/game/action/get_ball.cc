@@ -1,3 +1,4 @@
+#include <iostream>
 #include <cmath>
 #include <boost/geometry/geometry.hpp>
 #include <boost/geometry/geometries/point_xy.hpp>
@@ -43,14 +44,15 @@ model::command get_ball::execute() {
 
   const auto ball_pos = util::math::position(world_.ball());
   const auto ball_vec = util::math::velocity(world_.ball());
-  // 3.0秒後のボールの位置
-  const Eigen::Vector2d ball = ball_pos + ball_vec * 3.0;
+  // 2.0秒後のボールの位置
+  const Eigen::Vector2d ball = ball_pos + ball_vec * 2.0;
 
   //移動目標
   Eigen::Vector2d position{Eigen::Vector2d::Zero()};
 
   if (ball_vec.norm() < 500.0) {
-    auto radius = 140;
+    //ロボットの中心から口までの距離
+    auto radius = 140.0;
     //目標に向かって蹴る
     {
       //目標位置に向いたら蹴る
@@ -58,9 +60,9 @@ model::command get_ball::execute() {
           util::wrap_to_pi(std::atan2(target_.y() - robot.y(), target_.x() - robot.x()));
       if (std::abs(theta - robot_theta) < pi<double>() / 31.0) {
         command.set_kick_flag(
-            model::command::kick_flag_t{model::command::kick_type_t::line, 128});
+            model::command::kick_flag_t{model::command::kick_type_t::line, 64});
         command.set_dribble(0);
-        radius = 95;
+        radius = 70;
       } else {
         command.set_kick_flag(
             model::command::kick_flag_t{model::command::kick_type_t::none, 0});
@@ -69,14 +71,13 @@ model::command get_ball::execute() {
     }
     //移動目標はボールのちょい後ろ
     {
-      //ロボットの中心から口までの距離
       const auto ratio =
           radius / ((target_ - ball_pos).norm() + radius); //ボール - 目標位置の比
       position = (-ratio * target_ + 1 * ball_pos) / (1 - ratio);
     }
     {
       //目標位置と自分の位置で四角を作る
-      const auto mergin = 50.0;
+      const auto mergin = 140.0;
       polygon poly;
       const auto tmp          = util::math::calc_isosceles_vertexes(robot, position, mergin);
       bg::exterior_ring(poly) = boost::assign::list_of<point>(robot.x(), robot.y())(
@@ -89,30 +90,40 @@ model::command get_ball::execute() {
         const auto mergin = 250.0;
         const auto tmp1 =
             std::get<0>(util::math::calc_isosceles_vertexes(robot, ball_pos, mergin));
-        // std::get<0>(util::math::calc_isosceles_vertexes(position, ball_pos, mergin));
-        position = tmp1;
-        // const auto tmp2 =
-        //    std::get<1>(util::math::calc_isosceles_vertexes(position, ball_pos, mergin));
+        const auto tmp2 =
+            std::get<1>(util::math::calc_isosceles_vertexes(position, ball_pos, mergin));
 
-        // const auto tc = (ball_pos.x() - target_.x()) * (tmp1.y() - ball_pos.y()) +
-        //                (ball_pos.y() - target_.y()) * (ball_pos.x() - tmp1.x());
-        // const auto tp = (ball_pos.x() - target_.x()) * (robot.y() - ball_pos.y()) +
-        //                (ball_pos.y() - target_.y()) * (ball_pos.x() - robot.x());
-        // position = std::signbit(tc) == std::signbit(tp) ? tmp1 : tmp2;
+        const auto tc = (ball_pos.x() - target_.x()) * (tmp1.y() - ball_pos.y()) +
+                        (ball_pos.y() - target_.y()) * (ball_pos.x() - tmp1.x());
+        const auto tp = (ball_pos.x() - target_.x()) * (robot.y() - ball_pos.y()) +
+                        (ball_pos.y() - target_.y()) * (ball_pos.x() - robot.x());
+        position = std::signbit(tc) == std::signbit(tp) ? tmp1 : tmp2;
       }
     }
+    // command.set_dribble(9);
+    // if ((ball_pos - robot).norm() < 200) {
+    //  command.set_dribble(0);
+    //}
   } else {
     //ボールがはやければ予測位置に行く
 
-    //内積を使って導出
-    //ボールの速度を正規化
-    const auto normalize = ball_vec.normalized();
-    //対象とreceiverの距離
-    const auto length = robot - ball_pos;
-    //内積より,対象と自分の直交する位置
-    const auto dot = normalize.dot(length);
-    //目標位置に変換
-    position = (ball_pos + dot * normalize);
+    {
+      //内積を使って導出
+      //ボールの速度を正規化
+      const auto normalize = ball_vec.normalized();
+      //対象とreceiverの距離
+      const auto length = robot - ball_pos;
+      //内積より,対象と自分の直交する位置
+      const auto dot = normalize.dot(length);
+      //目標位置に変換
+      position = (ball_pos + dot * normalize);
+      if ((robot - ball_pos).norm() < 1000.0) {
+        const auto radius = 500.0;
+        const auto ratio =
+            radius / ((target_ - ball_pos).norm() + radius); //ボール - 目標位置の比
+        position = (-ratio * target_ + 1 * ball_pos) / (1 - ratio);
+      }
+    }
 
     //キックフラグは蹴らせない
     command.set_kick_flag(model::command::kick_flag_t{model::command::kick_type_t::none, 0});
@@ -124,7 +135,7 @@ model::command get_ball::execute() {
       position = ball;
       {
         //目標位置と自分の位置で四角を作る
-        const auto mergin = 250.0;
+        const auto mergin = 500.0;
         polygon poly;
         const auto tmp          = util::math::calc_isosceles_vertexes(robot, position, mergin);
         bg::exterior_ring(poly) = boost::assign::list_of<point>(robot.x(), robot.y())(
@@ -134,7 +145,7 @@ model::command get_ball::execute() {
         //間にボールがあったら回り込む
         if (!bg::disjoint(p, poly)) {
           //判定の幅
-          const auto mergin = 500.0;
+          const auto mergin = 1000.0;
           const auto tmp1 =
               std::get<0>(util::math::calc_isosceles_vertexes(ball_pos, position, mergin));
           const auto tmp2 =
@@ -153,6 +164,30 @@ model::command get_ball::execute() {
   const auto theta =
       util::wrap_to_pi(std::atan2(ball_pos.y() - robot.y(), ball_pos.x() - robot.x()));
 
+  //目標位置が外側に行ったらいい感じに
+  if (std::abs(position.y()) > world_.field().y_max()) {
+    {
+      const auto A = (position.y() - ball_pos.y()) / (position.x() - ball_pos.x());
+      const auto B = ball_pos.y() - A * ball_pos.x();
+      if (std::signbit(position.y()) == std::signbit(world_.field().y_min())) {
+        position.y() = world_.field().y_min();
+      } else {
+        position.y() = world_.field().y_max();
+      }
+      position.x() = (position.y() - B) / A;
+    }
+  } else if (std::abs(position.x()) > world_.field().x_max()) {
+    {
+      const auto A = (position.y() - ball_pos.y()) / (position.x() - ball_pos.x());
+      const auto B = ball_pos.y() - A * ball_pos.x();
+      if (std::signbit(position.x()) == std::signbit(world_.field().x_min())) {
+        position.x() = world_.field().x_min();
+      } else {
+        position.x() = world_.field().x_max();
+      }
+      position.y() = A * position.x() + B;
+    }
+  }
   command.set_position({position.x(), position.y(), theta});
 
   flag_ = false;
