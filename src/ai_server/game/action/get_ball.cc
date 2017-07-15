@@ -32,7 +32,8 @@ model::command get_ball::execute() {
 
   model::command command(id_);
 
-  const auto my_robots = is_yellow_ ? world_.robots_yellow() : world_.robots_blue();
+  const auto my_robots    = is_yellow_ ? world_.robots_yellow() : world_.robots_blue();
+  const auto enemy_robots = is_yellow_ ? world_.robots_blue() : world_.robots_yellow();
   if (!my_robots.count(id_)) {
     command.set_velocity({0.0, 0.0, 0.0});
     return command;
@@ -59,10 +60,36 @@ model::command get_ball::execute() {
       const auto theta =
           util::wrap_to_pi(std::atan2(target_.y() - robot.y(), target_.x() - robot.x()));
       if (std::abs(theta - robot_theta) < pi<double>() / 31.0) {
-        command.set_kick_flag(
-            model::command::kick_flag_t{model::command::kick_type_t::line, 64});
         command.set_dribble(0);
         radius = 70;
+        //間に敵がいるか判定
+        {
+          const auto radius   = 1000;
+          const auto tmp      = (robot - target_).norm() / radius; //敵位置 - 自位置の比
+          const auto ratio    = 1 - tmp;
+          decltype(robot) pos = (-ratio * robot + target_) / tmp;
+          const auto mergin   = 140.0;
+          const auto shift_p  = util::math::calc_isosceles_vertexes(pos, robot, mergin);
+          polygon poly;
+          bg::exterior_ring(poly) = boost::assign::list_of<point>(pos.x(), pos.y())(
+              std::get<0>(shift_p).x(), std::get<0>(shift_p).y())(
+              std::get<1>(shift_p).x(), std::get<1>(shift_p).y())(pos.x(), pos.y());
+          bool flag = false;
+          for (auto it : enemy_robots) {
+            const point p((it.second).x(), (it.second).y());
+            if (!bg::disjoint(p, poly)) {
+              flag = true;
+              break;
+            }
+          }
+          if (flag) {
+            command.set_kick_flag(
+                model::command::kick_flag_t{model::command::kick_type_t::chip, 64});
+          } else {
+            command.set_kick_flag(
+                model::command::kick_flag_t{model::command::kick_type_t::line, 64});
+          }
+        }
       } else {
         command.set_kick_flag(
             model::command::kick_flag_t{model::command::kick_type_t::none, 0});
