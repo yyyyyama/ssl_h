@@ -10,8 +10,8 @@ namespace ai_server {
 namespace filter {
 
 template <>
-model::robot va_calculator<model::robot>::va_calculator::update(
-    const model::robot& value, std::chrono::high_resolution_clock::time_point time) {
+model::robot va_calculator<model::robot>::va_calculator::update(const model::robot& value,
+                                                                util::time_point_type time) {
   auto result = value;
 
   if (prev_time_ == time_point_type::min()) {

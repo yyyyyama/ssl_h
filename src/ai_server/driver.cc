@@ -7,8 +7,8 @@
 
 namespace ai_server {
 
-driver::driver(boost::asio::io_service& io_service,
-               std::chrono::high_resolution_clock::duration cycle, const model::world& world)
+driver::driver(boost::asio::io_service& io_service, util::duration_type cycle,
+               const model::world& world)
     : timer_(io_service), cycle_(cycle), world_(world) {
   // タイマが開始されたらdriver::main_loop()が呼び出されるように設定
   timer_.async_wait([this](auto&& error) { main_loop(std::forward<decltype(error)>(error)); });
@@ -50,7 +50,7 @@ void driver::main_loop(const boost::system::error_code& error) {
   if (error) return;
 
   // 処理の開始時刻を記録
-  const auto start_time = std::chrono::high_resolution_clock::now();
+  const auto start_time = util::clock_type::now();
 
   std::lock_guard<std::mutex> lock(mutex_);
 
