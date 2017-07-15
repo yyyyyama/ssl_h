@@ -1,5 +1,4 @@
 #define BOOST_TEST_DYN_LINK
-#define BOOST_TEST_MODULE state_observer_ball_test
 
 #include <vector>
 #include <boost/test/unit_test.hpp>

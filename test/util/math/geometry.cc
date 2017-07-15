@@ -1,5 +1,4 @@
 #define BOOST_TEST_DYN_LINK
-#define BOOST_TEST_MODULE util_math_geometry_test
 
 #include <boost/test/unit_test.hpp>
 

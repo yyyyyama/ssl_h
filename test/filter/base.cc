@@ -1,5 +1,4 @@
 #define BOOST_TEST_DYN_LINK
-#define BOOST_TEST_MODULE filter_base_test
 
 #include <string>
 #include <boost/test/unit_test.hpp>

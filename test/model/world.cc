@@ -1,5 +1,4 @@
 #define BOOST_TEST_DYN_LINK
-#define BOOST_TEST_MODULE world_model_test
 
 #include <stdexcept>
 #include <boost/test/unit_test.hpp>

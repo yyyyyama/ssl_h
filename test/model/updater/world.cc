@@ -1,5 +1,4 @@
 #define BOOST_TEST_DYN_LINK
-#define BOOST_TEST_MODULE updater_world_test
 
 #include <stdexcept>
 #include <boost/math/constants/constants.hpp>

@@ -1,5 +1,4 @@
 #define BOOST_TEST_DYN_LINK
-#define BOOST_TEST_MODULE ball_datatype_test
 
 #include <boost/test/unit_test.hpp>
 

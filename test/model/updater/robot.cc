@@ -1,5 +1,4 @@
 #define BOOST_TEST_DYN_LINK
-#define BOOST_TEST_MODULE updater_robot_test
 
 #include <boost/math/constants/constants.hpp>
 #include <boost/test/unit_test.hpp>
