@@ -24,7 +24,9 @@ using type_point_type = typename clock_type::time_point;
 template <class Duration = std::chrono::microseconds,
           std::enable_if_t<detail::is_duration_v<Duration>, std::nullptr_t> = nullptr>
 inline constexpr Duration to_duration(double time) {
-  return Duration{static_cast<typename Duration::rep>(time * Duration::period::den)};
+  using rep    = typename Duration::rep;
+  using period = typename Duration::period;
+  return Duration{static_cast<rep>((time * period::den) / period::num)};
 }
 
 } // namespace util
