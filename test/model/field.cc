@@ -1,5 +1,4 @@
 #define BOOST_TEST_DYN_LINK
-#define BOOST_TEST_MODULE field_data_test
 
 #include <boost/test/unit_test.hpp>
 
@@ -10,12 +9,12 @@ BOOST_AUTO_TEST_SUITE(field_data)
 BOOST_AUTO_TEST_CASE(test001) {
   ai_server::model::field f{};
 
-  BOOST_TEST(f.length() == 0);
-  BOOST_TEST(f.width() == 0);
-  BOOST_TEST(f.center_radius() == 0);
-  BOOST_TEST(f.goal_width() == 0);
-  BOOST_TEST(f.penalty_radius() == 0);
-  BOOST_TEST(f.penalty_line_length() == 0);
+  BOOST_TEST(f.length() == 9000);
+  BOOST_TEST(f.width() == 6000);
+  BOOST_TEST(f.center_radius() == 500);
+  BOOST_TEST(f.goal_width() == 1000);
+  BOOST_TEST(f.penalty_radius() == 1000);
+  BOOST_TEST(f.penalty_line_length() == 500);
 }
 BOOST_AUTO_TEST_CASE(test002) {
   ai_server::model::field f{};

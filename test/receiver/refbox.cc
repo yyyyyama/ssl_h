@@ -1,5 +1,4 @@
 #define BOOST_TEST_DYN_LINK
-#define BOOST_TEST_MODULE refbox_receiver_test
 
 #include <chrono>
 #include <future>
@@ -120,7 +119,7 @@ BOOST_AUTO_TEST_CASE(send_and_receive, *boost::unit_test::timeout(30)) {
     BOOST_TEST(ref.packet_timestamp() == 1);
     BOOST_TEST(ref.stage() == model::refbox::stage_name::normal_first_half_pre);
     BOOST_TEST(ref.stage_time_left() == 2);
-    BOOST_TEST(ref.command() == model::refbox::game_command::half);
+    BOOST_TEST(ref.command() == model::refbox::game_command::halt);
     BOOST_TEST(ref.team_yellow().name() == "yellow");
     BOOST_TEST(ref.team_yellow().score() == 1);
     BOOST_TEST(ref.team_yellow().goalie() == 2);

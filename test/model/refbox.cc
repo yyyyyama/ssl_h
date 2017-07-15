@@ -1,5 +1,4 @@
 #define BOOST_TEST_DYN_LINK
-#define BOOST_TEST_MODULE refbox_test
 #include <boost/test/unit_test.hpp>
 #include "ai_server/model/refbox.h"
 BOOST_TEST_DONT_PRINT_LOG_VALUE(ai_server::model::refbox::stage_name)
@@ -48,7 +47,7 @@ BOOST_AUTO_TEST_CASE(test03) {
   BOOST_TEST(ref.packet_timestamp() == 0);
   BOOST_TEST(ref.stage() == ai_server::model::refbox::stage_name::normal_first_half_pre);
   BOOST_TEST(ref.stage_time_left() == 0);
-  BOOST_TEST(ref.command() == ai_server::model::refbox::game_command::half);
+  BOOST_TEST(ref.command() == ai_server::model::refbox::game_command::halt);
   BOOST_TEST(ref.team_yellow().name() == "yellow");
   BOOST_TEST(ref.team_blue().name() == "blue");
 }

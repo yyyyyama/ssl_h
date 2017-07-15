@@ -36,7 +36,7 @@ public:
   defense(const model::world& world, bool is_yellow, unsigned int keeper_id,
           const std::vector<unsigned int>& wall_ids,
           const std::vector<unsigned int>& marking_ids);
-  enum class defense_mode { normal_mode, pk_mode };
+  enum class defense_mode { normal_mode, pk_normal_mode, pk_extention_mode };
   void set_mode(agent::defense::defense_mode mode);
   std::vector<std::shared_ptr<action::base>> execute() override;
 
@@ -47,8 +47,6 @@ private:
   std::shared_ptr<action::guard> keeper_;
   std::vector<std::shared_ptr<action::guard>> wall_;
   std::vector<std::shared_ptr<action::marking>> marking_;
-  Eigen::Vector2d keeper_target_;
-  std::vector<Eigen::Vector2d> wall_target_;
   Eigen::Vector2d orientation_;
   defense_mode mode_;
   Eigen::Vector2d ball_;

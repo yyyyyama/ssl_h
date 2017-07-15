@@ -1,5 +1,4 @@
 #define BOOST_TEST_DYN_LINK
-#define BOOST_TEST_MODULE util_algorithm_test
 
 #include <queue>
 #include <stack>

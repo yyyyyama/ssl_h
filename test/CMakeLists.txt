@@ -3,24 +3,20 @@ include_directories(${CMAKE_BINARY_DIR}/3rd)
 file(GLOB_RECURSE SOURCES ./*.cc)
 
 foreach(TEST_SOURCE_FILE ${SOURCES})
-  file(READ ${TEST_SOURCE_FILE} TEST_SOURCE_CODE)
+  file(RELATIVE_PATH SRC_RELPATH ${CMAKE_CURRENT_LIST_DIR} ${TEST_SOURCE_FILE})
+  string(REGEX REPLACE "\.cc$" "" TEST_MODULE_NAME "test/${SRC_RELPATH}")
+  string(REPLACE "/" "_" TEST_EXECUTABLE_NAME ${TEST_MODULE_NAME})
 
-  # Read test module name
-  if(TEST_SOURCE_CODE MATCHES [[BOOST_TEST_MODULE ([a-zA-Z0-9_]+)]])
-    # Set executable name to test module name
-    set(TEST_EXECUTABLE_NAME ${CMAKE_MATCH_1})
-    add_executable(${TEST_EXECUTABLE_NAME} ${TEST_SOURCE_FILE})
-    target_link_libraries(${TEST_EXECUTABLE_NAME}
-      ai-server-lib
-      ssl-protos
-      ${Boost_COROUTINE_LIBRARY}
-      ${Boost_SYSTEM_LIBRARY}
-      ${Boost_UNIT_TEST_FRAMEWORK_LIBRARY}
-      ${Protobuf_LIBRARY}
-      ${CMAKE_THREAD_LIBS_INIT}
-    )
-    add_test(${TEST_EXECUTABLE_NAME} ${EXECUTABLE_OUTPUT_PATH}/${TEST_EXECUTABLE_NAME})
-  else()
-    message(SEND_ERROR "${TEST_SOURCE_FILE}: Test module name is not set!")
-  endif()
+  add_executable(${TEST_EXECUTABLE_NAME} ${TEST_SOURCE_FILE})
+  target_compile_definitions(${TEST_EXECUTABLE_NAME} PRIVATE BOOST_TEST_MODULE=${TEST_MODULE_NAME})
+  target_link_libraries(${TEST_EXECUTABLE_NAME}
+    ai-server-lib
+    ssl-protos
+    ${Boost_COROUTINE_LIBRARY}
+    ${Boost_SYSTEM_LIBRARY}
+    ${Boost_UNIT_TEST_FRAMEWORK_LIBRARY}
+    ${Protobuf_LIBRARY}
+    ${CMAKE_THREAD_LIBS_INIT}
+  )
+  add_test(${TEST_MODULE_NAME} ${EXECUTABLE_OUTPUT_PATH}/${TEST_EXECUTABLE_NAME})
 endforeach()

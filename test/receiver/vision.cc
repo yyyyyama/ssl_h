@@ -1,5 +1,4 @@
 #define BOOST_TEST_DYN_LINK
-#define BOOST_TEST_MODULE vision_receiver_test
 
 #include <chrono>
 #include <future>
