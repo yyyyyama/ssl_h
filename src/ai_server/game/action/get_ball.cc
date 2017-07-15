@@ -1,4 +1,3 @@
-#include <iostream>
 #include <cmath>
 #include <boost/geometry/geometry.hpp>
 #include <boost/geometry/geometries/point_xy.hpp>
@@ -64,9 +63,10 @@ model::command get_ball::execute() {
         radius = 70;
         //間に敵がいるか判定
         {
-          const auto radius   = 1000;
-          const auto tmp      = (robot - target_).norm() / radius; //敵位置 - 自位置の比
-          const auto ratio    = 1 - tmp;
+          const auto radius = 1000;
+          const auto tmp = (robot - target_).norm() / radius; //自位置 - 撃つ目標位置の比
+          const auto ratio = 1 - tmp;
+          //これで自分から1000の点が出せる
           decltype(robot) pos = (-ratio * robot + target_) / tmp;
           const auto mergin   = 140.0;
           const auto shift_p  = util::math::calc_isosceles_vertexes(pos, robot, mergin);
@@ -75,6 +75,7 @@ model::command get_ball::execute() {
               std::get<0>(shift_p).x(), std::get<0>(shift_p).y())(
               std::get<1>(shift_p).x(), std::get<1>(shift_p).y())(pos.x(), pos.y());
           bool flag = false;
+          //自分から1000の位置と自分で三角形を作り,間に敵が1つでもあったらチップにする
           for (auto it : enemy_robots) {
             const point p((it.second).x(), (it.second).y());
             if (!bg::disjoint(p, poly)) {
@@ -84,10 +85,10 @@ model::command get_ball::execute() {
           }
           if (flag) {
             command.set_kick_flag(
-                model::command::kick_flag_t{model::command::kick_type_t::chip, 64});
+                model::command::kick_flag_t{model::command::kick_type_t::chip, 128});
           } else {
             command.set_kick_flag(
-                model::command::kick_flag_t{model::command::kick_type_t::line, 64});
+                model::command::kick_flag_t{model::command::kick_type_t::line, 255});
           }
         }
       } else {
@@ -127,10 +128,6 @@ model::command get_ball::execute() {
         position = std::signbit(tc) == std::signbit(tp) ? tmp1 : tmp2;
       }
     }
-    // command.set_dribble(9);
-    // if ((ball_pos - robot).norm() < 200) {
-    //  command.set_dribble(0);
-    //}
   } else {
     //ボールがはやければ予測位置に行く
 
@@ -191,7 +188,8 @@ model::command get_ball::execute() {
   const auto theta =
       util::wrap_to_pi(std::atan2(ball_pos.y() - robot.y(), ball_pos.x() - robot.x()));
 
-  //目標位置が外側に行ったらいい感じに
+  //目標位置が外側に行ったらいい感じにする
+  //出たラインとの交点に移動
   if (std::abs(position.y()) > world_.field().y_max()) {
     {
       const auto A = (position.y() - ball_pos.y()) / (position.x() - ball_pos.x());
@@ -215,6 +213,7 @@ model::command get_ball::execute() {
       position.y() = A * position.x() + B;
     }
   }
+
   command.set_position({position.x(), position.y(), theta});
 
   flag_ = false;
