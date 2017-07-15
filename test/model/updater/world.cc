@@ -104,13 +104,14 @@ BOOST_AUTO_TEST_CASE(detection, *boost::unit_test::tolerance(0.0000001)) {
     BOOST_TEST(r.theta() == bmc::two_thirds_pi);
 
     // fieldは変更されていない (初期値のまま)
-    const auto f = w.field();
-    BOOST_TEST(f.length() == 0);
-    BOOST_TEST(f.width() == 0);
-    BOOST_TEST(f.center_radius() == 0);
-    BOOST_TEST(f.goal_width() == 0);
-    BOOST_TEST(f.penalty_radius() == 0);
-    BOOST_TEST(f.penalty_line_length() == 0);
+    const auto f1 = w.field();
+    const auto f2 = ai_server::model::field{};
+    BOOST_TEST(f1.length() == f2.length());
+    BOOST_TEST(f1.width() == f2.width());
+    BOOST_TEST(f1.center_radius() == f2.center_radius());
+    BOOST_TEST(f1.goal_width() == f2.goal_width());
+    BOOST_TEST(f1.penalty_radius() == f2.penalty_radius());
+    BOOST_TEST(f1.penalty_line_length() == f2.penalty_line_length());
   }
 }
 
