@@ -13,7 +13,7 @@ using clock_type = std::chrono::high_resolution_clock;
 using duration_type = typename clock_type::duration;
 
 /// プロジェクト内で用いる時刻を表現する型
-using type_point_type = typename clock_type::time_point;
+using time_point_type = typename clock_type::time_point;
 
 /// @brief        浮動小数点数で表現された時間[s]をstd::chrono::durationに変換する
 /// @param time   変換する時間
