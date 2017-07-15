@@ -42,13 +42,17 @@ public:
   std::vector<std::shared_ptr<agent::base>> execute() override;
 
 private:
-  void update_keeper();     //キーパーのidをrefereeboxから来る値に更新する
-  void decide_wall_count(); //壁の数を決定
-  void decide_wall();       //壁にするロボットを決定
-  void decide_kicker(); //壁,キーパー以外でボールに一番近いロボットをキッカーに決定
-  void extract_other_robots();  //キーパー,壁以外のロボットを抽出
-  void extract_waiter();        //キーパー,壁,キッカー以外のロボットを抽出
-  void extract_except_keeper(); //キーパー以外のロボットを抽出
+  void update_keeper(); //キーパーのidをrefereeboxから来る値に更新する
+  void decide_wall_count(std::vector<unsigned int> visible_robots); //壁の数を決定
+  void decide_wall(std::vector<unsigned int> visible_robots); //壁にするロボットを決定
+  void decide_kicker(
+      std::vector<unsigned int>
+          visible_robots); //壁,キーパー以外でボールに一番近いロボットをキッカーに決定
+  void extract_other_robots(
+      std::vector<unsigned int> visible_robots); //キーパー,壁以外のロボットを抽出
+  void extract_waiter(); //キーパー,壁,キッカー以外のロボットを抽出
+  void extract_except_keeper(
+      std::vector<unsigned int> visible_robots); //キーパー以外のロボットを抽出
 
   //コマンドを使いやすい形に変形
   command convert_command(model::refbox::game_command command);
@@ -65,8 +69,10 @@ private:
   unsigned long wall_count_;                //壁の数
 
   std::vector<unsigned int> ids_;
+  std::vector<unsigned int> previous_visible_robots_;
 
-  bool kicked_flag_; //ボールが蹴られたか判断するためのフラグ
+  bool kicked_flag_;     //ボールが蹴られたか判断するためのフラグ
+  bool initialize_flag_; // idが変わって初期化する必要があるとき
   bool regular_flag_; //定常状態に遷移した際に、一回だけagentを初期化したいため必要
 
   model::refbox::game_command previous_refcommand_;
