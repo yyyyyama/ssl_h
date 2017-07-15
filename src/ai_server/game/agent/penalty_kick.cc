@@ -82,6 +82,12 @@ std::vector<std::shared_ptr<action::base>> penalty_kick::execute() {
 
   std::vector<std::shared_ptr<action::base>> exe;
   const auto our_robots = is_yellow_ ? world_.robots_yellow() : world_.robots_blue();
+  std::vector<unsigned int> visible_robots;
+  for (auto robot : our_robots) {
+    if (std::count(ids_.cbegin(), ids_.cend(), robot.first)) {
+      visible_robots.push_back(robot.first);
+    }
+  }
 
   //攻撃側が指定されているとき
   if (mode_ == penalty_kick::penalty_mode::attack && our_robots.count(kicker_id_)) {
@@ -164,10 +170,7 @@ std::vector<std::shared_ptr<action::base>> penalty_kick::execute() {
   }
 
   //ちょうどいい位置に並べる
-  for (auto it = ids_.begin(); it != ids_.end(); it++, count++) {
-    if (!our_robots.count(*it)) {
-      break;
-    }
+  for (auto it = visible_robots.begin(); it != visible_robots.end(); it++, count++) {
     double x = line + interval * (count / 2);
     double y = 0;
     if (count % 2) { //順番に左右に分ける
