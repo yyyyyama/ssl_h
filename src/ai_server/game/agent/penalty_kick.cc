@@ -39,6 +39,7 @@ penalty_kick::penalty_kick(const model::world& world, bool is_yellow, unsigned i
     for (auto& enemy : enemies) {
       enemies_id.push_back(enemy.first);
     }
+
     const auto keeper_it = std::min_element(
         enemies_id.cbegin(), enemies_id.cend(), [goal_x, goal_y, &enemies](auto& a, auto& b) {
           return std::hypot(enemies.at(a).x() - goal_x, enemies.at(a).y() - goal_y) <
@@ -83,11 +84,8 @@ std::vector<std::shared_ptr<action::base>> penalty_kick::execute() {
   std::vector<std::shared_ptr<action::base>> exe;
   const auto our_robots = is_yellow_ ? world_.robots_yellow() : world_.robots_blue();
   std::vector<unsigned int> visible_robots;
-  for (auto robot : our_robots) {
-    if (std::count(ids_.cbegin(), ids_.cend(), robot.first)) {
-      visible_robots.push_back(robot.first);
-    }
-  }
+  std::copy_if(ids_.cbegin(), ids_.cend(), std::back_inserter(visible_robots),
+               [&our_robots](auto id) { return our_robots.count(id); });
 
   //攻撃側が指定されているとき
   if (mode_ == penalty_kick::penalty_mode::attack && our_robots.count(kicker_id_)) {

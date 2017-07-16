@@ -24,26 +24,21 @@ std::vector<std::shared_ptr<agent::base>> first_formation::execute() {
   const auto our_robots = is_yellow_ ? world_.robots_yellow() : world_.robots_blue();
   const auto enemies    = !is_yellow_ ? world_.robots_yellow() : world_.robots_blue();
   id_vec enemies_id;
-  if (!enemies.empty()) {
-    for (auto& enemy : enemies) {
-      enemies_id.push_back(enemy.first);
-    }
+  for (auto& enemy : enemies) {
+    enemies_id.push_back(enemy.first);
   }
+
   const auto ball = world_.ball();
 
   std::vector<std::shared_ptr<agent::base>> exe;
 
   //見えているロボットのIDを取得する
   id_vec visible_robots;
-  for (auto robot : our_robots) {
-    if (std::count(ids_.cbegin(), ids_.cend(), robot.first)) {
-      visible_robots.push_back(robot.first);
-    }
-  }
-  std::sort(visible_robots.begin(), visible_robots.end());
+  std::copy_if(ids_.cbegin(), ids_.cend(), std::back_inserter(visible_robots),
+               [&our_robots](auto id) { return our_robots.count(id); });
 
   //全て見えない場合は何もしない
-  if (visible_robots.size() < 1) {
+  if (visible_robots.empty()) {
     return exe;
   }
 
@@ -78,12 +73,9 @@ std::vector<std::shared_ptr<agent::base>> first_formation::execute() {
 
     case command::kickoff_attack_start:
       //定常状態に入る
-      if (kickoff_ == nullptr) {
-        kickoff_ = std::make_shared<agent::kick_off>(world_, is_yellow_, kicker_);
-      }
-      if (kickoff_->finished()) {
-        if (regular_flag_ ||
-            initialize_flag_) { //定常状態に入った時に初期化,agentを初期化する関数群では対応できないため直接初期化する
+      if (kickoff_ && kickoff_->finished()) {
+        //定常状態に入った時に初期化,agentを初期化する関数群では対応できないため直接初期化する
+        if (regular_flag_ || initialize_flag_) {
           id_vec dummy;
           df_ = std::make_shared<agent::defense>(world_, is_yellow_, keeper_, wall_, dummy);
           regular_ = std::make_shared<agent::regular>(world_, is_yellow_, others_);
@@ -105,14 +97,9 @@ std::vector<std::shared_ptr<agent::base>> first_formation::execute() {
 
     case command::penalty_attack_start:
       //定常状態に入る
-      if (pk_ == nullptr) {
-        pk_ = std::make_shared<agent::penalty_kick>(world_, is_yellow_, kicker_, waiter_);
-        pk_->set_mode(agent::penalty_kick::penalty_mode::attack);
-        pk_->set_start_flag(true);
-      }
-      if (pk_->finished()) {
-        if (regular_flag_ ||
-            initialize_flag_) { //定常状態に入った時に初期化,agentを初期化する関数群では対応できないため直接初期化する
+      if (pk_ && pk_->finished()) {
+        //定常状態に入った時に初期化,agentを初期化する関数群では対応できないため直接初期化する
+        if (regular_flag_ || initialize_flag_) {
           id_vec dummy;
           df_ = std::make_shared<agent::defense>(world_, is_yellow_, keeper_, wall_, dummy);
           regular_ = std::make_shared<agent::regular>(world_, is_yellow_, others_);
@@ -145,8 +132,8 @@ std::vector<std::shared_ptr<agent::base>> first_formation::execute() {
     case command::kickoff_defense:
       //定常状態に入る
       if (kicked_flag_) {
-        if (regular_flag_ ||
-            initialize_flag_) { //定常状態に入った時に初期化,agentを初期化する関数群では対応できないため直接初期化する
+        //定常状態に入った時に初期化,agentを初期化する関数群では対応できないため直接初期化する
+        if (regular_flag_ || initialize_flag_) {
           id_vec dummy;
           df_ = std::make_shared<agent::defense>(world_, is_yellow_, keeper_, wall_, dummy);
           regular_ = std::make_shared<agent::regular>(world_, is_yellow_, others_);
@@ -175,8 +162,8 @@ std::vector<std::shared_ptr<agent::base>> first_formation::execute() {
     case command::penalty_defense:
       //定常状態に入る
       if (kicked_flag_) {
-        if (regular_flag_ ||
-            initialize_flag_) { //定常状態に入った時に初期化,agentを初期化する関数群では対応できないため直接初期化する
+        //定常状態に入った時に初期化,agentを初期化する関数群では対応できないため直接初期化する
+        if (regular_flag_ || initialize_flag_) {
           id_vec dummy;
           df_ = std::make_shared<agent::defense>(world_, is_yellow_, keeper_, wall_, dummy);
           regular_ = std::make_shared<agent::regular>(world_, is_yellow_, others_);
@@ -199,13 +186,9 @@ std::vector<std::shared_ptr<agent::base>> first_formation::execute() {
 
     case command::setplay_attack:
       ////定常状態に入る
-      if (setplay_ == nullptr || is_command_changed()) {
-        setplay_ = std::make_shared<agent::setplay>(world_, is_yellow_, kicker_, waiter_);
-      }
-
-      if (setplay_->finished()) {
-        if (regular_flag_ ||
-            initialize_flag_) { //定常状態に入った時に初期化,agentを初期化する関数群では対応できないため直接初期化する
+      if (setplay_ && setplay_->finished()) {
+        //定常状態に入った時に初期化,agentを初期化する関数群では対応できないため直接初期化する
+        if (regular_flag_ || initialize_flag_) {
           id_vec dummy;
           df_ = std::make_shared<agent::defense>(world_, is_yellow_, keeper_, wall_, dummy);
           regular_ = std::make_shared<agent::regular>(world_, is_yellow_, others_);
@@ -227,8 +210,8 @@ std::vector<std::shared_ptr<agent::base>> first_formation::execute() {
     case command::setplay_defense:
       //定常状態に入る
       if (kicked_flag_) {
-        if (regular_flag_ ||
-            initialize_flag_) { //定常状態に入った時に初期化,agentを初期化する関数群では対応できないため直接初期化する
+        //定常状態に入った時に初期化,agentを初期化する関数群では対応できないため直接初期化する
+        if (regular_flag_ || initialize_flag_) {
           id_vec dummy;
           df_ = std::make_shared<agent::defense>(world_, is_yellow_, keeper_, wall_, dummy);
           regular_ = std::make_shared<agent::regular>(world_, is_yellow_, others_);
@@ -301,7 +284,7 @@ void first_formation::decide_wall(id_vec visible_robots) {
   //壁が見えているか判定 壁が見えていて,数が足りているとき作り直さない
   if (!initialize_flag_ && wall_count_ == wall_.size() &&
       std::all_of(wall_.begin(), wall_.end(), [&tmp_ids](auto&& id) {
-        return std::count(tmp_ids.begin(), tmp_ids.end(), id);
+        return std::find(tmp_ids.begin(), tmp_ids.end(), id) != tmp_ids.end();
       })) {
     return;
   }
@@ -309,9 +292,7 @@ void first_formation::decide_wall(id_vec visible_robots) {
   wall_.clear();
 
   //キーパーを候補から除外
-  if (std::count(visible_robots.begin(), visible_robots.end(), keeper)) {
-    tmp_ids.erase(std::remove(tmp_ids.begin(), tmp_ids.end(), keeper));
-  }
+  tmp_ids.erase(std::remove(tmp_ids.begin(), tmp_ids.end(), keeper), tmp_ids.end());
 
   // wall_countの値だけ前から順に壁にする
   std::copy_n(tmp_ids.begin(), std::min(wall_count_, tmp_ids.size()),
@@ -323,8 +304,10 @@ void first_formation::decide_kicker(id_vec visible_robots) {
   const auto ball       = world_.ball();
   auto tmp_ids          = others_; //キーパー,壁以外のロボットを抽出
 
-  if (!tmp_ids.empty() && std::all_of(tmp_ids.begin(), tmp_ids.end(), [&our_robots](auto&& id) {
-        return our_robots.count(id);
+  if (!tmp_ids.empty() &&
+      std::all_of(tmp_ids.begin(), tmp_ids.end(), [&visible_robots](auto&& id) {
+        return std::find(visible_robots.begin(), visible_robots.end(), id) !=
+               visible_robots.end();
       })) {
     //ボールに近いロボットをキッカーに決定
     const auto kicker_it = std::min_element(
@@ -344,36 +327,26 @@ void first_formation::extract_other_robots(id_vec visible_robots) {
   auto tmp_ids      = visible_robots;
 
   //キーパー,壁を除外
-  if (std::count(tmp_ids.begin(), tmp_ids.end(), keeper)) {
-    tmp_ids.erase(std::remove(tmp_ids.begin(), tmp_ids.end(), keeper));
-  }
+  tmp_ids.erase(std::remove(tmp_ids.begin(), tmp_ids.end(), keeper), tmp_ids.end());
 
-  if (std::all_of(wall_.begin(), wall_.end(), [&tmp_ids](auto&& id) {
-        return std::count(tmp_ids.begin(), tmp_ids.end(), id);
-      })) {
-    tmp_ids.erase(
-        std::remove_if(tmp_ids.begin(), tmp_ids.end(),
-                       [&wall](auto&& id) { return std::count(wall.begin(), wall.end(), id); }),
-        tmp_ids.end());
-  }
+  tmp_ids.erase(
+      std::remove_if(tmp_ids.begin(), tmp_ids.end(),
+                     [&wall](auto&& id) { return std::count(wall.begin(), wall.end(), id); }),
+      tmp_ids.end());
   others_ = tmp_ids;
 }
 
 void first_formation::extract_waiter() {
   auto tmp_ids = others_;
   auto kicker  = kicker_;
-  if (std::count(tmp_ids.begin(), tmp_ids.end(), kicker)) {
-    tmp_ids.erase(std::remove(tmp_ids.begin(), tmp_ids.end(), kicker));
-  }
+  tmp_ids.erase(std::remove(tmp_ids.begin(), tmp_ids.end(), kicker), tmp_ids.end());
   waiter_ = tmp_ids;
 }
 
 void first_formation::extract_except_keeper(id_vec visible_robots) {
   auto tmp_ids      = visible_robots;
   const auto keeper = keeper_;
-  if (std::count(visible_robots.begin(), visible_robots.end(), keeper)) {
-    tmp_ids.erase(std::remove(tmp_ids.begin(), tmp_ids.end(), keeper));
-  }
+  tmp_ids.erase(std::remove(tmp_ids.begin(), tmp_ids.end(), keeper), tmp_ids.end());
   except_keeper_ = tmp_ids;
 }
 
