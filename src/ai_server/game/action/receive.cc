@@ -9,6 +9,13 @@
 namespace ai_server {
 namespace game {
 namespace action {
+receive::receive(const model::world& world, bool is_yellow, unsigned int id)
+    : base(world, is_yellow, id) {
+  const auto& robots   = is_yellow_ ? world_.robots_yellow() : world_.robots_blue();
+  const auto& robot    = robots.at(id_);
+  const auto robot_pos = util::math::position(robot);
+  dummy_pos_           = robot_pos;
+}
 void receive::set_dribble(int dribble) {
   dribble_ = dribble;
 }
@@ -21,12 +28,16 @@ void receive::set_passer(unsigned int passer_id) {
 unsigned int receive::passer() {
   return passer_id_;
 }
+void receive::set_shoot(Eigen::Vector2d shoot_pos) {
+  shoot_pos_  = shoot_pos;
+  shoot_flag_ = true;
+}
+void receive::set_kick_type(const model::command::kick_flag_t& kick_type) {
+  kick_type_ = kick_type;
+}
 model::command receive::execute() {
   //それぞれ自機を生成
   model::command command(id_);
-
-  //ドリブルさせる
-  command.set_dribble(dribble_);
 
   const auto& robots = is_yellow_ ? world_.robots_yellow() : world_.robots_blue();
   if (!robots.count(id_) || !robots.count(passer_id_)) {
@@ -34,11 +45,16 @@ model::command receive::execute() {
     return command;
   }
 
-  const auto& robot      = robots.at(id_);
-  const auto robot_pos   = util::math::position(robot);
+  const auto& robot = robots.at(id_);
+  // const auto robot_pos = util::math::position(robot);
+  // const auto robot_pos   = shoot_flag_?dummy_pos_:util::math::position(robot);
   const auto robot_theta = util::wrap_to_pi(robot.theta());
-  const auto ball_pos    = util::math::position(world_.ball());
-  const auto ball_vec    = util::math::velocity(world_.ball());
+  const auto robot_pos =
+      util::math::position(robot) +
+      (shoot_flag_ ? 80 * Eigen::Vector2d(std::cos(robot_theta), std::sin(robot_theta))
+                   : Eigen::Vector2d(0, 0));
+  const auto ball_pos = util::math::position(world_.ball());
+  const auto ball_vec = util::math::velocity(world_.ball());
 
   const auto& passer      = robots.at(passer_id_);
   const auto passer_pos   = util::math::position(passer);
@@ -46,7 +62,15 @@ model::command receive::execute() {
 
   //ボールがめっちゃ近くに来たら受け取ったと判定
   //現状だとボールセンサに反応があるか分からないので
-  if ((robot_pos - ball_pos).norm() < 120) {
+  if (shoot_flag_) {
+    if ((robot_pos - ball_pos).norm() < 100) {
+      approaching_flag_ = true;
+    } else if (approaching_flag_) {
+      flag_ = true;
+      command.set_velocity({0.0, 0.0, 0.0});
+      return command;
+    }
+  } else if ((robot_pos - ball_pos).norm() < 100) {
     flag_ = true;
     command.set_velocity({0.0, 0.0, 0.0});
     return command;
@@ -69,10 +93,20 @@ model::command receive::execute() {
   const auto dot = normalize.dot(length);
 
   //目標位置と角度
-  const auto target  = (position + dot * normalize);
-  const auto to_ball = ball_pos - robot_pos;
-  const auto theta   = std::atan2(to_ball.y(), to_ball.x());
+  const auto to_ball  = ball_pos - robot_pos;
+  const auto to_shoot = shoot_pos_ - robot_pos;
+  std::cout << "shoot_pos_<<" << shoot_pos_.x() << ", " << shoot_pos_.y() << std::endl;
+  const auto theta = shoot_flag_ ? std::atan2(to_shoot.y(), to_shoot.x())
+                                 : std::atan2(to_ball.y(), to_ball.x());
+  // const auto theta = std::atan2(to_ball.y(), to_ball.x());
+  // dummy_pos_        = util::math::position(robot) + 90 * Eigen::Vector2d(std::cos(theta),
+  // std::sin(theta));
+  const auto target = (position + dot * normalize) +
+                      (shoot_flag_ ? -80 * Eigen::Vector2d(std::cos(theta), std::sin(theta))
+                                   : Eigen::Vector2d(0, 0));
+  // const auto target = (position + dot * normalize);
 
+  std::cout<<"shoot_flag_"<<shoot_flag_<<std::endl;
   //位置から速度へ
   Eigen::Vector2d target_vec{(target - robot_pos) * 8};
   std::cout << "target__vec" << target_vec.x() << ", " << target_vec.y() << std::endl;
@@ -81,8 +115,15 @@ model::command receive::execute() {
   }
   std::cout << "target_vec" << target_vec.x() << ", " << target_vec.y() << std::endl;
 
-  const auto omega = theta - robot_theta;
-  command.set_velocity({target_vec.x(), target_vec.y(), omega});
+  const auto omega = (theta - robot_theta);
+  // command.set_velocity({target_vec.x(), target_vec.y(), omega});
+  command.set_position({target.x(), target.y(), theta});
+  if (shoot_flag_) {
+    command.set_kick_flag(kick_type_);
+  } else {
+    //ドリブルさせる
+    command.set_dribble(dribble_);
+  }
 
   flag_ = false;
   return command;

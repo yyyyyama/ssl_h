@@ -40,6 +40,8 @@ private:
   Eigen::Vector2d shoot_pos;
   std::vector<Eigen::Vector2d> positions_;
   bool neflag = false;
+  bool receive_flag_ = false;
+  int shooter_num_ = 0;
 
   Eigen::Vector2d find_location(std::vector<Eigen::Vector2d> targets,
                                 model::world::robots_list enemy_robots, int dist = 1);

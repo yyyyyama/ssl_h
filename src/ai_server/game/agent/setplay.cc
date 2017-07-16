@@ -30,6 +30,8 @@ std::vector<std::shared_ptr<action::base>> setplay::execute() {
   const auto our_robots   = is_yellow_ ? world_.robots_yellow() : world_.robots_blue();
   const auto enemy_robots = is_yellow_ ? world_.robots_blue() : world_.robots_yellow();
 
+  baseaction_.clear();
+
   // kicker_idが見えない
   if (!our_robots.count(kicker_id_)
       // またはreceiver_idsのロボットが見えない時
@@ -39,7 +41,6 @@ std::vector<std::shared_ptr<action::base>> setplay::execute() {
     return baseaction_;
   }
   using boost::math::constants::pi;
-  baseaction_.clear();
 
   const Eigen::Vector2d kicker_pos = util::math::position(our_robots.at(kicker_id_));
   const auto& kicker               = our_robots.at(kicker_id_);
@@ -57,32 +58,29 @@ std::vector<std::shared_ptr<action::base>> setplay::execute() {
     //     (kicker_pos - ball_pos).norm() > 500 && ball_vel.norm() > 1500 &&
     //     (std::abs(ball_pos.x()) > 500 || std::abs(ball_pos.y()) > 500) &&
     //     !receive_->finished()) {
-    //
 
-    // if (!receiver_ids_.empty() &&
-    //     std::abs(util::wrap_to_pi(vectorangle(ball_pos - kicker_pos) -
-    //                               vectorangle(shooter_pos - kicker_pos))) > 0.8) {
-    //   std::cerr << "fi1" << std::abs(util::wrap_to_pi(vectorangle(ball_pos - kicker_pos) -
-    //                               vectorangle(shooter_pos - kicker_pos)))<< ", " <<
-    //                               (kicker_pos - ball_pos).norm() << ", " << ball_vel.norm()
-    //                               << ", "
-    //             << std::abs(ball_pos.x()) << ", " << std::abs(ball_pos.y()) << std::endl;
-    //   std::cerr << "finished1" << std::endl;
-    //   state_ = state::finished;
-    // }
+    if (!receiver_ids_.empty() &&
+        std::abs(util::wrap_to_pi(vectorangle(ball_pos - kicker_pos) -
+                                  vectorangle(shooter_pos - kicker_pos))) > 0.8) {
+      std::cerr << "fi1" << std::abs(util::wrap_to_pi(vectorangle(ball_pos - kicker_pos) -
+                                                      vectorangle(shooter_pos - kicker_pos)))
+                << ", " << (kicker_pos - ball_pos).norm() << ", " << ball_vel.norm() << ", "
+                << std::abs(ball_pos.x()) << ", " << std::abs(ball_pos.y()) << std::endl;
+      std::cerr << "finished1" << std::endl;
+      state_ = state::finished;
+    }
     if ((shooter_pos - ball_pos).norm() < 500)
       neflag = true;
     else if (neflag && (shooter_pos - ball_pos).norm() > 1000) {
       state_ = state::finished;
       std::cerr << "finished2" << std::endl;
-      // } else if (!receiver_ids_.empty() && state_ >= state::receive &&
-      //            (ball_pos - kicker_pos).norm() > 500 && (ball_pos - shooter_pos).norm() >
-      //            500 &&
-      //            ball_vel.norm() < 250 && !receive_->finished()) {
-      //   std::cerr << "fi3" << (ball_pos - shooter_pos).norm() << ", " << ball_vel.norm()
-      //             << std::endl;
-      //   state_ = state::finished;
-      //   std::cerr << "finished3" << std::endl;
+    } else if (!receiver_ids_.empty() && state_ >= state::receive &&
+               (ball_pos - kicker_pos).norm() > 500 && (ball_pos - shooter_pos).norm() > 200 &&
+               ball_vel.norm() < 200 && !receive_->finished()) {
+      std::cerr << "fi3" << (ball_pos - shooter_pos).norm() << ", " << ball_vel.norm()
+                << std::endl;
+      state_ = state::finished;
+      std::cerr << "finished3" << std::endl;
     }
   }
   prev_ball_vel_ = ball_vel;
@@ -121,7 +119,7 @@ std::vector<std::shared_ptr<action::base>> setplay::execute() {
           if (ball_pos.x() > 2000) {
             pos_ = pos::far;
             positions_.push_back(
-                {enemygoal_x - std::cos(theta) * (i + 1) * 2000, std::sin(theta) * 3000});
+                {enemygoal_x - std::cos(theta) * (i + 1) * 3000, std::sin(theta) * 2000});
             // {enemygoal_x - std::cos(theta) * 2000, std::sin(theta) * 2000});
           } else if (ball_pos.x() < -2000) {
             pos_ = pos::near;
@@ -143,12 +141,12 @@ std::vector<std::shared_ptr<action::base>> setplay::execute() {
         } // }}}
       }
       state_      = state::pass;
-      shooter_id_ = receiver_ids_[0];
-      passpos_    = {positions_[0].x(), positions_[0].y()};
+      shooter_id_ = receiver_ids_[shooter_num_];
+      passpos_    = {positions_[shooter_num_].x(), positions_[shooter_num_].y()};
       receive_    = make_action<action::receive>(shooter_id_);
     }
     case state::pass: {
-      std::cout << "state_pass" << std::endl;
+      std::cout << "nstate_pass" << std::endl;
       // パスを出す
       kick_->set_mode(action::kick_action::mode::ball);
 
@@ -164,14 +162,21 @@ std::vector<std::shared_ptr<action::base>> setplay::execute() {
 
       bool movedflag = true;
       // ロボットたちが指定位置に移動したか
-      if ((positions_[0] - util::math::position(our_robots.at(shooter_id_))).norm() > 1000) {
+      std::cout << "nnn"
+                << (positions_[0] - util::math::position(our_robots.at(shooter_id_))).norm()
+                << std::endl;
+      if ((positions_[shooter_num_] - util::math::position(our_robots.at(shooter_id_))).norm() > 500 &&
+          receive_flag_) {
         movedflag = false;
       }
       //
       if (kick_->state() == action::kick_action::running_state::kick && !movedflag) {
         baseaction_.push_back(make_action<action::no_operation>(kicker_id_));
       } else {
-        const double power = line_flag ? 45 : 60;
+        receive_flag_ = true;
+        // const double power = line_flag ? 45 : 60;
+        // const double power = line_flag ? 50 : 120;
+        const double power = line_flag ? 7 : 120;
         kick_->kick_to(passpos_.x(), passpos_.y());
         kick_->set_dribble(3);
         kick_->set_angle_margin(0.10);
@@ -195,6 +200,11 @@ std::vector<std::shared_ptr<action::base>> setplay::execute() {
             std::cout << "iaia" << std::endl;
             receive_->set_dribble(9);
             receive_->set_passer(kicker_id_);
+            if (pos_ == pos::far) {
+              receive_->set_shoot({enemygoal_x, 0});
+              const double power = 255;
+              receive_->set_kick_type({model::command::kick_type_t::line, power});
+            }
             baseaction_.push_back(receive_);
           } else {
             std::cout << "passposx" << passpos_.x() << "passposy" << passpos_.y() << std::endl;
@@ -223,6 +233,11 @@ std::vector<std::shared_ptr<action::base>> setplay::execute() {
             std::cout << "shsh1" << ball_pos.y() << std::endl;
             receive_->set_passer(kicker_id_);
             receive_->set_dribble(9);
+            if (pos_ == pos::far) {
+              receive_->set_shoot({enemygoal_x, 0});
+              const double power = 255;
+              receive_->set_kick_type({model::command::kick_type_t::line, power});
+            }
             baseaction_.push_back(receive_);
           } else {
             std::cout << "shsh2" << std::endl;
@@ -290,7 +305,7 @@ std::vector<std::shared_ptr<action::base>> setplay::execute() {
       }
     }
     case state::shoot: {
-      std::cout << "shoot" << shoot_pos.y() << std::endl;
+      std::cout << "state_shoot" << shoot_pos.y() << std::endl;
       // シュートを撃つ
       std::cout << "shoot_pos" << shoot_pos.x() << ", " << shoot_pos.y() << std::endl;
       if (receiver_ids_.size() == 0) {
