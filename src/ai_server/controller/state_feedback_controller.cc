@@ -65,7 +65,7 @@ velocity_t state_feedback_controller::update(const model::robot& robot,
   }
 
   // 上からの速度上限
-  target_angle = std::atan2(u_[0].y(), u_[0].x());
+  double target_angle = std::atan2(u_[0].y(), u_[0].x());
   u_[0].x()    = clamp(u_[0].x(), -std::abs(velocity_limit_ * std::cos(target_angle)),
                     std::abs(velocity_limit_ * std::cos(target_angle)));
   u_[0].y() = clamp(u_[0].y(), -std::abs(velocity_limit_ * std::sin(target_angle)),
@@ -101,7 +101,7 @@ velocity_t state_feedback_controller::update(const model::robot& robot,
   }
 
   // 上からの速度上限
-  target_angle = std::atan2(u_[0].y(), u_[0].x());
+  double target_angle = std::atan2(u_[0].y(), u_[0].x());
   u_[0].x()    = clamp(u_[0].x(), -std::abs(velocity_limit_ * std::cos(target_angle)),
                     std::abs(velocity_limit_ * std::cos(target_angle)));
   u_[0].y() = clamp(u_[0].y(), -std::abs(velocity_limit_ * std::sin(target_angle)),
