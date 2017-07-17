@@ -6,7 +6,6 @@
 #include "ai_server/util/math.h"
 
 #include "stopgame.h"
-#include <iostream>
 
 namespace ai_server {
 namespace game {
