@@ -13,7 +13,6 @@ class stopgame : public base {
 private:
   const std::vector<unsigned int>& ids_;
   unsigned int nearest_robot_;
-  std::vector<std::shared_ptr<action::base>> baseaction_;
 
 public:
   stopgame(const model::world& world, bool is_yellow, const std::vector<unsigned int>& ids);

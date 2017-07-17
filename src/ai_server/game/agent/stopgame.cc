@@ -28,11 +28,11 @@ stopgame::stopgame(const model::world& world, bool is_yellow,
 }
 
 std::vector<std::shared_ptr<action::base>> stopgame::execute() {
-  baseaction_.clear();
+  std::vector<std::shared_ptr<action::base>> baseaction;
   const auto our_robots = is_yellow_ ? world_.robots_yellow() : world_.robots_blue();
   if (std::any_of(ids_.cbegin(), ids_.cend(),
                   [&our_robots](auto&& id) { return !our_robots.count(id); })) {
-    return baseaction_;
+    return baseaction;
   }
   const auto ball            = world_.ball();
   const double ballx         = ball.x();
@@ -109,12 +109,12 @@ std::vector<std::shared_ptr<action::base>> stopgame::execute() {
       auto move                 = std::make_shared<action::move>(world_, is_yellow_, id);
       const double to_balltheta = std::atan2(bally - robot.y(), ballx - robot.x());
       move->move_to(targetx, targety, to_balltheta);
-      baseaction_.push_back(move);
+      baseaction.push_back(move);
     } else {
-      baseaction_.push_back(std::make_shared<action::no_operation>(world_, is_yellow_, id));
+      baseaction.push_back(std::make_shared<action::no_operation>(world_, is_yellow_, id));
     }
   }
-  return baseaction_;
+  return baseaction;
 }
 } // agent
 } // game
