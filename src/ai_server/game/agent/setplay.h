@@ -42,9 +42,12 @@ private:
   bool neflag = false;
   bool receive_flag_ = false;
   int shooter_num_ = 0;
+  int change_count_  = 0;
 
   Eigen::Vector2d find_location(std::vector<Eigen::Vector2d> targets,
-                                model::world::robots_list enemy_robots, int dist = 1);
+                                model::world::robots_list enemy_robots, int dist = -1);
+  int chose_location(std::vector<Eigen::Vector2d> targets,
+                                model::world::robots_list enemy_robots, int dist = -1);
   double vectorangle(Eigen::Vector2d vec);
 };
 } // agent
