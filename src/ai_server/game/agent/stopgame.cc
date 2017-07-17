@@ -30,9 +30,8 @@ stopgame::stopgame(const model::world& world, bool is_yellow,
 std::vector<std::shared_ptr<action::base>> stopgame::execute() {
   baseaction_.clear();
   const auto our_robots = is_yellow_ ? world_.robots_yellow() : world_.robots_blue();
-  if (std::any_of(
-          ids_.cbegin(), ids_.cend(),
-          [&our_robots](auto&& id) { return !our_robots.count(id); })) {
+  if (std::any_of(ids_.cbegin(), ids_.cend(),
+                  [&our_robots](auto&& id) { return !our_robots.count(id); })) {
     return baseaction_;
   }
   const auto ball            = world_.ball();
