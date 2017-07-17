@@ -6,7 +6,7 @@
 #include "ai_server/util/math.h"
 
 #include "stopgame.h"
-#include<iostream>
+#include <iostream>
 
 namespace ai_server {
 namespace game {
@@ -29,13 +29,18 @@ stopgame::stopgame(const model::world& world, bool is_yellow,
 }
 
 std::vector<std::shared_ptr<action::base>> stopgame::execute() {
-  std::vector<std::shared_ptr<action::base>> base;
-  const auto our_robots      = is_yellow_ ? world_.robots_yellow() : world_.robots_blue();
+  baseaction_.clear();
+  const auto our_robots = is_yellow_ ? world_.robots_yellow() : world_.robots_blue();
+  if (std::any_of(
+          ids_.cbegin(), ids_.cend(),
+          [&our_robots](auto&& id) { return !our_robots.count(id); })) {
+    return baseaction_;
+  }
   const auto ball            = world_.ball();
   const double ballx         = ball.x();
   const double bally         = ball.y();
-  const double ballxsign     = ((ballx > 0) || (std::abs(ballx)< 250))? 1.0 : -1.0;
-  const double ballysign     = ((bally > 0) || (std::abs(bally)< 250))? 1.0 : -1.0;
+  const double ballxsign     = ((ballx > 0) || (std::abs(ballx) < 250)) ? 1.0 : -1.0;
+  const double ballysign     = ((bally > 0) || (std::abs(bally) < 250)) ? 1.0 : -1.0;
   const double enemygoalsign = world_.field().x_max() > 0 ? 1.0 : -1.0;
 
   double targetx;
@@ -58,7 +63,7 @@ std::vector<std::shared_ptr<action::base>> stopgame::execute() {
       } else {
         // それ以外
         targetx = ballx - enemygoalsign * i * 500;
-        targety = bally - dist * ballysign * (i % 2 == 0 ? -i : i) / 2;
+        targety = bally - dist * ballysign * (i % 2 == 0 ? i : -i) / 2;
         if (std::abs(targety) > 3000) targety = bally - dist * ballysign * (i - 1);
         i++;
       }
@@ -106,12 +111,12 @@ std::vector<std::shared_ptr<action::base>> stopgame::execute() {
       auto move                 = std::make_shared<action::move>(world_, is_yellow_, id);
       const double to_balltheta = std::atan2(bally - robot.y(), ballx - robot.x());
       move->move_to(targetx, targety, to_balltheta);
-      base.push_back(move);
+      baseaction_.push_back(move);
     } else {
-      base.push_back(std::make_shared<action::no_operation>(world_, is_yellow_, id));
+      baseaction_.push_back(std::make_shared<action::no_operation>(world_, is_yellow_, id));
     }
   }
-  return base;
+  return baseaction_;
 }
 } // agent
 } // game
