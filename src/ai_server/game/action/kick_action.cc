@@ -91,8 +91,6 @@ model::command kick_action::execute() {
   const double dth    = std::abs(atand1 - atand2) - pi<double>();
   const double dth2   = util::wrap_to_pi(std::atan2(y_ - ball_y, x_ - ball_x) -
                                        std::atan2(ball_y - robot_y, ball_x - robot_x));
-  if (std::abs(dth) - std::abs(dth2) > 0.0001) {
-  }
 
   const double omega = util::wrap_to_pi(atand2 - robot_theta + pi<double>());
 
@@ -146,9 +144,9 @@ model::command kick_action::execute() {
       aroundflag_ = std::hypot(to_robot_x, to_robot_y) < 350;
       if (util::wrap_to_pi(atand1 - atand2) > 0) {
         // 時計回り
-        const double coe  = std::abs(dth) > 0.20 ? 400 : 100;
-        const double si   = std::sin(atand2 - 0.15) * coe;
-        const double co   = -std::cos(atand2 - 0.15) * coe;
+        const double coe  = std::abs(dth) > margin_*2 ? 800 : 100;
+        const double si   = std::sin(atand2 - 0.18) * coe;
+        const double co   = -std::cos(atand2 - 0.18) * coe;
         double adjustment = util::wrap_to_pi(atand2 + pi<double>() - robot_theta);
         adjustment        = adjustment > margin_ / 3 ? adjustment * 3 : adjustment * 2;
         if (std::isnan(robot_me.vx()) || std::isnan(robot_me.vy())) {
@@ -161,9 +159,9 @@ model::command kick_action::execute() {
         }
       } else {
         // 反時計回り
-        const double coe  = std::abs(dth) > 0.20 ? 400 : 100;
-        const double si   = -std::sin(atand2 + 0.15) * coe;
-        const double co   = std::cos(atand2 + 0.15) * coe;
+        const double coe  = std::abs(dth) > margin_*2 ? 800 : 100;
+        const double si   = -std::sin(atand2 + 0.18) * coe;
+        const double co   = std::cos(atand2 + 0.18) * coe;
         double adjustment = util::wrap_to_pi(atand2 + pi<double>() - robot_theta);
         adjustment        = adjustment > margin_ / 3 ? adjustment * 3 : adjustment * 2;
         if (std::isnan(robot_me.vx()) || std::isnan(robot_me.vy())) {
@@ -191,7 +189,8 @@ model::command kick_action::execute() {
     } else {
       // キックフラグをセットし、ボールの位置まで移動する処理
       state_           = running_state::kick;
-      const double coe = std::abs(dth) > margin_ / 4 ? 200 : 50;
+      // const double coe = std::abs(dth) > margin_ / 4 ? 300 : 50;
+      const double coe = std::abs(dth) > margin_ / 4 ? 100 : 50;
       const double si =
           std::sin(atand2) * coe * (util::wrap_to_pi(atand1 - atand2) > 0 ? 1 : -1);
       const double co =
