@@ -8,7 +8,7 @@ namespace filter {
 template <class T>
 class va_calculator : public base<T, timing::on_updated> {
   using value_type      = T;
-  using time_point_type = std::chrono::high_resolution_clock::time_point;
+  using time_point_type = util::time_point_type;
 
 public:
   va_calculator();

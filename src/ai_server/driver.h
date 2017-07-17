@@ -7,12 +7,13 @@
 #include <mutex>
 #include <tuple>
 #include <boost/asio.hpp>
-#include <boost/asio/high_resolution_timer.hpp>
+#include <boost/asio/basic_waitable_timer.hpp>
 
 #include "ai_server/controller/base.h"
 #include "ai_server/model/command.h"
 #include "ai_server/model/world.h"
 #include "ai_server/sender/base.h"
+#include "ai_server/util/time.h"
 
 namespace ai_server {
 
@@ -26,10 +27,10 @@ class driver {
   mutable std::mutex mutex_;
 
   /// 制御部の処理を一定の周期で回すためのタイマ
-  boost::asio::high_resolution_timer timer_;
+  boost::asio::basic_waitable_timer<util::clock_type> timer_;
 
   /// 制御周期
-  std::chrono::high_resolution_clock::duration cycle_;
+  util::duration_type cycle_;
 
   /// WorldModelの参照
   const model::world& world_;
@@ -42,8 +43,8 @@ class driver {
 public:
   /// @param cycle            制御周期
   /// @param world            WorldModelの参照
-  driver(boost::asio::io_service& io_service,
-         std::chrono::high_resolution_clock::duration cycle, const model::world& world);
+  driver(boost::asio::io_service& io_service, util::duration_type cycle,
+         const model::world& world);
 
   /// @brief                  Driverにロボットを登録する
   /// @param is_yellow        ロボットの色

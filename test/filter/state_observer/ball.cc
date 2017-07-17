@@ -26,7 +26,7 @@ BOOST_AUTO_TEST_CASE(rest, *boost::unit_test::tolerance(0.1)) {
   };
 
   // 初期時刻
-  auto t = std::chrono::high_resolution_clock::time_point{};
+  auto t = ai_server::util::time_point_type{};
 
   filter::state_observer::ball obs{{}, t};
 

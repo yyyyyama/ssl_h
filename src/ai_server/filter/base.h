@@ -7,6 +7,8 @@
 // TODO: C++17移行時に<optional>にする
 #include <experimental/optional>
 
+#include "ai_server/util/time.h"
+
 namespace ai_server {
 namespace filter {
 
@@ -32,7 +34,7 @@ public:
   ///
   /// filterの状態を更新するためのメンバ関数.
   /// updater::worldでは, Visionから新しい値を受け取ったときに呼び出される.
-  virtual T update(const T& value, std::chrono::high_resolution_clock::time_point time) = 0;
+  virtual T update(const T& value, util::time_point_type time) = 0;
 };
 
 template <class T>
