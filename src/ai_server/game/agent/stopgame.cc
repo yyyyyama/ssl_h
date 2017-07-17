@@ -56,7 +56,7 @@ std::vector<std::shared_ptr<action::base>> stopgame::execute() {
       // 敵または味方のゴール近く
       if (id == nearest_robot_) {
         // ボールを追いかけるロボット
-        targetx = ballx - ballxsign * 650;
+        targetx = ballx - enemygoalsign * 650;
         targety = bally;
       } else {
         // それ以外
