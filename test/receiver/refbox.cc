@@ -112,30 +112,6 @@ BOOST_AUTO_TEST_CASE(send_and_receive, *boost::unit_test::timeout(30)) {
     BOOST_TEST(f.blue().yellow_card_times(0) == dummy_frame.blue().yellow_card_times(0));
     BOOST_TEST(f.blue().timeouts() == dummy_frame.blue().timeouts());
     BOOST_TEST(f.blue().timeout_time() == dummy_frame.blue().timeout_time());
-
-    // model::refboxに変形できるかのテスト
-    auto ref = r.refbox_data();
-
-    BOOST_TEST(ref.packet_timestamp() == 1);
-    BOOST_TEST(ref.stage() == model::refbox::stage_name::normal_first_half_pre);
-    BOOST_TEST(ref.stage_time_left() == 2);
-    BOOST_TEST(ref.command() == model::refbox::game_command::halt);
-    BOOST_TEST(ref.team_yellow().name() == "yellow");
-    BOOST_TEST(ref.team_yellow().score() == 1);
-    BOOST_TEST(ref.team_yellow().goalie() == 2);
-    BOOST_TEST(ref.team_yellow().red_cards() == 3);
-    BOOST_TEST(ref.team_yellow().yellow_cards() == 4);
-    BOOST_TEST(ref.team_yellow().yellow_card_times() == 5);
-    BOOST_TEST(ref.team_yellow().timeouts() == 6);
-    BOOST_TEST(ref.team_yellow().timeout_time() == 7);
-    BOOST_TEST(ref.team_blue().name() == "blue");
-    BOOST_TEST(ref.team_blue().score() == 8);
-    BOOST_TEST(ref.team_blue().goalie() == 9);
-    BOOST_TEST(ref.team_blue().red_cards() == 10);
-    BOOST_TEST(ref.team_blue().yellow_cards() == 11);
-    BOOST_TEST(ref.team_blue().yellow_card_times() == 12);
-    BOOST_TEST(ref.team_blue().timeouts() == 13);
-    BOOST_TEST(ref.team_blue().timeout_time() == 14);
   }
 
   // 受信の終了
