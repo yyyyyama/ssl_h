@@ -74,9 +74,9 @@ std::vector<std::shared_ptr<action::base>> kick_off::execute() {
       if (std::hypot(this_robot.x() - move_to_x_, this_robot.y() - move_to_y_) >
                       keep_out_r + robot_r + hypot_allow &&
                   this_robot.x() > move_to_x_ &&
-                  std::abs(move_to_robot_theta_ - ball_goal_theta_) < evacuate_finished_
+                  (std::abs(move_to_robot_theta_ - ball_goal_theta_) < evacuate_finished_
               ? theta_min_ - std::atan2(keep_out_r, 30.0)
-              : theta_min_) {
+              : theta_min_)) {
         //ロボットがボールにぶつかる可能性がある時
 
         if (move_to_robot_theta_ < ball_goal_theta_) {
