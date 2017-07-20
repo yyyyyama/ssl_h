@@ -6,14 +6,14 @@
 #include <boost/test/unit_test.hpp>
 
 #include "ai_server/driver.h"
-#include "ai_server/model/world.h"
+#include "ai_server/model/updater/world.h"
 
 BOOST_AUTO_TEST_SUITE(driver)
 
 BOOST_AUTO_TEST_CASE(register_unregister) {
   boost::asio::io_service io_service{};
-  ai_server::model::world w{};
-  ai_server::driver d{io_service, std::chrono::seconds{1}, w};
+  ai_server::model::updater::world wu{};
+  ai_server::driver d{io_service, std::chrono::seconds{1}, wu};
 
   ai_server::model::command cmd0{0};
   ai_server::model::command cmd1{1};

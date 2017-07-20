@@ -11,7 +11,7 @@
 
 #include "ai_server/controller/base.h"
 #include "ai_server/model/command.h"
-#include "ai_server/model/world.h"
+#include "ai_server/model/updater/world.h"
 #include "ai_server/sender/base.h"
 #include "ai_server/util/time.h"
 
@@ -32,8 +32,8 @@ class driver {
   /// 制御周期
   util::duration_type cycle_;
 
-  /// WorldModelの参照
-  const model::world& world_;
+  /// updater::worldの参照
+  const model::updater::world& world_;
 
   /// 登録された青ロボットの情報
   std::unordered_map<unsigned int, driver_param_type> robots_blue_params_;
@@ -42,9 +42,9 @@ class driver {
 
 public:
   /// @param cycle            制御周期
-  /// @param world            WorldModelの参照
+  /// @param world            updater::worldの参照
   driver(boost::asio::io_service& io_service, util::duration_type cycle,
-         const model::world& world);
+         const model::updater::world& world);
 
   /// @brief                  Driverにロボットを登録する
   /// @param is_yellow        ロボットの色
@@ -69,7 +69,7 @@ private:
   void main_loop(const boost::system::error_code& error);
 
   /// @brief                  ロボットへの命令をControllerを通してから送信する
-  void process(bool is_yellow, driver_param_type& driver_param);
+  void process(bool is_yellow, const model::world& world, driver_param_type& driver_param);
 };
 
 } // namespace ai_server

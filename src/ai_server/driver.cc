@@ -8,7 +8,7 @@
 namespace ai_server {
 
 driver::driver(boost::asio::io_service& io_service, util::duration_type cycle,
-               const model::world& world)
+               const model::updater::world& world)
     : timer_(io_service), cycle_(cycle), world_(world) {
   // タイマが開始されたらdriver::main_loop()が呼び出されるように設定
   timer_.async_wait([this](auto&& error) { main_loop(std::forward<decltype(error)>(error)); });
@@ -54,19 +54,23 @@ void driver::main_loop(const boost::system::error_code& error) {
 
   std::lock_guard<std::mutex> lock(mutex_);
 
+  // このループでのWorldModelを生成
+  const auto world = world_.value();
+
   // 登録されたロボットの命令をControllerを通してから送信する
-  for (auto&& rp : robots_blue_params_) process(false, rp.second);
-  for (auto&& rp : robots_yellow_params_) process(true, rp.second);
+  for (auto&& rp : robots_blue_params_) process(false, world, rp.second);
+  for (auto&& rp : robots_yellow_params_) process(true, world, rp.second);
 
   // 処理の開始時刻からcycle_経過した後に再度main_loop()が呼び出されるように設定
   timer_.expires_at(start_time + cycle_);
   timer_.async_wait([this](auto&& error) { main_loop(std::forward<decltype(error)>(error)); });
 }
 
-void driver::process(bool is_yellow, driver_param_type& driver_param) {
+void driver::process(bool is_yellow, const model::world& world,
+                     driver_param_type& driver_param) {
   auto command      = std::get<0>(driver_param);
   const auto id     = command.id();
-  const auto robots = is_yellow ? world_.robots_yellow() : world_.robots_blue();
+  const auto robots = is_yellow ? world.robots_yellow() : world.robots_blue();
 
   // ロボットが検出されていないときは何もしない
   if (robots.count(id) == 0) return;
