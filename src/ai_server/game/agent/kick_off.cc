@@ -37,6 +37,12 @@ std::vector<std::shared_ptr<action::base>> kick_off::execute() {
       std::hypot(10, 10); //ボールとの衝突回避に用いられる、指定位置と実際の位置のズレの許容値
   std::vector<std::shared_ptr<action::base>> actions;
 
+  //見えないときの処理
+  const auto our_robots = is_yellow_ ? world_.robots_yellow() : world_.robots_blue();
+  if (!our_robots.count(kicker_id_)) {
+    return actions;
+  }
+
   if (kick_finished_) {
     //ボールを蹴り終わった時
     auto no_op = std::make_shared<action::no_operation>(world_, is_yellow_, kicker_id_);
@@ -72,11 +78,11 @@ std::vector<std::shared_ptr<action::base>> kick_off::execute() {
           std::atan2(this_robot.y() - move_to_y_, this_robot.x() - move_to_x_);
 
       if (std::hypot(this_robot.x() - move_to_x_, this_robot.y() - move_to_y_) >
-                      keep_out_r + robot_r + hypot_allow &&
-                  this_robot.x() > move_to_x_ &&
-                  (std::abs(move_to_robot_theta_ - ball_goal_theta_) < evacuate_finished_
-              ? theta_min_ - std::atan2(keep_out_r, 30.0)
-              : theta_min_)) {
+              keep_out_r + robot_r + hypot_allow &&
+          this_robot.x() > move_to_x_ &&
+          (std::abs(move_to_robot_theta_ - ball_goal_theta_) < evacuate_finished_
+               ? theta_min_ - std::atan2(keep_out_r, 30.0)
+               : theta_min_)) {
         //ロボットがボールにぶつかる可能性がある時
 
         if (move_to_robot_theta_ < ball_goal_theta_) {
