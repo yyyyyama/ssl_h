@@ -28,6 +28,7 @@ private:
   const static double k_;           // 極,収束の速さ
   static const double zeta_;        // モデルパラメータζ
   static const double omega_;       // モデルパラメータω
+  static const double v_max_;       // 最大速度
   Eigen::Vector3d kp_;              // 比例ゲイン(x,y,rotate)
   Eigen::Vector3d ki_;              // 積分ゲイン(x,y,rotate)
   Eigen::Vector3d kd_;              // 微分ゲイン(x,y,rotate)
@@ -50,9 +51,11 @@ public:
   // コンストラクタ
   explicit state_feedback_controller(double cycle);
 
+  void set_velocity_limit(const double limit) override;
+
   // 制御入力更新関数
-  velocity_t update(const model::robot& robot, const position_t& setpoint);
-  velocity_t update(const model::robot& robot, const velocity_t& setpoint);
+  velocity_t update(const model::robot& robot, const position_t& setpoint) override;
+  velocity_t update(const model::robot& robot, const velocity_t& setpoint) override;
 };
 
 } // controller

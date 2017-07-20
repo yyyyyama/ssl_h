@@ -29,9 +29,10 @@ public:
   // コンストラクタ
   explicit pid_controller(double cycle);
 
+  void set_velocity_limit(const double limit) override;
   // 制御入力更新関数
-  velocity_t update(const model::robot& robot, const position_t& setpoint);
-  velocity_t update(const model::robot& robot, const velocity_t& setpoint);
+  velocity_t update(const model::robot& robot, const position_t& setpoint) override;
+  velocity_t update(const model::robot& robot, const velocity_t& setpoint) override;
 };
 
 } // controller
