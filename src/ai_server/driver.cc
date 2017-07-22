@@ -24,6 +24,11 @@ void driver::set_team_color(model::team_color color) {
   team_color_ = color;
 }
 
+void driver::set_velocity_limit(double limit) {
+  std::lock_guard<std::mutex> lock(mutex_);
+  for (auto&& meta : robots_metadata_) std::get<1>(meta.second)->set_velocity_limit(limit);
+}
+
 void driver::register_robot(unsigned int id, controller_type controller, sender_type sender) {
   std::lock_guard<std::mutex> lock(mutex_);
   robots_metadata_.emplace(

@@ -54,6 +54,10 @@ public:
   /// @param command          ロボットへの命令
   void update_command(const model::command& command);
 
+  /// @brief                  登録されているロボットのControllerに速度制限をかける
+  /// @param limit            速度の制限値
+  void set_velocity_limit(double limit);
+
 private:
   /// @brief                  cycle_毎に呼ばれる制御部のメインループ
   void main_loop(const boost::system::error_code& error);

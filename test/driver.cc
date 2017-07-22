@@ -1,16 +1,19 @@
 #define BOOST_TEST_DYN_LINK
 
 #include <chrono>
+#include <memory>
 #include <stdexcept>
 #include <boost/asio.hpp>
 #include <boost/test/unit_test.hpp>
 
+#include "ai_server/controller/base.h"
 #include "ai_server/driver.h"
 #include "ai_server/model/team_color.h"
 #include "ai_server/model/updater/world.h"
 
 using namespace std::chrono_literals;
-namespace model = ai_server::model;
+namespace controller = ai_server::controller;
+namespace model      = ai_server::model;
 
 BOOST_TEST_DONT_PRINT_LOG_VALUE(model::team_color)
 
@@ -65,6 +68,50 @@ BOOST_AUTO_TEST_CASE(register_robot) {
   BOOST_CHECK_NO_THROW(d.update_command(cmd1));
   d.unregister_robot(1);
   BOOST_CHECK_THROW(d.update_command(cmd1), std::runtime_error);
+}
+
+struct mock_controller : public controller::base {
+protected:
+  controller::velocity_t update(const model::robot&, const controller::position_t&) {
+    return {};
+  }
+  controller::velocity_t update(const model::robot&, const controller::velocity_t&) {
+    return {};
+  }
+};
+
+BOOST_AUTO_TEST_CASE(velocity_limit) {
+  boost::asio::io_service io_service{};
+  ai_server::model::updater::world wu{};
+  ai_server::driver d{io_service, std::chrono::seconds{1}, wu, model::team_color::blue};
+
+  // 適当なControllerをいくつか初期化し登録する
+  // 後からアクセスできるように参照を残しておく
+  auto c1_ptr = std::make_unique<mock_controller>();
+  auto c2_ptr = std::make_unique<mock_controller>();
+  const auto& c1 = *c1_ptr;
+  const auto& c2 = *c2_ptr;
+  d.register_robot(1, std::move(c1_ptr), nullptr);
+  d.register_robot(2, std::move(c2_ptr), nullptr);
+
+  // 変更前
+  BOOST_TEST(c1.velocity_limit() == std::numeric_limits<double>::max());
+  BOOST_TEST(c2.velocity_limit() == std::numeric_limits<double>::max());
+
+  // 変更してみる
+  d.set_velocity_limit(123);
+  BOOST_TEST(c1.velocity_limit() == 123);
+  BOOST_TEST(c2.velocity_limit() == 123);
+
+  // さらに変更してみる
+  d.set_velocity_limit(456);
+  BOOST_TEST(c1.velocity_limit() == 456);
+  BOOST_TEST(c2.velocity_limit() == 456);
+
+  // もとに戻してみる
+  d.set_velocity_limit(std::numeric_limits<double>::max());
+  BOOST_TEST(c1.velocity_limit() == std::numeric_limits<double>::max());
+  BOOST_TEST(c2.velocity_limit() == std::numeric_limits<double>::max());
 }
 
 BOOST_AUTO_TEST_SUITE_END()
