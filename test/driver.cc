@@ -87,8 +87,8 @@ BOOST_AUTO_TEST_CASE(velocity_limit) {
 
   // 適当なControllerをいくつか初期化し登録する
   // 後からアクセスできるように参照を残しておく
-  auto c1_ptr = std::make_unique<mock_controller>();
-  auto c2_ptr = std::make_unique<mock_controller>();
+  auto c1_ptr    = std::make_unique<mock_controller>();
+  auto c2_ptr    = std::make_unique<mock_controller>();
   const auto& c1 = *c1_ptr;
   const auto& c2 = *c2_ptr;
   d.register_robot(1, std::move(c1_ptr), nullptr);
