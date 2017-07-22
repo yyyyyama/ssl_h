@@ -8,6 +8,7 @@
 #include <tuple>
 #include <boost/asio.hpp>
 #include <boost/asio/basic_waitable_timer.hpp>
+#include <boost/signals2.hpp>
 
 #include "ai_server/controller/base.h"
 #include "ai_server/model/command.h"
@@ -25,6 +26,8 @@ class driver {
   using sender_type = std::shared_ptr<sender::base>;
   /// Driverで行う処理で必要となる各ロボットの情報の型
   using metadata_type = std::tuple<model::command, controller_type, sender_type>;
+  /// Commandが更新された(Controllerを通された)ときに発火するシグナルの型
+  using updated_signal_type = boost::signals2::signal<void(const model::command&)>;
 
 public:
   /// @param cycle            制御周期
@@ -54,6 +57,10 @@ public:
   /// @param command          ロボットへの命令
   void update_command(const model::command& command);
 
+  /// @brief                  commandが更新されたときに呼ばれる関数を登録する
+  /// @param slot             commandが更新されたときに呼びたい関数
+  boost::signals2::connection on_command_updated(const updated_signal_type::slot_type& slot);
+
   /// @brief                  登録されているロボットのControllerに速度制限をかける
   /// @param limit            速度の制限値
   void set_velocity_limit(double limit);
@@ -80,6 +87,8 @@ private:
 
   /// 登録されたロボットの情報
   std::unordered_map<unsigned int, metadata_type> robots_metadata_;
+
+  updated_signal_type command_updated_;
 };
 
 } // namespace ai_server

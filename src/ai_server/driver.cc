@@ -24,6 +24,11 @@ void driver::set_team_color(model::team_color color) {
   team_color_ = color;
 }
 
+boost::signals2::connection driver::on_command_updated(
+    const updated_signal_type::slot_type& slot) {
+  return command_updated_.connect(slot);
+}
+
 void driver::set_velocity_limit(double limit) {
   std::lock_guard<std::mutex> lock(mutex_);
   for (auto&& meta : robots_metadata_) std::get<1>(meta.second)->set_velocity_limit(limit);
@@ -91,6 +96,9 @@ void driver::process(const model::world& world, metadata_type& metadata) {
 
   // Senderで送信
   std::get<2>(metadata)->send_command(command);
+
+  // 登録された関数があればそれを呼び出す
+  command_updated_(command);
 }
 
 } // namespace ai_server
