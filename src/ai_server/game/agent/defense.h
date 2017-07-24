@@ -6,6 +6,7 @@
 #include <vector>
 
 #include "ai_server/game/action/guard.h"
+#include "ai_server/game/action/get_ball.h"
 #include "ai_server/game/action/marking.h"
 #include "ai_server/game/agent/base.h"
 
@@ -36,7 +37,7 @@ public:
   defense(const model::world& world, bool is_yellow, unsigned int keeper_id,
           const std::vector<unsigned int>& wall_ids,
           const std::vector<unsigned int>& marking_ids);
-  enum class defense_mode { normal_mode, pk_normal_mode, pk_extention_mode };
+  enum class defense_mode { normal_mode, pk_normal_mode, pk_extention_mode, stop_mode };
   void set_mode(agent::defense::defense_mode mode);
   std::vector<std::shared_ptr<action::base>> execute() override;
 
@@ -46,6 +47,7 @@ private:
   const std::vector<unsigned int> marking_ids_;
   std::shared_ptr<action::guard> keeper_;
   std::vector<std::shared_ptr<action::guard>> wall_;
+  std::vector<std::shared_ptr<action::get_ball>> wall_g_;
   std::vector<std::shared_ptr<action::marking>> marking_;
   Eigen::Vector2d orientation_;
   defense_mode mode_;

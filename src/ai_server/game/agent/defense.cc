@@ -33,7 +33,12 @@ defense::defense(const model::world& world, bool is_yellow, unsigned int keeper_
     wall_.emplace_back(std::make_shared<action::guard>(world_, is_yellow_, it));
   }
 
-  //壁用のaction
+  //クリア用のaction
+  for (auto it : wall_ids_) {
+    wall_g_.emplace_back(std::make_shared<action::get_ball>(world_, is_yellow_, it));
+  }
+
+  //マーキング用のaction
   for (auto it : marking_ids_) {
     marking_.emplace_back(std::make_shared<action::marking>(world_, is_yellow_, it));
   }
@@ -50,7 +55,7 @@ std::vector<std::shared_ptr<action::base>> defense::execute() {
   //ボールの座標
   const Eigen::Vector2d ball_vec(world_.ball().vx(), world_.ball().vy());
   const Eigen::Vector2d ball_pos(world_.ball().x(), world_.ball().y());
-  const Eigen::Vector2d ball_k(ball_vec * 0.2);
+  const Eigen::Vector2d ball_k(ball_vec * 0.5);
   const Eigen::Vector2d ball(ball_pos + ball_k);
 
   //状態を遷移させるためのボールの位置
@@ -170,6 +175,7 @@ std::vector<std::shared_ptr<action::base>> defense::execute() {
         }
       }
     }
+
     //実際にアクションを詰めて返す
     {
       const auto my_robots = is_yellow_ ? world_.robots_yellow() : world_.robots_blue();
@@ -193,9 +199,15 @@ std::vector<std::shared_ptr<action::base>> defense::execute() {
       auto target_it = target.begin();
       for (auto wall_it : wall_) {
         wall_it->move_to((*target_it).x(), (*target_it).y(), ball_theta);
-        wall_it->set_kick_type({model::command::kick_type_t::chip, 255});
+        if (mode_ == defense_mode::stop_mode) {
+          wall_it->set_kick_type({model::command::kick_type_t::none, 0});
+        } else {
+          wall_it->set_kick_type({model::command::kick_type_t::chip, 255});
+        }
         wall_it->set_dribble(0);
-        const auto tmp = (ball_vec.norm() * 1.8 < 1000.0) ? 1000.0 : ball_vec.norm() * 1.8;
+        const auto tmp =
+            ball_vec
+                .norm(); // (ball_vec.norm() * 1.0 < 1000.0) ? 1000.0 : ball_vec.norm() * 1.0;
         wall_it->set_magnification(tmp);
         target_it++;
       }
@@ -203,6 +215,33 @@ std::vector<std::shared_ptr<action::base>> defense::execute() {
   }
   //型を合わせるために無理矢理作り直す
   std::vector<std::shared_ptr<action::base>> re_wall{wall_.begin(), wall_.end()};
+
+  //クリアさせる
+  if (false) {
+    if (!wall_ids_.empty() && mode_ != defense_mode::stop_mode) {
+      if ((goal - ball_).norm() < 2000.0 && (goal - ball_).norm() > 1400 &&
+          ball_vec.norm() < 200.0) { // ボールに最も近い敵ロボットを求める
+        const auto my_robots = is_yellow_ ? world_.robots_yellow() : world_.robots_blue();
+        const auto it        = std::min_element(
+            re_wall.cbegin(), re_wall.cend(), [&my_robots, &ball](auto&& a, auto&& b) {
+              const auto l1 =
+                  Eigen::Vector2d{my_robots.at(a->id()).x(), my_robots.at(a->id()).y()} - ball;
+              const auto l2 =
+                  Eigen::Vector2d{my_robots.at(b->id()).x(), my_robots.at(b->id()).y()} - ball;
+              return l1.norm() < l2.norm();
+            });
+        const auto id = (*it)->id();
+        re_wall.erase(it);
+        //クリアように追加する
+        for (auto it : wall_g_) {
+          if (it->id() == id) {
+            // it->set_mode(true);
+            re_wall.push_back(it);
+          }
+        }
+      }
+    }
+  }
 
   //マーキングの処理.
   //
@@ -217,6 +256,16 @@ std::vector<std::shared_ptr<action::base>> defense::execute() {
           continue;
         }
         enemy_list.emplace_back(enemy{it.first, tmp, (it.second).theta(), 0.0, 0});
+      }
+      {
+        Eigen::Vector2d position{Eigen::Vector2d::Zero()};
+        position = Eigen::Vector2d{-3500.0, std::copysign(1, ball_pos.y()) * 1500.0};
+        for (auto it : enemy_robots) {
+          if ((Eigen::Vector2d{(it.second).vx(), (it.second).vy()}).norm() > 3000.0 &&
+              (Eigen::Vector2d{(it.second).x(), (it.second).y()} - position).norm() > 2000.0) {
+          } else {
+          }
+        }
       }
 
       {
