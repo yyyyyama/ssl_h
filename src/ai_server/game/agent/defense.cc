@@ -1,3 +1,4 @@
+#include <iostream>
 #include <cmath>
 #include <map>
 
@@ -41,6 +42,7 @@ defense::defense(const model::world& world, bool is_yellow, unsigned int keeper_
   //マーキング用のaction
   for (auto it : marking_ids_) {
     marking_.emplace_back(std::make_shared<action::marking>(world_, is_yellow_, it));
+    // marking_g_.emplace_back(std::make_shared<action::guard>(world_, is_yellow_, it));
   }
   ball_ = {0.0, 0.0};
 }
@@ -51,7 +53,12 @@ void defense::set_mode(defense_mode mode) {
 
 std::vector<std::shared_ptr<action::base>> defense::execute() {
   using boost::math::constants::pi;
-
+  for (auto it : wall_ids_) {
+    std::cout << "wall: " << it << std::endl;
+  }
+  for (auto it : marking_ids_) {
+    std::cout << "marking: " << it << std::endl;
+  }
   //ボールの座標
   const Eigen::Vector2d ball_vec(world_.ball().vx(), world_.ball().vy());
   const Eigen::Vector2d ball_pos(world_.ball().x(), world_.ball().y());
@@ -234,10 +241,21 @@ std::vector<std::shared_ptr<action::base>> defense::execute() {
   std::vector<std::shared_ptr<action::base>> re_wall{wall_.begin(), wall_.end()};
 
   //クリアさせる
-  if (false) {
+  {
     if (!wall_ids_.empty() && mode_ != defense_mode::stop_mode) {
-      if ((goal - ball_).norm() < 2000.0 && (goal - ball_).norm() > 1400 &&
-          ball_vec.norm() < 200.0) { // ボールに最も近い敵ロボットを求める
+      const auto enemy_robots = is_yellow_ ? world_.robots_blue() : world_.robots_yellow();
+      const auto it           = std::min_element(
+          enemy_robots.cbegin(), enemy_robots.cend(), [&ball](auto&& a, auto&& b) {
+            const auto l1 = Eigen::Vector2d{a.second.x(), a.second.y()} - ball;
+            const auto l2 = Eigen::Vector2d{b.second.x(), b.second.y()} - ball;
+            return l1.norm() < l2.norm();
+          });
+      const auto r = std::get<1>(*it);
+
+      if ((goal - ball_pos).norm() < 2000.0 && (goal - ball_pos).norm() > 1400 &&
+          ball_vec.norm() < 200.0 && ball_pos.x() > -4300.0 &&
+          (ball_pos - Eigen::Vector2d{r.x(), r.y()}).norm() > 300.0) {
+        // ボールに最も近い味方ロボットを求める
         const auto my_robots = is_yellow_ ? world_.robots_yellow() : world_.robots_blue();
         const auto it        = std::min_element(
             re_wall.cbegin(), re_wall.cend(), [&my_robots, &ball](auto&& a, auto&& b) {
@@ -447,46 +465,32 @@ std::vector<std::shared_ptr<action::base>> defense::execute() {
             keeper            = (1 - ratio) * goal + ratio * orientation_;
             keeper_->set_kick_type({model::command::kick_type_t::none, 0});
             keeper_->set_dribble(0);
-          } else { // B*/
-            keeper_->set_kick_type({model::command::kick_type_t::none, 0});
-            keeper_->set_dribble(0);
-            // if (ball_vec.norm() < 500.0 && !std::signbit(ball_.x())) {
-            //壁のすぐ後ろで待機
-            //基準点からちょっと下がったキーパの位置
-            const auto length = (goal - ball).norm(); //基準点<->ボール
-            const auto ratio  = (1100) / length; //全体に対してのキーパー位置の比
-            keeper            = (1 - ratio) * goal + ratio * ball;
-            //            //} else {
-            // const auto A = (ball.y() - ball_pos.y()) / (ball.x() - ball_pos.x());
-            // const auto B = ball_pos.y() - A * ball_pos.x();
-            // Eigen::Vector2d tmp_pos{goal.x(), A * world_.field().x_min() + B};
-            ////Eigen::Vector2d tmp_pos{goal.x(), 0.0};
-            // if (std::abs(tmp_pos.y()) > 450.0) {
-            //  keeper = Eigen::Vector2d{tmp_pos.x() + 110, std::copysign(450.0, tmp_pos.y())};
-            //} else {
-            //	keeper=tmp_pos;
-            //      const auto length = (tmp_pos - ball_pos).norm(); //敵機とゴールの距離
-            //      const auto ratio    = (400.0) / length;
-            //      const auto position = (1 - ratio) * tmp_pos + ratio * ball_pos;
-            //	keeper=position;
-            ////内積を使って導出
-            ////ボールの速度を正規化
-            // const auto normalize = ball_vec.normalized();
-            ////対象とreceiverの距離
-            // const auto length = goal - ball_pos;
-            ////内積より,対象と自分の直交する位置
-            // const auto dot = normalize.dot(length);
-            ////目標位置に変換
-            // const auto position = (ball_pos + dot * normalize);
-            // std::cout<<position.x()<<" :pos: "<<position.y()<<std::endl;
-            // const auto theta1   = util::wrap_to_2pi(acos((position - goal).norm() / 500.0));
-            // const auto theta2 =
-            //    util::wrap_to_2pi(acos((position - goal).norm() / (tmp_pos - goal).norm()));
-            // keeper = Eigen::Vector2d{500 * std::sin(theta1 + theta2) + goal.x(),
-            //                                       500 * std::cos(theta1 + theta2) +
-            //                                       goal.y()};
-            //}
-            //}
+          } else { /*B*/
+            const auto A = (ball.y() - ball_pos.y()) / (ball.x() - ball_pos.x());
+            const auto B = ball_pos.y() - A * ball_pos.x();
+            if (!std::signbit(ball_.x()) && std::abs(A * goal.x() + B) > 500.0 &&
+                ball_vec.norm() > 500.0) {
+              const auto a = -1 * A;
+              const auto b = 1;
+              const auto c = -1 * B;
+              Eigen::Vector2d pos_p{goal};
+              const auto d = a * pos_p.x() + b * pos_p.y() + c;
+              Eigen::Vector2d pos_h{pos_p.x() - a * (d / (std::pow(a, 2) + std::pow(b, 2))),
+                                    pos_p.y() - b * (d / (std::pow(a, 2) + std::pow(b, 2)))};
+              const auto r = 400.0;
+              const auto hq =
+                  std::sqrt(std::pow(r, 2) - (d / (std::pow(a, 2) + std::pow(b, 2))));
+              keeper = Eigen::Vector2d{pos_h.x() + hq * (b / std::hypot(a, b)),
+                                       pos_h.y() - hq * (a / std::hypot(a, b))};
+            } else {
+              keeper_->set_kick_type({model::command::kick_type_t::none, 0});
+              keeper_->set_dribble(0);
+              //壁のすぐ後ろで待機
+              //基準点からちょっと下がったキーパの位置
+              const auto length = (goal - ball).norm(); //基準点<->ボール
+              const auto ratio = (900) / length; //全体に対してのキーパー位置の比
+              keeper           = (1 - ratio) * goal + ratio * ball;
+            }
           }
           const auto tmp = (ball_vec.norm() * 1.0 < 1000.0) ? 1000.0 : ball_vec.norm() * 1.0;
           keeper_->set_magnification(tmp);
