@@ -70,6 +70,7 @@ model::command guard::execute() {
     return command;
   }
 
+  //command.set_velocity({vec.x(), vec.y(), omega});
   command.set_position({pos_.x(), pos_.y(),theta_});
 
   flag_ = false;
