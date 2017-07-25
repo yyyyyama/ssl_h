@@ -1,4 +1,3 @@
-#include <iostream>
 #include <cmath>
 #include <map>
 
@@ -268,7 +267,7 @@ std::vector<std::shared_ptr<action::base>> defense::execute() {
           //クリアように追加する
           for (auto it : wall_g_) {
             if (it->id() == id) {
-              // it->set_mode(true);
+              it->set_chip(true);
               re_wall.push_back(it);
             }
           }
@@ -454,6 +453,7 @@ std::vector<std::shared_ptr<action::base>> defense::execute() {
           if ((ball_ - goal).norm() < demarcation1 && (ball_ - goal).norm() > demarcation2 &&
               ball_vec.norm() < 500.0 && mode_ != defense_mode::stop_mode) {
             flag = true;
+            keeper_g_->set_chip(true);
             // const auto ratio =
             //    40.0 / ((goal_e - ball_pos).norm() + 40.0); //ボール - 目標位置の比
             // keeper = (-ratio * goal_e + 1 * ball_pos) / (1 - ratio);

@@ -16,6 +16,7 @@ public:
   void set_target(double x, double y);
   void set_target(Eigen::Vector2d target);
   void set_pow(double pow);
+  void set_chip(bool chip);
   model::command execute() override;
   bool finished() const override;
 
@@ -23,6 +24,7 @@ private:
   Eigen::Vector2d target_; // 蹴りたい目標
   double pow_;
   bool flag_;
+  bool chip_;
 };
 
 } // namespace ai_server
