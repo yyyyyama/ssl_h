@@ -15,11 +15,13 @@ public:
   get_ball(const model::world& world, bool is_yellow, unsigned int id);
   void set_target(double x, double y);
   void set_target(Eigen::Vector2d target);
+  void set_pow(double pow);
   model::command execute() override;
   bool finished() const override;
 
 private:
   Eigen::Vector2d target_; // 蹴りたい目標
+  double pow_;
   bool flag_;
 };
 

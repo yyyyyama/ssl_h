@@ -23,6 +23,10 @@ void get_ball::set_target(Eigen::Vector2d target) {
   target_ = target;
 }
 
+void get_ball::set_pow(double pow) {
+  pow_ = pow;
+}
+
 model::command get_ball::execute() {
   namespace bg  = boost::geometry;
   using point   = bg::model::d2::point_xy<double>;
@@ -44,13 +48,14 @@ model::command get_ball::execute() {
 
   const auto ball_pos = util::math::position(world_.ball());
   const auto ball_vec = util::math::velocity(world_.ball());
-  // 2.0秒後のボールの位置
-  const Eigen::Vector2d ball = ball_pos + ball_vec * 2.0;
+  // 3.0秒後のボールの位置
+  const Eigen::Vector2d ball = ball_pos + ball_vec * 3.0;
 
   //移動目標
   Eigen::Vector2d position{Eigen::Vector2d::Zero()};
 
-  if (ball_vec.norm() < 500.0) {
+  auto theta = 0.0;
+  if (ball_vec.norm() < 800.0) {
     //ロボットの中心から口までの距離
     auto radius = 140.0;
     //目標に向かって蹴る
@@ -68,7 +73,7 @@ model::command get_ball::execute() {
           const auto ratio = 1 - tmp;
           //これで自分から1000の点が出せる
           decltype(robot) pos = (-ratio * robot + target_) / tmp;
-          const auto mergin   = 140.0;
+          const auto mergin   = 200.0;
           const auto shift_p  = util::math::calc_isosceles_vertexes(pos, robot, mergin);
           polygon poly;
           bg::exterior_ring(poly) = boost::assign::list_of<point>(pos.x(), pos.y())(
@@ -85,10 +90,10 @@ model::command get_ball::execute() {
           }
           if (flag) {
             command.set_kick_flag(
-                model::command::kick_flag_t{model::command::kick_type_t::chip, 128});
+                model::command::kick_flag_t{model::command::kick_type_t::chip, pow_});
           } else {
             command.set_kick_flag(
-                model::command::kick_flag_t{model::command::kick_type_t::line, 255});
+                model::command::kick_flag_t{model::command::kick_type_t::line, pow_});
           }
         }
       } else {
@@ -115,11 +120,11 @@ model::command get_ball::execute() {
       //間にボールがあったら回り込む
       if (!bg::disjoint(p, poly)) {
         //判定の幅
-        const auto mergin = 250.0;
+        const auto mergin = 500.0;
         const auto tmp1 =
             std::get<0>(util::math::calc_isosceles_vertexes(robot, ball_pos, mergin));
         const auto tmp2 =
-            std::get<1>(util::math::calc_isosceles_vertexes(position, ball_pos, mergin));
+            std::get<1>(util::math::calc_isosceles_vertexes(robot, ball_pos, mergin));
 
         const auto tc = (ball_pos.x() - target_.x()) * (tmp1.y() - ball_pos.y()) +
                         (ball_pos.y() - target_.y()) * (ball_pos.x() - tmp1.x());
@@ -128,6 +133,7 @@ model::command get_ball::execute() {
         position = std::signbit(tc) == std::signbit(tp) ? tmp1 : tmp2;
       }
     }
+    theta = util::wrap_to_pi(std::atan2(target_.y() - robot.y(), target_.x() - robot.x()));
   } else {
     //ボールがはやければ予測位置に行く
 
@@ -141,12 +147,13 @@ model::command get_ball::execute() {
       const auto dot = normalize.dot(length);
       //目標位置に変換
       position = (ball_pos + dot * normalize);
-      if ((robot - ball_pos).norm() < 1000.0) {
-        const auto radius = 500.0;
-        const auto ratio =
-            radius / ((target_ - ball_pos).norm() + radius); //ボール - 目標位置の比
-        position = (-ratio * target_ + 1 * ball_pos) / (1 - ratio);
-      }
+      //若干にゃーん
+      // if ((robot - ball_pos).norm() < 1000.0) {
+      //  const auto radius = 500.0;
+      //  const auto ratio =
+      //      radius / ((target_ - ball_pos).norm() + radius); //ボール - 目標位置の比
+      //  position = (-ratio * target_ + 1 * ball_pos) / (1 - ratio);
+      //}
     }
 
     //キックフラグは蹴らせない
@@ -183,10 +190,8 @@ model::command get_ball::execute() {
         }
       }
     }
+    theta = util::wrap_to_pi(std::atan2(ball_pos.y() - robot.y(), ball_pos.x() - robot.x()));
   }
-
-  const auto theta =
-      util::wrap_to_pi(std::atan2(ball_pos.y() - robot.y(), ball_pos.x() - robot.x()));
 
   //目標位置が外側に行ったらいい感じにする
   //出たラインとの交点に移動
