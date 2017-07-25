@@ -15,7 +15,7 @@ namespace game {
 namespace action {
 
 get_ball::get_ball(const model::world& world, bool is_yellow, unsigned int id)
-    : base(world, is_yellow, id), target_(Eigen::Vector2d::Zero()), pos_(128), flag_(false) {}
+    : base(world, is_yellow, id), target_(Eigen::Vector2d::Zero()), pow_(128), flag_(false) {}
 
 void get_ball::set_target(double x, double y) {
   target_ = Eigen::Vector2d{x, y};
