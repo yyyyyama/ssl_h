@@ -1,3 +1,4 @@
+#include <iostream>
 #include <cmath>
 #include <map>
 
@@ -26,7 +27,8 @@ defense::defense(const model::world& world, bool is_yellow, unsigned int keeper_
   //
 
   //キーパー用のaction
-  keeper_ = std::make_shared<action::guard>(world_, is_yellow_, keeper_id_);
+  keeper_   = std::make_shared<action::guard>(world_, is_yellow_, keeper_id_);
+  keeper_g_ = std::make_shared<action::get_ball>(world_, is_yellow_, keeper_id_);
 
   //壁用のaction
   for (auto it : wall_ids_) {
