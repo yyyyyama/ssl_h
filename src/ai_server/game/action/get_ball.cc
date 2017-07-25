@@ -15,7 +15,11 @@ namespace game {
 namespace action {
 
 get_ball::get_ball(const model::world& world, bool is_yellow, unsigned int id)
-    : base(world, is_yellow, id), target_(Eigen::Vector2d::Zero()), pow_(128), flag_(false) {}
+    : base(world, is_yellow, id),
+      target_(Eigen::Vector2d::Zero()),
+      pow_(128),
+      flag_(false),
+      chip_(false) {}
 
 void get_ball::set_target(double x, double y) {
   target_ = Eigen::Vector2d{x, y};
@@ -26,6 +30,10 @@ void get_ball::set_target(Eigen::Vector2d target) {
 
 void get_ball::set_pow(double pow) {
   pow_ = pow;
+}
+
+void get_ball::set_chip(bool chip) {
+  chip_ = chip;
 }
 
 model::command get_ball::execute() {
@@ -89,7 +97,7 @@ model::command get_ball::execute() {
               break;
             }
           }
-          if (flag) {
+          if (flag || chip_) {
             command.set_kick_flag(
                 model::command::kick_flag_t{model::command::kick_type_t::chip, pow_});
           } else {
