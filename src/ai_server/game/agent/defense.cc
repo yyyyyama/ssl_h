@@ -42,7 +42,6 @@ defense::defense(const model::world& world, bool is_yellow, unsigned int keeper_
   //マーキング用のaction
   for (auto it : marking_ids_) {
     marking_.emplace_back(std::make_shared<action::marking>(world_, is_yellow_, it));
-    // marking_g_.emplace_back(std::make_shared<action::guard>(world_, is_yellow_, it));
   }
   ball_ = {0.0, 0.0};
 }
@@ -108,7 +107,7 @@ std::vector<std::shared_ptr<action::base>> defense::execute() {
 
     orientation_ = (1 - ratio) * goal + ratio * ball;
     if (std::abs(orientation_.y()) < 500) {
-      orientation_.x() = -3500;
+      orientation_.x() = -3400;
     } else {
       const auto A = (goal.y() - ball.y()) / (goal.x() - ball.x());
       const auto B = ball.y() - A * ball.x();
@@ -244,34 +243,38 @@ std::vector<std::shared_ptr<action::base>> defense::execute() {
   {
     if (!wall_ids_.empty() && mode_ != defense_mode::stop_mode) {
       const auto enemy_robots = is_yellow_ ? world_.robots_blue() : world_.robots_yellow();
-      const auto it           = std::min_element(
-          enemy_robots.cbegin(), enemy_robots.cend(), [&ball](auto&& a, auto&& b) {
-            const auto l1 = Eigen::Vector2d{a.second.x(), a.second.y()} - ball;
-            const auto l2 = Eigen::Vector2d{b.second.x(), b.second.y()} - ball;
-            return l1.norm() < l2.norm();
-          });
-      const auto r = std::get<1>(*it);
-
-      if ((goal - ball_pos).norm() < 2000.0 && (goal - ball_pos).norm() > 1400 &&
-          ball_vec.norm() < 200.0 && ball_pos.x() > -4300.0 &&
-          (ball_pos - Eigen::Vector2d{r.x(), r.y()}).norm() > 300.0) {
-        // ボールに最も近い味方ロボットを求める
-        const auto my_robots = is_yellow_ ? world_.robots_yellow() : world_.robots_blue();
-        const auto it        = std::min_element(
-            re_wall.cbegin(), re_wall.cend(), [&my_robots, &ball](auto&& a, auto&& b) {
-              const auto l1 =
-                  Eigen::Vector2d{my_robots.at(a->id()).x(), my_robots.at(a->id()).y()} - ball;
-              const auto l2 =
-                  Eigen::Vector2d{my_robots.at(b->id()).x(), my_robots.at(b->id()).y()} - ball;
+      if (!enemy_robots.empty()) {
+        const auto it = std::min_element(
+            enemy_robots.cbegin(), enemy_robots.cend(), [&ball](auto&& a, auto&& b) {
+              const auto l1 = Eigen::Vector2d{a.second.x(), a.second.y()} - ball;
+              const auto l2 = Eigen::Vector2d{b.second.x(), b.second.y()} - ball;
               return l1.norm() < l2.norm();
             });
-        const auto id = (*it)->id();
-        re_wall.erase(it);
-        //クリアように追加する
-        for (auto it : wall_g_) {
-          if (it->id() == id) {
-            // it->set_mode(true);
-            re_wall.push_back(it);
+        const auto r = std::get<1>(*it);
+
+        if ((goal - ball_pos).norm() < 2000.0 && (goal - ball_pos).norm() > 1400 &&
+            ball_vec.norm() < 200.0 && ball_pos.x() > -4300.0 &&
+            (ball_pos - Eigen::Vector2d{r.x(), r.y()}).norm() > 300.0) {
+          // ボールに最も近い味方ロボットを求める
+          const auto my_robots = is_yellow_ ? world_.robots_yellow() : world_.robots_blue();
+          const auto it        = std::min_element(
+              re_wall.cbegin(), re_wall.cend(), [&my_robots, &ball](auto&& a, auto&& b) {
+                const auto l1 =
+                    Eigen::Vector2d{my_robots.at(a->id()).x(), my_robots.at(a->id()).y()} -
+                    ball;
+                const auto l2 =
+                    Eigen::Vector2d{my_robots.at(b->id()).x(), my_robots.at(b->id()).y()} -
+                    ball;
+                return l1.norm() < l2.norm();
+              });
+          const auto id = (*it)->id();
+          re_wall.erase(it);
+          //クリアように追加する
+          for (auto it : wall_g_) {
+            if (it->id() == id) {
+              // it->set_mode(true);
+              re_wall.push_back(it);
+            }
           }
         }
       }
@@ -439,6 +442,7 @@ std::vector<std::shared_ptr<action::base>> defense::execute() {
           });
       const auto r = std::get<1>(*it);
 
+      bool flag = false;
       switch (mode_) {
         case defense_mode::stop_mode: {
         }
@@ -453,11 +457,12 @@ std::vector<std::shared_ptr<action::base>> defense::execute() {
 
           if ((ball_ - goal).norm() < demarcation1 && (ball_ - goal).norm() > demarcation2 &&
               ball_vec.norm() < 500.0 && mode_ != defense_mode::stop_mode) {
-            const auto ratio =
-                40.0 / ((goal_e - ball_pos).norm() + 40.0); //ボール - 目標位置の比
-            keeper = (-ratio * goal_e + 1 * ball_pos) / (1 - ratio);
-            keeper_->set_kick_type({model::command::kick_type_t::chip, 255});
-            keeper_->set_dribble(9);
+            flag = true;
+            // const auto ratio =
+            //    40.0 / ((goal_e - ball_pos).norm() + 40.0); //ボール - 目標位置の比
+            // keeper = (-ratio * goal_e + 1 * ball_pos) / (1 - ratio);
+            // keeper_->set_kick_type({model::command::kick_type_t::chip, 255});
+            // keeper_->set_dribble(9);
           } else if (((ball_ - goal).norm() < demarcation3) || !marking_.empty()) { // C
             //ゴール前でディフェンスする
             const auto length = (goal - orientation_).norm(); //基準点<->ボール
@@ -468,7 +473,7 @@ std::vector<std::shared_ptr<action::base>> defense::execute() {
           } else { /*B*/
             const auto A = (ball.y() - ball_pos.y()) / (ball.x() - ball_pos.x());
             const auto B = ball_pos.y() - A * ball_pos.x();
-            if (!std::signbit(ball_.x()) && std::abs(A * goal.x() + B) > 500.0 &&
+            if (!std::signbit(ball_.x()) && std::abs(A * goal.x() + B) < 500.0 &&
                 ball_vec.norm() > 500.0) {
               const auto a = -1 * A;
               const auto b = 1;
@@ -523,7 +528,11 @@ std::vector<std::shared_ptr<action::base>> defense::execute() {
         }
       }
       keeper_->move_to(keeper.x(), keeper.y(), ball_theta);
-      re_wall.push_back(keeper_); //配列を返すためにキーパーを統合する
+      if (flag) {
+        re_wall.push_back(keeper_g_); //配列を返すためにキーパーを統合する
+      } else {
+        re_wall.push_back(keeper_); //配列を返すためにキーパーを統合する
+      }
     }
   }
 
