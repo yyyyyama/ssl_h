@@ -59,19 +59,18 @@ model::command guard::execute() {
 
   //位置のマージン
 
-  const auto margin =0.0;
+  const auto margin = 0.0;
 
   //目標位置に居るなら終わり
   //目標位置から現在地の距離
   const auto lengh = (robot_pos - pos_).norm();
   if (lengh < margin) {
-    command.set_velocity({0.0, 0.0,omega});
+    command.set_velocity({0.0, 0.0, omega});
     flag_ = true;
     return command;
   }
 
-  //command.set_velocity({vec.x(), vec.y(), omega});
-  command.set_position({pos_.x(), pos_.y(),theta_});
+  command.set_position({pos_.x(), pos_.y(), theta_});
 
   flag_ = false;
   return command;

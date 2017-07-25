@@ -1,4 +1,3 @@
-#include <iostream>
 #include <cmath>
 #include <map>
 
@@ -52,12 +51,7 @@ void defense::set_mode(defense_mode mode) {
 
 std::vector<std::shared_ptr<action::base>> defense::execute() {
   using boost::math::constants::pi;
-  for (auto it : wall_ids_) {
-    std::cout << "wall: " << it << std::endl;
-  }
-  for (auto it : marking_ids_) {
-    std::cout << "marking: " << it << std::endl;
-  }
+
   //ボールの座標
   const Eigen::Vector2d ball_vec(world_.ball().vx(), world_.ball().vy());
   const Eigen::Vector2d ball_pos(world_.ball().x(), world_.ball().y());
