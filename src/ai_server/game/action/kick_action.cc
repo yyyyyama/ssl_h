@@ -58,6 +58,7 @@ void kick_action::set_stop_ball(bool stop_ball_flag) {
 }
 
 model::command kick_action::execute() {
+	std::cout<<"kick_to"<<x_<<", "<<y_<<std::endl;
   using boost::math::constants::pi;
   using boost::math::constants::two_pi;
 
@@ -144,9 +145,9 @@ model::command kick_action::execute() {
       aroundflag_ = std::hypot(to_robot_x, to_robot_y) < 350;
       if (util::wrap_to_pi(atand1 - atand2) > 0) {
         // 時計回り
-        const double coe  = std::abs(dth) > margin_*2 ? 800 : 100;
-        const double si   = std::sin(atand2 - 0.18) * coe;
-        const double co   = -std::cos(atand2 - 0.18) * coe;
+        const double coe = std::abs(dth) > margin_ * 2 ? 800 : 100;
+        const double si  = std::sin(atand2 - (std::abs(dth) > margin_ * 2 ? 0.25 : 0.1)) * coe;
+        const double co  = -std::cos(atand2 - (std::abs(dth) > margin_ * 2 ? 0.25 : 0.1)) * coe;
         double adjustment = util::wrap_to_pi(atand2 + pi<double>() - robot_theta);
         adjustment        = adjustment > margin_ / 3 ? adjustment * 3 : adjustment * 2;
         if (std::isnan(robot_me.vx()) || std::isnan(robot_me.vy())) {
@@ -159,9 +160,9 @@ model::command kick_action::execute() {
         }
       } else {
         // 反時計回り
-        const double coe  = std::abs(dth) > margin_*2 ? 800 : 100;
-        const double si   = -std::sin(atand2 + 0.18) * coe;
-        const double co   = std::cos(atand2 + 0.18) * coe;
+        const double coe = std::abs(dth) > margin_ * 2 ? 800 : 100;
+        const double si  = -std::sin(atand2 + (std::abs(dth) > margin_ * 2 ? 0.25 : 0.1)) * coe;
+        const double co  = std::cos(atand2 + (std::abs(dth) > margin_ * 2 ? 0.25 : 0.1)) * coe;
         double adjustment = util::wrap_to_pi(atand2 + pi<double>() - robot_theta);
         adjustment        = adjustment > margin_ / 3 ? adjustment * 3 : adjustment * 2;
         if (std::isnan(robot_me.vx()) || std::isnan(robot_me.vy())) {
@@ -188,9 +189,9 @@ model::command kick_action::execute() {
       //            (std::abs(dth) > margin_ / 4 && state_ != running_state::kick)) {
     } else {
       // キックフラグをセットし、ボールの位置まで移動する処理
-      state_           = running_state::kick;
+      state_ = running_state::kick;
       // const double coe = std::abs(dth) > margin_ / 4 ? 300 : 50;
-      const double coe = std::abs(dth) > margin_ / 4 ? 100 : 50;
+      const double coe = std::abs(dth) > margin_ / 4 ? 70 : 20;
       const double si =
           std::sin(atand2) * coe * (util::wrap_to_pi(atand1 - atand2) > 0 ? 1 : -1);
       const double co =
@@ -198,8 +199,15 @@ model::command kick_action::execute() {
       double adjustment =
           util::wrap_to_pi(std::atan2(y_ - robot_y, x_ - robot_x) - robot_theta);
       adjustment = adjustment > margin_ / 4 ? adjustment * 2 : adjustment * 1;
-      command.set_velocity({si - 200 * std::cos(atand2) /* + ball_vel.x() */,
-                            co - 200 * std::sin(atand2) /* + ball_vel.y() */,
+      const double move_vel = (std::get<0>(kick_type_) == model::command::kick_type_t::none &&
+                                (ball_pos - robot_posi).norm() < 120)
+                                  ? 0
+                                  : 250;
+      if (move_vel == 0) {
+        command.set_dribble(3);
+      }
+      command.set_velocity({si - move_vel * std::cos(atand2) /* + ball_vel.x() */,
+                            co - move_vel * std::sin(atand2) /* + ball_vel.y() */,
                             // adjustment + coe / std::hypot(to_robot_x, to_robot_y) / 1.3});
                             adjustment});
       command.set_kick_flag(kick_type_);

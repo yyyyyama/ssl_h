@@ -22,6 +22,8 @@ public:
   setplay(const model::world& world, bool is_yellow, unsigned int kicker_id,
           const std::vector<unsigned int>& receiver_id);
 
+  std::vector<unsigned int> free_robots() const;
+
   std::vector<std::shared_ptr<action::base>> execute() override;
 
   bool finished();
@@ -35,7 +37,6 @@ private:
   Eigen::Vector2d prev_ball_vel_;
   std::shared_ptr<action::kick_action> kick_;
   std::shared_ptr<action::receive> receive_;
-  std::vector<std::shared_ptr<action::base>> baseaction_;
   Eigen::Vector2d passpos_;
   Eigen::Vector2d shoot_pos;
   std::vector<Eigen::Vector2d> positions_;
@@ -43,9 +44,12 @@ private:
   bool receive_flag_ = false;
   int shooter_num_ = 0;
   int change_count_  = 0;
+  double ballysign;
 
-  Eigen::Vector2d find_location(std::vector<Eigen::Vector2d> targets,
-                                model::world::robots_list enemy_robots, int dist = -1);
+  std::vector<unsigned int> free_robots_;
+
+  int mode_;
+
   int chose_location(std::vector<Eigen::Vector2d> targets,
                                 model::world::robots_list enemy_robots, int dist = -1);
   double vectorangle(Eigen::Vector2d vec);
