@@ -80,6 +80,10 @@ void defense::set_mode(defense_mode mode) {
   mode_ = mode;
 }
 
+std::vector<unsigned int> defense::marking() const {
+  return marking_ids_re_;
+}
+
 std::vector<std::shared_ptr<action::base>> defense::execute() {
   using boost::math::constants::pi;
 
@@ -309,7 +313,7 @@ std::vector<std::shared_ptr<action::base>> defense::execute() {
   //
   //
   {
-    if (!marking_.empty()) {
+    if (!marking_.empty() && ball_vec.norm() < 200.0) {
       std::vector<enemy> enemy_list;
       const auto enemy_robots = is_yellow_ ? world_.robots_blue() : world_.robots_yellow();
       if (!enemy_robots.empty()) {
@@ -319,17 +323,6 @@ std::vector<std::shared_ptr<action::base>> defense::execute() {
             continue;
           }
           enemy_list.emplace_back(enemy{it.first, tmp, (it.second).theta(), 0.0, 0});
-        }
-        {
-          Eigen::Vector2d position{Eigen::Vector2d::Zero()};
-          position = Eigen::Vector2d{-3500.0, std::copysign(1, ball_pos.y()) * 1500.0};
-          for (auto it : enemy_robots) {
-            if ((Eigen::Vector2d{(it.second).vx(), (it.second).vy()}).norm() > 3000.0 &&
-                (Eigen::Vector2d{(it.second).x(), (it.second).y()} - position).norm() >
-                    2000.0) {
-            } else {
-            }
-          }
         }
 
         {
@@ -398,7 +391,7 @@ std::vector<std::shared_ptr<action::base>> defense::execute() {
                                              });
             const auto& r = std::get<1>(*it);
             r.action->mark_robot(enemy_it->id);
-            r.action->set_mode(action::marking::mark_mode::kick_block);
+            r.action->set_mode(action::marking::mark_mode::shoot_block);
             r.action->set_radius(250.0);
             if (enemy_it == enemy_list.begin()) {
               r.action->set_radius(600.0);
@@ -446,6 +439,29 @@ std::vector<std::shared_ptr<action::base>> defense::execute() {
             }
           }
         }
+      }
+    }
+    if (!marking_.empty()) {
+      const auto mark_robots = is_yellow_ ? world_.robots_yellow() : world_.robots_blue();
+      std::vector<mark_tmp> mark_list;
+      for (auto& it : marking_) {
+        if (mark_robots.count(it->id())) {
+          const Eigen::Vector2d tmp{mark_robots.at(it->id()).x(), mark_robots.at(it->id()).y()};
+          if (((ball - tmp).norm() < 500)) {
+            continue;
+          }
+          mark_list.push_back({tmp, it->id()});
+        }
+      }
+      std::sort(mark_list.begin(), mark_list.end(), [this](const auto& a, const auto& b) {
+
+        const auto l1 = Eigen::Vector2d{a.position.x(), a.position.y()} - orientation_;
+        const auto l2 = Eigen::Vector2d{b.position.x(), b.position.y()} - orientation_;
+        return l1.norm() < l2.norm();
+      });
+      marking_ids_re_.clear();
+      for (auto it : mark_list) {
+        marking_ids_re_.push_back(it.id);
       }
     }
   }

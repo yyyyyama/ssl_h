@@ -28,6 +28,12 @@ public:
     //評価点数
     unsigned int score;
   };
+  struct mark_tmp {
+    //ロボットの位置
+    Eigen::Vector2d position;
+    //マーキングのアクション
+    unsigned int id;
+  };
   struct mark {
     //ロボットの位置
     Eigen::Vector2d position;
@@ -41,12 +47,14 @@ public:
           const std::vector<unsigned int>& wall_ids);
   enum class defense_mode { normal_mode, pk_normal_mode, pk_extention_mode, stop_mode };
   void set_mode(agent::defense::defense_mode mode);
+  std::vector<unsigned int> marking() const;
   std::vector<std::shared_ptr<action::base>> execute() override;
 
 private:
   unsigned int keeper_id_;
   const std::vector<unsigned int> wall_ids_;
   const std::vector<unsigned int> marking_ids_;
+  std::vector<unsigned int> marking_ids_re_;
   std::shared_ptr<action::guard> keeper_;
   std::shared_ptr<action::get_ball> keeper_g_;
   std::vector<std::shared_ptr<action::guard>> wall_;
