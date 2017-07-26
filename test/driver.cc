@@ -54,20 +54,28 @@ BOOST_AUTO_TEST_CASE(register_robot) {
   BOOST_CHECK_THROW(d.update_command(cmd0), std::runtime_error);
   BOOST_CHECK_THROW(d.update_command(cmd1), std::runtime_error);
 
+  // まだ登録されていない
+  BOOST_TEST(!d.registered(0));
+  BOOST_TEST(!d.registered(1));
+
   // ID0のロボットを登録
   BOOST_CHECK_NO_THROW(d.register_robot(0, nullptr, nullptr));
   BOOST_CHECK_NO_THROW(d.update_command(cmd0));
+  BOOST_TEST(d.registered(0));
 
   // ID1のロボットを登録
   BOOST_CHECK_NO_THROW(d.register_robot(1, nullptr, nullptr));
   BOOST_CHECK_NO_THROW(d.update_command(cmd1));
+  BOOST_TEST(d.registered(1));
 
   // 登録したロボットが正常に削除されるか
   d.unregister_robot(0);
   BOOST_CHECK_THROW(d.update_command(cmd0), std::runtime_error);
   BOOST_CHECK_NO_THROW(d.update_command(cmd1));
+  BOOST_TEST(!d.registered(0));
   d.unregister_robot(1);
   BOOST_CHECK_THROW(d.update_command(cmd1), std::runtime_error);
+  BOOST_TEST(!d.registered(1));
 }
 
 struct mock_controller : public controller::base {
