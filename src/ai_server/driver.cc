@@ -45,6 +45,11 @@ void driver::unregister_robot(unsigned int id) {
   robots_metadata_.erase(id);
 }
 
+bool driver::registered(unsigned int id) const {
+  std::lock_guard<std::mutex> lock(mutex_);
+  return robots_metadata_.count(id);
+}
+
 void driver::update_command(const model::command& command) {
   std::lock_guard<std::mutex> lock(mutex_);
 

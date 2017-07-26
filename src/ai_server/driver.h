@@ -53,6 +53,10 @@ public:
   /// @param id               ロボットのID
   void unregister_robot(unsigned int id);
 
+  /// @brief                  ロボットがDriverに登録されているか調べる
+  /// @param id               ロボットのID
+  bool registered(unsigned int id) const;
+
   /// @brief                  ロボットへの命令を更新する
   /// @param command          ロボットへの命令
   void update_command(const model::command& command);
