@@ -25,6 +25,7 @@ public:
   std::vector<unsigned int> free_robots() const;
 
   std::vector<std::shared_ptr<action::base>> execute() override;
+  void set_mode(int mode_num);
 
   bool finished();
 

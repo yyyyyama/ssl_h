@@ -28,8 +28,8 @@ setplay::setplay(const model::world& world, bool is_yellow, unsigned int kicker_
   const auto our_robots            = is_yellow_ ? world_.robots_yellow() : world_.robots_blue();
   const Eigen::Vector2d kicker_pos = util::math::position(our_robots.at(kicker_id_));
 
-  const auto& ball                 = world_.ball();
-  ballysign           = (ball.y() > 0 || std::abs(ball.y()) < 250) ? 1.0 : -1.0;
+  const auto& ball = world_.ball();
+  ballysign        = (ball.y() > 0 || std::abs(ball.y()) < 250) ? 1.0 : -1.0;
   // 乱数代わり
   // mode_ = static_cast<int>(kicker_pos.x()) % 4;
   mode_ = 1;
@@ -39,6 +39,10 @@ setplay::setplay(const model::world& world, bool is_yellow, unsigned int kicker_
 std::vector<unsigned int> setplay::free_robots() const {
   return free_robots_;
 }
+void setplay::set_mode(int mode_num) {
+  mode_ = mode_num;
+}
+
 std::vector<std::shared_ptr<action::base>> setplay::execute() {
   free_robots_.clear();
   std::cout << "start setplay" << std::endl;
@@ -64,7 +68,7 @@ std::vector<std::shared_ptr<action::base>> setplay::execute() {
   const Eigen::Vector2d ball_pos   = util::math::position(ball);
   const Eigen::Vector2d ball_vel   = util::math::velocity(ball);
   // const double ballysign           = (ball.y() > 0 || std::abs(ball.y()) < 250) ? 1.0 : -1.0;
-  double enemygoal_x               = world_.field().x_max();
+  double enemygoal_x = world_.field().x_max();
 
   // パス以降の処理でボールの軌道が大きく変わったら的に取られたと判定し、agent終了
   if (state_ >= state::receive) {
@@ -120,6 +124,7 @@ std::vector<std::shared_ptr<action::base>> setplay::execute() {
     shooter_id_ = kicker_id_;
   }
   std::cout << "switch" << std::endl;
+  constexpr int run_dist = 3500;
   switch (state_) {
     case setplay::state::setup: {
       // ロボットを指定位置へ移動させる
@@ -142,9 +147,9 @@ std::vector<std::shared_ptr<action::base>> setplay::execute() {
             switch (mode_) {
               case (1): {
                 std::cout << "\e[33m" << std::endl;
-                const Eigen::Vector2d tmp_pos = {ball_pos.x() - (i + 1) * dx - 2500,
+                const Eigen::Vector2d tmp_pos = {ball_pos.x() - (i + 1) * dx - run_dist,
                                                  -ballysign * (3000 - (i + 1) * dy)};
-                positions_.push_back({tmp_pos.x() < 300 ? 300 : tmp_pos.x(), tmp_pos.y()});
+                positions_.push_back({tmp_pos.x() < -1000 ? -1000 : tmp_pos.x(), tmp_pos.y()});
                 break;
               }
               default: {
@@ -165,7 +170,7 @@ std::vector<std::shared_ptr<action::base>> setplay::execute() {
             positions_.push_back({tmp_pos.x() > 3000 ? 3000 : tmp_pos.x(), tmp_pos.y()});
           } else {
             pos_                          = pos::mid;
-            const Eigen::Vector2d tmp_pos = {ball_pos.x() + (i +1)* 2000 * kick_off_coe,
+            const Eigen::Vector2d tmp_pos = {ball_pos.x() + (i + 1) * 2000 * kick_off_coe,
                                              std::sin(theta) * 3000};
             // // positions_.push_back({ball_pos.x() + (i + 1) * 1000, std::sin(theta) * 2000});
             // positions_.push_back(
@@ -210,7 +215,10 @@ std::vector<std::shared_ptr<action::base>> setplay::execute() {
       targets.push_back(passpos_);
       // 進路上の近くに敵ロボットがいたらチップキック
       const int ch = chose_location(targets, enemy_robots, 500);
-      if (ch == std::numeric_limits<double>::max()) {
+      std::cout << "distance_flag" << (ch == std::numeric_limits<int>::max() ? "true" : "false")
+                << std::endl;
+
+      if (ch == std::numeric_limits<int>::max()) {
         shooter_id_ = receiver_ids_[shooter_num_];
         passpos_    = {positions_[shooter_num_].x(), positions_[shooter_num_].y()};
         receive_    = make_action<action::receive>(shooter_id_);
@@ -227,7 +235,7 @@ std::vector<std::shared_ptr<action::base>> setplay::execute() {
           !receive_flag_) {
         movedflag = false;
       }
-	  std::cout<<"receive_flag"<<(receive_flag_?"true":"false")<<std::endl;
+      std::cout << "receive_flag" << (receive_flag_ ? "true" : "false") << std::endl;
       //
       // if (kick_->state() == action::kick_action::running_state::kick && !movedflag) {
 
@@ -237,7 +245,7 @@ std::vector<std::shared_ptr<action::base>> setplay::execute() {
       const double power = line_flag ? 60 : 255;
       // const double power = line_flag ? 7 : 120;
       if (mode_ == 1 && pos_ == pos::far)
-        kick_->kick_to(passpos_.x() + 1500, passpos_.y());
+        kick_->kick_to(passpos_.x() + run_dist-1000, passpos_.y());
       else
         kick_->kick_to(passpos_.x(), passpos_.y());
       kick_->set_dribble(3);
@@ -248,9 +256,9 @@ std::vector<std::shared_ptr<action::base>> setplay::execute() {
       if (kick_->state() >= action::kick_action::running_state::round && !movedflag) {
         kick_type = model::command::kick_type_t::none;
       }
-	  if(movedflag){
+      if (movedflag) {
         receive_flag_ = true;
-	  }
+      }
 
       /* ************************************************************************************/
       { // receiverの垂線
@@ -272,8 +280,9 @@ std::vector<std::shared_ptr<action::base>> setplay::execute() {
         const auto target = (position + dot * normalize);
         std::cout << "taaaaaaaaaaaaaaaaaaa" << target.x() << ", " << target.y() << ", "
                   << (target - shooter_pos).norm() << std::endl;
-        if (mode_ == 1 && pos_ == pos::far&& receive_flag_) {
-          constexpr int success_lenge = 300;
+        if (mode_ == 1 && pos_ == pos::far && receive_flag_) {
+          // constexpr int success_lenge = 300;
+          constexpr int success_lenge = 500;
           if ((target - shooter_pos).norm() < success_lenge) {
             kick_type = line_flag ? model::command::kick_type_t::line
                                   : model::command::kick_type_t::chip;
@@ -316,7 +325,7 @@ std::vector<std::shared_ptr<action::base>> setplay::execute() {
           baseaction.push_back(move);
         } else {
           if (kick_->state() == action::kick_action::running_state::kick && mode_ == 1 &&
-              pos_ == pos::far&&receive_flag_) {
+              pos_ == pos::far && receive_flag_) {
             // const Eigen::Vector2d shooter_pos =
             // util::math::position(our_robots.at(shooter_id_));
             //     auto move = make_action<action::move>(shooter_id_);
@@ -329,7 +338,8 @@ std::vector<std::shared_ptr<action::base>> setplay::execute() {
             const double power = 255;
             receive_->set_kick_type({model::command::kick_type_t::line, power});
             baseaction.push_back(receive_);
-          } else if (kick_->state() == action::kick_action::running_state::kick && movedflag&&mode_!=1) {
+          } else if (kick_->state() == action::kick_action::running_state::kick && movedflag &&
+                     mode_ != 1) {
             // if (kick_->state() >= action::kick_action::running_state::round && movedflag) {
             std::cout << "iaia" << std::endl;
             receive_->set_dribble(9);
@@ -465,7 +475,7 @@ std::vector<std::shared_ptr<action::base>> setplay::execute() {
       for (auto receiver_id : receiver_ids_) {
         if (receiver_id == shooter_id_) {
           // Eigen::Vector2d target = {enemygoal_x, 0 * ballysign};
-          const double power     = 255;
+          const double power = 255;
           // kick_->kick_to(target.x(), target.y());
           kick_->kick_to(shoot_pos.x(), shoot_pos.y());
           kick_->set_dribble(7);
@@ -518,6 +528,7 @@ int setplay::chose_location(std::vector<Eigen::Vector2d> targets,
         const Eigen::Vector3d to_enemy(enemy_robot.x() - ball.x(), enemy_robot.y() - ball.y(),
                                        0);
         const double distance = std::abs(to_target.cross(to_enemy).norm() / to_target.norm());
+        std::cout << "distance" << distance << std::endl;
         if (distance < dist) {
           return std::numeric_limits<int>::max();
         }
