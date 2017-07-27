@@ -34,6 +34,12 @@ public:
     //マーキングのアクション
     unsigned int id;
   };
+  struct mark_g {
+    //ロボットの位置
+    Eigen::Vector2d position;
+    //マーキングのアクション
+    std::shared_ptr<action::guard> action;
+  };
   struct mark {
     //ロボットの位置
     Eigen::Vector2d position;
@@ -60,6 +66,7 @@ private:
   std::vector<std::shared_ptr<action::guard>> wall_;
   std::vector<std::shared_ptr<action::get_ball>> wall_g_;
   std::vector<std::shared_ptr<action::marking>> marking_;
+  std::vector<std::shared_ptr<action::guard>> marking_g_;
   Eigen::Vector2d orientation_;
   defense_mode mode_;
   Eigen::Vector2d ball_;
