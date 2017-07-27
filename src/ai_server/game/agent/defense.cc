@@ -1,3 +1,4 @@
+#include <iostream>
 #include <cmath>
 #include <map>
 
@@ -319,7 +320,7 @@ std::vector<std::shared_ptr<action::base>> defense::execute() {
       if (!enemy_robots.empty()) {
         for (auto it : enemy_robots) {
           const Eigen::Vector2d tmp{(it.second).x(), (it.second).y()};
-          if (((ball - tmp).norm() < 1000) || (tmp.x() > 0)) {
+          if (((ball - tmp).norm() < 1000) || (tmp.x() > 3500.0)) {
             continue;
           }
           enemy_list.emplace_back(enemy{it.first, tmp, (it.second).theta(), 0.0, 0});
@@ -330,16 +331,28 @@ std::vector<std::shared_ptr<action::base>> defense::execute() {
           for (auto& it : enemy_list) {
             it.valuation = it.position.y();
           }
-
           //距離が近い順に昇順ソート
           std::sort(enemy_list.begin(), enemy_list.end(),
                     [&ball](const enemy& a, const enemy& b) {
                       return std::signbit(ball.y()) ? a.valuation > b.valuation
                                                     : a.valuation < b.valuation;
                     });
-
           //点数の初期化
           auto point = enemy_list.size();
+          for (auto& it : enemy_list) {
+            it.score = point--;
+          }
+
+          //ボールとの距離で点数決め
+          for (auto& it : enemy_list) {
+            it.valuation = (it.position - goal).norm();
+          }
+          //距離が近い順に昇順ソート
+          std::sort(
+              enemy_list.begin(), enemy_list.end(),
+              [&ball](const enemy& a, const enemy& b) { return a.valuation > b.valuation; });
+          //点数の初期化
+          point = enemy_list.size();
           for (auto& it : enemy_list) {
             it.score = point--;
           }
@@ -402,19 +415,31 @@ std::vector<std::shared_ptr<action::base>> defense::execute() {
           //もしマークロボットが溢れたらこうなる
           if (!mark_list.empty()) {
             {
-              //ボール<->敵<->ゴールの角度で決める
+              ////ボール<->敵<->ゴールの角度で決める
+              // for (auto& it : enemy_list) {
+              //  const auto goal_theta =
+              //      std::atan2(goal.y() - it.position.y(), goal.x() - it.position.x());
+              //  const auto ball_theta =
+              //      std::atan2(ball.y() - it.position.y(), ball.x() - it.position.x());
+              //  it.valuation = goal_theta + ball_theta;
+              //}
+
+              ////角度が小さいに昇順ソート
+              // std::sort(
+              //    enemy_list.begin(), enemy_list.end(),
+              //    [](const enemy& a, const enemy& b) { return (a.valuation > b.valuation);
+              //});
+              //ボールとの距離で点数決め
               for (auto& it : enemy_list) {
-                const auto goal_theta =
-                    std::atan2(goal.y() - it.position.y(), goal.x() - it.position.x());
-                const auto ball_theta =
-                    std::atan2(ball.y() - it.position.y(), ball.x() - it.position.x());
-                it.valuation = goal_theta + ball_theta;
+                it.valuation = it.position.y();
               }
 
-              //角度が小さいに昇順ソート
-              std::sort(
-                  enemy_list.begin(), enemy_list.end(),
-                  [](const enemy& a, const enemy& b) { return (a.valuation > b.valuation); });
+              //距離が近い順に昇順ソート
+              std::sort(enemy_list.begin(), enemy_list.end(),
+                        [&ball](const enemy& a, const enemy& b) {
+                          return std::signbit(ball.y()) ? a.valuation > b.valuation
+                                                        : a.valuation < b.valuation;
+                        });
 
               auto point = enemy_list.size();
               for (auto& it : enemy_list) {
@@ -434,7 +459,7 @@ std::vector<std::shared_ptr<action::base>> defense::execute() {
                                                });
               const auto& r = std::get<1>(*it);
               r.action->mark_robot(enemy_it->id);
-              r.action->set_mode(action::marking::mark_mode::shoot_block);
+              r.action->set_mode(action::marking::mark_mode::kick_block);
               mark_list.erase(it);
             }
           }
@@ -460,6 +485,9 @@ std::vector<std::shared_ptr<action::base>> defense::execute() {
         return l1.norm() < l2.norm();
       });
       marking_ids_re_.clear();
+      for (auto it : wall_) {
+        marking_ids_re_.push_back(it->id());
+      }
       for (auto it : mark_list) {
         marking_ids_re_.push_back(it.id);
       }
