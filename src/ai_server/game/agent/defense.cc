@@ -19,7 +19,8 @@ defense::defense(const model::world& world, bool is_yellow, unsigned int keeper_
       wall_ids_(wall_ids),
       marking_ids_(marking_ids),
       orientation_(Eigen::Vector2d::Zero()),
-      mode_(defense_mode::normal_mode) {
+      mode_(defense_mode::normal_mode),
+      is_er_(true) {
   // actionの生成部分
   //
   // actionの初期化は一回しか行わない
@@ -90,13 +91,13 @@ std::vector<std::shared_ptr<action::base>> defense::execute() {
   using boost::math::constants::pi;
 
   //ボールの座標
-  const Eigen::Vector2d ball_vec(world_.ball().vx(), world_.ball().vy());
+  const Eigen::Vector2d ball_vel(world_.ball().vx(), world_.ball().vy());
   const Eigen::Vector2d ball_pos(world_.ball().x(), world_.ball().y());
-  const Eigen::Vector2d ball_k(ball_vec * 0.5);
+  const Eigen::Vector2d ball_k(ball_vel * 0.5);
   const Eigen::Vector2d ball(ball_pos + ball_k);
 
   //状態を遷移させるためのボールの位置
-  if (ball_vec.norm() < 150.0) {
+  if (ball_vel.norm() < 150.0) {
     ball_ = ball_pos;
   }
   //ボールがゴールより後ろに来たら現状維持
@@ -259,8 +260,8 @@ std::vector<std::shared_ptr<action::base>> defense::execute() {
           wall_it->set_kick_type({model::command::kick_type_t::chip, 255});
         }
         wall_it->set_dribble(0);
-        const auto tmp = ball_vec.norm(); // (ball_vec.norm() * 1.0 < 1000.0) ? 1000.0 :
-                                          // ball_vec.norm() * 1.0;
+        const auto tmp = ball_vel.norm(); // (ball_vel.norm() * 1.0 < 1000.0) ? 1000.0 :
+                                          // ball_vel.norm() * 1.0;
         wall_it->set_magnification(tmp);
         target_it++;
       }
@@ -283,7 +284,7 @@ std::vector<std::shared_ptr<action::base>> defense::execute() {
         const auto r = std::get<1>(*it);
 
         if ((goal - ball_pos).norm() < 2000.0 && (goal - ball_pos).norm() > 1400 &&
-            ball_vec.norm() < 200.0 && ball_pos.x() > -4000.0 &&
+            ball_vel.norm() < 200.0 && ball_pos.x() > -4000.0 &&
             (ball_pos - Eigen::Vector2d{r.x(), r.y()}).norm() > 300.0) {
           // ボールに最も近い味方ロボットを求める
           const auto my_robots = is_yellow_ ? world_.robots_yellow() : world_.robots_blue();
@@ -315,7 +316,7 @@ std::vector<std::shared_ptr<action::base>> defense::execute() {
   //
   //
   {
-    if (!marking_.empty()) {
+    if (!marking_.empty() && ball_vel.norm() < 500.0) {
       std::vector<enemy> enemy_list;
       const auto enemy_robots = is_yellow_ ? world_.robots_blue() : world_.robots_yellow();
       if (!enemy_robots.empty()) {
@@ -328,34 +329,37 @@ std::vector<std::shared_ptr<action::base>> defense::execute() {
         }
 
         {
-          //座標で点数決め
-          for (auto& it : enemy_list) {
-            it.valuation = it.position.y();
+          {
+            //座標で点数決め
+            for (auto& it : enemy_list) {
+              it.valuation = it.position.y();
+            }
+            //距離が近い順に昇順ソート
+            std::sort(enemy_list.begin(), enemy_list.end(),
+                      [&ball](const enemy& a, const enemy& b) {
+                        return std::signbit(ball.y()) ? a.valuation > b.valuation
+                                                      : a.valuation < b.valuation;
+                      });
+            //点数の初期化
+            auto point = enemy_list.size();
+            for (auto& it : enemy_list) {
+              it.score = point--;
+            }
           }
-          //距離が近い順に昇順ソート
-          std::sort(enemy_list.begin(), enemy_list.end(),
-                    [&ball](const enemy& a, const enemy& b) {
-                      return std::signbit(ball.y()) ? a.valuation > b.valuation
-                                                    : a.valuation < b.valuation;
-                    });
-          //点数の初期化
-          auto point = enemy_list.size();
-          for (auto& it : enemy_list) {
-            it.score = point--;
-          }
-
-          //ゴールとの距離で点数決め
-          for (auto& it : enemy_list) {
-            it.valuation = (it.position - goal).norm();
-          }
-          //距離が近い順に昇順ソート
-          std::sort(
-              enemy_list.begin(), enemy_list.end(),
-              [&ball](const enemy& a, const enemy& b) { return a.valuation > b.valuation; });
-          //点数の初期化
-          point = enemy_list.size();
-          for (auto& it : enemy_list) {
-            it.score = point--;
+          if (!is_er_) {
+            //ゴールとの距離で点数決め
+            for (auto& it : enemy_list) {
+              it.valuation = (it.position - goal).norm();
+            }
+            //距離が近い順に昇順ソート
+            std::sort(
+                enemy_list.begin(), enemy_list.end(),
+                [&ball](const enemy& a, const enemy& b) { return a.valuation > b.valuation; });
+            //点数の初期化
+            auto point = enemy_list.size();
+            for (auto& it : enemy_list) {
+              it.score = point--;
+            }
           }
         }
 
@@ -363,96 +367,26 @@ std::vector<std::shared_ptr<action::base>> defense::execute() {
         std::sort(enemy_list.begin(), enemy_list.end(),
                   [](const enemy& a, const enemy& b) { return (a.score > b.score); });
 
-        //////パスカットのため先頭に捩じ込む
+        //パスカットのため先頭に捩じ込む
+        if (!is_er_) {
+          // ボールに最も近い敵ロボットを求める
+          const auto it = std::min_element(
+              enemy_robots.cbegin(), enemy_robots.cend(), [&ball](auto&& a, auto&& b) {
+                const auto l1 = Eigen::Vector2d{a.second.x(), a.second.y()} - ball;
+                const auto l2 = Eigen::Vector2d{b.second.x(), b.second.y()} - ball;
+                return l1.norm() < l2.norm();
+              });
 
-        //{
-        //  // ボールに最も近い敵ロボットを求める
-        //  const auto it = std::min_element(
-        //      enemy_robots.cbegin(), enemy_robots.cend(), [&ball](auto&& a, auto&& b) {
-        //        const auto l1 = Eigen::Vector2d{a.second.x(), a.second.y()} - ball;
-        //        const auto l2 = Eigen::Vector2d{b.second.x(), b.second.y()} - ball;
-        //        return l1.norm() < l2.norm();
-        //      });
-
-        //  // 先頭に捩じ込む
-        //  const auto& r = std::get<1>(*it);
-        //  enemy_list.insert(enemy_list.begin(),
-        //                    enemy{r.id(), Eigen::Vector2d{r.x(), r.y()}, r.theta(), 0.0,
-        //                          static_cast<unsigned int>(enemy_list.size() + 1u)});
-        //}
+          // 先頭に捩じ込む
+          const auto& r = std::get<1>(*it);
+          enemy_list.insert(enemy_list.begin(),
+                            enemy{r.id(), Eigen::Vector2d{r.x(), r.y()}, r.theta(), 0.0,
+                                  static_cast<unsigned int>(enemy_list.size() + 1u)});
+        }
 
         //近い順に割り当てる
         {
-          if (true) {
-            std::unordered_map<unsigned int, mark_g> mark_list;
-            const auto mark_robots = is_yellow_ ? world_.robots_yellow() : world_.robots_blue();
-            for (auto& it : marking_g_) {
-              if (mark_robots.count(it->id())) {
-                const mark_g robot{{mark_robots.at(it->id()).x(), mark_robots.at(it->id()).y()},
-                                   it};
-                mark_list.insert(std::make_pair(it->id(), robot));
-              }
-            }
-
-            for (auto enemy_it = enemy_list.begin();
-                 !mark_list.empty() && enemy_it != enemy_list.end(); enemy_it++) {
-              //半径
-              const auto radius = 1650.0;
-
-              const auto length = (goal - enemy_it->position).norm(); //ボール<->ゴール
-
-              const auto ratio = radius / length; //全体に対しての基準座標の比
-
-              Eigen::Vector2d pos = (1 - ratio) * goal + ratio * enemy_it->position;
-              if (std::abs(pos.y()) < 500) {
-                pos.x() = -2900.0;
-              } else {
-                const auto A = (goal.y() - pos.y()) / (goal.x() - pos.x());
-                const auto B = pos.y() - A * pos.x();
-                const auto a = -1 * A;
-                const auto b = 1;
-                const auto c = -1 * B;
-                Eigen::Vector2d pos_p{goal.x(), std::copysign(500, enemy_it->position.y())};
-                const auto d = a * pos_p.x() + b * pos_p.y() + c;
-                Eigen::Vector2d pos_h{pos_p.x() - a * (d / (std::pow(a, 2) + std::pow(b, 2))),
-                                      pos_p.y() - b * (d / (std::pow(a, 2) + std::pow(b, 2)))};
-                const auto r = 1500.0;
-                const auto hq =
-                    std::sqrt(std::pow(r, 2) - (d / (std::pow(a, 2) + std::pow(b, 2))));
-                pos = Eigen::Vector2d{pos_h.x() + hq * (b / std::hypot(a, b)),
-                                      pos_h.y() - hq * (a / std::hypot(a, b))};
-              }
-
-              const auto tt  = (mode_ == defense_mode::stop_mode) ? 180.0 : 90.0;
-              const auto tmp = util::math::calc_isosceles_vertexes(
-                  Eigen::Matrix<double, 2, 1>{enemy_it->position.x(), enemy_it->position.y()},
-                  Eigen::Matrix<double, 2, 1>{pos.x(), pos.y()}, tt);
-              auto tmpp      = std::get<0>(tmp);
-              const auto it1 = std::min_element(mark_list.cbegin(), mark_list.cend(),
-                                                [&tmpp](auto&& a, auto&& b) {
-                                                  const auto l1 = tmpp - a.second.position;
-                                                  const auto l2 = tmpp - b.second.position;
-                                                  return l1.norm() < l2.norm();
-                                                });
-              const auto& r1    = std::get<1>(*it1);
-              const auto theta1 = std::atan2(pos.y() - goal.y(), pos.x() - goal.x());
-              r1.action->move_to(tmpp.x(), tmpp.y(), theta1);
-              re_wall.push_back(r1.action); //配列を返すためにマーキングをを統合する
-              mark_list.erase(it1);
-              tmpp           = std::get<1>(tmp);
-              const auto it2 = std::min_element(mark_list.cbegin(), mark_list.cend(),
-                                                [&tmpp](auto&& a, auto&& b) {
-                                                  const auto l1 = tmpp - a.second.position;
-                                                  const auto l2 = tmpp - b.second.position;
-                                                  return l1.norm() < l2.norm();
-                                                });
-              const auto& r2    = std::get<1>(*it2);
-              const auto theta2 = std::atan2(pos.y() - goal.y(), pos.x() - goal.x());
-              r2.action->move_to(tmpp.x(), tmpp.y(), theta2);
-              re_wall.push_back(r2.action); //配列を返すためにマーキングをを統合する
-              mark_list.erase(it2);
-            }
-          } else {
+          if (!is_er_) {
             //マーキングに割り当てられたロボットのidとactionのペア
             std::unordered_map<unsigned int, mark> mark_list;
             const auto mark_robots = is_yellow_ ? world_.robots_yellow() : world_.robots_blue();
@@ -529,10 +463,73 @@ std::vector<std::shared_ptr<action::base>> defense::execute() {
                       return l1.norm() < l2.norm();
                     });
                 const auto& r = std::get<1>(*it);
-                std::cout << "me : " << std::get<0>(*it) << std::endl;
                 r.action->mark_robot(enemy_it->id);
                 r.action->set_mode(action::marking::mark_mode::kick_block);
                 mark_list.erase(it);
+              }
+            }
+          } else {
+            //マーキングに割り当てられたロボットのidとactionのペア
+            std::unordered_map<unsigned int, mark> mark_list;
+            const auto mark_robots = is_yellow_ ? world_.robots_yellow() : world_.robots_blue();
+            for (auto& it : marking_) {
+              if (mark_robots.count(it->id())) {
+                const mark robot{{mark_robots.at(it->id()).x(), mark_robots.at(it->id()).y()},
+                                 it};
+                mark_list.insert(std::make_pair(it->id(), robot));
+              }
+            }
+
+            //敵を起点として最近傍探索
+            for (auto enemy_it = enemy_list.begin();
+                 !mark_list.empty() && enemy_it != enemy_list.end(); enemy_it++) {
+              const auto it = std::min_element(mark_list.cbegin(), mark_list.cend(),
+                                               [enemy_it](auto&& a, auto&& b) {
+                                                 const auto enemy_pos = enemy_it->position;
+                                                 const auto l1 = enemy_pos - a.second.position;
+                                                 const auto l2 = enemy_pos - b.second.position;
+                                                 return l1.norm() < l2.norm();
+                                               });
+              const auto& r = std::get<1>(*it);
+              std::cout << "me : " << std::get<0>(*it) << "mark : " << enemy_it->id
+                        << std::endl;
+              r.action->mark_robot(enemy_it->id);
+              r.action->set_mode(action::marking::mark_mode::shoot_block);
+              mark_list.erase(it);
+            }
+            //もしマークロボットが溢れたらこうなる
+            if (!mark_list.empty()) {
+              {
+                // ボールに最も近い敵ロボットを求める
+                const auto it = std::min_element(
+                    enemy_robots.cbegin(), enemy_robots.cend(), [&ball](auto&& a, auto&& b) {
+                      const auto l1 = Eigen::Vector2d{a.second.x(), a.second.y()} - ball;
+                      const auto l2 = Eigen::Vector2d{b.second.x(), b.second.y()} - ball;
+                      return l1.norm() < l2.norm();
+                    });
+
+                // 先頭に捩じ込む
+                const auto& r = std::get<1>(*it);
+                enemy_list.insert(enemy_list.begin(),
+                                  enemy{r.id(), Eigen::Vector2d{r.x(), r.y()}, r.theta(), 0.0,
+                                        static_cast<unsigned int>(enemy_list.size() + 1u)});
+                //敵を起点として最近傍探索
+                //先頭は無理矢理ねじ込んだやつだから除外
+                for (auto enemy_it = enemy_list.begin();
+                     !mark_list.empty() && enemy_it != enemy_list.end(); enemy_it++) {
+                  const auto it = std::min_element(
+                      mark_list.cbegin(), mark_list.cend(), [enemy_it](auto&& a, auto&& b) {
+                        const auto enemy_pos = enemy_it->position;
+                        const auto l1        = enemy_pos - a.second.position;
+                        const auto l2        = enemy_pos - b.second.position;
+                        return l1.norm() < l2.norm();
+                      });
+                  const auto& r = std::get<1>(*it);
+                  r.action->mark_robot(enemy_it->id);
+                  r.action->set_radius(600.0);
+                  r.action->set_mode(game::action::marking::mark_mode::corner_block);
+                  mark_list.erase(it);
+                }
               }
             }
           }
@@ -566,8 +563,8 @@ std::vector<std::shared_ptr<action::base>> defense::execute() {
       }
     }
   }
-  // re_wall.insert(re_wall.end(), marking_.begin(),
-  //               marking_.end()); //配列を返すためにマーキングをを統合する
+  re_wall.insert(re_wall.end(), marking_.begin(),
+                 marking_.end()); //配列を返すためにマーキングをを統合する
 
   //ここからキーパーの処理
   //
@@ -591,21 +588,15 @@ std::vector<std::shared_ptr<action::base>> defense::execute() {
         const auto demarcation3 = 3500.0; //縄張りの大きさ
 
         if ((ball_ - goal).norm() < demarcation1 && (ball_ - goal).norm() > demarcation2 &&
-            ball_vec.norm() < 500.0 && mode_ != defense_mode::stop_mode) {
+            ball_vel.norm() < 500.0 && mode_ != defense_mode::stop_mode) {
           flag = true;
           keeper_g_->set_chip(true);
         } else if (((ball_ - goal).norm() < demarcation3)) { // C
-          //ゴール前でディフェンスする
-          const auto length = (goal - orientation_).norm(); //基準点<->ボール
-          const auto ratio  = (500) / length; //全体に対してのキーパー位置の比
-          keeper            = (1 - ratio) * goal + ratio * orientation_;
-          keeper_->set_kick_type({model::command::kick_type_t::none, 0});
-          keeper_->set_dribble(0);
-        } else { /*B*/
           const auto A = (ball.y() - ball_pos.y()) / (ball.x() - ball_pos.x());
           const auto B = ball_pos.y() - A * ball_pos.x();
-          if (!std::signbit(ball_.x()) && std::abs(A * goal.x() + B) < 500.0 &&
-              ball_vec.norm() > 500.0) {
+          //ゴール前でディフェンスする
+          if (std::abs(A * goal.x() + B) < 500.0 && ball_vel.norm() > 500.0) {
+            std::cout << "C : " << A * goal.x() + B << std::endl;
             const auto a = -1 * A;
             const auto b = 1;
             const auto c = -1 * B;
@@ -614,6 +605,30 @@ std::vector<std::shared_ptr<action::base>> defense::execute() {
             Eigen::Vector2d pos_h{pos_p.x() - a * (d / (std::pow(a, 2) + std::pow(b, 2))),
                                   pos_p.y() - b * (d / (std::pow(a, 2) + std::pow(b, 2)))};
             const auto r  = 400.0;
+            const auto hq = std::sqrt(std::pow(r, 2) - (d / (std::pow(a, 2) + std::pow(b, 2))));
+            keeper        = Eigen::Vector2d{pos_h.x() + hq * (b / std::hypot(a, b)),
+                                     pos_h.y() - hq * (a / std::hypot(a, b))};
+
+          } else {
+            const auto length = (goal - orientation_).norm(); //基準点<->ボール
+            const auto ratio  = (500) / length; //全体に対してのキーパー位置の比
+            keeper            = (1 - ratio) * goal + ratio * orientation_;
+            keeper_->set_kick_type({model::command::kick_type_t::none, 0});
+            keeper_->set_dribble(0);
+          }
+        } else { /*B*/
+          const auto A = (ball.y() - ball_pos.y()) / (ball.x() - ball_pos.x());
+          const auto B = ball_pos.y() - A * ball_pos.x();
+          if (std::abs(A * goal.x() + B) < 500.0 && ball_vel.norm() > 500.0) {
+            std::cout << "B : " << A * goal.x() + B << std::endl;
+            const auto a = -1 * A;
+            const auto b = 1;
+            const auto c = -1 * B;
+            Eigen::Vector2d pos_p{goal};
+            const auto d = a * pos_p.x() + b * pos_p.y() + c;
+            Eigen::Vector2d pos_h{pos_p.x() - a * (d / (std::pow(a, 2) + std::pow(b, 2))),
+                                  pos_p.y() - b * (d / (std::pow(a, 2) + std::pow(b, 2)))};
+            const auto r  = 900.0;
             const auto hq = std::sqrt(std::pow(r, 2) - (d / (std::pow(a, 2) + std::pow(b, 2))));
             keeper        = Eigen::Vector2d{pos_h.x() + hq * (b / std::hypot(a, b)),
                                      pos_h.y() - hq * (a / std::hypot(a, b))};
@@ -627,7 +642,7 @@ std::vector<std::shared_ptr<action::base>> defense::execute() {
             keeper            = (1 - ratio) * goal + ratio * ball;
           }
         }
-        const auto tmp = (ball_vec.norm() * 1.0 < 1000.0) ? 1000.0 : ball_vec.norm() * 1.0;
+        const auto tmp = (ball_vel.norm() * 1.0 < 1000.0) ? 1000.0 : ball_vel.norm() * 1.0;
         keeper_->set_magnification(tmp);
         break;
       }

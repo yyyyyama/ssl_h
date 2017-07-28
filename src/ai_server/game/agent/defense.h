@@ -70,6 +70,7 @@ private:
   Eigen::Vector2d orientation_;
   defense_mode mode_;
   Eigen::Vector2d ball_;
+  bool is_er_;
 };
 }
 }
