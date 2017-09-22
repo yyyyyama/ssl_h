@@ -46,8 +46,6 @@ model::command receive::execute() {
   }
 
   const auto& robot = robots.at(id_);
-  // const auto robot_pos = util::math::position(robot);
-  // const auto robot_pos   = shoot_flag_?dummy_pos_:util::math::position(robot);
   const auto robot_theta = util::wrap_to_pi(robot.theta());
   const auto robot_pos =
       util::math::position(robot) +
@@ -98,13 +96,9 @@ model::command receive::execute() {
   std::cout << "shoot_pos_<<" << shoot_pos_.x() << ", " << shoot_pos_.y() << std::endl;
   const auto theta = shoot_flag_ ? std::atan2(to_shoot.y(), to_shoot.x())
                                  : std::atan2(to_ball.y(), to_ball.x());
-  // const auto theta = std::atan2(to_ball.y(), to_ball.x());
-  // dummy_pos_        = util::math::position(robot) + 90 * Eigen::Vector2d(std::cos(theta),
-  // std::sin(theta));
-  const auto target = (position + dot * normalize) +
+  const auto target = (position + dot * normalize*0.95) +
                       (shoot_flag_ ? -80 * Eigen::Vector2d(std::cos(theta), std::sin(theta))
                                    : Eigen::Vector2d(0, 0));
-  // const auto target = (position + dot * normalize);
 
   std::cout<<"shoot_flag_"<<shoot_flag_<<std::endl;
   //位置から速度へ
@@ -116,7 +110,6 @@ model::command receive::execute() {
   std::cout << "target_vec" << target_vec.x() << ", " << target_vec.y() << std::endl;
 
   const auto omega = (theta - robot_theta);
-  // command.set_velocity({target_vec.x(), target_vec.y(), omega});
   command.set_position({target.x(), target.y(), theta});
   if (shoot_flag_) {
     command.set_kick_flag(kick_type_);

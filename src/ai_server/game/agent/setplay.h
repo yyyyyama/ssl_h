@@ -5,6 +5,7 @@
 #include <vector>
 #include <Eigen/Core>
 #include "base.h"
+#include "ai_server/game/action/get_ball.h"
 #include "ai_server/model/world.h"
 #include "ai_server/game/action/kick_action.h"
 #include "ai_server/game/action/receive.h"
@@ -26,6 +27,7 @@ public:
 
   std::vector<std::shared_ptr<action::base>> execute() override;
   void set_mode(int mode_num);
+  void set_direct(bool is_direct);
 
   bool finished();
 
@@ -37,6 +39,7 @@ private:
   const std::vector<unsigned int> receiver_ids_;
   Eigen::Vector2d prev_ball_vel_;
   std::shared_ptr<action::kick_action> kick_;
+  std::shared_ptr<action::get_ball> get_ball_;
   std::shared_ptr<action::receive> receive_;
   Eigen::Vector2d passpos_;
   Eigen::Vector2d shoot_pos;
@@ -46,6 +49,8 @@ private:
   int shooter_num_ = 0;
   int change_count_  = 0;
   double ballysign;
+  bool is_direct_ = false;
+  bool try_direct = false;
 
   std::vector<unsigned int> free_robots_;
 
