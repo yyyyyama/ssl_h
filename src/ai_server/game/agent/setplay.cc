@@ -126,22 +126,16 @@ std::vector<std::shared_ptr<action::base>> setplay::execute() {
           const double kick_off_coe = ball_pos.norm() > 250 ? 1.0 : -1.0;
           const double dy =
               6000 / (receiver_ids_.size() + 1) / (std::abs(ball_pos.y()) > 1500 ? 1 : 2);
-          // const double dx           = ball_pos.x() / (receiver_ids_.size() + 1);
           const double dx = 2000;
           // コーナー
           constexpr int far_max[] = {3000, 4000};
-          // if (ball_pos.x() - far_max[mode_] > -1500) {
           if (ball_pos.x() > 2000) {
             pos_ = pos::far;
-            // const Eigen::Vector2d tmp_pos = {ball_pos.x() - std::cos(theta) * (i + 1) * 2000,
-            //                                  std::sin(theta) * 2000};
             switch (mode_) {
               case (1): {
                 const Eigen::Vector2d tmp_pos = {ball_pos.x() - (i + 1) * dx - run_dist,
                                                  -ballysign * (3000 - (i + 1) * dy)};
-                // positions_.push_back({tmp_pos.x() < -1000 ? -1000 : tmp_pos.x(),
-                // tmp_pos.y()});
-                double mid_add = 1;
+                double mid_add                = 1;
                 if (std::abs(ball_pos.y()) < 1500) {
                   mid_add = i % 2 ? -1 : 1;
                 }
@@ -154,10 +148,8 @@ std::vector<std::shared_ptr<action::base>> setplay::execute() {
               default: {
                 const Eigen::Vector2d tmp_pos = {ball_pos.x() - (i + 1) * dx,
                                                  -ballysign * (3000 - (i + 1) * dy)};
-                // positions_.push_back({tmp_pos.x() < 1000 ? 1000 : tmp_pos.x(), tmp_pos.y()});
-                double mid_add = 1;
+                double mid_add                = 1;
                 if (std::abs(ball_pos.y()) < 1500) {
-                  // mid_add = tmp_pos.y() > 0 ? 1500 : -1500;
                   mid_add = i % 2 ? -1 : 1;
                 }
                 positions_.push_back({tmp_pos.x() < ball_pos.x() - far_max[mode_]
@@ -167,8 +159,6 @@ std::vector<std::shared_ptr<action::base>> setplay::execute() {
                 break;
               }
             }
-            // // {enemygoal_x - std::cos(theta) * ((i + 1)) * 3000, std::sin(theta) * 2000});
-            // // {enemygoal_x - std::cos(theta) * 2000, std::sin(theta) * 2000});
           } else if (ball_pos.x() < -3000) {
             pos_                          = pos::near;
             const Eigen::Vector2d tmp_pos = {ball_pos.x() + (i + 2) * 2000,
@@ -176,7 +166,6 @@ std::vector<std::shared_ptr<action::base>> setplay::execute() {
             double mid_add                = 1;
             if (std::abs(ball_pos.y()) < 1500) {
               mid_add = i % 2 ? -1 : 1;
-              // mid_add = tmp_pos.y() > 0 ? 1500 : -1500;
             }
             positions_.push_back({tmp_pos.x(), tmp_pos.y() * mid_add});
           } else {
@@ -185,7 +174,6 @@ std::vector<std::shared_ptr<action::base>> setplay::execute() {
                                              -ballysign * (3000 - (i + 1) * dy)};
             double mid_add                = 1;
             if (std::abs(ball_pos.y()) < 1500) {
-              // mid_add = tmp_pos.y() > 0 ? 1500 : -1500;
               mid_add = i % 2 ? -1 : 1;
             }
             positions_.push_back(
@@ -285,7 +273,6 @@ std::vector<std::shared_ptr<action::base>> setplay::execute() {
         const auto dot    = normalize.dot(length);
         const auto target = (position + dot * normalize);
         if (mode_ == 1 && pos_ == pos::far && receive_flag_) {
-          // constexpr int success_lenge = 300;
           constexpr int success_lenge = 500;
           if ((target - shooter_pos).norm() < success_lenge) {
             kick_type = line_flag ? model::command::kick_type_t::line
