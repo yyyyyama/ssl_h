@@ -4,8 +4,6 @@
 #include "ai_server/util/math/to_vector.h"
 #include "ai_server/util/math.h"
 
-#include <iostream>
-
 namespace ai_server {
 namespace game {
 namespace action {
@@ -45,7 +43,7 @@ model::command receive::execute() {
     return command;
   }
 
-  const auto& robot = robots.at(id_);
+  const auto& robot      = robots.at(id_);
   const auto robot_theta = util::wrap_to_pi(robot.theta());
   const auto robot_pos =
       util::math::position(robot) +
@@ -93,21 +91,17 @@ model::command receive::execute() {
   //目標位置と角度
   const auto to_ball  = ball_pos - robot_pos;
   const auto to_shoot = shoot_pos_ - robot_pos;
-  std::cout << "shoot_pos_<<" << shoot_pos_.x() << ", " << shoot_pos_.y() << std::endl;
-  const auto theta = shoot_flag_ ? std::atan2(to_shoot.y(), to_shoot.x())
+  const auto theta    = shoot_flag_ ? std::atan2(to_shoot.y(), to_shoot.x())
                                  : std::atan2(to_ball.y(), to_ball.x());
-  const auto target = (position + dot * normalize*0.95) +
+  const auto target = (position + dot * normalize * 0.95) +
                       (shoot_flag_ ? -80 * Eigen::Vector2d(std::cos(theta), std::sin(theta))
                                    : Eigen::Vector2d(0, 0));
 
-  std::cout<<"shoot_flag_"<<shoot_flag_<<std::endl;
   //位置から速度へ
   Eigen::Vector2d target_vec{(target - robot_pos) * 8};
-  std::cout << "target__vec" << target_vec.x() << ", " << target_vec.y() << std::endl;
   if ((robot_pos - ball_pos).norm() < 300 && ball_vec.norm() > 500) {
     target_vec = target_vec + ball_vec / 3;
   }
-  std::cout << "target_vec" << target_vec.x() << ", " << target_vec.y() << std::endl;
 
   const auto omega = (theta - robot_theta);
   command.set_position({target.x(), target.y(), theta});
@@ -124,6 +118,6 @@ model::command receive::execute() {
 bool receive::finished() const {
   return flag_;
 }
-}
-}
-}
+} // namespace action
+} // namespace game
+} // namespace ai_server

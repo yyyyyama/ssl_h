@@ -11,7 +11,6 @@
 #include "ai_server/util/math/to_vector.h"
 
 #include "setplay.h"
-#include <iostream>
 
 namespace ai_server {
 namespace game {
@@ -378,7 +377,6 @@ std::vector<std::shared_ptr<action::base>> setplay::execute() {
             double to_keeper_theta;
             for (auto& enemy_robot_p : enemy_robots) {
               auto& enemy_robot = std::get<1>(enemy_robot_p);
-              // const double distance = (enemy_robot - Eigen::Vector2d{enemygoal_x, 0}).norm();
               const double distance =
                   std::hypot(enemy_robot.x() - enemygoal_x, enemy_robot.y() - 0);
               if (distance > 1000) {

@@ -44,9 +44,9 @@ private:
   Eigen::Vector2d passpos_;
   Eigen::Vector2d shoot_pos;
   std::vector<Eigen::Vector2d> positions_;
-  bool neflag = false;
+  bool neflag        = false;
   bool receive_flag_ = false;
-  int shooter_num_ = 0;
+  int shooter_num_   = 0;
   int change_count_  = 0;
   double ballysign;
   bool is_direct_ = false;
@@ -57,10 +57,10 @@ private:
   int mode_;
 
   int chose_location(std::vector<Eigen::Vector2d> targets,
-                                model::world::robots_list enemy_robots, int dist = -1);
+                     model::world::robots_list enemy_robots, int dist = -1);
   double vectorangle(Eigen::Vector2d vec);
 };
-} // agent
-} // game
-} // ai_server
+} // namespace agent
+} // namespace game
+} // namespace ai_server
 #endif

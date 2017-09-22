@@ -5,8 +5,6 @@
 #include "ai_server/util/math/to_vector.h"
 #include "kick_action.h"
 
-#include <iostream>
-
 namespace ai_server {
 namespace game {
 namespace action {
@@ -58,7 +56,6 @@ void kick_action::set_stop_ball(bool stop_ball_flag) {
 }
 
 model::command kick_action::execute() {
-	std::cout<<"kick_to"<<x_<<", "<<y_<<std::endl;
   using boost::math::constants::pi;
   using boost::math::constants::two_pi;
 
@@ -99,8 +96,6 @@ model::command kick_action::execute() {
   model::command::position_t robot_pos;
 
   // executeが呼ばれる間にボールがこれだけ移動したら蹴ったと判定する長さ(mm)
-  // const double kick_decision = 40;
-  // const double kick_decision = 70;
   const double kick_decision = 150;
 
   const double direction1 = atand3;
@@ -134,8 +129,6 @@ model::command kick_action::execute() {
       robot_pos = {robot_x, robot_y, util::wrap_to_pi(atand2 + pi<double>())};
       command.set_position(robot_pos);
       command.set_dribble(dribble_);
-      // } else if (std::abs(dth) > margin_ / 2 ||
-      //            (std::abs(dth) > margin_ / 4 && state_ != running_state::kick)) {
     } else if ((std::abs(util::wrap_to_pi(atand1 - atand3)) > margin_ / 4 ||
                 (std::abs(util::wrap_to_pi(atand1 - atand3)) > margin_ / 5 &&
                  state_ != running_state::kick)) &&
@@ -185,12 +178,9 @@ model::command kick_action::execute() {
       robot_pos = {robot_x, robot_y, util::wrap_to_pi(atand2 + pi<double>())};
       command.set_position(robot_pos);
       command.set_dribble(dribble_);
-      // } else if (std::abs(dth) > margin_ / 2 ||
-      //            (std::abs(dth) > margin_ / 4 && state_ != running_state::kick)) {
     } else {
       // キックフラグをセットし、ボールの位置まで移動する処理
-      state_ = running_state::kick;
-      // const double coe = std::abs(dth) > margin_ / 4 ? 300 : 50;
+      state_           = running_state::kick;
       const double coe = std::abs(dth) > margin_ / 4 ? 70 : 20;
       const double si =
           std::sin(atand2) * coe * (util::wrap_to_pi(atand1 - atand2) > 0 ? 1 : -1);
@@ -198,18 +188,16 @@ model::command kick_action::execute() {
           std::cos(atand2) * coe * (util::wrap_to_pi(atand1 - atand2) > 0 ? -1 : 1);
       double adjustment =
           util::wrap_to_pi(std::atan2(y_ - robot_y, x_ - robot_x) - robot_theta);
-      adjustment = adjustment > margin_ / 4 ? adjustment * 2 : adjustment * 1;
+      adjustment            = adjustment > margin_ / 4 ? adjustment * 2 : adjustment * 1;
       const double move_vel = (std::get<0>(kick_type_) == model::command::kick_type_t::none &&
-                                (ball_pos - robot_posi).norm() < 120)
+                               (ball_pos - robot_posi).norm() < 120)
                                   ? 0
                                   : 250;
       if (move_vel == 0) {
         command.set_dribble(3);
       }
       command.set_velocity({si - move_vel * std::cos(atand2) /* + ball_vel.x() */,
-                            co - move_vel * std::sin(atand2) /* + ball_vel.y() */,
-                            // adjustment + coe / std::hypot(to_robot_x, to_robot_y) / 1.3});
-                            adjustment});
+                            co - move_vel * std::sin(atand2) /* + ball_vel.y() */, adjustment});
       command.set_kick_flag(kick_type_);
       advanceflag_ = true;
     }
