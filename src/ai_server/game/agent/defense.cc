@@ -260,8 +260,8 @@ std::vector<std::shared_ptr<action::base>> defense::execute() {
           wall_it->set_kick_type({model::command::kick_type_t::chip, 255});
         }
         wall_it->set_dribble(0);
-        const auto tmp = ball_vel.norm(); // (ball_vel.norm() * 1.0 < 1000.0) ? 1000.0 :
-                                          // ball_vel.norm() * 1.0;
+        const auto tmp = ball_vel.norm();
+
         wall_it->set_magnification(tmp);
         target_it++;
       }
