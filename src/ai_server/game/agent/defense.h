@@ -62,15 +62,13 @@ private:
   const std::vector<unsigned int> marking_ids_;
   std::vector<unsigned int> marking_ids_re_;
   std::shared_ptr<action::guard> keeper_;
-  std::shared_ptr<action::get_ball> keeper_g_;
+  std::shared_ptr<action::get_ball> keeper_get_;
   std::vector<std::shared_ptr<action::guard>> wall_;
-  std::vector<std::shared_ptr<action::get_ball>> wall_g_;
+  std::vector<std::shared_ptr<action::get_ball>> wall_get_;
   std::vector<std::shared_ptr<action::marking>> marking_;
-  std::vector<std::shared_ptr<action::guard>> marking_g_;
   Eigen::Vector2d orientation_;
   defense_mode mode_;
   Eigen::Vector2d ball_;
-  bool is_er_;
 };
 }
 }
