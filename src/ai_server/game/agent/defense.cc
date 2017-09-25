@@ -12,8 +12,8 @@ namespace game {
 namespace agent {
 
 defense::defense(const model::world& world, bool is_yellow, unsigned int keeper_id,
-                 const std::tor<unsigned int>& wall_ids,
-                 const std::tor<unsigned int>& marking_ids)
+                 const std::vector<unsigned int>& wall_ids,
+                 const std::vector<unsigned int>& marking_ids)
     : base(world, is_yellow),
       keeper_id_(keeper_id),
       wall_ids_(wall_ids),
@@ -48,7 +48,7 @@ defense::defense(const model::world& world, bool is_yellow, unsigned int keeper_
 }
 
 defense::defense(const model::world& world, bool is_yellow, unsigned int keeper_id,
-                 const std::tor<unsigned int>& wall_ids)
+                 const std::vector<unsigned int>& wall_ids)
     : base(world, is_yellow),
       keeper_id_(keeper_id),
       wall_ids_(wall_ids),
@@ -81,11 +81,11 @@ void defense::set_mode(defense_mode mode) {
   mode_ = mode;
 }
 
-std::tor<unsigned int> defense::marking() const {
+std::vector<unsigned int> defense::marking() const {
   return marking_ids_re_;
 }
 
-std::tor<std::shared_ptr<action::base>> defense::execute() {
+std::vector<std::shared_ptr<action::base>> defense::execute() {
   using boost::math::constants::pi;
 
   //ボールの座標
@@ -105,7 +105,7 @@ std::tor<std::shared_ptr<action::base>> defense::execute() {
     }
     keeper_->set_halt(true);
 
-    std::tor<std::shared_ptr<action::base>> re_wall{
+    std::vector<std::shared_ptr<action::base>> re_wall{
         wall_.begin(), wall_.end()}; //型を合わせるために無理矢理作り直す
     re_wall.push_back(keeper_);      //配列を返すためにキーパーを統合する
 
@@ -164,7 +164,7 @@ std::tor<std::shared_ptr<action::base>> defense::execute() {
     //壁のイテレータ
     auto wall_it = wall_.begin();
 
-    std::tor<Eigen::Vector2d> target;
+    std::vector<Eigen::Vector2d> target;
     //移動目標を出す
     {
       //基準点からどれだけずらすか
@@ -265,7 +265,7 @@ std::tor<std::shared_ptr<action::base>> defense::execute() {
     }
   }
   //型を合わせるために無理矢理作り直す
-  std::tor<std::shared_ptr<action::base>> re_wall{wall_.begin(), wall_.end()};
+  std::vector<std::shared_ptr<action::base>> re_wall{wall_.begin(), wall_.end()};
 
   //クリアさせる
   {
@@ -314,7 +314,7 @@ std::tor<std::shared_ptr<action::base>> defense::execute() {
   //
   {
     if (!marking_.empty()) {
-      std::tor<enemy> enemy_list;
+      std::vector<enemy> enemy_list;
       const auto enemy_robots = is_yellow_ ? world_.robots_blue() : world_.robots_yellow();
       if (!enemy_robots.empty()) {
         for (auto it : enemy_robots) {
@@ -465,7 +465,7 @@ std::tor<std::shared_ptr<action::base>> defense::execute() {
       //味方の優先順位の低いやつを返す
       {
         const auto mark_robots = is_yellow_ ? world_.robots_yellow() : world_.robots_blue();
-        std::tor<mark_tmp> mark_list;
+        std::vector<mark_tmp> mark_list;
         for (auto& it : marking_) {
           if (mark_robots.count(it->id())) {
             const Eigen::Vector2d tmp{mark_robots.at(it->id()).x(),
