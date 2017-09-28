@@ -235,4 +235,125 @@ BOOST_AUTO_TEST_CASE(geometry) {
   }
 }
 
+BOOST_AUTO_TEST_CASE(disabling_camera) {
+  namespace bmc = boost::math::double_constants;
+
+  ai_server::model::updater::world wu{};
+
+  BOOST_TEST(wu.is_camera_enabled(0));
+  BOOST_TEST(wu.is_camera_enabled(1));
+  wu.disable_camera(0);
+  wu.disable_camera(1);
+  BOOST_TEST(!wu.is_camera_enabled(0));
+  BOOST_TEST(!wu.is_camera_enabled(1));
+
+  wu.enable_camera(1);
+  BOOST_TEST(wu.is_camera_enabled(1));
+
+  {
+    ssl_protos::vision::Packet p;
+
+    auto md = p.mutable_detection();
+    md->set_camera_id(0);
+
+    auto b = md->add_balls();
+    b->set_x(1);
+    b->set_y(2);
+    b->set_z(3);
+    b->set_confidence(93.0);
+
+    auto rb1 = md->add_robots_blue();
+    rb1->set_robot_id(1);
+    rb1->set_x(10);
+    rb1->set_y(11);
+    rb1->set_orientation(bmc::sixth_pi);
+    rb1->set_confidence(94.0);
+
+    auto ry5 = md->add_robots_yellow();
+    ry5->set_robot_id(5);
+    ry5->set_x(500);
+    ry5->set_y(501);
+    ry5->set_orientation(bmc::half_pi);
+    ry5->set_confidence(96.0);
+
+    auto mf = p.mutable_geometry()->mutable_field();
+    mf->set_field_length(90000);
+    mf->set_field_width(60000);
+    mf->set_goal_width(10000);
+
+    wu.update(p);
+  }
+
+  {
+    const auto w = wu.value();
+
+    // 無効化されたカメラからは更新されない
+    const auto b = w.ball();
+    BOOST_TEST(b.x() == decltype(b){}.x());
+    BOOST_TEST(b.y() == decltype(b){}.y());
+    BOOST_TEST(b.z() == decltype(b){}.z());
+
+    BOOST_TEST(w.robots_blue().size() == 0);
+    BOOST_TEST(w.robots_yellow().size() == 0);
+
+    const auto f = w.field();
+    BOOST_TEST(f.length() == decltype(f){}.length());
+    BOOST_TEST(f.width() == decltype(f){}.width());
+    BOOST_TEST(f.goal_width() == decltype(f){}.goal_width());
+  }
+
+  {
+    ssl_protos::vision::Packet p;
+
+    auto md = p.mutable_detection();
+    md->set_camera_id(1);
+
+    auto b = md->add_balls();
+    b->set_x(1);
+    b->set_y(2);
+    b->set_z(3);
+    b->set_confidence(93.0);
+
+    auto rb1 = md->add_robots_blue();
+    rb1->set_robot_id(1);
+    rb1->set_x(10);
+    rb1->set_y(11);
+    rb1->set_orientation(bmc::sixth_pi);
+    rb1->set_confidence(94.0);
+
+    auto ry5 = md->add_robots_yellow();
+    ry5->set_robot_id(5);
+    ry5->set_x(500);
+    ry5->set_y(501);
+    ry5->set_orientation(bmc::half_pi);
+    ry5->set_confidence(96.0);
+
+    auto mf = p.mutable_geometry()->mutable_field();
+    mf->set_field_length(90000);
+    mf->set_field_width(60000);
+    mf->set_goal_width(10000);
+
+    wu.update(p);
+  }
+
+  {
+    const auto w = wu.value();
+
+    const auto b = w.ball();
+    BOOST_TEST(b.x() == 1);
+    BOOST_TEST(b.y() == 2);
+    BOOST_TEST(b.z() == 3);
+
+    BOOST_TEST(w.robots_blue().size() == 1);
+    BOOST_TEST(w.robots_blue().count(1) == 1);
+    BOOST_TEST(w.robots_yellow().size() == 1);
+    BOOST_TEST(w.robots_yellow().count(5) == 1);
+
+    const auto f = w.field();
+    BOOST_TEST(f.length() == 90000);
+    BOOST_TEST(f.width() == 60000);
+    BOOST_TEST(f.goal_width() == 10000);
+  }
+}
+
 BOOST_AUTO_TEST_SUITE_END()
