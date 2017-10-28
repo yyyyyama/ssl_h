@@ -14,6 +14,8 @@ namespace agent {
 stopgame::stopgame(const model::world& world, bool is_yellow,
                    const std::vector<unsigned int>& ids)
     : base(world, is_yellow), ids_(ids) {
+  not_chase_     = true;
+  nearest_robot_ = 0;
   if (ids.size() != 0) {
     const auto our_robots = is_yellow_ ? world_.robots_yellow() : world_.robots_blue();
     const auto ball       = world_.ball();
@@ -27,13 +29,13 @@ stopgame::stopgame(const model::world& world, bool is_yellow,
 
     nearest_robot_ = *nearest_robot_id;
   } else {
-    nearest_robot_ = -1;
+    not_chase_ = true;
   }
 }
 
 std::vector<std::shared_ptr<action::base>> stopgame::execute() {
   std::vector<std::shared_ptr<action::base>> baseaction;
-  if (nearest_robot_ == -1) {
+  if (not_chase_) {
     return baseaction;
   }
   const auto our_robots = is_yellow_ ? world_.robots_yellow() : world_.robots_blue();
@@ -123,6 +125,6 @@ std::vector<std::shared_ptr<action::base>> stopgame::execute() {
   }
   return baseaction;
 }
-} // agent
-} // game
-} // ai_server
+} // namespace agent
+} // namespace game
+} // namespace ai_server

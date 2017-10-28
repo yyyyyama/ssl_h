@@ -13,13 +13,14 @@ class stopgame : public base {
 private:
   const std::vector<unsigned int>& ids_;
   unsigned int nearest_robot_;
+  bool not_chase_;
 
 public:
   stopgame(const model::world& world, bool is_yellow, const std::vector<unsigned int>& ids);
   std::vector<std::shared_ptr<action::base>> execute() override;
 };
 
-} // agent
-} // game
-} // ai_server
+} // namespace agent
+} // namespace game
+} // namespace ai_server
 #endif
