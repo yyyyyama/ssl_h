@@ -1,4 +1,3 @@
-#include <iostream>
 #include <cmath>
 #include <map>
 
@@ -85,6 +84,35 @@ std::vector<unsigned int> defense::marking() const {
   return marking_ids_re_;
 }
 
+Eigen::Vector2d defense::calc_base_point(Eigen::Vector2d goal, Eigen::Vector2d ball,
+                                         double radius) {
+  //半径
+
+  const auto length = (goal - ball).norm(); //ボール<->ゴール
+
+  const auto ratio = radius / length; //全体に対しての基準座標の比
+
+  Eigen::Vector2d tmp = (1 - ratio) * goal + ratio * ball;
+  if (std::abs(tmp.y()) < 500) {
+    tmp.x() = -3400;
+  } else {
+    const auto A = (goal.y() - ball.y()) / (goal.x() - ball.x());
+    const auto B = ball.y() - A * ball.x();
+    const auto a = -1 * A;
+    const auto b = 1;
+    const auto c = -1 * B;
+    Eigen::Vector2d pos_p{goal.x(), std::copysign(500, ball.y())};
+    const auto d = a * pos_p.x() + b * pos_p.y() + c;
+    Eigen::Vector2d pos_h{pos_p.x() - a * (d / (std::pow(a, 2) + std::pow(b, 2))),
+                          pos_p.y() - b * (d / (std::pow(a, 2) + std::pow(b, 2)))};
+    const auto r  = 1000.0;
+    const auto hq = std::sqrt(std::pow(r, 2) - (d / (std::pow(a, 2) + std::pow(b, 2))));
+    tmp           = Eigen::Vector2d{pos_h.x() + hq * (b / std::hypot(a, b)),
+                          pos_h.y() - hq * (a / std::hypot(a, b))};
+  }
+  return tmp;
+}
+
 std::vector<std::shared_ptr<action::base>> defense::execute() {
   using boost::math::constants::pi;
 
@@ -98,6 +126,7 @@ std::vector<std::shared_ptr<action::base>> defense::execute() {
   if (ball_vel.norm() < 150.0) {
     ball_ = ball_pos;
   }
+
   //ボールがゴールより後ろに来たら現状維持
   if (ball.x() < world_.field().x_min() || ball.x() > world_.field().x_max()) {
     for (auto wall_it : wall_) {
@@ -118,41 +147,11 @@ std::vector<std::shared_ptr<action::base>> defense::execute() {
   //ゴールの座標
   const Eigen::Vector2d goal(world_.field().x_min(), 0.0);
 
+  //ボールとゴールの角度
   const auto ball_theta = std::atan2(ball.y() - goal.y(), ball.x() - goal.x());
 
   //基準座標を求めている
-  //
-  //
-  //
-
-  //比
-  {
-    //半径
-    const auto radius = 1380.0;
-
-    const auto length = (goal - ball).norm(); //ボール<->ゴール
-
-    const auto ratio = radius / length; //全体に対しての基準座標の比
-
-    orientation_ = (1 - ratio) * goal + ratio * ball;
-    if (std::abs(orientation_.y()) < 500) {
-      orientation_.x() = -3400;
-    } else {
-      const auto A = (goal.y() - ball.y()) / (goal.x() - ball.x());
-      const auto B = ball.y() - A * ball.x();
-      const auto a = -1 * A;
-      const auto b = 1;
-      const auto c = -1 * B;
-      Eigen::Vector2d pos_p{goal.x(), std::copysign(500, ball.y())};
-      const auto d = a * pos_p.x() + b * pos_p.y() + c;
-      Eigen::Vector2d pos_h{pos_p.x() - a * (d / (std::pow(a, 2) + std::pow(b, 2))),
-                            pos_p.y() - b * (d / (std::pow(a, 2) + std::pow(b, 2)))};
-      const auto r  = 1000.0;
-      const auto hq = std::sqrt(std::pow(r, 2) - (d / (std::pow(a, 2) + std::pow(b, 2))));
-      orientation_  = Eigen::Vector2d{pos_h.x() + hq * (b / std::hypot(a, b)),
-                                     pos_h.y() - hq * (a / std::hypot(a, b))};
-    }
-  }
+  orientation_ = calc_base_point(goal, ball, 1380.0);
 
   //ここから壁の処理
   //
@@ -525,7 +524,6 @@ std::vector<std::shared_ptr<action::base>> defense::execute() {
           const auto B = ball_pos.y() - A * ball_pos.x();
           //ゴール前でディフェンスする
           if (std::abs(A * goal.x() + B) < 500.0 && ball_vel.norm() > 500.0) {
-            std::cout << "C : " << A * goal.x() + B << std::endl;
             const auto a = -1 * A;
             const auto b = 1;
             const auto c = -1 * B;
@@ -549,7 +547,6 @@ std::vector<std::shared_ptr<action::base>> defense::execute() {
           const auto A = (ball.y() - ball_pos.y()) / (ball.x() - ball_pos.x());
           const auto B = ball_pos.y() - A * ball_pos.x();
           if (std::abs(A * goal.x() + B) < 500.0 && ball_vel.norm() > 500.0) {
-            std::cout << "B : " << A * goal.x() + B << std::endl;
             const auto a = -1 * A;
             const auto b = 1;
             const auto c = -1 * B;

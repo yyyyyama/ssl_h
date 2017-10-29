@@ -53,6 +53,7 @@ public:
           const std::vector<unsigned int>& wall_ids);
   enum class defense_mode { normal_mode, pk_normal_mode, pk_extention_mode, stop_mode };
   void set_mode(agent::defense::defense_mode mode);
+  Eigen::Vector2d calc_base_point(Eigen::Vector2d goal, Eigen::Vector2d ball, double radius);
   std::vector<unsigned int> marking() const;
   std::vector<std::shared_ptr<action::base>> execute() override;
 
