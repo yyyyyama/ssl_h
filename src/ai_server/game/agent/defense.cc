@@ -167,50 +167,14 @@ std::vector<std::shared_ptr<action::base>> defense::execute() {
     //移動目標を出す
     {
       //基準点からどれだけずらすか
-      auto shift_ = 0.0;
+      auto shift_ = 190.0;
       //縄張りの大きさ
       const auto demarcation = 3500.0;
       //壁の数によってずらしていく倍率が変わるのでその倍率
-      auto magnification = 0.0;
-
-      if (wall_.size() % 2) { //奇数
-        //奇数なら五稜郭っぽいことしたいね<-塹壕戦の基本！
-        Eigen::Vector2d odd{Eigen::Vector2d::Zero()};
-        //中央の壁は前に出ろ
-        {
-          const auto length = (orientation_ - ball).norm(); //ボール<->ゴール
-
-          const auto ratio = 400 / length; //全体に対しての基準座標の比
-
-          odd = ((1 - ratio) * orientation_ + ratio * ball);
-        }
-        //時々位置が反転するのでその処理
-        {
-          if (odd.x() < orientation_.x()) {
-            const auto length = (orientation_ - ball).norm(); //ボール<->ゴール
-
-            const auto ratio = -400 / length; //全体に対しての基準座標の比
-
-            odd = (1 - ratio) * orientation_ + ratio * ball;
-          }
-        }
-
-        //敵がめっちゃ近づいたら閉める
-        if ((ball - goal).norm() < demarcation) {
-          //前に出てる場合じゃねぇ
-          odd = orientation_;
-        }
-        target.push_back(odd);
-        wall_it++;
-        magnification = 1.0;
-        shift_        = 200;
-      } else { //偶数
-        magnification = 2.0;
-        shift_        = 190.0;
-        //敵がめっちゃ近づいたら閉める
-        if ((ball - goal).norm() < demarcation) {
-          shift_ = 90;
-        }
+      auto magnification = 2.0;
+      //敵がめっちゃ近づいたら閉める
+      if ((ball - goal).norm() < demarcation) {
+        shift_ = 90;
       }
       for (auto shift = shift_; wall_it != wall_.end();
            shift += (shift_ * magnification), wall_it += 2) {
@@ -231,7 +195,7 @@ std::vector<std::shared_ptr<action::base>> defense::execute() {
     {
       const auto my_robots = is_yellow_ ? world_.robots_yellow() : world_.robots_blue();
 
-      //距離が近い順に昇順ソート
+      //壁とゴールの角度順にソート
       std::sort(wall_.begin(), wall_.end(), [&goal, &my_robots](const auto& a, const auto& b) {
         return std::atan2(my_robots.at(a->id()).y() - goal.y(),
                           my_robots.at(a->id()).x() - goal.x()) <
@@ -239,12 +203,11 @@ std::vector<std::shared_ptr<action::base>> defense::execute() {
                           my_robots.at(b->id()).x() - goal.x());
       });
 
-      //距離が近い順に昇順ソート
-      std::sort(target.begin(), target.end(),
-                [&goal, &my_robots](const auto& a, const auto& b) {
-                  return std::atan2(a.y() - goal.y(), a.x() - goal.x()) <
-                         std::atan2(b.y() - goal.y(), b.x() - goal.x());
-                });
+      //目標地点とゴールの角度順にソート
+      std::sort(target.begin(), target.end(), [&goal](const auto& a, const auto& b) {
+        return std::atan2(a.y() - goal.y(), a.x() - goal.x()) <
+               std::atan2(b.y() - goal.y(), b.x() - goal.x());
+      });
 
       //割り当てる
       auto target_it = target.begin();
@@ -271,6 +234,7 @@ std::vector<std::shared_ptr<action::base>> defense::execute() {
     if (!wall_ids_.empty() && mode_ != defense_mode::stop_mode) {
       const auto enemy_robots = is_yellow_ ? world_.robots_blue() : world_.robots_yellow();
       if (!enemy_robots.empty()) {
+        //ボールに一番近いロボットを求める
         const auto it = std::min_element(
             enemy_robots.cbegin(), enemy_robots.cend(), [&ball](auto&& a, auto&& b) {
               const auto l1 = Eigen::Vector2d{a.second.x(), a.second.y()} - ball;
@@ -279,6 +243,7 @@ std::vector<std::shared_ptr<action::base>> defense::execute() {
             });
         const auto r = std::get<1>(*it);
 
+        //ボール付近に敵がいないときだけクリアする
         if ((goal - ball_pos).norm() < 2000.0 && (goal - ball_pos).norm() > 1400 &&
             ball_vel.norm() < 200.0 && ball_pos.x() > -4000.0 &&
             (ball_pos - Eigen::Vector2d{r.x(), r.y()}).norm() > 300.0) {
