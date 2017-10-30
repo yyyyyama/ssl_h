@@ -14,21 +14,30 @@ namespace agent {
 stopgame::stopgame(const model::world& world, bool is_yellow,
                    const std::vector<unsigned int>& ids)
     : base(world, is_yellow), ids_(ids) {
-  const auto our_robots = is_yellow_ ? world_.robots_yellow() : world_.robots_blue();
-  const auto ball       = world_.ball();
+  not_chase_     = true;
+  nearest_robot_ = 0;
+  if (ids.size() != 0) {
+    const auto our_robots = is_yellow_ ? world_.robots_yellow() : world_.robots_blue();
+    const auto ball       = world_.ball();
 
-  // 一番ボールに近いロボットを探索し、ボールを追いかけるロボットとする
-  const auto nearest_robot_id =
-      std::min_element(ids_.cbegin(), ids_.cend(), [&ball, &our_robots](auto& a, auto& b) {
-        return std::hypot(our_robots.at(a).x() - ball.x(), our_robots.at(a).y() - ball.y()) <
-               std::hypot(our_robots.at(b).x() - ball.x(), our_robots.at(b).y() - ball.y());
-      });
+    // 一番ボールに近いロボットを探索し、ボールを追いかけるロボットとする
+    const auto nearest_robot_id =
+        std::min_element(ids_.cbegin(), ids_.cend(), [&ball, &our_robots](auto& a, auto& b) {
+          return std::hypot(our_robots.at(a).x() - ball.x(), our_robots.at(a).y() - ball.y()) <
+                 std::hypot(our_robots.at(b).x() - ball.x(), our_robots.at(b).y() - ball.y());
+        });
 
-  nearest_robot_ = *nearest_robot_id;
+    nearest_robot_ = *nearest_robot_id;
+  } else {
+    not_chase_ = true;
+  }
 }
 
 std::vector<std::shared_ptr<action::base>> stopgame::execute() {
   std::vector<std::shared_ptr<action::base>> baseaction;
+  if (not_chase_) {
+    return baseaction;
+  }
   const auto our_robots = is_yellow_ ? world_.robots_yellow() : world_.robots_blue();
   if (std::any_of(ids_.cbegin(), ids_.cend(),
                   [&our_robots](auto&& id) { return !our_robots.count(id); })) {
@@ -116,6 +125,6 @@ std::vector<std::shared_ptr<action::base>> stopgame::execute() {
   }
   return baseaction;
 }
-} // agent
-} // game
-} // ai_server
+} // namespace agent
+} // namespace game
+} // namespace ai_server
