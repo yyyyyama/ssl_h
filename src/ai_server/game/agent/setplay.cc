@@ -54,9 +54,10 @@ std::vector<std::shared_ptr<action::base>> setplay::execute() {
   // kicker_idが見えない
   if (!our_robots.count(kicker_id_)
       // またはreceiver_idsのロボットが見えない時
-      || !std::all_of(
-             receiver_ids_.cbegin(), receiver_ids_.cend(),
-             [&our_robots](auto&& receiver_id) { return our_robots.count(receiver_id); })) {
+      ||
+      !std::all_of(
+          receiver_ids_.cbegin(), receiver_ids_.cend(),
+          [&our_robots](auto&& receiver_id) { return our_robots.count(receiver_id); })) {
     return baseaction;
   }
   using boost::math::constants::pi;
@@ -135,7 +136,7 @@ std::vector<std::shared_ptr<action::base>> setplay::execute() {
               case (1): {
                 const Eigen::Vector2d tmp_pos = {ball_pos.x() - (i + 1) * dx - run_dist,
                                                  -ballysign * (3000 - (i + 1) * dy)};
-                double mid_add                = 1;
+                double mid_add = 1;
                 if (std::abs(ball_pos.y()) < 1500) {
                   mid_add = i % 2 ? -1 : 1;
                 }
@@ -148,7 +149,7 @@ std::vector<std::shared_ptr<action::base>> setplay::execute() {
               default: {
                 const Eigen::Vector2d tmp_pos = {ball_pos.x() - (i + 1) * dx,
                                                  -ballysign * (3000 - (i + 1) * dy)};
-                double mid_add                = 1;
+                double mid_add = 1;
                 if (std::abs(ball_pos.y()) < 1500) {
                   mid_add = i % 2 ? -1 : 1;
                 }
@@ -163,7 +164,7 @@ std::vector<std::shared_ptr<action::base>> setplay::execute() {
             pos_                          = pos::near;
             const Eigen::Vector2d tmp_pos = {ball_pos.x() + (i + 2) * 2000,
                                              -ballysign * (3000 - (i + 1) * dy)};
-            double mid_add                = 1;
+            double mid_add = 1;
             if (std::abs(ball_pos.y()) < 1500) {
               mid_add = i % 2 ? -1 : 1;
             }
@@ -172,7 +173,7 @@ std::vector<std::shared_ptr<action::base>> setplay::execute() {
             pos_                          = pos::mid;
             const Eigen::Vector2d tmp_pos = {ball_pos.x() + (i + 1) * 2000 * kick_off_coe,
                                              -ballysign * (3000 - (i + 1) * dy)};
-            double mid_add                = 1;
+            double mid_add = 1;
             if (std::abs(ball_pos.y()) < 1500) {
               mid_add = i % 2 ? -1 : 1;
             }
@@ -305,10 +306,10 @@ std::vector<std::shared_ptr<action::base>> setplay::execute() {
           } else if (try_direct) {
             const Eigen::Vector2d target = {positions_[receiver_id].x(),
                                             positions_[receiver_id].y()};
-            auto move                    = make_action<action::move>(shooter_id_);
-            const double to_target       = vectorangle(target - receiver_pos);
-            const int dist               = (target - receiver_pos).norm();
-            bool close_flag              = dist < 50;
+            auto move              = make_action<action::move>(shooter_id_);
+            const double to_target = vectorangle(target - receiver_pos);
+            const int dist         = (target - receiver_pos).norm();
+            bool close_flag        = dist < 50;
             move->move_to(
                 positions_[receiver_id].x() + (close_flag ? 0 : dist * std::cos(to_target)),
                 positions_[receiver_id].y() + (close_flag ? 0 : dist * std::sin(to_target)),
@@ -391,9 +392,9 @@ std::vector<std::shared_ptr<action::base>> setplay::execute() {
                 }
                 const Eigen::Vector2d shoot_vec = {std::cos(shoot_theta),
                                                    std::sin(shoot_theta)};
-                shoot_pos                       = {enemygoal_x, ball_pos.y() + shoot_vec.y() *
-                                                             (enemygoal_x - ball_pos.x()) /
-                                                             shoot_vec.x()};
+                shoot_pos = {enemygoal_x,
+                             ball_pos.y() +
+                                 shoot_vec.y() * (enemygoal_x - ball_pos.x()) / shoot_vec.x()};
               }
             }
             state_ = state::shoot;
