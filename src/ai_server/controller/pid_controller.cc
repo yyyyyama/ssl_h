@@ -11,7 +11,7 @@ namespace controller {
 const double pid_controller::kp_[]             = {2.0, 4.0};
 const double pid_controller::ki_[]             = {0.2, 0.2};
 const double pid_controller::kd_[]             = {0.0, 0.0};
-const double pid_controller::max_velocity_     = 3000.0; // 最大速度
+const double pid_controller::max_velocity_     = 5000.0; // 最大速度
 const double pid_controller::max_acceleration_ = 2000.0; // 最大加速度
 const double pid_controller::min_acceleration_ = 100.0;  // 速度ゼロ時の加速度
 // optimized_accelがmax_accelに到達するときのロボット速度
@@ -38,7 +38,7 @@ const velocity_t operator/(const velocity_t& vel, const double& c) {
   return {vel.vx / c, vel.vy / c, vel.omega / c};
 }
 
-pid_controller::pid_controller(double cycle) : cycle_(cycle) {
+pid_controller::pid_controller(double cycle) : base(max_velocity_), cycle_(cycle) {
   for (int i = 0; i < 2; i++) {
     up_[i] = {0.0, 0.0, 0.0};
     ui_[i] = {0.0, 0.0, 0.0};
@@ -46,6 +46,10 @@ pid_controller::pid_controller(double cycle) : cycle_(cycle) {
     u_[i]  = {0.0, 0.0, 0.0};
     e_[i]  = {0.0, 0.0, 0.0};
   }
+}
+
+void pid_controller::set_velocity_limit(const double limit) {
+  base::set_velocity_limit(std::min(limit, max_velocity_));
 }
 
 velocity_t pid_controller::update(const model::robot& robot, const position_t& setpoint) {
@@ -135,7 +139,7 @@ void pid_controller::limitation() {
     u_speed = robot_speed - (optimized_accel * cycle_);
   }
   // 速度制限
-  u_speed = clamp(u_speed, 0.0, max_velocity_);
+  u_speed = clamp(u_speed, 0.0, velocity_limit_);
 
   u_[0].vx = u_speed * std::cos(u_angle); // 成分速度再計算
   u_[0].vy = u_speed * std::sin(u_angle);

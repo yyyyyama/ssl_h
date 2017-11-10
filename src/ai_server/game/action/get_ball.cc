@@ -1,4 +1,3 @@
-#include <iostream>
 #include <cmath>
 #include <boost/geometry/geometry.hpp>
 #include <boost/geometry/geometries/point_xy.hpp>
@@ -156,13 +155,6 @@ model::command get_ball::execute() {
       const auto dot = normalize.dot(length);
       //目標位置に変換
       position = (ball_pos + dot * normalize);
-      //若干にゃーん
-      // if ((robot - ball_pos).norm() < 1000.0) {
-      //  const auto radius = 500.0;
-      //  const auto ratio =
-      //      radius / ((target_ - ball_pos).norm() + radius); //ボール - 目標位置の比
-      //  position = (-ratio * target_ + 1 * ball_pos) / (1 - ratio);
-      //}
     }
 
     //キックフラグは蹴らせない

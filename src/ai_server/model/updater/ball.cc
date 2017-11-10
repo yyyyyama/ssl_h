@@ -2,6 +2,7 @@
 #include <chrono>
 
 #include "ai_server/util/math/affine.h"
+#include "ai_server/util/time.h"
 #include "ball.h"
 
 namespace ai_server {
@@ -26,9 +27,7 @@ void ball::update(const ssl_protos::vision::Frame& detection) {
   // カメラID
   const auto& camera_id = detection.camera_id();
   // キャプチャされた時間
-  const auto captured_time =
-      std::chrono::high_resolution_clock::time_point{std::chrono::microseconds{
-          static_cast<std::chrono::microseconds::rep>(detection.t_capture() * 1e6)}};
+  const auto captured_time = util::time_point_type{util::to_duration(detection.t_capture())};
 
   // 検出されたボールの中から, 最もconfidenceの高い値を選択候補に登録する
   // FIXME:

@@ -17,7 +17,7 @@ BOOST_AUTO_TEST_CASE(robot, *boost::unit_test::tolerance(0.0000001)) {
   namespace bmc = boost::math::double_constants;
 
   // 初期時刻
-  constexpr auto t = std::chrono::high_resolution_clock::time_point{};
+  constexpr auto t = ai_server::util::time_point_type{};
 
   // 初期位置 (100, 200, pi/6)
   model::robot r{1337};

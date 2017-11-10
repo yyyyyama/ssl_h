@@ -21,15 +21,14 @@ public:
   test_filter1(const std::string& suffix) : suffix_(suffix) {}
 
   // filterの更新処理
-  std::string update(const std::string& value,
-                     std::chrono::high_resolution_clock::time_point) override {
+  std::string update(const std::string& value, ai_server::util::time_point_type) override {
     // 何らかの処理を行い, 結果を返す
     return value + suffix_;
   }
 };
 
 BOOST_AUTO_TEST_CASE(on_updated) {
-  std::chrono::high_resolution_clock::time_point t{};
+  ai_server::util::time_point_type t{};
 
   test_filter1 f{"er"};
 
