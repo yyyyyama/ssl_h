@@ -61,7 +61,7 @@ model::command kick_action::execute() {
 
   const auto our_robots    = is_yellow_ ? world_.robots_yellow() : world_.robots_blue();
   const auto& robot_me     = our_robots.at(id_);
-  const auto robot_posi    = util::math::position(robot_me);
+  const auto robot_place   = util::math::position(robot_me);
   const double robot_x     = robot_me.x();
   const double robot_y     = robot_me.y();
   const double robot_theta = util::wrap_to_pi(robot_me.theta());
@@ -124,7 +124,7 @@ model::command kick_action::execute() {
                     : util::wrap_to_pi(std::atan2(y_ - robot_y, x_ - robot_x) - robot_theta)) >
                    margin_ / 2 &&
                state_ != running_state::round && ball_vel.norm() < 1500 &&
-               (robot_posi - ball_pos).norm() > 120 && state_ != running_state::kick) {
+               (robot_place - ball_pos).norm() > 120 && state_ != running_state::kick) {
       // 位置をそのままにロボットがボールを蹴れる向きにする処理
       robot_pos = {robot_x, robot_y, util::wrap_to_pi(atand2 + pi<double>())};
       command.set_position(robot_pos);
@@ -171,7 +171,7 @@ model::command kick_action::execute() {
                     : util::wrap_to_pi(std::atan2(y_ - robot_y, x_ - robot_x) - robot_theta)) >
                    margin_ / 2 &&
                state_ != running_state::round && ball_vel.norm() < 1500 &&
-               (robot_posi - ball_pos).norm() > 120 && state_ != running_state::kick) {
+               (robot_place - ball_pos).norm() > 120 && state_ != running_state::kick) {
       // 位置をそのままにロボットがボールを蹴れる向きにする処理
       robot_pos = {robot_x, robot_y, util::wrap_to_pi(atand2 + pi<double>())};
       command.set_position(robot_pos);
@@ -188,7 +188,7 @@ model::command kick_action::execute() {
           util::wrap_to_pi(std::atan2(y_ - robot_y, x_ - robot_x) - robot_theta);
       adjustment            = adjustment > margin_ / 4 ? adjustment * 2 : adjustment * 1;
       const double move_vel = (std::get<0>(kick_type_) == model::command::kick_type_t::none &&
-                               (ball_pos - robot_posi).norm() < 120)
+                               (ball_pos - robot_place).norm() < 120)
                                   ? 0
                                   : 250;
       if (move_vel == 0) {

@@ -10,7 +10,6 @@ namespace game {
 namespace action {
 class receive : public base {
 public:
-  // using base::base;
   receive(const model::world& world, bool is_yellow, unsigned int id);
   void set_dribble(int dribble);
   int dribble();
