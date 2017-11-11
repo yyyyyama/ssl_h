@@ -93,8 +93,8 @@ model::command receive::execute() {
   const auto to_shoot = shoot_pos_ - robot_pos;
   const auto theta    = shoot_flag_ ? std::atan2(to_shoot.y(), to_shoot.x())
                                  : std::atan2(to_ball.y(), to_ball.x());
-  const auto target = (position + dot * normalize * 0.95) +
-                      (shoot_flag_ ? -80 * Eigen::Vector2d(std::cos(theta), std::sin(theta))
+  const auto target = (position + dot * normalize * 0.95) -
+                      (shoot_flag_ ? Eigen::Vector2d(80 * std::cos(theta), 80 * std::sin(theta))
                                    : Eigen::Vector2d(0, 0));
 
   //位置から速度へ
