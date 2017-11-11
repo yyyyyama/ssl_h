@@ -47,7 +47,7 @@ model::command receive::execute() {
   const auto robot_theta = util::wrap_to_pi(robot.theta());
   const auto robot_pos =
       util::math::position(robot) +
-      (shoot_flag_ ? 80 * Eigen::Vector2d(std::cos(robot_theta), std::sin(robot_theta))
+      (shoot_flag_ ? Eigen::Vector2d(80 * std::cos(robot_theta), 80 * std::sin(robot_theta))
                    : Eigen::Vector2d(0, 0));
   const auto ball_pos = util::math::position(world_.ball());
   const auto ball_vec = util::math::velocity(world_.ball());
