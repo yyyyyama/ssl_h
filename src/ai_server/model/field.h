@@ -13,6 +13,7 @@ private:
   int penalty_line_length_;
 
 public:
+  field();
   int length() const;
   int width() const;
   int center_radius() const;

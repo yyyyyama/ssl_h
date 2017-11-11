@@ -1,5 +1,4 @@
 #define BOOST_TEST_DYN_LINK
-#define BOOST_TEST_MODULE robot_data_test
 
 #include <boost/test/unit_test.hpp>
 #include "ai_server/model/robot.h"

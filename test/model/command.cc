@@ -1,5 +1,4 @@
 #define BOOST_TEST_DYN_LINK
-#define BOOST_TEST_MODULE command_test
 #include <boost/test/unit_test.hpp>
 #include "ai_server/model/command.h"
 BOOST_TEST_DONT_PRINT_LOG_VALUE(ai_server::model::command::kick_type_t)

@@ -1,5 +1,4 @@
 #define BOOST_TEST_DYN_LINK
-#define BOOST_TEST_MODULE updater_robot_test
 
 #include <boost/math/constants/constants.hpp>
 #include <boost/test/unit_test.hpp>
@@ -293,12 +292,11 @@ struct mock_filter1 : public filter::base<model::robot, filter::timing::on_updat
 
   // 最後にupdateの引数に与えられた値
   model::robot v;
-  std::chrono::high_resolution_clock::time_point t;
+  util::time_point_type t;
 
   mock_filter1(int a1, int a2) : arg1(a1), arg2(a2) {}
 
-  model::robot update(const model::robot& value,
-                      std::chrono::high_resolution_clock::time_point time) override {
+  model::robot update(const model::robot& value, util::time_point_type time) override {
     v = value;
     t = time;
 
@@ -318,7 +316,7 @@ BOOST_AUTO_TEST_CASE(on_updated_filter, *boost::unit_test::tolerance(0.0000001))
 
   // tをhigh_resolution_clockの型に変換する関数
   auto duration_cast = [](auto t) {
-    return std::chrono::duration_cast<std::chrono::high_resolution_clock::duration>(t);
+    return std::chrono::duration_cast<util::duration_type>(t);
   };
 
   // set_filterの引数に与えた値がFilterのコンストラクタに正しく渡されているか

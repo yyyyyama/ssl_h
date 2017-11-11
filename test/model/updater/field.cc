@@ -1,5 +1,4 @@
 #define BOOST_TEST_DYN_LINK
-#define BOOST_TEST_MODULE updater_field_test
 
 #include <boost/test/unit_test.hpp>
 

@@ -1,5 +1,4 @@
 #define BOOST_TEST_DYN_LINK
-#define BOOST_TEST_MODULE updater_world_test
 
 #include <stdexcept>
 #include <boost/math/constants/constants.hpp>
@@ -104,13 +103,14 @@ BOOST_AUTO_TEST_CASE(detection, *boost::unit_test::tolerance(0.0000001)) {
     BOOST_TEST(r.theta() == bmc::two_thirds_pi);
 
     // fieldは変更されていない (初期値のまま)
-    const auto f = w.field();
-    BOOST_TEST(f.length() == 0);
-    BOOST_TEST(f.width() == 0);
-    BOOST_TEST(f.center_radius() == 0);
-    BOOST_TEST(f.goal_width() == 0);
-    BOOST_TEST(f.penalty_radius() == 0);
-    BOOST_TEST(f.penalty_line_length() == 0);
+    const auto f1 = w.field();
+    const auto f2 = ai_server::model::field{};
+    BOOST_TEST(f1.length() == f2.length());
+    BOOST_TEST(f1.width() == f2.width());
+    BOOST_TEST(f1.center_radius() == f2.center_radius());
+    BOOST_TEST(f1.goal_width() == f2.goal_width());
+    BOOST_TEST(f1.penalty_radius() == f2.penalty_radius());
+    BOOST_TEST(f1.penalty_line_length() == f2.penalty_line_length());
   }
 }
 
@@ -232,6 +232,127 @@ BOOST_AUTO_TEST_CASE(geometry) {
     BOOST_TEST(b.z() == 0);
     BOOST_TEST(w.robots_blue().size() == 0);
     BOOST_TEST(w.robots_yellow().size() == 0);
+  }
+}
+
+BOOST_AUTO_TEST_CASE(disabling_camera) {
+  namespace bmc = boost::math::double_constants;
+
+  ai_server::model::updater::world wu{};
+
+  BOOST_TEST(wu.is_camera_enabled(0));
+  BOOST_TEST(wu.is_camera_enabled(1));
+  wu.disable_camera(0);
+  wu.disable_camera(1);
+  BOOST_TEST(!wu.is_camera_enabled(0));
+  BOOST_TEST(!wu.is_camera_enabled(1));
+
+  wu.enable_camera(1);
+  BOOST_TEST(wu.is_camera_enabled(1));
+
+  {
+    ssl_protos::vision::Packet p;
+
+    auto md = p.mutable_detection();
+    md->set_camera_id(0);
+
+    auto b = md->add_balls();
+    b->set_x(1);
+    b->set_y(2);
+    b->set_z(3);
+    b->set_confidence(93.0);
+
+    auto rb1 = md->add_robots_blue();
+    rb1->set_robot_id(1);
+    rb1->set_x(10);
+    rb1->set_y(11);
+    rb1->set_orientation(bmc::sixth_pi);
+    rb1->set_confidence(94.0);
+
+    auto ry5 = md->add_robots_yellow();
+    ry5->set_robot_id(5);
+    ry5->set_x(500);
+    ry5->set_y(501);
+    ry5->set_orientation(bmc::half_pi);
+    ry5->set_confidence(96.0);
+
+    auto mf = p.mutable_geometry()->mutable_field();
+    mf->set_field_length(90000);
+    mf->set_field_width(60000);
+    mf->set_goal_width(10000);
+
+    wu.update(p);
+  }
+
+  {
+    const auto w = wu.value();
+
+    // 無効化されたカメラからは更新されない
+    const auto b = w.ball();
+    BOOST_TEST(b.x() == decltype(b){}.x());
+    BOOST_TEST(b.y() == decltype(b){}.y());
+    BOOST_TEST(b.z() == decltype(b){}.z());
+
+    BOOST_TEST(w.robots_blue().size() == 0);
+    BOOST_TEST(w.robots_yellow().size() == 0);
+
+    const auto f = w.field();
+    BOOST_TEST(f.length() == decltype(f){}.length());
+    BOOST_TEST(f.width() == decltype(f){}.width());
+    BOOST_TEST(f.goal_width() == decltype(f){}.goal_width());
+  }
+
+  {
+    ssl_protos::vision::Packet p;
+
+    auto md = p.mutable_detection();
+    md->set_camera_id(1);
+
+    auto b = md->add_balls();
+    b->set_x(1);
+    b->set_y(2);
+    b->set_z(3);
+    b->set_confidence(93.0);
+
+    auto rb1 = md->add_robots_blue();
+    rb1->set_robot_id(1);
+    rb1->set_x(10);
+    rb1->set_y(11);
+    rb1->set_orientation(bmc::sixth_pi);
+    rb1->set_confidence(94.0);
+
+    auto ry5 = md->add_robots_yellow();
+    ry5->set_robot_id(5);
+    ry5->set_x(500);
+    ry5->set_y(501);
+    ry5->set_orientation(bmc::half_pi);
+    ry5->set_confidence(96.0);
+
+    auto mf = p.mutable_geometry()->mutable_field();
+    mf->set_field_length(90000);
+    mf->set_field_width(60000);
+    mf->set_goal_width(10000);
+
+    wu.update(p);
+  }
+
+  {
+    const auto w = wu.value();
+
+    const auto b = w.ball();
+    BOOST_TEST(b.x() == 1);
+    BOOST_TEST(b.y() == 2);
+    BOOST_TEST(b.z() == 3);
+
+    BOOST_TEST(w.robots_blue().size() == 1);
+    BOOST_TEST(w.robots_blue().count(1) == 1);
+    BOOST_TEST(w.robots_yellow().size() == 1);
+    BOOST_TEST(w.robots_yellow().count(5) == 1);
+
+    const auto f = w.field();
+    BOOST_TEST(f.length() == 90000);
+    BOOST_TEST(f.width() == 60000);
+    BOOST_TEST(f.goal_width() == 10000);
   }
 }
 

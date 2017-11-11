@@ -15,9 +15,11 @@ using boost::math::constants::pi;
 const double state_feedback_controller::k_     = 49.17;
 const double state_feedback_controller::zeta_  = 1.0;
 const double state_feedback_controller::omega_ = 49.17;
+const double state_feedback_controller::v_max_ = 5000.0;
 
 state_feedback_controller::state_feedback_controller(double cycle)
-    : cycle_(cycle),
+    : base(v_max_),
+      cycle_(cycle),
       velocity_generator_{cycle_, cycle_},
       smith_predictor_(cycle_, zeta_, omega_) {
   // 状態フィードバックゲイン
@@ -36,6 +38,10 @@ state_feedback_controller::state_feedback_controller(double cycle)
     u_[i]  = Eigen::Vector3d::Zero();
     e_[i]  = Eigen::Vector3d::Zero();
   }
+}
+
+void state_feedback_controller::set_velocity_limit(const double limit) {
+  base::set_velocity_limit(std::min(limit, v_max_));
 }
 
 velocity_t state_feedback_controller::update(const model::robot& robot,
@@ -57,6 +63,14 @@ velocity_t state_feedback_controller::update(const model::robot& robot,
   if (std::isnan(u_[0].x()) || std::isnan(u_[0].y()) || std::isnan(u_[0].z())) {
     u_[0] = u_[1];
   }
+
+  // 上からの速度上限
+  double target_angle = std::atan2(u_[0].y(), u_[0].x());
+
+  u_[0].x() = clamp(u_[0].x(), -std::abs(velocity_limit_ * std::cos(target_angle)),
+                    std::abs(velocity_limit_ * std::cos(target_angle)));
+  u_[0].y() = clamp(u_[0].y(), -std::abs(velocity_limit_ * std::sin(target_angle)),
+                    std::abs(velocity_limit_ * std::sin(target_angle)));
 
   // 値の更新
   up_[1] = up_[0];
@@ -86,6 +100,14 @@ velocity_t state_feedback_controller::update(const model::robot& robot,
   if (std::isnan(u_[0].x()) || std::isnan(u_[0].y()) || std::isnan(u_[0].z())) {
     u_[0] = u_[1];
   }
+
+  // 上からの速度上限
+  double target_angle = std::atan2(u_[0].y(), u_[0].x());
+
+  u_[0].x() = clamp(u_[0].x(), -std::abs(velocity_limit_ * std::cos(target_angle)),
+                    std::abs(velocity_limit_ * std::cos(target_angle)));
+  u_[0].y() = clamp(u_[0].y(), -std::abs(velocity_limit_ * std::sin(target_angle)),
+                    std::abs(velocity_limit_ * std::sin(target_angle)));
 
   // 値の更新
   up_[1] = up_[0];

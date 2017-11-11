@@ -9,6 +9,13 @@ namespace updater {
 void world::update(const ssl_protos::vision::Packet& packet) {
   if (packet.has_detection()) {
     const auto& detection = packet.detection();
+
+    // 無効化されたカメラは無視する
+    if (std::find(disabled_camera_.cbegin(), disabled_camera_.cend(), detection.camera_id()) !=
+        disabled_camera_.cend()) {
+      return;
+    }
+
     ball_.update(detection);
     robots_blue_.update(detection);
     robots_yellow_.update(detection);
@@ -32,6 +39,27 @@ void world::set_transformation_matrix(const Eigen::Affine3d& matrix) {
 
 void world::set_transformation_matrix(double x, double y, double theta) {
   set_transformation_matrix(util::math::make_transformation_matrix(x, y, theta));
+}
+
+void world::disable_camera(unsigned int id) {
+  // idが登録されていなかったら追加する
+  if (std::find(disabled_camera_.cbegin(), disabled_camera_.cend(), id) ==
+      disabled_camera_.cend()) {
+    disabled_camera_.push_back(id);
+  }
+}
+
+void world::enable_camera(unsigned int id) {
+  // idが登録されていたら解除する
+  auto it = std::find(disabled_camera_.begin(), disabled_camera_.end(), id);
+  if (it != disabled_camera_.end()) {
+    disabled_camera_.erase(it);
+  }
+}
+
+bool world::is_camera_enabled(unsigned int id) const {
+  return std::find(disabled_camera_.cbegin(), disabled_camera_.cend(), id) ==
+         disabled_camera_.cend();
 }
 
 field& world::field_updater() {

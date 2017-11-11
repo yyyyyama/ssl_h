@@ -1,6 +1,7 @@
 #ifndef AI_SERVER_MODEL_UPDATER_WORLD_H
 #define AI_SERVER_MODEL_UPDATER_WORLD_H
 
+#include <vector>
 #include <Eigen/Geometry>
 
 #include "ai_server/model/world.h"
@@ -29,6 +30,9 @@ class world {
   /// 黄ロボットのupdater
   robot<model::team_color::yellow> robots_yellow_;
 
+  /// 無効化されたカメラID
+  std::vector<unsigned int> disabled_camera_;
+
 public:
   world()             = default;
   world(const world&) = delete;
@@ -49,6 +53,18 @@ public:
   /// @param y         y軸方向に平行移動する量
   /// @param theta     z軸を中心に回転する量
   void set_transformation_matrix(double x, double y, double theta);
+
+  /// @brief                  指定したIDのカメラで更新しないようにする
+  /// @param id               カメラID
+  void disable_camera(unsigned int id);
+
+  /// @brief                  無効化したカメラを有効にする
+  /// @param id               カメラID
+  void enable_camera(unsigned int id);
+
+  /// @brief                  カメラが有効か調べる
+  /// @param id               カメラID
+  bool is_camera_enabled(unsigned int id) const;
 
   /// @brief           フィールドのupdaterを取得する
   field& field_updater();
