@@ -146,9 +146,10 @@ model::command kick_action::execute() {
         if (std::isnan(robot_me.vx()) || std::isnan(robot_me.vy())) {
           command.set_velocity({si, co, -coe / std::hypot(to_robot_x, to_robot_y) / 1.3});
         } else {
-          command.set_velocity({si, co, -std::hypot(robot_me.vx(), robot_me.vy()) /
-                                                std::hypot(to_robot_x, to_robot_y) +
-                                            adjustment});
+          command.set_velocity(
+              {si, co,
+               -std::hypot(robot_me.vx(), robot_me.vy()) / std::hypot(to_robot_x, to_robot_y) +
+                   adjustment});
         }
       } else {
         // 反時計回り
@@ -160,9 +161,10 @@ model::command kick_action::execute() {
         if (std::isnan(robot_me.vx()) || std::isnan(robot_me.vy())) {
           command.set_velocity({si, co, coe / std::hypot(to_robot_x, to_robot_y) / 1.3});
         } else {
-          command.set_velocity({si, co, std::hypot(robot_me.vx(), robot_me.vy()) /
-                                                std::hypot(to_robot_x, to_robot_y) +
-                                            adjustment});
+          command.set_velocity(
+              {si, co,
+               std::hypot(robot_me.vx(), robot_me.vy()) / std::hypot(to_robot_x, to_robot_y) +
+                   adjustment});
         }
       }
       if (dribble_ != 0) command.set_dribble(dribble_);
