@@ -14,7 +14,6 @@ namespace agent {
 stopgame::stopgame(const model::world& world, bool is_yellow,
                    const std::vector<unsigned int>& ids)
     : base(world, is_yellow), ids_(ids) {
-  not_chase_     = true;
   nearest_robot_ = 0;
   if (ids.size() != 0) {
     const auto our_robots = is_yellow_ ? world_.robots_yellow() : world_.robots_blue();
@@ -28,6 +27,7 @@ stopgame::stopgame(const model::world& world, bool is_yellow,
         });
 
     nearest_robot_ = *nearest_robot_id;
+    not_chase_     = false;
   } else {
     not_chase_ = true;
   }
