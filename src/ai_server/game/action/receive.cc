@@ -7,6 +7,13 @@
 namespace ai_server {
 namespace game {
 namespace action {
+receive::receive(const model::world& world, bool is_yellow, unsigned int id)
+    : base(world, is_yellow, id) {
+  const auto& robots   = is_yellow_ ? world_.robots_yellow() : world_.robots_blue();
+  const auto& robot    = robots.at(id_);
+  const auto robot_pos = util::math::position(robot);
+  dummy_pos_           = robot_pos;
+}
 void receive::set_dribble(int dribble) {
   dribble_ = dribble;
 }
@@ -19,12 +26,16 @@ void receive::set_passer(unsigned int passer_id) {
 unsigned int receive::passer() {
   return passer_id_;
 }
+void receive::set_shoot(Eigen::Vector2d shoot_pos) {
+  shoot_pos_  = shoot_pos;
+  shoot_flag_ = true;
+}
+void receive::set_kick_type(const model::command::kick_flag_t& kick_type) {
+  kick_type_ = kick_type;
+}
 model::command receive::execute() {
   //それぞれ自機を生成
   model::command command(id_);
-
-  //ドリブルさせる
-  command.set_dribble(dribble_);
 
   const auto& robots = is_yellow_ ? world_.robots_yellow() : world_.robots_blue();
   if (!robots.count(id_) || !robots.count(passer_id_)) {
@@ -33,10 +44,13 @@ model::command receive::execute() {
   }
 
   const auto& robot      = robots.at(id_);
-  const auto robot_pos   = util::math::position(robot);
   const auto robot_theta = util::wrap_to_pi(robot.theta());
-  const auto ball_pos    = util::math::position(world_.ball());
-  const auto ball_vec    = util::math::velocity(world_.ball());
+  const auto robot_pos =
+      util::math::position(robot) +
+      (shoot_flag_ ? Eigen::Vector2d(80 * std::cos(robot_theta), 80 * std::sin(robot_theta))
+                   : Eigen::Vector2d(0, 0));
+  const auto ball_pos = util::math::position(world_.ball());
+  const auto ball_vec = util::math::velocity(world_.ball());
 
   const auto& passer      = robots.at(passer_id_);
   const auto passer_pos   = util::math::position(passer);
@@ -44,7 +58,15 @@ model::command receive::execute() {
 
   //ボールがめっちゃ近くに来たら受け取ったと判定
   //現状だとボールセンサに反応があるか分からないので
-  if ((robot_pos - ball_pos).norm() < 120) {
+  if (shoot_flag_) {
+    if ((robot_pos - ball_pos).norm() < 100) {
+      approaching_flag_ = true;
+    } else if (approaching_flag_) {
+      flag_ = true;
+      command.set_velocity({0.0, 0.0, 0.0});
+      return command;
+    }
+  } else if ((robot_pos - ball_pos).norm() < 100) {
     flag_ = true;
     command.set_velocity({0.0, 0.0, 0.0});
     return command;
@@ -67,15 +89,28 @@ model::command receive::execute() {
   const auto dot = normalize.dot(length);
 
   //目標位置と角度
-  const auto target  = (position + dot * normalize);
-  const auto to_ball = ball_pos - robot_pos;
-  const auto theta   = std::atan2(to_ball.y(), to_ball.x());
+  const auto to_ball  = ball_pos - robot_pos;
+  const auto to_shoot = shoot_pos_ - robot_pos;
+  const auto theta    = shoot_flag_ ? std::atan2(to_shoot.y(), to_shoot.x())
+                                 : std::atan2(to_ball.y(), to_ball.x());
+  const auto target = (position + dot * normalize * 0.95) -
+                      (shoot_flag_ ? Eigen::Vector2d(80 * std::cos(theta), 80 * std::sin(theta))
+                                   : Eigen::Vector2d(0, 0));
 
   //位置から速度へ
-  const auto target_vec{(target - robot_pos) * 3};
+  Eigen::Vector2d target_vec{(target - robot_pos) * 8};
+  if ((robot_pos - ball_pos).norm() < 300 && ball_vec.norm() > 500) {
+    target_vec = target_vec + ball_vec / 3;
+  }
 
-  const auto omega = theta - robot_theta;
-  command.set_velocity({target_vec.x(), target_vec.y(), omega});
+  const auto omega = (theta - robot_theta);
+  command.set_position({target.x(), target.y(), theta});
+  if (shoot_flag_) {
+    command.set_kick_flag(kick_type_);
+  } else {
+    //ドリブルさせる
+    command.set_dribble(dribble_);
+  }
 
   flag_ = false;
   return command;
@@ -83,6 +118,6 @@ model::command receive::execute() {
 bool receive::finished() const {
   return flag_;
 }
-}
-}
-}
+} // namespace action
+} // namespace game
+} // namespace ai_server
