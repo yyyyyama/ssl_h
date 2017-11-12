@@ -61,7 +61,7 @@ model::command kick_action::execute() {
 
   const auto our_robots    = is_yellow_ ? world_.robots_yellow() : world_.robots_blue();
   const auto& robot_me     = our_robots.at(id_);
-  const auto robot_place   = util::math::position(robot_me);
+  const auto robot_pos     = util::math::position(robot_me);
   const double robot_x     = robot_me.x();
   const double robot_y     = robot_me.y();
   const double robot_theta = util::wrap_to_pi(robot_me.theta());
@@ -93,7 +93,6 @@ model::command kick_action::execute() {
   const double omega = util::wrap_to_pi(atand2 - robot_theta + pi<double>());
 
   model::command command(id_);
-  model::command::position_t robot_pos;
 
   // executeが呼ばれる間にボールがこれだけ移動したら蹴ったと判定する長さ(mm)
   const double kick_decision = 150;
@@ -124,10 +123,10 @@ model::command kick_action::execute() {
                     : util::wrap_to_pi(std::atan2(y_ - robot_y, x_ - robot_x) - robot_theta)) >
                    margin_ / 2 &&
                state_ != running_state::round && ball_vel.norm() < 1500 &&
-               (robot_place - ball_pos).norm() > 120 && state_ != running_state::kick) {
+               (robot_pos - ball_pos).norm() > 120 && state_ != running_state::kick) {
       // 位置をそのままにロボットがボールを蹴れる向きにする処理
-      robot_pos = {robot_x, robot_y, util::wrap_to_pi(atand2 + pi<double>())};
-      command.set_position(robot_pos);
+      // robot_pos = {robot_x, robot_y, util::wrap_to_pi(atand2 + pi<double>())};
+      command.set_position({robot_x, robot_y, util::wrap_to_pi(atand2 + pi<double>())});
       command.set_dribble(dribble_);
     } else if ((std::abs(util::wrap_to_pi(atand1 - atand3)) > margin_ / 4 ||
                 (std::abs(util::wrap_to_pi(atand1 - atand3)) > margin_ / 5 &&
@@ -171,10 +170,9 @@ model::command kick_action::execute() {
                     : util::wrap_to_pi(std::atan2(y_ - robot_y, x_ - robot_x) - robot_theta)) >
                    margin_ / 2 &&
                state_ != running_state::round && ball_vel.norm() < 1500 &&
-               (robot_place - ball_pos).norm() > 120 && state_ != running_state::kick) {
+               (robot_pos - ball_pos).norm() > 120 && state_ != running_state::kick) {
       // 位置をそのままにロボットがボールを蹴れる向きにする処理
-      robot_pos = {robot_x, robot_y, util::wrap_to_pi(atand2 + pi<double>())};
-      command.set_position(robot_pos);
+      command.set_position({robot_x, robot_y, util::wrap_to_pi(atand2 + pi<double>())});
       command.set_dribble(dribble_);
     } else {
       // キックフラグをセットし、ボールの位置まで移動する処理
@@ -188,7 +186,7 @@ model::command kick_action::execute() {
           util::wrap_to_pi(std::atan2(y_ - robot_y, x_ - robot_x) - robot_theta);
       adjustment            = adjustment > margin_ / 4 ? adjustment * 2 : adjustment * 1;
       const double move_vel = (std::get<0>(kick_type_) == model::command::kick_type_t::none &&
-                               (ball_pos - robot_place).norm() < 120)
+                               (ball_pos - robot_pos).norm() < 120)
                                   ? 0
                                   : 250;
       if (move_vel == 0) {
