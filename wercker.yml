@@ -32,9 +32,9 @@ build:
         cd build
         bash <(curl -s https://codecov.io/bash) -x ../tools/llvm-cov.sh
 
-    - wantedly/pretty-slack-notify:
-      webhook_url: $SLACK_WEBHOOK_URL
-      notify_on: "failed"
+    - slack-notifier:
+      url:  $SLACK_WEBHOOK_URL
+      notify_on: failed
 
 static-validations:
   steps:
