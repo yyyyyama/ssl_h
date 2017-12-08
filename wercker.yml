@@ -13,12 +13,6 @@ build:
         git submodule update --init --recursive
 
     - script:
-      name: static validations
-      code: |
-        ./tools/validate/encoding.sh
-        ./tools/validate/format.sh
-
-    - script:
       name: build
       code: |
         cd build
@@ -41,3 +35,13 @@ build:
     - wantedly/pretty-slack-notify:
       webhook_url: $SLACK_WEBHOOK_URL
       notify_on: "failed"
+
+static-validations:
+  steps:
+    - script:
+      name: encoding
+      code: ./tools/validate/encoding.sh
+
+    - script:
+      name: format
+      code: ./tools/validate/format.sh
