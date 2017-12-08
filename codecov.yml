@@ -1,3 +1,8 @@
+codecov:
+  strict_yaml_branch: develop
+  notify:
+    require_ci_to_pass: no
+
 coverage:
   range: "50...80"
   ignore: "test/.*"
