@@ -1,5 +1,4 @@
 #define BOOST_TEST_DYN_LINK
-#define BOOST_TEST_MODULE updater_refbox_test
 
 #include <limits>
 #include <boost/test/unit_test.hpp>
