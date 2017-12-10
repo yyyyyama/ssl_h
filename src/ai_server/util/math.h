@@ -1,37 +1,19 @@
 #ifndef AI_SERVER_UTIL_MATH_H
 #define AI_SERVER_UTIL_MATH_H
 
-#include <boost/math/constants/constants.hpp>
-#include <cmath>
+#include "math/angle.h"
 
 namespace ai_server {
 namespace util {
+
 template <class T>
-T wrap_to_2pi(T r) {
-  using boost::math::constants::two_pi;
-
-  auto wrapped = std::fmod(r, two_pi<T>());
-
-  if (r < 0) {
-    wrapped += two_pi<T>();
-  }
-  return wrapped;
+[[deprecated("This function was moved. Use util::math::wrap_to_2pi instead.")]] auto wrap_to_2pi(T r) {
+  return math::wrap_to_2pi(r);
 }
 
-/// @brief	-pi<r<=piに正規化
 template <class T>
-T wrap_to_pi(T r) {
-  using boost::math::constants::two_pi;
-  using boost::math::constants::pi;
-
-  auto wrapped = std::fmod(r, two_pi<T>());
-
-  if (wrapped > pi<T>()) {
-    wrapped -= two_pi<T>();
-  } else if (wrapped <= -pi<T>()) {
-    wrapped += two_pi<T>();
-  }
-  return wrapped;
+[[deprecated("This function was moved. Use util::math::wrap_to_pi instead.")]] auto wrap_to_pi(T r) {
+  return math::wrap_to_pi(r);
 }
 }
 }
