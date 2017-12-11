@@ -57,7 +57,7 @@ endif()
 # Required libraries
 find_package(Boost 1.59.0 COMPONENTS coroutine system unit_test_framework REQUIRED)
 find_package(Eigen3 3.2 REQUIRED)
-find_package(Protobuf 2.6 REQUIRED)
+find_package(Protobuf 3.2 REQUIRED)
 find_package(Threads REQUIRED)
 
 # Enable CTest
