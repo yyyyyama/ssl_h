@@ -3,6 +3,8 @@
 
 #include <array>
 #include <string>
+
+#define BOOST_COROUTINES_NO_DEPRECATION_WARNING
 #include <boost/asio.hpp>
 #include <boost/asio/spawn.hpp>
 #include <boost/signals2.hpp>
