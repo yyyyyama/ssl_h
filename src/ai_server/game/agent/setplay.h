@@ -5,6 +5,7 @@
 #include <vector>
 #include <Eigen/Core>
 #include "base.h"
+#include "ai_server/game/action/get_ball.h"
 #include "ai_server/model/world.h"
 #include "ai_server/game/action/kick_action.h"
 #include "ai_server/game/action/receive.h"
@@ -22,9 +23,11 @@ public:
   setplay(const model::world& world, bool is_yellow, unsigned int kicker_id,
           const std::vector<unsigned int>& receiver_id);
 
-  void set_extra_robots(const std::vector<unsigned int>& ids);
+  std::vector<unsigned int> free_robots() const;
 
   std::vector<std::shared_ptr<action::base>> execute() override;
+  void set_mode(int mode_num);
+  void set_direct(bool is_direct);
 
   bool finished();
 
@@ -36,16 +39,28 @@ private:
   const std::vector<unsigned int> receiver_ids_;
   Eigen::Vector2d prev_ball_vel_;
   std::shared_ptr<action::kick_action> kick_;
+  std::shared_ptr<action::get_ball> get_ball_;
   std::shared_ptr<action::receive> receive_;
-  std::vector<std::shared_ptr<action::base>> baseaction_;
   Eigen::Vector2d passpos_;
+  Eigen::Vector2d shoot_pos;
   std::vector<Eigen::Vector2d> positions_;
+  bool neflag        = false;
+  bool receive_flag_ = false;
+  int shooter_num_   = 0;
+  int change_count_  = 0;
+  double ballysign;
+  bool is_direct_ = false;
+  bool try_direct = false;
 
-  Eigen::Vector2d find_location(std::vector<Eigen::Vector2d> targets,
-                                model::world::robots_list enemy_robots, int dist = 1);
+  std::vector<unsigned int> free_robots_;
+
+  int mode_;
+
+  int chose_location(std::vector<Eigen::Vector2d> targets,
+                     model::world::robots_list enemy_robots, int dist = -1);
   double vectorangle(Eigen::Vector2d vec);
 };
-} // agent
-} // game
-} // ai_server
+} // namespace agent
+} // namespace game
+} // namespace ai_server
 #endif

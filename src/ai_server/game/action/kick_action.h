@@ -4,6 +4,7 @@
 #include "ai_server/model/command.h"
 #include "base.h"
 #include <boost/math/constants/constants.hpp>
+#include <Eigen/Core>
 
 namespace ai_server {
 namespace game {
@@ -14,7 +15,7 @@ public:
   kick_action(const model::world& world, bool is_yellow, unsigned int id);
 
   enum class mode { goal, ball };
-  enum class running_state { move, kick, finished };
+  enum class running_state { move, round, kick, finished };
 
   void kick_to(double x, double y);
 
@@ -26,6 +27,7 @@ public:
   // 目標位置と打つ角度の許容誤差
   void set_angle_margin(double margin);
   running_state state() const;
+  void set_stop_ball(bool stop_ball_flag);
 
   model::command execute() override;
 
@@ -44,6 +46,9 @@ private:
   bool advanceflag_;
   double old_ball_x_;
   double old_ball_y_;
+  bool quick_flag_;
+  bool stop_ball_flag_;
+  Eigen::Vector3d sum_;
 };
 } // namespace action
 } // namespace game
