@@ -273,11 +273,11 @@ void first_formation::update_keeper() {
   }
 }
 
-void first_formation::decide_wall_count(id_vec visible_robots) {
+void first_formation::decide_wall_count(const id_vec& visible_robots) {
   wall_count_ = visible_robots.size() < 4 ? 1 : 2;
 }
 
-void first_formation::decide_wall(id_vec visible_robots) {
+void first_formation::decide_wall(const id_vec& visible_robots) {
   const auto keeper = keeper_;
   auto tmp_ids      = visible_robots;
   decide_wall_count(visible_robots);
@@ -299,7 +299,7 @@ void first_formation::decide_wall(id_vec visible_robots) {
               std::back_inserter(wall_));
 }
 
-void first_formation::decide_kicker(id_vec visible_robots) {
+void first_formation::decide_kicker(const id_vec& visible_robots) {
   const auto our_robots = is_yellow_ ? world_.robots_yellow() : world_.robots_blue();
   const auto ball       = world_.ball();
   auto tmp_ids          = others_; //キーパー,壁以外のロボットを抽出
@@ -321,7 +321,7 @@ void first_formation::decide_kicker(id_vec visible_robots) {
   }
 }
 
-void first_formation::extract_other_robots(id_vec visible_robots) {
+void first_formation::extract_other_robots(const id_vec& visible_robots) {
   const auto keeper = keeper_;
   const auto wall   = wall_;
   auto tmp_ids      = visible_robots;
@@ -343,7 +343,7 @@ void first_formation::extract_waiter() {
   waiter_ = tmp_ids;
 }
 
-void first_formation::extract_except_keeper(id_vec visible_robots) {
+void first_formation::extract_except_keeper(const id_vec& visible_robots) {
   auto tmp_ids      = visible_robots;
   const auto keeper = keeper_;
   tmp_ids.erase(std::remove(tmp_ids.begin(), tmp_ids.end(), keeper), tmp_ids.end());
@@ -556,6 +556,6 @@ first_formation::command first_formation::convert_command(model::refbox::game_co
       return command::stop;
   }
 }
-}
-}
-}
+} // namespace formation
+} // namespace game
+} // namespace ai_server

@@ -29,8 +29,8 @@ protected:
   const model::refbox& refcommand_;
 };
 
-} // namespace agent
+} // namespace formation
 } // namespace game
 } // namespace ai_server
 
-#endif // AI_SERVER_GAME_AGENT_BASE_H
+#endif // AI_SERVER_GAME_FORMATION_BASE_H
