@@ -7,14 +7,16 @@ namespace ai_server {
 namespace util {
 
 template <class T>
-[[deprecated("This function was moved. Use util::math::wrap_to_2pi instead.")]] auto wrap_to_2pi(T r) {
+[[deprecated("This function was moved. Use util::math::wrap_to_2pi instead.")]] auto
+wrap_to_2pi(T r) {
   return math::wrap_to_2pi(r);
 }
 
 template <class T>
-[[deprecated("This function was moved. Use util::math::wrap_to_pi instead.")]] auto wrap_to_pi(T r) {
+[[deprecated("This function was moved. Use util::math::wrap_to_pi instead.")]] auto wrap_to_pi(
+    T r) {
   return math::wrap_to_pi(r);
 }
-}
-}
+} // namespace util
+} // namespace ai_server
 #endif

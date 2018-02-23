@@ -80,7 +80,7 @@ void defense::set_mode(defense_mode mode) {
   mode_ = mode;
 }
 
-std::vector<unsigned int> defense::marking() const {
+std::vector<unsigned int> defense::marking_ids() const {
   return marking_ids_re_;
 }
 
@@ -585,6 +585,6 @@ std::vector<std::shared_ptr<action::base>> defense::execute() {
 
   return re_wall; //返す
 }
-}
-}
-}
+} // namespace agent
+} // namespace game
+} // namespace ai_server

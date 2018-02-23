@@ -14,17 +14,14 @@ namespace game {
 namespace action {
 
 get_ball::get_ball(const model::world& world, bool is_yellow, unsigned int id)
-    : base(world, is_yellow, id),
-      target_(Eigen::Vector2d::Zero()),
-      pow_(128),
-      flag_(false),
-      chip_(false) {}
+    : get_ball(world, is_yellow, id, Eigen::Vector2d::Zero()) {}
+
+get_ball::get_ball(const model::world& world, bool is_yellow, unsigned int id,
+                   Eigen::Vector2d target)
+    : base(world, is_yellow, id), target_(target), pow_(128), flag_(false), chip_(false) {}
 
 void get_ball::set_target(double x, double y) {
   target_ = Eigen::Vector2d{x, y};
-}
-void get_ball::set_target(Eigen::Vector2d target) {
-  target_ = target;
 }
 
 void get_ball::set_pow(double pow) {
@@ -35,6 +32,17 @@ void get_ball::set_chip(bool chip) {
   chip_ = chip;
 }
 
+Eigen::Vector2d get_ball::target() const {
+  return target_;
+}
+
+double get_ball::pow() const {
+  return pow_;
+}
+
+bool get_ball::chip() const {
+  return chip_;
+}
 model::command get_ball::execute() {
   namespace bg  = boost::geometry;
   using point   = bg::model::d2::point_xy<double>;
@@ -230,6 +238,6 @@ bool get_ball::finished() const {
   return flag_;
 }
 
-} // namespace ai_server
-} // namespace game
 } // namespace action
+} // namespace game
+} // namespace ai_server
