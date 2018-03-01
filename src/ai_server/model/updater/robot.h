@@ -95,17 +95,17 @@ public:
     on_updated_filters_.erase(id);
     auto p = std::make_shared<Filter>(
         // 最新の値を取得する関数オブジェクト
-        [id, this]() -> std::experimental::optional<model::robot> {
+        [id, this]() -> std::optional<model::robot> {
           std::shared_lock<std::shared_timed_mutex> lock(mutex_);
           // 選ばれた観測データの中に対象のロボットの値があればそれを, なければnulloptを返す
           if (reliable_robots_.count(id)) {
             return reliable_robots_.at(id);
           } else {
-            return std::experimental::nullopt;
+            return std::nullopt;
           }
         },
         // 値を更新する関数オブジェクト
-        [id, this](std::experimental::optional<model::robot> value) {
+        [id, this](std::optional<model::robot> value) {
           std::unique_lock<std::shared_timed_mutex> lock(mutex_);
           if (value) {
             // valueが値を持っていた場合はその値で更新

@@ -3,9 +3,7 @@
 
 #include <chrono>
 #include <functional>
-
-// TODO: C++17移行時に<optional>にする
-#include <experimental/optional>
+#include <optional>
 
 #include "ai_server/util/time.h"
 
@@ -42,9 +40,9 @@ template <class T>
 class base<T, timing::manual> {
 public:
   /// 最新の値を取得する関数オブジェクトの型
-  using last_value_func_type = std::function<std::experimental::optional<T>(void)>;
+  using last_value_func_type = std::function<std::optional<T>(void)>;
   /// 対象の値を更新する関数オブジェクトの型
-  using writer_func_type = std::function<void(std::experimental::optional<T>)>;
+  using writer_func_type = std::function<void(std::optional<T>)>;
 
   /// @param last_value_func  最新の値を取得する関数オブジェクト
   /// @param writer_func      対象の値を更新する関数オブジェクト
@@ -58,13 +56,13 @@ protected:
   /// @return                 最新の値
   ///
   /// last_value_func_に設定された関数を使い, 対象の最新の値を取得する.
-  /// 対象が存在しなかったときなどはstd::experimental::nulloptを返す.
-  /// (updater::robotでは, ロボットがロストしていたときstd::experimental::nulloptを返す)
-  std::experimental::optional<T> last_value() {
+  /// 対象が存在しなかったときなどはstd::nulloptを返す.
+  /// (updater::robotでは, ロボットがロストしていたときstd::nulloptを返す)
+  std::optional<T> last_value() {
     if (last_value_func_) {
       return last_value_func_();
     } else {
-      return std::experimental::nullopt;
+      return std::nullopt;
     }
   }
 
@@ -72,9 +70,9 @@ protected:
   /// @param value            更新する値
   ///
   /// writer_func_に設定された関数を使い, 対象の値をvalueで更新する.
-  /// std::experimental::nulloptを渡した場合, 対象が存在しなかったとして扱われる.
+  /// std::nulloptを渡した場合, 対象が存在しなかったとして扱われる.
   /// (updater::robotでは, ロボットがロストしていたとして処理される)
-  void write(std::experimental::optional<T> value) {
+  void write(std::optional<T> value) {
     if (writer_func_) {
       writer_func_(std::move(value));
     }

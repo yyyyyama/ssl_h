@@ -68,7 +68,7 @@ void ball::update(const ssl_protos::vision::Frame& detection) {
     }
   } else {
     // 現時点ではボールが存在しない場合を想定していないので何もしない
-    reliable_ball_ = std::experimental::nullopt;
+    reliable_ball_ = std::nullopt;
   }
 }
 

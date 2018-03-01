@@ -2,11 +2,10 @@
 #define AI_SERVER_MODEL_UPDATER_BALL_H
 
 #include <memory>
+#include <optional>
 #include <shared_mutex>
 #include <type_traits>
 #include <unordered_map>
-
-#include <experimental/optional>
 
 #include <Eigen/Geometry>
 
@@ -75,7 +74,7 @@ public:
           return reliable_ball_;
         },
         // 値を更新する関数オブジェクト
-        [this](std::experimental::optional<model::ball> value) {
+        [this](std::optional<model::ball> value) {
           // 現時点ではボールが存在しない場合を想定していないので,
           // 値を持っていた場合のみ値の更新を行う
           if (value) {
@@ -98,7 +97,7 @@ private:
   /// 各カメラで検出されたボールの生データ
   std::unordered_map<unsigned int, ssl_protos::vision::Ball> raw_balls_;
   /// 検出された中から選ばれた, 最も確かとされる値
-  std::experimental::optional<model::ball> reliable_ball_;
+  std::optional<model::ball> reliable_ball_;
 
   /// 更新タイミングがon_updatedなFilter
   std::shared_ptr<on_updated_filter_type> on_updated_filter_;

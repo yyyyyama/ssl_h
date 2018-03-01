@@ -62,20 +62,20 @@ public:
       // 値の更新はwrite()を使う
       write(prefix_ + *value);
     } else {
-      // std::experimental::nulloptで更新すれば値が存在しないものとして処理される
-      write(std::experimental::nullopt);
+      // std::nulloptで更新すれば値が存在しないものとして処理される
+      write(std::nullopt);
     }
   }
 };
 
 BOOST_AUTO_TEST_CASE(manual) {
   // 更新対象のデータ
-  std::experimental::optional<std::string> value{"Haskell"};
+  std::optional<std::string> value{"Haskell"};
 
   // 値を取得するための関数
   auto f1 = [&value] { return value; };
   // 値を更新するための関数
-  auto f2 = [&value](std::experimental::optional<std::string> new_value) { value = new_value; };
+  auto f2 = [&value](std::optional<std::string> new_value) { value = new_value; };
 
   test_filter2 f{f1, f2, "すごい"};
 
@@ -91,7 +91,7 @@ BOOST_AUTO_TEST_CASE(manual) {
   BOOST_TEST(*value == "すごいすごいすごいHaskell");
 
   // nulloptでも問題ない
-  value = std::experimental::nullopt;
+  value = std::nullopt;
   BOOST_CHECK_NO_THROW(f.add_prefix());
 
   // 関数が登録されていなくても例外で落ちない

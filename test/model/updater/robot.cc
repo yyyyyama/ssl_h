@@ -424,7 +424,7 @@ struct mock_filter2 : public filter::base<model::robot, filter::timing::manual> 
     return last_value();
   }
 
-  void wv(std::experimental::optional<model::robot> v) {
+  void wv(std::optional<model::robot> v) {
     write(v);
   }
 };
@@ -482,7 +482,7 @@ BOOST_AUTO_TEST_CASE(manual_filter, *boost::unit_test::tolerance(0.0000001)) {
 
   {
     // nulloptで更新すると消える
-    fp->wv(std::experimental::nullopt);
+    fp->wv(std::nullopt);
 
     const auto rb = ru.value();
     BOOST_TEST(rb.size() == 0);

@@ -285,7 +285,7 @@ struct mock_filter2 : public filter::base<model::ball, filter::timing::manual> {
     return last_value();
   }
 
-  void wv(std::experimental::optional<model::ball> v) {
+  void wv(std::optional<model::ball> v) {
     write(v);
   }
 };
@@ -344,7 +344,7 @@ BOOST_AUTO_TEST_CASE(manual_filter) {
     BOOST_TEST(b2.z() == b1.z());
 
     // nulloptで更新しても値は変化しない
-    fp->wv(std::experimental::nullopt);
+    fp->wv(std::nullopt);
     const auto b3 = bu.value();
     BOOST_TEST(b3.x() == b1.x());
     BOOST_TEST(b3.y() == b1.y());
