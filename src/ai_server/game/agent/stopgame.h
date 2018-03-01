@@ -11,9 +11,8 @@ namespace agent {
 
 class stopgame : public base {
 private:
-  const std::vector<unsigned int>& ids_;
+  const std::vector<unsigned int> ids_;
   unsigned int nearest_robot_;
-  bool not_chase_;
 
 public:
   stopgame(const model::world& world, bool is_yellow, const std::vector<unsigned int>& ids);
