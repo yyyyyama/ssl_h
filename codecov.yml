@@ -1,4 +1,5 @@
 codecov:
+  branch: develop
   strict_yaml_branch: develop
   notify:
     require_ci_to_pass: no
