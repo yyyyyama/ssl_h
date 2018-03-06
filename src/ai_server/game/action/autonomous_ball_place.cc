@@ -4,7 +4,6 @@
 #include "ai_server/util/math/angle.h"
 #include "ai_server/util/time.h"
 #include "autonomous_ball_place.h"
-#include <iostream>
 
 using boost::math::constants::pi;
 
@@ -17,26 +16,6 @@ autonomous_ball_place::autonomous_ball_place(const model::world& world, bool is_
     : base(world, is_yellow, id), command_(id) {}
 
 autonomous_ball_place::running_state autonomous_ball_place::state() const {
-  switch (state_) {
-    case running_state::move:
-      std::cout << "move" << std::endl;
-      break;
-    case running_state::hold:
-      std::cout << "hold" << std::endl;
-      break;
-    case running_state::place:
-      std::cout << "place" << std::endl;
-      break;
-    case running_state::wait:
-      std::cout << "wait" << std::endl;
-      break;
-    case running_state::leave:
-      std::cout << "leave" << std::endl;
-      break;
-    case running_state::finished:
-      std::cout << "finished" << std::endl;
-      break;
-  }
   return state_;
 }
 
@@ -64,8 +43,6 @@ model::command autonomous_ball_place::execute() {
   const double distance =
       std::pow(std::pow(robot.x() - ball.x(), 2) + std::pow(robot.y() - ball.y(), 2), 1.0 / 2);
   const std::chrono::seconds wait_time_(1);
-
-  std::cout << "distance: " << distance << std::endl;
 
   if (std::abs(ball.x() - target_x_) < xy_allow && std::abs(ball.y() - target_y_) < xy_allow &&
       distance > 590.0) {
@@ -147,7 +124,6 @@ model::command autonomous_ball_place::execute() {
              pi<double>();
     command_.set_position({x_, y_, theta_});
   }
-  std::cout << first_ballx_ << ' ' << first_bally_ << std::endl;
   return command_;
 }
 
