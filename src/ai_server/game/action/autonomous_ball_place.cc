@@ -76,7 +76,6 @@ model::command autonomous_ball_place::execute() {
   } else if (std::abs(ball.x() - target_x_) < xy_allow &&
              std::abs(ball.y() - target_y_) < xy_allow) {
     // 配置完了
-    // wait,leaveをここに入れるかどうか(誤差を考えると入れないほうがスムーズに動作しそう)
     finished_  = false;
     state_     = running_state::wait;
     wait_flag_ = true;
@@ -86,7 +85,10 @@ model::command autonomous_ball_place::execute() {
     // 配置
     finished_ = false;
     state_    = running_state::place;
-    if (target_x_ == ball.x()) { // 0除算防止
+    if (distance > 170.0) {
+      state_ = running_state::hold;
+    }
+    if (target_x_ == ball.x()) {
       x_ = target_x_;
       y_ = target_y_ + 95.0 * ((target_y_ > ball.y()) - (target_y_ < ball.y()));
     } else {
@@ -95,7 +97,7 @@ model::command autonomous_ball_place::execute() {
     }
     command_.set_dribble(9);
     command_.set_position({x_, y_, theta_});
-  } else if (state_ == running_state::hold) { // 以下考え中
+  } else if (state_ == running_state::hold) {
     // ボールを持つ
     finished_ = false;
     if (std::pow(ball.x() - first_ballx_, 2) + std::pow(ball.y() - first_bally_, 2) >
@@ -104,7 +106,7 @@ model::command autonomous_ball_place::execute() {
     }
     command_.set_dribble(9);
     command_.set_position({ball.x(), ball.y(), theta_});
-  } else if (distance < 170.0 /*ボールの目の前か?*/) {
+  } else if (distance < 170.0) {
     finished_    = false;
     state_       = running_state::hold;
     first_ballx_ = ball.x();
@@ -115,11 +117,10 @@ model::command autonomous_ball_place::execute() {
     state_       = running_state::move;
     first_ballx_ = ball.x();
     first_bally_ = ball.y();
-    x_ = ball.x() + (distx + 50.0) * ((robot.x() > ball.x()) - (robot.x() < ball.x()));
+    x_ = ball.x() + (distx + 50.0) * ((ball.x() > robot.x()) - (ball.x() < robot.x()));
     y_ = (robot.x() == ball.x())
              ? ball.y()
-             : ((target_y_ - ball.y()) / (target_y_ - ball.x())) * (x_ - ball.x()) +
-                   ball.y(); // 0除算防止
+             : ((target_y_ - ball.y()) / (target_x_ - ball.x())) * (x_ - ball.x()) + ball.y();
     theta_ = util::math::wrap_to_2pi(std::atan2(target_y_ - ball.y(), target_x_ - ball.x())) +
              pi<double>();
     command_.set_position({x_, y_, theta_});
