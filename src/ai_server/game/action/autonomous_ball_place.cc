@@ -40,8 +40,7 @@ model::command autonomous_ball_place::execute() {
   // ロボットがボールを噛んでいるときのロボットのx座標とボールのx座標の差
   const double distx = std::abs(95.0 * std::cos(theta_));
   // ロボットとボールの距離
-  const double distance =
-      std::pow(std::pow(robot.x() - ball.x(), 2) + std::pow(robot.y() - ball.y(), 2), 1.0 / 2);
+  const double distance = std::hypot(robot.x() - ball.x(), robot.y() - ball.y());
   const std::chrono::seconds wait_time_(1);
 
   if (std::abs(ball.x() - target_x_) < xy_allow && std::abs(ball.y() - target_y_) < xy_allow &&
