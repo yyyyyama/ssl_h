@@ -49,6 +49,8 @@ model::command autonomous_ball_place::execute() {
   auto ball_to_target_f = [=](double x) {
     return ((target_y_ - ball.y()) / (target_x_ - ball.x())) * (x - ball.x()) + ball.y();
   };
+  // b基準のaの符号
+  auto sign = [](double a, double b) { return ((a > b) - (a < b)); };
 
   if (std::abs(ball.x() - target_x_) < xy_allow && std::abs(ball.y() - target_y_) < xy_allow &&
       distance > 590.0) {
@@ -60,7 +62,7 @@ model::command autonomous_ball_place::execute() {
   } else if (state_ == running_state::leave) {
     // ボールから離れる
     finished_ = false;
-    x_        = ball.x() + 600.0 * ((robot.x() > ball.x()) - (robot.x() < ball.x()));
+    x_        = ball.x() + 600.0 * sign(robot.x(), ball.x());
     y_        = (robot.x() == ball.x())
              ? ball.y() + 600.0
              : ((robot.y() - ball.y()) / (robot.x() - ball.x())) * (x_ - ball.x()) +
@@ -97,9 +99,9 @@ model::command autonomous_ball_place::execute() {
     }
     if (target_x_ == ball.x()) {
       x_ = target_x_;
-      y_ = target_y_ + 95.0 * ((target_y_ > ball.y()) - (target_y_ < ball.y()));
+      y_ = target_y_ + 95.0 * sign(target_y_, ball.y());
     } else {
-      x_ = target_x_ + distx * ((target_x_ > ball.x()) - (target_x_ < ball.x()));
+      x_ = target_x_ + distx * sign(target_x_, ball.x());
       y_ = ball_to_target_f(x_);
     }
     command_.set_dribble(9);
@@ -128,23 +130,21 @@ model::command autonomous_ball_place::execute() {
     // 移動
     finished_ = false;
     state_    = running_state::move;
-    x_        = ball.x() + (distx + 50.0) * ((ball.x() > robot.x()) - (ball.x() < robot.x()));
-    y_        = (robot.x() == ball.x()) ? ball.y() : ball_to_target_f(x_);
     if (distance < 300.0 || round_flag_) {
       // 回り込み
       round_flag_ = true;
       vx_         = 1000 *
             std::sin(util::math::wrap_to_2pi(
                 std::atan2(robot.y() - ball.y(), robot.x() - ball.x()))) *
-            ((robot.y() > ball_to_target_f(robot.x())) -
-             (robot.y() < ball_to_target_f(robot.x())));
+            sign(robot.y(), ball_to_target_f(robot.x())) * sign(target_x_, ball.x());
       vy_ = -1000 *
             std::cos(util::math::wrap_to_2pi(
                 std::atan2(robot.y() - ball.y(), robot.x() - ball.x()))) *
-            ((robot.y() > ball_to_target_f(robot.x())) -
-             (robot.y() < ball_to_target_f(robot.x())));
+            sign(robot.y(), ball_to_target_f(robot.x())) * sign(target_x_, ball.x());
       command_.set_velocity({vx_, vy_, 0.0});
     } else {
+      x_ = ball.x() + (distx + 50.0) * ((ball.x() > robot.x()) - (ball.x() < robot.x()));
+      y_ = (robot.x() == ball.x()) ? ball.y() : ball_to_target_f(x_);
       command_.set_position({x_, y_, theta_});
     }
   }
