@@ -29,6 +29,7 @@ private:
   running_state state_ = running_state::move;
   bool finished_       = false;
   bool wait_flag_      = true;
+  bool round_flag_     = false;
   std::chrono::system_clock::time_point begin_;
   std::chrono::system_clock::time_point now_;
   double target_x_;
