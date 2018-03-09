@@ -1,7 +1,7 @@
 #ifndef AI_SERVER_GAME_ACTION_AUTONOMOUS_BALL_PLACE_H
 #define AI_SERVER_GAME_ACTION_AUTONOMOUS_BALL_PLACE_H
 
-#include <chrono>
+#include "ai_server/util/time.h"
 #include "base.h"
 
 namespace ai_server {
@@ -26,12 +26,12 @@ public:
 
 private:
   model::command command_;
-  running_state state_ = running_state::move;
-  bool finished_       = false;
-  bool wait_flag_      = true;
-  bool round_flag_     = false;
-  std::chrono::system_clock::time_point begin_;
-  std::chrono::system_clock::time_point now_;
+  running_state state_;
+  bool finished_;
+  bool wait_flag_;
+  bool round_flag_;
+  util::time_point_type begin_;
+  util::time_point_type now_;
   double target_x_;
   double target_y_;
   double first_ballx_;

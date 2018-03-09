@@ -1,11 +1,10 @@
-#include <chrono>
 #include <cmath>
 #include <boost/math/constants/constants.hpp>
 #include "ai_server/util/math/angle.h"
-#include "ai_server/util/time.h"
 #include "autonomous_ball_place.h"
 
 using boost::math::constants::pi;
+using namespace std::chrono_literals;
 
 namespace ai_server {
 namespace game {
@@ -13,7 +12,12 @@ namespace action {
 
 autonomous_ball_place::autonomous_ball_place(const model::world& world, bool is_yellow,
                                              unsigned int id)
-    : base(world, is_yellow, id), command_(id) {}
+    : base(world, is_yellow, id), command_(id) {
+      state_ = running_state::move;
+      finished_ = false;
+      wait_flag_ = true;
+      round_flag_ = false;
+      }
 
 autonomous_ball_place::running_state autonomous_ball_place::state() const {
   return state_;
@@ -67,13 +71,12 @@ model::command autonomous_ball_place::execute() {
   } else if (state_ == running_state::wait) {
     // 待機
     finished_ = false;
-    const std::chrono::seconds wait_time(1);
-    now_      = std::chrono::system_clock::now();
+    now_      = util::clock_type::now();
     if (wait_flag_) {
-      begin_     = std::chrono::system_clock::now();
+      begin_     = util::clock_type::now();
       wait_flag_ = false;
     }
-    if (now_ - begin_ >= wait_time) {
+    if (now_ - begin_ >= 1s) {
       state_ = running_state::leave;
     }
   } else if (std::abs(ball.x() - target_x_) < xy_allow &&
