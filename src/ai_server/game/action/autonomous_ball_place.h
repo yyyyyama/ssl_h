@@ -12,6 +12,12 @@ class autonomous_ball_place : public base {
 public:
   autonomous_ball_place(const model::world& world, bool is_yellow, unsigned int id, double target_x, double target_y);
 
+  // move:ボール前まで移動
+  // hold:ボールを持つ
+  // place:ボールを指定位置まで運ぶ
+  // wait:ボールの回転を止めるためドリブルバーを止めて停止
+  // leave:ボールから離れる
+  // finished:動作終了(停止)
   enum class running_state { move, hold, place, wait, leave, finished };
 
   model::command execute() override;
