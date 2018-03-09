@@ -11,21 +11,11 @@ namespace game {
 namespace action {
 
 autonomous_ball_place::autonomous_ball_place(const model::world& world, bool is_yellow,
-                                             unsigned int id)
-    : base(world, is_yellow, id), command_(id) {
-      state_ = running_state::move;
-      finished_ = false;
-      wait_flag_ = true;
-      round_flag_ = false;
-      }
+                                             unsigned int id, double target_x, double target_y)
+    : base(world, is_yellow, id), command_(id), state_(running_state::move), finished_(false), wait_flag_(true), round_flag_(false), target_x_(target_x), target_y_(target_y) {}
 
 autonomous_ball_place::running_state autonomous_ball_place::state() const {
   return state_;
-}
-
-void autonomous_ball_place::place_to(double target_x, double target_y) {
-  target_x_ = target_x;
-  target_y_ = target_y;
 }
 
 model::command autonomous_ball_place::execute() {
