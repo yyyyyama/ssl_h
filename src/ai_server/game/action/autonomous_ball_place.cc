@@ -41,7 +41,7 @@ model::command autonomous_ball_place::execute() {
   auto sign = [](double a, double b) { return ((a > b) - (a < b)); };
 
   if (std::abs(ball.x() - target_x_) < xy_allow && std::abs(ball.y() - target_y_) < xy_allow &&
-      distance > 590.0) {
+      distance > 590.0 || state_ = running_state::finished) {
     // 全条件を満たせば停止
     finished_ = true;
     state_    = running_state::finished;
