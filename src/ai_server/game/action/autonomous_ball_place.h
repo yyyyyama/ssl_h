@@ -10,7 +10,8 @@ namespace action {
 
 class autonomous_ball_place : public base {
 public:
-  autonomous_ball_place(const model::world& world, bool is_yellow, unsigned int id, double target_x, double target_y);
+  autonomous_ball_place(const model::world& world, bool is_yellow, unsigned int id,
+                        double target_x, double target_y);
 
   // move:ボール前まで移動
   // hold:ボールを持つ
