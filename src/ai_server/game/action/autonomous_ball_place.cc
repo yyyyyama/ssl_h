@@ -46,9 +46,9 @@ model::command autonomous_ball_place::execute() {
   // b基準のaの符号
   auto sign = [](double a, double b) { return ((a > b) - (a < b)); };
 
-  if ((std::abs(ball.x() - target_x_) < xy_allow &&
-              std::abs(ball.y() - target_y_) < xy_allow&& distance > 590.0) ||
-          state_ == running_state::finished) {
+  if ((std::abs(ball.x() - target_x_) < xy_allow && std::abs(ball.y() - target_y_) < xy_allow &&
+       distance > 590.0) ||
+      state_ == running_state::finished) {
     // 全条件を満たせば停止
     finished_ = true;
     state_    = running_state::finished;
@@ -58,7 +58,7 @@ model::command autonomous_ball_place::execute() {
     // ボールから離れる
     finished_      = false;
     const double x = ball.x() + 600.0 * sign(robot.x(), ball.x());
-    const double y = (robot.x() == ball.x())
+    const double y = (std::abs(robot.x() - ball.x()) <= std::numeric_limits<double>::epsilon())
                          ? ball.y() + 600.0
                          : ((robot.y() - ball.y()) / (robot.x() - ball.x())) * (x - ball.x()) +
                                ball.y(); // 0除算防止
@@ -93,14 +93,14 @@ model::command autonomous_ball_place::execute() {
       // ボールがロボットと離れたらボール前まで移動する処理に移行
       state_ = running_state::move;
     }
-    if (target_x_ == ball.x()) {
+    if (std::abs(target_x_ - ball.x()) <= std::numeric_limits<double>::epsilon()) {
       const double x = target_x_;
       const double y = target_y_ + 95.0 * sign(target_y_, ball.y());
       command_.set_dribble(9);
       command_.set_position({x, y, theta});
     } else {
-      const double x = target_x_ + distx * sign(target_x_, ball.x());
-      const double y = ball_to_target_f(x);
+      const double x  = target_x_ + distx * sign(target_x_, ball.x());
+      const double y  = ball_to_target_f(x);
       const double vx = 500 * (x - robot.x()) / std::hypot(x, robot.x());
       const double vy = 500 * (y - robot.y()) / std::hypot(y, robot.y());
       command_.set_dribble(9);
@@ -117,10 +117,10 @@ model::command autonomous_ball_place::execute() {
     }
     command_.set_dribble(9);
     command_.set_position({ball.x(), ball.y(), theta});
-  } else if ((ball_to_target_f(robot.x()) + 5.0  > robot.y() &&
+  } else if ((ball_to_target_f(robot.x()) + 5.0 > robot.y() &&
               robot.y() > ball_to_target_f(robot.x()) - 5.0) &&
-             ((ball.x() - distx + 50.0 > robot.x() && robot.x() > target_x_) ||
-              (target_x_ > robot.x() && robot.x() > ball.x() + distx - 50.0))) {
+             ((ball.x() - (distx + 50.0) > robot.x() && robot.x() > target_x_) ||
+              (target_x_ > robot.x() && robot.x() > ball.x() - (distx + 50.0)))) {
     finished_    = false;
     state_       = running_state::hold;
     round_flag_  = false;
@@ -148,7 +148,10 @@ model::command autonomous_ball_place::execute() {
     } else {
       const double x =
           ball.x() + (distx + 50.0) * ((ball.x() > robot.x()) - (ball.x() < robot.x()));
-      const double y = (robot.x() == ball.x()) ? ball.y() : ball_to_target_f(x);
+      const double y =
+          (std::abs(target_x_ - ball.x()) <= std::numeric_limits<double>::epsilon())
+              ? ball.y()
+              : ball_to_target_f(x);
       command_.set_position({x, y, theta});
     }
   }
