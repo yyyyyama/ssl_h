@@ -100,8 +100,8 @@ model::command autonomous_ball_place::execute() {
     } else {
       const double x  = target_x_ + distx * sign(target_x_, ball.x());
       const double y  = ball_to_target_f(x);
-      const double vx = 500 * (x - robot.x()) / std::hypot(x, robot.x());
-      const double vy = 500 * (y - robot.y()) / std::hypot(y, robot.y());
+      const double vx = 500.0 * (x - robot.x()) / std::hypot(x - robot.x(), y - robot.y());
+      const double vy = 500.0 * (y - robot.y()) / std::hypot(x - robot.x(), y - robot.y());
       command_.set_dribble(9);
       command_.set_velocity({vx, vy, 0.0});
     }
