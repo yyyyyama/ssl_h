@@ -2,7 +2,7 @@
 #include <boost/math/constants/constants.hpp>
 #include "ai_server/util/math/angle.h"
 #include "autonomous_ball_place.h"
-#include <iostream>
+
 using boost::math::constants::pi;
 using namespace std::chrono_literals;
 
@@ -33,8 +33,7 @@ model::command autonomous_ball_place::execute() {
   // 許容誤差(ルール上は10[cm]以内?)
   const double xy_allow = 50.0;
   // 目標角度
-  auto theta = util::math::wrap_to_2pi(std::atan2(target_y_ - ball.y(), target_x_ - ball.x())) +
-               pi<double>();
+  auto theta = util::math::wrap_to_2pi(std::atan2(ball.y() - target_y_, ball.x() - target_x_));
   // ロボットがボールを噛んでいるときのロボットのx座標とボールのx座標の差
   const double distx = std::abs(95.0 * std::cos(theta));
   // ロボットとボールの距離
@@ -109,7 +108,6 @@ model::command autonomous_ball_place::execute() {
   } else if (state_ == running_state::hold) {
     // ボールを持つ
     finished_ = false;
-    std::cout << distance << std::endl;
     if (std::pow(ball.x() - first_ballx_, 2) + std::pow(ball.y() - first_bally_, 2) > 500.0 &&
         distance < 120.0) {
       // ボールが初期位置からある程度離れていてロボットとボールが近ければ配置する処理に移行
@@ -117,10 +115,10 @@ model::command autonomous_ball_place::execute() {
     }
     command_.set_dribble(9);
     command_.set_position({ball.x(), ball.y(), theta});
-  } else if ((ball_to_target_f(robot.x()) + 5.0 > robot.y() &&
-              robot.y() > ball_to_target_f(robot.x()) - 5.0) &&
-             ((ball.x() - (distx + 50.0) > robot.x() && robot.x() > target_x_) ||
-              (target_x_ > robot.x() && robot.x() > ball.x() - (distx + 50.0)))) {
+  } else if (std::abs(theta - util::math::wrap_to_2pi(
+                                  std::atan2(ball.y() - robot.y(), ball.x() - robot.x()))) <
+                 pi<double>() / 9.0 &&
+             distance < 300.0) {
     finished_    = false;
     state_       = running_state::hold;
     round_flag_  = false;
@@ -131,7 +129,7 @@ model::command autonomous_ball_place::execute() {
     // 移動
     finished_ = false;
     state_    = running_state::move;
-    if ((distance < 200.0 || round_flag_) && distance < 300) {
+    if ((distance < 200.0 || round_flag_) && distance < 300.0) {
       // 回り込み
       round_flag_ = true;
       const double vx =
@@ -146,8 +144,7 @@ model::command autonomous_ball_place::execute() {
           sign(robot.y(), ball_to_target_f(robot.x())) * sign(target_x_, ball.x());
       command_.set_velocity({vx, vy, 0.0});
     } else {
-      const double x =
-          ball.x() + (distx + 50.0) * ((ball.x() > robot.x()) - (ball.x() < robot.x()));
+      const double x = ball.x() + distx * sign(ball.x(), robot.x());
       const double y =
           (std::abs(target_x_ - ball.x()) <= std::numeric_limits<double>::epsilon())
               ? ball.y()
