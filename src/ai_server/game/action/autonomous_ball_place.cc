@@ -65,6 +65,12 @@ model::command autonomous_ball_place::execute() {
   } else if (state_ == running_state::leave) {
     // ボールから離れる
     finished_      = false;
+    if (std::abs(ball.x() - target_x_) > 2 * xy_allow &&
+        std::abs(ball.y() - target_y_) > 2 * xy_allow) {
+      // ボールが最終目標からいくらか離れたら最初から
+      state_    = running_state::move;
+      finished_ = false;
+    }
     const double x = ball.x() + 700.0 * std::cos(util::math::wrap_to_2pi(std::atan2(
                                             robot.y() - ball.y(), robot.x() - ball.x())));
     const double y =
