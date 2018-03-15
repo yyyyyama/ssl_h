@@ -2,6 +2,7 @@
 #include <boost/math/constants/constants.hpp>
 #include "ai_server/util/math/angle.h"
 #include "autonomous_ball_place.h"
+#include <iostream>
 
 using boost::math::constants::pi;
 using namespace std::chrono_literals;
@@ -67,14 +68,14 @@ model::command autonomous_ball_place::execute() {
       // ボールが最終目標からいくらか離れたら最初から
       state_ = running_state::move;
     }
-    const double x = target_x_ + 700.0 * std::cos(util::math::wrap_to_2pi(std::atan2(
-                                             robot.y() - ball.y(), robot.x() - ball.x())));
+    const double x = target_x_ + 1000.0 * std::cos(util::math::wrap_to_2pi(std::atan2(
+                                              robot.y() - ball.y(), robot.x() - ball.x())));
     const double y =
         (std::abs(robot.x() - ball.x()) <= std::numeric_limits<double>::epsilon())
-            ? target_y_ + 700.0
+            ? target_y_ + 1000.0
             : target_y_ +
-                  700.0 * std::sin(util::math::wrap_to_2pi(std::atan2(
-                              robot.y() - ball.y(), robot.x() - ball.y()))); // 0除算防止
+                  1000.0 * std::sin(util::math::wrap_to_2pi(std::atan2(
+                               robot.y() - ball.y(), robot.x() - ball.y()))); // 0除算防止
     theta = util::math::wrap_to_2pi(std::atan2(ball.y() - robot.y(), ball.x() - robot.x()));
     command_.set_position({x, y, theta});
   } else if (state_ == running_state::wait) {
@@ -101,8 +102,9 @@ model::command autonomous_ball_place::execute() {
     // 配置
     finished_ = false;
     state_    = running_state::place;
-    if (dist_b_to_r > 170.0) {
-      // ボールがロボットと離れたらボール前まで移動する処理に移行
+    if (0.0 < std::hypot(ball.vx(), ball.vy()) && std::hypot(ball.vx(), ball.vy()) < 20.0 &&
+        std::hypot(robot.x() - first_ballx_, robot.y() - first_bally_) > 500.0) {
+      // ボール速度が0より大きいが、ある程度落ち、ボール初期位置よりある程度動いていればボール前まで移動する処理に移行
       state_ = running_state::move;
     }
     if (std::abs(target_x_ - ball.x()) <= std::numeric_limits<double>::epsilon()) {
@@ -113,21 +115,23 @@ model::command autonomous_ball_place::execute() {
     } else {
       const double x  = target_x_ + distx * sign(target_x_, ball.x());
       const double y  = ball_to_target_f(x);
-      const double vx = 700.0 * (x - robot.x()) / std::hypot(x - robot.x(), y - robot.y());
-      const double vy = 700.0 * (y - robot.y()) / std::hypot(x - robot.x(), y - robot.y());
+      const double vx = 500.0 * (x - robot.x()) / std::hypot(x - robot.x(), y - robot.y());
+      const double vy = 500.0 * (y - robot.y()) / std::hypot(x - robot.x(), y - robot.y());
       command_.set_dribble(9);
       command_.set_velocity({vx, vy, 0.0});
     }
   } else if (state_ == running_state::hold) {
     // ボールを持つ
     finished_ = false;
-    if (std::pow(ball.x() - first_ballx_, 2) + std::pow(ball.y() - first_bally_, 2) > 500.0 &&
-        dist_b_to_r < 120.0) {
-      // ボールが初期位置からある程度離れていてロボットとボールが近ければ配置する処理に移行
+    if (std::abs(robot.x() - first_ballx_) < 10.0 &&
+        std::abs(robot.y() - first_bally_) < 10.0) {
+      // ロボットがボールの初期位置に来たら配置に移行する
       state_ = running_state::place;
+      command_.set_velocity({0.0, 0.0, 0.0});
+      return command_;
     }
     command_.set_dribble(9);
-    command_.set_position({ball.x(), ball.y(), theta});
+    command_.set_position({first_ballx_, first_bally_, theta});
   } else if (std::abs(theta - util::math::wrap_to_2pi(
                                   std::atan2(ball.y() - robot.y(), ball.x() - robot.x()))) <
                  pi<double>() / 18.0 &&
@@ -166,6 +170,7 @@ model::command autonomous_ball_place::execute() {
       command_.set_position({x, y, theta});
     }
   }
+  std::cout << ball.vx() << ball.vy() << std::endl;
   return command_;
 }
 

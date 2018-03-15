@@ -23,8 +23,6 @@ public:
 
   model::command execute() override;
 
-  bool can_leave();
-
   running_state state() const;
 
   bool finished() const override;
