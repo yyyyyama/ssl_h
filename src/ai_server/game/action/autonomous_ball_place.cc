@@ -67,16 +67,24 @@ model::command autonomous_ball_place::execute() {
       // ボールが最終目標からいくらか離れたら最初から
       state_ = running_state::move;
     }
-    const double x = target_x_ + 1000.0 * std::cos(util::math::wrap_to_2pi(std::atan2(
-                                              robot.y() - ball.y(), robot.x() - ball.x())));
-    const double y =
-        (std::abs(robot.x() - ball.x()) <= std::numeric_limits<double>::epsilon())
-            ? target_y_ + 1000.0
-            : target_y_ +
-                  1000.0 * std::sin(util::math::wrap_to_2pi(std::atan2(
-                               robot.y() - ball.y(), robot.x() - ball.y()))); // 0除算防止
-    theta = util::math::wrap_to_2pi(std::atan2(ball.y() - robot.y(), ball.x() - robot.x()));
-    command_.set_position({x, y, theta});
+    if (dist_b_to_r > 150.0 &&
+        std::abs(util::math::wrap_to_2pi(std::atan2(0.0 - target_y_, 0.0 - target_x_)) -
+                 util::math::wrap_to_2pi(std::atan2(
+                     robot.y() - target_y_, robot.x() - target_x_))) > pi<double>() / 18.0) {
+      // 回り込み
+      const double vx = 700 * std::sin(util::math::wrap_to_2pi(
+                                  std::atan2(robot.y() - target_y_, robot.x() - target_x_)));
+      const double vy = -700 * std::cos(util::math::wrap_to_2pi(
+                                   std::atan2(robot.y() - target_y_, robot.x() - target_x_)));
+      command_.set_velocity({vx, vy, 0.0});
+    } else {
+      const double x = target_x_ + 1000.0 * std::cos(util::math::wrap_to_2pi(std::atan2(
+                                                robot.y() - target_y_, robot.x() - target_x_)));
+      const double y = target_y_ + 1000.0 * std::sin(util::math::wrap_to_2pi(std::atan2(
+                                                robot.y() - target_y_, robot.x() - target_x_)));
+      theta = util::math::wrap_to_2pi(std::atan2(ball.y() - robot.y(), ball.x() - robot.x()));
+      command_.set_position({x, y, theta});
+    }
   } else if (state_ == running_state::wait) {
     // 待機
     finished_ = false;
