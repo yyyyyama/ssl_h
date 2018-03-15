@@ -122,8 +122,7 @@ model::command autonomous_ball_place::execute() {
   } else if (state_ == running_state::hold) {
     // ボールを持つ
     finished_ = false;
-    if (std::abs(robot.x() - first_ballx_) < 10.0 &&
-        std::abs(robot.y() - first_bally_) < 10.0) {
+    if (std::hypot(robot.x() - first_ballx_, robot.y() - first_bally_) < 85.0) {
       // ロボットがボールの初期位置に来たら配置に移行する
       state_ = running_state::place;
       command_.set_velocity({0.0, 0.0, 0.0});
