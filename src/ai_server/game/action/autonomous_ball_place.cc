@@ -2,7 +2,6 @@
 #include <boost/math/constants/constants.hpp>
 #include "ai_server/util/math/angle.h"
 #include "autonomous_ball_place.h"
-#include <iostream>
 
 using boost::math::constants::pi;
 using namespace std::chrono_literals;
@@ -170,7 +169,6 @@ model::command autonomous_ball_place::execute() {
       command_.set_position({x, y, theta});
     }
   }
-  std::cout << ball.vx() << ball.vy() << std::endl;
   return command_;
 }
 
