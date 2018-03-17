@@ -70,12 +70,18 @@ model::command autonomous_ball_place::execute() {
     if (dist_b_to_r > 150.0 &&
         std::abs(util::math::wrap_to_2pi(std::atan2(0.0 - target_y_, 0.0 - target_x_)) -
                  util::math::wrap_to_2pi(std::atan2(
-                     robot.y() - target_y_, robot.x() - target_x_))) > pi<double>() / 18.0) {
+                     robot.y() - target_y_, robot.x() - target_x_))) > pi<double>() / 4.0) {
       // 回り込み
-      const double vx = 700 * std::sin(util::math::wrap_to_2pi(
-                                  std::atan2(robot.y() - target_y_, robot.x() - target_x_)));
-      const double vy = -700 * std::cos(util::math::wrap_to_2pi(
-                                   std::atan2(robot.y() - target_y_, robot.x() - target_x_)));
+      const double vx = 1000 *
+                        std::sin(util::math::wrap_to_2pi(
+                            std::atan2(robot.y() - target_y_, robot.x() - target_x_))) *
+                        sign(util::math::wrap_to_2pi(std::atan2(ball.y(), ball.x())),
+                             util::math::wrap_to_2pi(std::atan2(robot.y(), robot.x())));
+      const double vy = -1000 *
+                        std::cos(util::math::wrap_to_2pi(
+                            std::atan2(robot.y() - target_y_, robot.x() - target_x_))) *
+                        sign(util::math::wrap_to_2pi(std::atan2(ball.y(), ball.x())),
+                             util::math::wrap_to_2pi(std::atan2(robot.y(), robot.x())));
       command_.set_velocity({vx, vy, 0.0});
     } else {
       const double x = target_x_ + 1000.0 * std::cos(util::math::wrap_to_2pi(std::atan2(
