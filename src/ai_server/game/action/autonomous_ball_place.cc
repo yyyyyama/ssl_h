@@ -115,9 +115,9 @@ model::command autonomous_ball_place::execute() {
     // 配置
     finished_ = false;
     state_    = running_state::place;
-    if (0.0 < std::hypot(ball.vx(), ball.vy()) && std::hypot(ball.vx(), ball.vy()) < 20.0 &&
-        std::hypot(robot.x() - first_ballx_, robot.y() - first_bally_) > 500.0) {
-      // ボール速度が0より大きいが、ある程度落ち、ボール初期位置よりある程度動いていればボール前まで移動する処理に移行
+    if (std::hypot(ball.x() - first_ballx_, ball.y() - first_bally_) > std::numeric_limits<double>::epsilon() && std::hypot(ball.vx(), ball.vy()) < 10.0 &&
+        std::hypot(robot.x() - first_ballx_, robot.y() - first_bally_) > 300.0) {
+      // ボール速度がある程度落ち、ボール初期位置よりある程度動いていればボール前まで移動する処理に移行(ボールが全く移動していないとき、ボールはカメラから見えていないと考える)
       state_ = running_state::move;
     }
     if (std::abs(target_x_ - ball.x()) <= std::numeric_limits<double>::epsilon()) {
@@ -133,6 +133,8 @@ model::command autonomous_ball_place::execute() {
       command_.set_dribble(9);
       command_.set_velocity({vx, vy, 0.0});
     }
+    first_ballx_ = ball.x();
+    first_bally_ = ball.y();
   } else if (state_ == running_state::hold) {
     // ボールを持つ
     finished_ = false;
