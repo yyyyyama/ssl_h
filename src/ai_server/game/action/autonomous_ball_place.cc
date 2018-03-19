@@ -40,6 +40,8 @@ model::command autonomous_ball_place::execute() {
   const double dist_b_to_r = std::hypot(robot.x() - ball.x(), robot.y() - ball.y());
   // ボールと目標の距離
   const double dist_b_to_t = std::hypot(ball.x() - target_x_, ball.y() - target_y_);
+  // ロボットと目標の距離
+  const double dist_r_to_b = std::hypot(robot.x() - target_x_, robot.y() - target_y_);
   // ボールと目標を通る直線
   auto ball_to_target_f = [=](double x) {
     return ((target_y_ - ball.y()) / (target_x_ - ball.x())) * (x - ball.x()) + ball.y();
@@ -105,7 +107,7 @@ model::command autonomous_ball_place::execute() {
     }
   } else if (std::abs(ball.x() - target_x_) < xy_allow &&
              std::abs(ball.y() - target_y_) < xy_allow) {
-    // 配置完了
+    // 許容誤差以内にボールがあれば配置完了
     finished_  = false;
     state_     = running_state::wait;
     wait_flag_ = true;
@@ -115,7 +117,9 @@ model::command autonomous_ball_place::execute() {
     // 配置
     finished_ = false;
     state_    = running_state::place;
-    if (std::hypot(ball.x() - first_ballx_, ball.y() - first_bally_) > std::numeric_limits<double>::epsilon() && std::hypot(ball.vx(), ball.vy()) < 10.0 &&
+    if (std::hypot(ball.x() - first_ballx_, ball.y() - first_bally_) >
+            std::numeric_limits<double>::epsilon() &&
+        std::hypot(ball.vx(), ball.vy()) < 10.0 &&
         std::hypot(robot.x() - first_ballx_, robot.y() - first_bally_) > 300.0) {
       // ボール速度がある程度落ち、ボール初期位置よりある程度動いていればボール前まで移動する処理に移行(ボールが全く移動していないとき、ボールはカメラから見えていないと考える)
       state_ = running_state::move;
