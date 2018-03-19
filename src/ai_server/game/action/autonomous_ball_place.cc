@@ -40,8 +40,6 @@ model::command autonomous_ball_place::execute() {
   const double dist_b_to_r = std::hypot(robot.x() - ball.x(), robot.y() - ball.y());
   // ボールと目標の距離
   const double dist_b_to_t = std::hypot(ball.x() - target_x_, ball.y() - target_y_);
-  // ロボットと目標の距離
-  const double dist_r_to_b = std::hypot(robot.x() - target_x_, robot.y() - target_y_);
   // ボールと目標を通る直線
   auto ball_to_target_f = [=](double x) {
     return ((target_y_ - ball.y()) / (target_x_ - ball.x())) * (x - ball.x()) + ball.y();
@@ -105,8 +103,7 @@ model::command autonomous_ball_place::execute() {
     if (now_ - begin_ >= 1s) {
       state_ = running_state::leave;
     }
-  } else if (std::abs(ball.x() - target_x_) < xy_allow &&
-             std::abs(ball.y() - target_y_) < xy_allow) {
+  } else if (dist_b_to_t < xy_allow) {
     // 許容誤差以内にボールがあれば配置完了
     finished_  = false;
     state_     = running_state::wait;
