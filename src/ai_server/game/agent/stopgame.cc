@@ -3,6 +3,7 @@
 
 #include "ai_server/game/action/move.h"
 #include "ai_server/game/action/no_operation.h"
+#include "ai_server/game/action/autonomous_ball_place.h"
 #include "ai_server/util/math.h"
 
 #include "stopgame.h"
@@ -11,10 +12,34 @@ namespace ai_server {
 namespace game {
 namespace agent {
 
-stopgame::stopgame(const model::world& world, bool is_yellow,
-                   const std::vector<unsigned int>& ids)
+stopgame::stopgame(const model::world& world, bool is_yellow,const std::vector<unsigned int>& ids)
     : base(world, is_yellow), ids_(ids) {
   nearest_robot_        = 0;
+  const auto our_robots = is_yellow_ ? world_.robots_yellow() : world_.robots_blue();
+  const auto ball       = world_.ball();
+  abp_flag_ = false;
+
+  // 一番ボールに近いロボットを探索し、ボールを追いかけるロボットとする
+  const auto nearest_robot_id =
+      std::min_element(ids_.cbegin(), ids_.cend(), [&ball, &our_robots](auto& a, auto& b) {
+        return std::hypot(our_robots.at(a).x() - ball.x(), our_robots.at(a).y() - ball.y()) <
+               std::hypot(our_robots.at(b).x() - ball.x(), our_robots.at(b).y() - ball.y());
+      });
+
+  if (nearest_robot_id != ids_.end()) {
+    nearest_robot_ = *nearest_robot_id;
+  }
+
+}
+
+//ABP用のコンストラクタ
+stopgame::stopgame(const model::world& world, bool is_yellow,const std::vector<unsigned int>& ids,
+                   double abp_target_x, double abp_target_y)
+    : base(world, is_yellow), ids_(ids) {
+  nearest_robot_ = 0;
+  abp_flag_ = true;
+  abp_target_x_ = abp_target_x;
+  abp_target_y_ = abp_target_y;
   const auto our_robots = is_yellow_ ? world_.robots_yellow() : world_.robots_blue();
   const auto ball       = world_.ball();
 
@@ -57,32 +82,44 @@ std::vector<std::shared_ptr<action::base>> stopgame::execute() {
     const auto& robot   = our_robots.at(id);
     const double robotx = robot.x();
     const double roboty = robot.y();
-
+    auto abp            = std::make_shared<action::autonomous_ball_place>(world_,
+                                   is_yellow_, nearest_robot_, abp_target_x_, abp_target_y_);
+    
     if (std::abs(ballx) > 2000) {
       // 敵または味方のゴール近く
       if (id == nearest_robot_) {
-        // ボールを追いかけるロボット
-        targetx = ballx - enemygoalsign * 650;
-        targety = bally;
+        // ABPもしくはボールを追いかける
+        if (abp_flag_) {
+          abp->autonomous_ball_place::execute();
+          abp_flag_ = !(abp->autonomous_ball_place::finished());
+        } else {
+          targetx = ballx - enemygoalsign * 650;
+          targety = bally;
+        }
       } else {
         // それ以外
         targetx = ballx - enemygoalsign * i * 500;
         targety = bally - dist * ballysign * (i % 2 == 0 ? i : -i) / 2;
         if (std::abs(targety) > 3000) targety = bally - dist * ballysign * (i - 1);
-        i++;
+         i++;
       }
     } else {
       // 中間
       if (id == nearest_robot_) {
-        // ボールを追いかけるロボット
-        targetx = ballx - 650;
-        targety = bally;
+        // ABPもしくはボールを追いかける
+        if (abp_flag_) {
+          abp->autonomous_ball_place::execute();
+          abp_flag_ = !(abp->autonomous_ball_place::finished());
+        } else {
+          targetx = ballx - 650;
+          targety = bally;
+        }
       } else {
         // それ以外
         targetx = ballx - enemygoalsign * i * 500;
         targety = bally - dist * ballysign * (i % 2 == 0 ? -i : i) / 2;
         if (std::abs(targety) > 3000) targety = bally - dist * ballysign * (i - 1);
-        i++;
+          i++;
       }
     }
 
