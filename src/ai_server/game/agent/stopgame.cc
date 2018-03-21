@@ -29,7 +29,6 @@ stopgame::stopgame(const model::world& world, bool is_yellow,const std::vector<u
   if (nearest_robot_id != ids_.end()) {
     nearest_robot_ = *nearest_robot_id;
   }
-
 }
 
 //ABP用のコンストラクタ
@@ -49,7 +48,6 @@ stopgame::stopgame(const model::world& world, bool is_yellow,const std::vector<u
         return std::hypot(our_robots.at(a).x() - ball.x(), our_robots.at(a).y() - ball.y()) <
                std::hypot(our_robots.at(b).x() - ball.x(), our_robots.at(b).y() - ball.y());
       });
-
   if (nearest_robot_id != ids_.end()) {
     nearest_robot_ = *nearest_robot_id;
   }
@@ -72,6 +70,8 @@ std::vector<std::shared_ptr<action::base>> stopgame::execute() {
   const double ballysign     = ((bally > 0) || (std::abs(bally) < 250)) ? 1.0 : -1.0;
   const double enemygoalsign = world_.field().x_max() > 0 ? 1.0 : -1.0;
 
+  auto abp            = std::make_shared<action::autonomous_ball_place>(world_,
+                                    is_yellow_, nearest_robot_, abp_target_x_, abp_target_y_);
   double targetx;
   double targety;
 
@@ -82,20 +82,12 @@ std::vector<std::shared_ptr<action::base>> stopgame::execute() {
     const auto& robot   = our_robots.at(id);
     const double robotx = robot.x();
     const double roboty = robot.y();
-    auto abp            = std::make_shared<action::autonomous_ball_place>(world_,
-                                   is_yellow_, nearest_robot_, abp_target_x_, abp_target_y_);
     
     if (std::abs(ballx) > 2000) {
       // 敵または味方のゴール近く
       if (id == nearest_robot_) {
-        // ABPもしくはボールを追いかける
-        if (abp_flag_) {
-          abp->autonomous_ball_place::execute();
-          abp_flag_ = !(abp->autonomous_ball_place::finished());
-        } else {
-          targetx = ballx - enemygoalsign * 650;
-          targety = bally;
-        }
+        targetx = ballx - enemygoalsign * 650;
+        targety = bally;
       } else {
         // それ以外
         targetx = ballx - enemygoalsign * i * 500;
@@ -105,15 +97,9 @@ std::vector<std::shared_ptr<action::base>> stopgame::execute() {
       }
     } else {
       // 中間
-      if (id == nearest_robot_) {
-        // ABPもしくはボールを追いかける
-        if (abp_flag_) {
-          abp->autonomous_ball_place::execute();
-          abp_flag_ = !(abp->autonomous_ball_place::finished());
-        } else {
-          targetx = ballx - 650;
-          targety = bally;
-        }
+      if (id == nearest_robot_){
+        targetx = ballx - 650;
+        targety = bally;
       } else {
         // それ以外
         targetx = ballx - enemygoalsign * i * 500;
@@ -148,7 +134,12 @@ std::vector<std::shared_ptr<action::base>> stopgame::execute() {
       targetx = ballxsign * 2900;
     }
 
-    if (std::hypot(targetx - robotx, targety - roboty) > 100) {
+    
+    if (id == nearest_robot_ && abp_flag_) {
+      // Autonomous Ball Placement
+      baseaction.push_back(abp);
+      abp_flag_ = !(abp->autonomous_ball_place::finished());
+    } else if (std::hypot(targetx - robotx, targety - roboty) > 100) {
       auto move                 = std::make_shared<action::move>(world_, is_yellow_, id);
       const double to_balltheta = std::atan2(bally - robot.y(), ballx - robot.x());
       move->move_to(targetx, targety, to_balltheta);
