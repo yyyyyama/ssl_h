@@ -51,7 +51,7 @@ stopgame::stopgame(const model::world& world, bool is_yellow,const std::vector<u
     nearest_robot_ = *nearest_robot_id;
   }
   abp_ = std::make_shared<action::autonomous_ball_place>(world_,
-                                    is_yellow_, nearest_robot_, abp_target__);
+                                    is_yellow_, nearest_robot_, abp_target_);
 }
 
 std::vector<std::shared_ptr<action::base>> stopgame::execute() {
