@@ -59,11 +59,6 @@ model::command autonomous_ball_place::execute() {
     // 全条件を満たせば停止
     finished_ = true;
     state_    = running_state::finished;
-    if (dist_b_to_t > 2 * xy_allow) {
-      // ボールが最終目標からいくらか離れたら最初から
-      state_    = running_state::move;
-      finished_ = false;
-    }
     command_.set_dribble(0);
     command_.set_velocity({0.0, 0.0, 0.0});
   } else if (state_ == running_state::leave) {
@@ -110,7 +105,7 @@ model::command autonomous_ball_place::execute() {
              (state_ == running_state::place && std::abs(target_x_) > std::abs(robot.x()) &&
               std::abs(target_y_) > std::abs(robot.y()) && !ball_visible() &&
               std::abs(dist_r_to_t - 120.0) < 10.0)) {
-    // 許容誤差以内にボールがあれば配置完了
+    // 許容誤差以内にボールがあれば配置完了(ボールが見えていなければロボットの位置で判定)
     finished_  = false;
     state_     = running_state::wait;
     wait_flag_ = true;
