@@ -3,12 +3,13 @@
 
 #include <queue>
 #include <unordered_map>
+#include <boost/geometry/geometry.hpp>
+#include <boost/geometry/geometries/point_xy.hpp>
 #include "base.h"
-#include "ai_server/game/action/chase_ball.h"
-#include "ai_server/game/action/kick_action.h"
+#include "ai_server/game/action/get_ball.h"
 #include "ai_server/game/action/marking.h"
 #include "ai_server/game/action/move.h"
-#include "ai_server/game/action/no_operation.h"
+#include "ai_server/game/action/receive.h"
 
 namespace ai_server {
 namespace game {
@@ -16,9 +17,14 @@ namespace agent {
 
 class regular : public base {
 public:
+  // normal : 通常のモード, no_mark : 敵のマークをしない
+  enum mark_option { normal, no_mark };
+
   regular(const model::world& world, bool is_yellow, const std::vector<unsigned int>& ids);
   bool has_chaser() const;
-  void use_chaser(bool use_chaser); // 全てのロボットをマーキングにする時はfalse
+  void customize_marking(mark_option option);
+  // ボールを追いかけるか否か（全てのロボットをマーキングにする時はfalse）
+  void use_chaser(bool use_chaser);
   std::vector<std::shared_ptr<action::base>> execute() override;
 
 private:
@@ -30,53 +36,73 @@ private:
     bool operator<(const id_importance& next) const;
   };
 
-  const std::vector<unsigned int> ids_;
-  bool chase_finished_;
-  bool kick_finished_;
-  bool has_chaser_;
-  bool need_update_;
-  unsigned int chaser_id_;
+  // エリアを示す構造体(x1,y1)〜(x2,y2)までの四角形
+  struct area {
+    double x1;
+    double y1;
+    double x2;
+    double y2;
+    double score; // 評価する際に用いる
+  };
 
-  std::priority_queue<id_importance> importance_list_;
-  std::unordered_map<unsigned int, std::shared_ptr<action::marking>>
-      first_marking_; // 1枚目のマーキング
-  std::unordered_map<unsigned int, std::shared_ptr<action::marking>>
-      second_marking_; // 2枚目のマーキング
-  std::unordered_map<unsigned int, std::shared_ptr<action::no_operation>> no_op_;
-  std::vector<unsigned int> follower_ids_; // マーキング割り当ての際に余ったロボットID(=補欠)
-  std::vector<unsigned int> no_op_ids_; // no_operationを割り当てられたID
-  // Action
-  std::shared_ptr<action::chase_ball> chase_ball_;
-  std::shared_ptr<action::kick_action> kick_action_;
+  // 位置
+  using point = boost::geometry::model::d2::point_xy<double>;
+  // 使うロボットのID
+  const std::vector<unsigned int> ids_;
+  // ボールを追いかけてもいいか否か
+  bool can_chase_;
+  //　ボールを追いかけるか
+  bool has_chaser_;
+  // chaserを初期化する必要があるか
+  bool need_reset_chaser_;
+  // マークの形態
+  mark_option mark_option_;
+  // ボールを持ったロボットが蹴る先を保持
+  point target_;
+  // ボールを持っているロボットのID
+  unsigned int chaser_id_;
+  //　敵のリスト、重要度順
+  std::priority_queue<id_importance> enemy_list_;
+  // 1枚目のマーキングが対象とする敵リスト
+  std::unordered_map<unsigned int, unsigned int> marked_list_;
+  // 1枚目のマーキング
+  std::unordered_map<unsigned int, std::shared_ptr<action::marking>> first_marking_;
+  // 2枚目のマーキング
+  std::unordered_map<unsigned int, std::shared_ptr<action::marking>> second_marking_;
+  // move
+  std::unordered_map<unsigned int, std::shared_ptr<action::move>> move_;
+  // receive
+  std::unordered_map<unsigned int, std::shared_ptr<action::receive>> receive_;
+  // マーキング割り当ての際に余ったロボットID
+  std::vector<unsigned int> follower_ids_;
+  // moveロボットの移動先
+  std::vector<point> reserved_points_;
+  // get_ball
+  std::shared_ptr<action::get_ball> get_ball_;
 
   // chase id_の候補を取得
   unsigned int select_chaser();
-
-  // chaserを設定し、chaserに必要なアクションを割り当てる
-  void set_chaser(const unsigned int new_chaser_id);
-
-  // マーキングの再構成(全て)
-  void update_all_marking();
-
-  // マーキングの再構成(2枚目のマーキングのみ)
-  void update_second_marking();
-
+  // 1枚目のマーキングの再構成
+  void update_first_marking();
+  // 2枚目のマーキングの再構成
+  void update_second_mariking();
+  //　余ったロボットへの割当て
+  void update_recievers();
   // 敵リストの作成
-  std::priority_queue<id_importance> make_importance_list();
-
+  std::priority_queue<id_importance> make_enemy_list();
+  // パス経路を生成してポイントを返す
+  point select_target();
   // ターゲットに最も近いロボットID
   std::vector<unsigned int>::const_iterator nearest_id(const std::vector<unsigned int>& can_ids,
                                                        double target_x, double target_y) const;
-
-  // ゴールからからみたときの、指定位置と最も角度の近い敵ロボットID
-  std::vector<unsigned int>::const_iterator most_overlapped_id(
-      std::vector<unsigned int>& those_ids,
-      const std::unordered_map<unsigned int, model::robot>& those_robots, double target_x,
-      double target_y) const;
+  // 空いているエリアを返す
+  area empty_area(const area& area, const std::vector<unsigned int>& our_ids);
+  // 指定位置がエリア上にあるかどうか
+  bool in_area(double x, double y, const regular::area& area);
 };
 
-} // agent
-} // game
-} // ai_server
+} // namespace agent
+} // namespace game
+} // namespace ai_server
 
 #endif
