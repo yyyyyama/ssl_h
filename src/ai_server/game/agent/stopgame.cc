@@ -1,5 +1,4 @@
 #include <cmath>
-#include <iostream>
 #include <algorithm>
 
 #include "ai_server/game/action/move.h"
@@ -34,12 +33,11 @@ stopgame::stopgame(const model::world& world, bool is_yellow,const std::vector<u
 
 //ABP用のコンストラクタ
 stopgame::stopgame(const model::world& world, bool is_yellow,const std::vector<unsigned int>& ids,
-                   double abp_target_x, double abp_target_y)
+                     Eigen::Vector2d abp_target )
     : base(world, is_yellow), ids_(ids) {
   nearest_robot_ = 0;
   abp_flag_ = true;
-  abp_target_x_ = abp_target_x;
-  abp_target_y_ = abp_target_y;
+  abp_target_ = abp_target;
   const auto our_robots = is_yellow_ ? world_.robots_yellow() : world_.robots_blue();
   const auto ball       = world_.ball();
 
@@ -53,7 +51,7 @@ stopgame::stopgame(const model::world& world, bool is_yellow,const std::vector<u
     nearest_robot_ = *nearest_robot_id;
   }
   abp_ = std::make_shared<action::autonomous_ball_place>(world_,
-                                    is_yellow_, nearest_robot_, abp_target_x_, abp_target_y_);
+                                    is_yellow_, nearest_robot_, abp_target__);
 }
 
 std::vector<std::shared_ptr<action::base>> stopgame::execute() {
