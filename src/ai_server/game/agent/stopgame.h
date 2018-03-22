@@ -17,6 +17,7 @@ private:
   bool abp_flag_;
   double abp_target_x_;
   double abp_target_y_;
+  std::shared_ptr<action::base> abp_;
 
 public:
   stopgame(const model::world& world, bool is_yellow, const std::vector<unsigned int>& ids);

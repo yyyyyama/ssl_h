@@ -1,4 +1,5 @@
 #include <cmath>
+#include <iostream>
 #include <algorithm>
 
 #include "ai_server/game/action/move.h"
@@ -51,6 +52,8 @@ stopgame::stopgame(const model::world& world, bool is_yellow,const std::vector<u
   if (nearest_robot_id != ids_.end()) {
     nearest_robot_ = *nearest_robot_id;
   }
+  abp_ = std::make_shared<action::autonomous_ball_place>(world_,
+                                    is_yellow_, nearest_robot_, abp_target_x_, abp_target_y_);
 }
 
 std::vector<std::shared_ptr<action::base>> stopgame::execute() {
@@ -70,8 +73,6 @@ std::vector<std::shared_ptr<action::base>> stopgame::execute() {
   const double ballysign     = ((bally > 0) || (std::abs(bally) < 250)) ? 1.0 : -1.0;
   const double enemygoalsign = world_.field().x_max() > 0 ? 1.0 : -1.0;
 
-  auto abp            = std::make_shared<action::autonomous_ball_place>(world_,
-                                    is_yellow_, nearest_robot_, abp_target_x_, abp_target_y_);
   double targetx;
   double targety;
 
@@ -137,8 +138,8 @@ std::vector<std::shared_ptr<action::base>> stopgame::execute() {
     
     if (id == nearest_robot_ && abp_flag_) {
       // Autonomous Ball Placement
-      baseaction.push_back(abp);
-      abp_flag_ = !(abp->autonomous_ball_place::finished());
+      baseaction.push_back(abp_);
+      abp_flag_ = !(abp_->finished());
     } else if (std::hypot(targetx - robotx, targety - roboty) > 100) {
       auto move                 = std::make_shared<action::move>(world_, is_yellow_, id);
       const double to_balltheta = std::atan2(bally - robot.y(), ballx - robot.x());
