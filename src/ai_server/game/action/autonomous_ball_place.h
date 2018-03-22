@@ -1,6 +1,8 @@
 #ifndef AI_SERVER_GAME_ACTION_AUTONOMOUS_BALL_PLACE_H
 #define AI_SERVER_GAME_ACTION_AUTONOMOUS_BALL_PLACE_H
 
+#include <Eigen/Dense>
+
 #include "ai_server/util/time.h"
 #include "base.h"
 
@@ -11,7 +13,7 @@ namespace action {
 class autonomous_ball_place : public base {
 public:
   autonomous_ball_place(const model::world& world, bool is_yellow, unsigned int id,
-                        double target_x, double target_y);
+                        Eigen::Vector2d target);
 
   // move:ボール前まで移動
   // hold:ボールを持つ
@@ -35,8 +37,7 @@ private:
   bool round_flag_;
   util::time_point_type begin_;
   util::time_point_type now_;
-  double target_x_;
-  double target_y_;
+  Eigen::Vector2d target_;
   double first_ballx_;
   double first_bally_;
 };
