@@ -48,6 +48,7 @@ model::command autonomous_ball_place::execute() {
   };
   // b基準のaの符号
   auto sign         = [](double a, double b) { return ((a > b) - (a < b)); };
+  // ボールが見えているか?
   auto ball_visible = [=]() {
     return std::hypot(ball.x() - first_ballx_, ball.y() - first_bally_) >
            std::numeric_limits<double>::epsilon();
