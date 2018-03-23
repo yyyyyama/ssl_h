@@ -4,6 +4,7 @@
 #include <memory>
 #include <vector>
 #include <boost/variant.hpp>
+#include <chrono>
 
 #include "base.h"
 #include "ai_server/model/refbox.h"
@@ -33,7 +34,11 @@ public:
     penalty_attack,
     penalty_defense,
     setplay_attack,
-    setplay_defense
+    setplay_defense,
+    shootout_attack,
+    shootout_attack_start,
+    shootout_defense,
+    shootout_defense_start
   };
 
   first_formation(const model::world& world, const model::refbox& refcommand, bool is_yellow,
@@ -74,6 +79,13 @@ private:
   bool kicked_flag_;     //ボールが蹴られたか判断するためのフラグ
   bool initialize_flag_; // idが変わって初期化する必要があるとき
   bool regular_flag_; //定常状態に遷移した際に、一回だけagentを初期化したいため必要
+  bool is_corner_;
+
+  std::chrono::high_resolution_clock::time_point change_command_time_;
+  bool time_over(std::chrono::high_resolution_clock::time_point point, int count);
+
+  void reset_agent();
+  void role_reset(const std::vector<unsigned int>& visible_robots);
 
   model::refbox::game_command previous_refcommand_;
   command previous_command_;
@@ -82,6 +94,7 @@ private:
   bool is_command_changed();
 
   model::ball previous_ball_;
+  std::vector<model::ball> past_ball_;
 
   std::shared_ptr<agent::penalty_kick> pk_;
   std::shared_ptr<agent::halt> halt_;
@@ -91,17 +104,21 @@ private:
   std::shared_ptr<agent::stopgame> stop_;
   std::shared_ptr<agent::regular> regular_;
   std::shared_ptr<agent::setplay> setplay_;
+  std::shared_ptr<agent::penalty_kick> shoot_out_;
 
   // agentを呼び出す関数
-  std::shared_ptr<agent::penalty_kick> pk(bool start_flag, bool attack);
+  std::shared_ptr<agent::penalty_kick> pk(bool start_flag, bool attack,
+                                          unsigned int enemy_keeper);
   std::shared_ptr<agent::halt> halt();
-  std::shared_ptr<agent::defense> defense(agent::defense::defense_mode mode, bool mark_flag);
+  std::shared_ptr<agent::defense> defense(agent::defense::defense_mode mode,
+                                          unsigned int mark_num);
   std::shared_ptr<agent::kick_off> kickoff(bool start_flag);
   std::shared_ptr<agent::kick_off_waiter> kickoff_waiter(
       agent::kick_off_waiter::kickoff_mode mode, bool attack);
   std::shared_ptr<agent::stopgame> stop();
   std::shared_ptr<agent::regular> regular(bool chase_flag);
   std::shared_ptr<agent::setplay> setplay();
+  std::shared_ptr<agent::penalty_kick> shootout(bool start_flag, unsigned int enemy_keeper);
 };
 } // namespace formation
 } // namespace game
