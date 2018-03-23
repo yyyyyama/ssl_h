@@ -57,7 +57,8 @@ kiks::data_t kiks::to_data_t(const model::command& command) {
     data[6]         = (omega_calc & 0x00ff);
   }
   // dribble
-  data[7] = static_cast<uint8_t>(std::abs(command.dribble()));
+  // 回路側のdribble回転(0-3が逆転)に対応させるため+3
+  data[7] = static_cast<uint8_t>(std::abs(command.dribble() + 3));
   // kick_power
   data[8] = static_cast<uint8_t>(std::get<1>(command.kick_flag()));
   return data;
