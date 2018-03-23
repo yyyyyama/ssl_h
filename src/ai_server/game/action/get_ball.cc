@@ -60,15 +60,17 @@ model::command get_ball::execute() {
 
   const auto& my_robot   = my_robots.at(id_);
   const auto robot       = util::math::position(my_robot);
-  const auto robot_theta = util::wrap_to_pi(my_robot.theta());
+  const auto robot_theta = util::math::wrap_to_pi(my_robot.theta());
 
   const auto ball_pos = util::math::position(world_.ball());
   const auto ball_vec = util::math::velocity(world_.ball());
-  // 3.0秒後のボールの位置
-  const Eigen::Vector2d ball = ball_pos + ball_vec * 3.0;
+  // 2.0秒後のボールの位置
+  const Eigen::Vector2d ball = ball_pos + ball_vec * 2.0;
 
   //移動目標
   Eigen::Vector2d position{Eigen::Vector2d::Zero()};
+  Eigen::Vector2d velocity{Eigen::Vector2d::Zero()};
+  bool is_position = true;
 
   auto theta = 0.0;
   if (ball_vec.norm() < 800.0) {
@@ -77,9 +79,8 @@ model::command get_ball::execute() {
     //目標に向かって蹴る
     {
       //目標位置に向いたら蹴る
-      const auto theta =
-          util::wrap_to_pi(std::atan2(target_.y() - robot.y(), target_.x() - robot.x()));
-      if (std::abs(theta - robot_theta) < pi<double>() / 31.0) {
+      const auto theta = std::atan2(target_.y() - robot.y(), target_.x() - robot.x());
+      if (std::abs(util::math::wrap_to_pi(theta - robot_theta)) < pi<double>() / 31.0) {
         command.set_dribble(0);
         radius = 70;
         //間に敵がいるか判定
@@ -115,7 +116,11 @@ model::command get_ball::execute() {
       } else {
         command.set_kick_flag(
             model::command::kick_flag_t{model::command::kick_type_t::none, 0});
-        command.set_dribble(9);
+        if ((ball_pos - robot).norm() < 2000) {
+          command.set_dribble(9);
+        } else {
+          command.set_dribble(0);
+        }
       }
     }
     //移動目標はボールのちょい後ろ
@@ -128,28 +133,30 @@ model::command get_ball::execute() {
       //目標位置と自分の位置で四角を作る
       const auto mergin = 140.0;
       polygon poly;
-      const auto tmp          = util::math::calc_isosceles_vertexes(robot, position, mergin);
+      const auto tmp = util::math::calc_isosceles_vertexes(robot, position, mergin);
+
       bg::exterior_ring(poly) = boost::assign::list_of<point>(robot.x(), robot.y())(
           std::get<0>(tmp).x(), std::get<0>(tmp).y())(
           std::get<1>(tmp).x(), std::get<1>(tmp).y())(robot.x(), robot.y());
+
       const point p(ball_pos.x(), ball_pos.y());
+      // 角度がいい感じか
+      bool flag =
+          (ball - robot).norm() < 300 &&
+          std::abs(util::math::wrap_to_pi(vectorangle(ball - robot) - robot_theta)) > 0.5;
       //間にボールがあったら回り込む
-      if (!bg::disjoint(p, poly)) {
+      if (!bg::disjoint(p, poly) || flag) {
         //判定の幅
         const auto mergin = 500.0;
-        const auto tmp1 =
-            std::get<0>(util::math::calc_isosceles_vertexes(robot, ball_pos, mergin));
-        const auto tmp2 =
-            std::get<1>(util::math::calc_isosceles_vertexes(robot, ball_pos, mergin));
 
-        const auto tc = (ball_pos.x() - target_.x()) * (tmp1.y() - ball_pos.y()) +
-                        (ball_pos.y() - target_.y()) * (ball_pos.x() - tmp1.x());
-        const auto tp = (ball_pos.x() - target_.x()) * (robot.y() - ball_pos.y()) +
-                        (ball_pos.y() - target_.y()) * (ball_pos.x() - robot.x());
-        position = std::signbit(tc) == std::signbit(tp) ? tmp1 : tmp2;
+        const auto[tmp1, tmp2] = util::math::calc_isosceles_vertexes(robot, ball_pos, mergin);
+        const auto b2r         = vectorangle(robot - ball);
+        const auto b2p         = vectorangle(position - ball);
+        position               = util::math::wrap_to_pi(b2p - b2r) < 0 ? tmp1 : tmp2;
       }
     }
-    theta = util::wrap_to_pi(std::atan2(target_.y() - robot.y(), target_.x() - robot.x()));
+    theta =
+        util::math::wrap_to_pi(std::atan2(target_.y() - robot.y(), target_.x() - robot.x()));
   } else {
     //ボールがはやければ予測位置に行く
 
@@ -168,7 +175,11 @@ model::command get_ball::execute() {
     //キックフラグは蹴らせない
     command.set_kick_flag(model::command::kick_flag_t{model::command::kick_type_t::none, 0});
     //捕球させる
-    command.set_dribble(9);
+    if ((ball_pos - robot).norm() < 2000) {
+      command.set_dribble(9);
+    } else {
+      command.set_dribble(0);
+    }
 
     //ボールより手前ならタンケッテのあれ
     if (std::signbit(ball_vec.dot(position - ball_pos))) {
@@ -182,30 +193,52 @@ model::command get_ball::execute() {
             std::get<0>(tmp).x(), std::get<0>(tmp).y())(
             std::get<1>(tmp).x(), std::get<1>(tmp).y())(robot.x(), robot.y());
         const point p(ball_pos.x(), ball_pos.y());
+
+        bool flag = false;
+        if ((ball_pos - robot).norm() < 2000) flag = true;
+
         //間にボールがあったら回り込む
-        if (!bg::disjoint(p, poly)) {
+        if (!bg::disjoint(p, poly) && flag) {
           //判定の幅
           const auto mergin = 1000.0;
-          const auto tmp1 =
-              std::get<0>(util::math::calc_isosceles_vertexes(ball_pos, position, mergin));
-          const auto tmp2 =
-              std::get<1>(util::math::calc_isosceles_vertexes(ball_pos, position, mergin));
 
-          const auto tc = (ball_pos.x() - position.x()) * (tmp1.y() - position.y()) +
-                          (ball_pos.y() - position.y()) * (position.x() - tmp1.x());
-          const auto tp = (ball_pos.x() - position.x()) * (robot.y() - position.y()) +
-                          (ball_pos.y() - position.y()) * (position.x() - robot.x());
-          position = std::signbit(tc) == std::signbit(tp) ? tmp1 : tmp2;
+          const auto[tmp1, tmp2] = util::math::calc_isosceles_vertexes(robot, ball_pos, mergin);
+          const auto b2r         = vectorangle(robot - ball);
+          const auto b2p         = vectorangle(position - ball);
+          position               = util::math::wrap_to_pi(b2p - b2r) < 0 ? tmp1 : tmp2;
+
+          is_position = false;
+          velocity    = position - robot;
+        } else {
+          const auto nb2r = vectorangle(robot - ball_pos);
+          const auto nb2p = vectorangle(position - ball);
+          // 当たらないようにする
+          if (std::abs(util::math::wrap_to_pi(nb2r - nb2p)) < 0.1) {
+            const auto margin = 200.0;
+            const auto[tmp1, tmp2] =
+                util::math::calc_isosceles_vertexes(robot, ball_pos, mergin);
+            const auto b2r = vectorangle(robot - ball);
+            const auto b2p = vectorangle(position - ball);
+            position       = util::math::wrap_to_pi(b2p - b2r) < 0 ? tmp1 : tmp2;
+          }
+
+          is_position = false;
+          velocity    = position - robot;
         }
       }
+    } else {
+      is_position = false;
+      velocity    = position - robot;
     }
-    theta = util::wrap_to_pi(std::atan2(ball_pos.y() - robot.y(), ball_pos.x() - robot.x()));
+    theta =
+        util::math::wrap_to_pi(std::atan2(ball_pos.y() - robot.y(), ball_pos.x() - robot.x()));
   }
 
   //目標位置が外側に行ったらいい感じにする
   //出たラインとの交点に移動
   if (std::abs(position.y()) > world_.field().y_max()) {
     {
+      is_position  = true;
       const auto A = (position.y() - ball_pos.y()) / (position.x() - ball_pos.x());
       const auto B = ball_pos.y() - A * ball_pos.x();
       if (std::signbit(position.y()) == std::signbit(world_.field().y_min())) {
@@ -217,6 +250,7 @@ model::command get_ball::execute() {
     }
   } else if (std::abs(position.x()) > world_.field().x_max()) {
     {
+      is_position  = true;
       const auto A = (position.y() - ball_pos.y()) / (position.x() - ball_pos.x());
       const auto B = ball_pos.y() - A * ball_pos.x();
       if (std::signbit(position.x()) == std::signbit(world_.field().x_min())) {
@@ -228,7 +262,13 @@ model::command get_ball::execute() {
     }
   }
 
-  command.set_position({position.x(), position.y(), theta});
+  if (is_position) {
+    command.set_position({position.x(), position.y(), theta});
+  } else {
+    velocity =
+        velocity.norm() < 500 ? Eigen::Vector2d(velocity / 2) : Eigen::Vector2d(velocity * 2);
+    command.set_velocity({velocity.x(), velocity.y(), theta - robot_theta});
+  }
 
   flag_ = false;
   return command;
@@ -237,6 +277,10 @@ model::command get_ball::execute() {
 bool get_ball::finished() const {
   return flag_;
 }
+// ベクトルを渡すと角度を返してくれるもの{{{
+double get_ball::vectorangle(Eigen::Vector2d vec) const {
+  return std::atan2(vec.y(), vec.x());
+} // }}}
 
 } // namespace action
 } // namespace game

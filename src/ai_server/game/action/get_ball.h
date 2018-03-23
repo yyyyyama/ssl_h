@@ -23,6 +23,8 @@ public:
   model::command execute() override;
   bool finished() const override;
 
+  double vectorangle(Eigen::Vector2d vec) const;
+
 private:
   Eigen::Vector2d target_; // 蹴りたい目標
   //蹴る強さ
