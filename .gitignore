@@ -12,3 +12,6 @@ CTestTestfile.cmake
 *.gcno
 *.gcda
 *.gcov
+
+### ctags ###
+tags
