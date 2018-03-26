@@ -22,6 +22,6 @@ public:
 private:
   util::net::multicast::sender udp_sender_;
 };
-}
-}
+} // namespace sender
+} // namespace ai_server
 #endif

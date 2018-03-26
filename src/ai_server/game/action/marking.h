@@ -23,7 +23,7 @@ private:
   bool flag       = false;                 //終了判定のフラグ
   double radius_  = 250.0;
 };
-}
-}
-}
+} // namespace action
+} // namespace game
+} // namespace ai_server
 #endif

@@ -78,6 +78,6 @@ model::command guard::execute() {
 bool guard::finished() const {
   return flag_;
 }
-}
-}
-}
+} // namespace action
+} // namespace game
+} // namespace ai_server

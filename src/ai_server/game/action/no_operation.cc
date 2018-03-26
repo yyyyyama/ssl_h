@@ -11,6 +11,6 @@ model::command no_operation::execute() {
 bool no_operation::finished() const {
   return true;
 }
-}
-}
-}
+} // namespace action
+} // namespace game
+} // namespace ai_server

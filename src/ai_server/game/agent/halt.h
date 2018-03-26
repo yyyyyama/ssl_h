@@ -19,8 +19,8 @@ public:
 private:
   std::vector<unsigned int> ids_;
 };
-}
-}
-}
+} // namespace agent
+} // namespace game
+} // namespace ai_server
 
 #endif

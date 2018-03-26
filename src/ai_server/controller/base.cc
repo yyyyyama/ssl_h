@@ -25,4 +25,4 @@ void base::set_velocity_limit(const double limit) {
 }
 
 } // namespace controller
-} // namespace demoapp
+} // namespace ai_server

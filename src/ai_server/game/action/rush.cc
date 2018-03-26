@@ -51,6 +51,6 @@ model::command rush::execute() {
 bool rush::finished() const {
   return flag_;
 }
-}
-}
-}
+} // namespace action
+} // namespace game
+} // namespace ai_server

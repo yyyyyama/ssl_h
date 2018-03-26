@@ -9,7 +9,7 @@ namespace ssl_protos {
 namespace refbox {
 class Referee;
 }
-}
+} // namespace ssl_protos
 
 namespace ai_server {
 namespace model {

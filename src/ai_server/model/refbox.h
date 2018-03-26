@@ -93,7 +93,7 @@ private:
   team_info team_yellow_;
   team_info team_blue_;
 };
-}
-}
+} // namespace model
+} // namespace ai_server
 
 #endif

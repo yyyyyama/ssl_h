@@ -12,12 +12,13 @@ namespace ai_server {
 namespace game {
 namespace agent {
 
-stopgame::stopgame(const model::world& world, bool is_yellow,const std::vector<unsigned int>& ids)
+stopgame::stopgame(const model::world& world, bool is_yellow,
+                   const std::vector<unsigned int>& ids)
     : base(world, is_yellow), ids_(ids) {
   nearest_robot_        = 0;
   const auto our_robots = is_yellow_ ? world_.robots_yellow() : world_.robots_blue();
   const auto ball       = world_.ball();
-  abp_flag_ = false;
+  abp_flag_             = false;
 
   // 一番ボールに近いロボットを探索し、ボールを追いかけるロボットとする
   const auto nearest_robot_id =
@@ -31,13 +32,13 @@ stopgame::stopgame(const model::world& world, bool is_yellow,const std::vector<u
   }
 }
 
-//ABP用のコンストラクタ
-stopgame::stopgame(const model::world& world, bool is_yellow,const std::vector<unsigned int>& ids,
-                     Eigen::Vector2d abp_target )
+// ABP用のコンストラクタ
+stopgame::stopgame(const model::world& world, bool is_yellow,
+                   const std::vector<unsigned int>& ids, Eigen::Vector2d abp_target)
     : base(world, is_yellow), ids_(ids) {
-  nearest_robot_ = 0;
-  abp_flag_ = true;
-  abp_target_ = abp_target;
+  nearest_robot_        = 0;
+  abp_flag_             = true;
+  abp_target_           = abp_target;
   const auto our_robots = is_yellow_ ? world_.robots_yellow() : world_.robots_blue();
   const auto ball       = world_.ball();
 
@@ -50,8 +51,8 @@ stopgame::stopgame(const model::world& world, bool is_yellow,const std::vector<u
   if (nearest_robot_id != ids_.end()) {
     nearest_robot_ = *nearest_robot_id;
   }
-  abp_ = std::make_shared<action::autonomous_ball_place>(world_,
-                                    is_yellow_, nearest_robot_, abp_target_);
+  abp_ = std::make_shared<action::autonomous_ball_place>(world_, is_yellow_, nearest_robot_,
+                                                         abp_target_);
 }
 
 std::vector<std::shared_ptr<action::base>> stopgame::execute() {
@@ -81,7 +82,7 @@ std::vector<std::shared_ptr<action::base>> stopgame::execute() {
     const auto& robot   = our_robots.at(id);
     const double robotx = robot.x();
     const double roboty = robot.y();
-    
+
     if (std::abs(ballx) > 2000) {
       // 敵または味方のゴール近く
       if (id == nearest_robot_) {
@@ -92,11 +93,11 @@ std::vector<std::shared_ptr<action::base>> stopgame::execute() {
         targetx = ballx - enemygoalsign * i * 500;
         targety = bally - dist * ballysign * (i % 2 == 0 ? i : -i) / 2;
         if (std::abs(targety) > 3000) targety = bally - dist * ballysign * (i - 1);
-         i++;
+        i++;
       }
     } else {
       // 中間
-      if (id == nearest_robot_){
+      if (id == nearest_robot_) {
         targetx = ballx - 650;
         targety = bally;
       } else {
@@ -104,7 +105,7 @@ std::vector<std::shared_ptr<action::base>> stopgame::execute() {
         targetx = ballx - enemygoalsign * i * 500;
         targety = bally - dist * ballysign * (i % 2 == 0 ? -i : i) / 2;
         if (std::abs(targety) > 3000) targety = bally - dist * ballysign * (i - 1);
-          i++;
+        i++;
       }
     }
 
@@ -133,7 +134,6 @@ std::vector<std::shared_ptr<action::base>> stopgame::execute() {
       targetx = ballxsign * 2900;
     }
 
-    
     if (id == nearest_robot_ && abp_flag_) {
       // Autonomous Ball Placement
       baseaction.push_back(abp_);

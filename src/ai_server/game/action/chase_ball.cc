@@ -16,8 +16,8 @@ model::command chase_ball::execute() {
   const auto fri_robots = is_yellow_ ? world_.robots_yellow() : world_.robots_blue();
   const auto& robot     = fri_robots.at(id_);
 
-  using boost::math::constants::pi;
   using boost::math::constants::half_pi;
+  using boost::math::constants::pi;
 
   model::command::position_t first_pos;  // ボールからrの円周上
   model::command::position_t second_pos; // 最終位置(回り込み)
@@ -253,6 +253,6 @@ bool chase_ball::finished() const {
   return fin_flag_;
 }
 
-} // namespace ai_server
-} // namespace game
 } // namespace action
+} // namespace game
+} // namespace ai_server

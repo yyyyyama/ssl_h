@@ -24,8 +24,8 @@ private:
   const std::vector<unsigned int> ids_;
   kickoff_mode mode_;
 };
-}
-}
-}
+} // namespace agent
+} // namespace game
+} // namespace ai_server
 
 #endif

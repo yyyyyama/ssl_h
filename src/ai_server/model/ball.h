@@ -32,6 +32,6 @@ public:
   void set_ax(double ax);
   void set_ay(double ay);
 };
-}
-}
+} // namespace model
+} // namespace ai_server
 #endif

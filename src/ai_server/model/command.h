@@ -49,7 +49,7 @@ private:
   kick_flag_t kick_flag_;
   setpoint_t setpoint_;
 };
-}
-}
+} // namespace model
+} // namespace ai_server
 
 #endif

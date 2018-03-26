@@ -57,5 +57,5 @@ double field::x_min() const {
 double field::y_min() const {
   return (-width_ / 2);
 }
-}
-}
+} // namespace model
+} // namespace ai_server

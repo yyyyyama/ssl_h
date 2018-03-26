@@ -25,7 +25,7 @@ private:
   static constexpr double quant_limit_x_ =
       6000 / 1000; // カメラの量子化限界(幅方向)。フィールド幅[mm] / カメラ分解能
   static constexpr double quant_limit_y_ =
-      9000 / 1000;                               // カメラの量子化限界(奥行き方向)。フィールド奥行き[mm] / カメラ分解能
+      9000 / 1000; // カメラの量子化限界(奥行き方向)。フィールド奥行き[mm] / カメラ分解能
   static constexpr double lambda_observer_ = -9; // ボールの状態オブザーバの極
 
   model::ball ball_;

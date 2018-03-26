@@ -30,8 +30,8 @@ public:
   double control_vel(const double target);
 };
 
-} // detail
-} // controller
-} // ai_server
+} // namespace detail
+} // namespace controller
+} // namespace ai_server
 
 #endif // AI_SERVER_CONTROLLER_DETAIL_VELOCITY_GENERATOR_H

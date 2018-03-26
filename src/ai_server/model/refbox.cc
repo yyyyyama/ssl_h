@@ -128,5 +128,5 @@ void refbox::team_info::set_timeouts(int value) {
 void refbox::team_info::set_timeout_time(int value) {
   timeout_time_ = value;
 }
-}
-}
+} // namespace model
+} // namespace ai_server

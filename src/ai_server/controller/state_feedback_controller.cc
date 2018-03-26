@@ -146,5 +146,5 @@ Eigen::Vector3d state_feedback_controller::convert(const Eigen::Vector3d& raw,
   return target;
 }
 
-} // controller
-} // ai_server
+} // namespace controller
+} // namespace ai_server

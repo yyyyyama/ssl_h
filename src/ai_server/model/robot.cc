@@ -83,5 +83,5 @@ void robot::set_ay(double ay) {
 void robot::set_alpha(double alpha) {
   alpha_ = alpha;
 }
-}
-}
+} // namespace model
+} // namespace ai_server

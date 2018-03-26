@@ -18,8 +18,8 @@ void kiks::send_command(const model::command& command) {
 }
 
 kiks::data_t kiks::to_data_t(const model::command& command) {
-  using boost::math::constants::two_pi;
   using boost::math::constants::half_pi;
+  using boost::math::constants::two_pi;
 
   data_t data{{0, 0, 0, 0, 0, 0, 0, 0, 0, '\r', '\n'}};
   // id
@@ -49,8 +49,8 @@ kiks::data_t kiks::to_data_t(const model::command& command) {
     // dir
     auto dir = ai_server::util::wrap_to_2pi(std::atan2(velocity->vy, velocity->vx) +
                                             half_pi<double>());
-    data[3] = (static_cast<uint16_t>((dir / two_pi<double>()) * 0xffff) & 0xff00) >> 8;
-    data[4] = (static_cast<uint16_t>((dir / two_pi<double>()) * 0xffff) & 0x00ff);
+    data[3]  = (static_cast<uint16_t>((dir / two_pi<double>()) * 0xffff) & 0xff00) >> 8;
+    data[4]  = (static_cast<uint16_t>((dir / two_pi<double>()) * 0xffff) & 0x00ff);
     // mrad/s
     auto omega_calc = static_cast<uint16_t>(std::abs(velocity->omega) * 1000);
     data[5]         = (omega_calc & 0xff00) >> 8;
@@ -63,5 +63,5 @@ kiks::data_t kiks::to_data_t(const model::command& command) {
   data[8] = static_cast<uint8_t>(std::get<1>(command.kick_flag()));
   return data;
 }
-}
-}
+} // namespace sender
+} // namespace ai_server

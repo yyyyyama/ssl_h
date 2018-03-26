@@ -14,7 +14,7 @@ namespace ssl_protos {
 namespace vision {
 class Packet;
 }
-}
+} // namespace ssl_protos
 
 namespace ai_server {
 namespace model {

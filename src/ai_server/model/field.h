@@ -31,7 +31,7 @@ public:
   double y_max() const;
   double y_min() const;
 };
-}
-}
+} // namespace model
+} // namespace ai_server
 
 #endif // AI_SERVER_MODEL_FIELD_H

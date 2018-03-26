@@ -32,7 +32,7 @@ private:
   bool flag_                             = false;
   bool halt_flag_                        = false;
 };
-}
-}
-}
+} // namespace action
+} // namespace game
+} // namespace ai_server
 #endif

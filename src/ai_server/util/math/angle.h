@@ -23,8 +23,8 @@ T wrap_to_2pi(T r) {
 /// @brief	-pi<r<=piに正規化
 template <class T, std::enable_if_t<std::is_floating_point<T>::value, std::nullptr_t> = nullptr>
 T wrap_to_pi(T r) {
-  using boost::math::constants::two_pi;
   using boost::math::constants::pi;
+  using boost::math::constants::two_pi;
 
   auto wrapped = std::fmod(r, two_pi<T>());
 
@@ -35,7 +35,7 @@ T wrap_to_pi(T r) {
   }
   return wrapped;
 }
-}
-}
-}
+} // namespace math
+} // namespace util
+} // namespace ai_server
 #endif

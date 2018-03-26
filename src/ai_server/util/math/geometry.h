@@ -42,7 +42,7 @@ std::tuple<Eigen::Matrix<T, 2, 1>, Eigen::Matrix<T, 2, 1>> calc_isosceles_vertex
   //回転した後の正しい座標
   return std::make_tuple((rotate * tmp1) + move, (rotate * tmp2) + move);
 }
-}
-}
-}
+} // namespace math
+} // namespace util
+} // namespace ai_server
 #endif

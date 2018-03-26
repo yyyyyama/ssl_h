@@ -9,7 +9,7 @@ namespace ssl_protos {
 namespace vision {
 class Geometry;
 }
-}
+} // namespace ssl_protos
 
 namespace ai_server {
 namespace model {

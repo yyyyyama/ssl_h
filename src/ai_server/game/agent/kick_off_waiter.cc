@@ -31,9 +31,9 @@ std::vector<std::shared_ptr<action::base>> kick_off_waiter::execute() {
     for (auto it = tmp_ids.begin(); it != tmp_ids.end(); it++) {
       auto move = std::make_shared<action::move>(world_, is_yellow_, *it);
       auto a    = std::hypot((x_line - robots.at(*it).x()),
-                     (world_.field().y_min() + interval * count_a - robots.at(*it).y()));
+                          (world_.field().y_min() + interval * count_a - robots.at(*it).y()));
       auto b    = std::hypot((x_line - robots.at(*it).x()),
-                     (world_.field().y_max() - interval * count_b - robots.at(*it).y()));
+                          (world_.field().y_max() - interval * count_b - robots.at(*it).y()));
       if (a < b) {
         move->move_to(x_line, world_.field().y_min() + interval * count_a, 0);
         count_a++;

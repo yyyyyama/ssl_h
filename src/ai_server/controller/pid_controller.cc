@@ -152,5 +152,5 @@ void pid_controller::limitation() {
   e_[1]  = e_[0];
 }
 
-} // controller
-} // ai_server
+} // namespace controller
+} // namespace ai_server

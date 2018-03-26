@@ -33,10 +33,9 @@ Eigen::Matrix3d smith_predictor::interpolate(const model::robot& robot,
     // v=v+a*dt
     now_velocity = now_velocity + cycle_ * pre_acceleration;
     // a=a+omega^2*v*dt-2*zeta*omega*a+omega^2*u
-    now_acceleration =
-        now_acceleration +
-        cycle_ * (-std::pow(omega_, 2) * pre_velocity - 2 * zeta_ * omega_ * pre_acceleration +
-                  std::pow(omega_, 2) * u);
+    now_acceleration = now_acceleration + cycle_ * (-std::pow(omega_, 2) * pre_velocity -
+                                                    2 * zeta_ * omega_ * pre_acceleration +
+                                                    std::pow(omega_, 2) * u);
 
     // 更新
     if (i != 0) {
@@ -56,6 +55,6 @@ Eigen::Matrix3d smith_predictor::interpolate(const model::robot& robot,
   return now_state;
 }
 
-} // detail
-} // controller
-} // ai_serever
+} // namespace detail
+} // namespace controller
+} // namespace ai_server

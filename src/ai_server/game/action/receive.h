@@ -30,7 +30,7 @@ private:
   Eigen::Vector2d dummy_pos_;
   bool approaching_flag_ = false;
 };
-}
-}
-}
+} // namespace action
+} // namespace game
+} // namespace ai_server
 #endif // AI_SERVER_GAME_ACTION_RECEIVE_H

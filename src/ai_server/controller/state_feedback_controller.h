@@ -58,7 +58,7 @@ public:
   velocity_t update(const model::robot& robot, const velocity_t& setpoint) override;
 };
 
-} // controller
-} // ai_server
+} // namespace controller
+} // namespace ai_server
 
 #endif // AI_SERVER_CONTROLLER_STATE_FEEDBACK_CONTROLLER_H

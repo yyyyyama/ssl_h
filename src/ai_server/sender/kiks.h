@@ -25,7 +25,7 @@ private:
 private:
   util::serial serial_;
 };
-}
-}
+} // namespace sender
+} // namespace ai_server
 
 #endif // AI_SERVER_SENDER_KIKS_H

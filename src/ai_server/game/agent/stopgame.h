@@ -14,7 +14,7 @@ class stopgame : public base {
 private:
   const std::vector<unsigned int> ids_;
   unsigned int nearest_robot_;
-  
+
   bool abp_flag_;
   Eigen::Vector2d abp_target_;
   std::shared_ptr<action::base> abp_;
@@ -22,7 +22,7 @@ private:
 public:
   stopgame(const model::world& world, bool is_yellow, const std::vector<unsigned int>& ids);
   stopgame(const model::world& world, bool is_yellow, const std::vector<unsigned int>& ids,
-            Eigen::Vector2d abp_target );
+           Eigen::Vector2d abp_target);
   std::vector<std::shared_ptr<action::base>> execute() override;
 };
 

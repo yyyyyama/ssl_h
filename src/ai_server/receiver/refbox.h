@@ -31,7 +31,7 @@ private:
   receive_signal_t received_;
   error_signal_t errored_;
 };
-}
-}
+} // namespace receiver
+} // namespace ai_server
 
 #endif

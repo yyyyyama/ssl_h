@@ -37,8 +37,8 @@ public:
   Eigen::Matrix3d interpolate(const model::robot& robot, const Eigen::Vector3d& u);
 };
 
-} // detail
-} // controller
-} // ai_server
+} // namespace detail
+} // namespace controller
+} // namespace ai_server
 
 #endif // AI_SERVER_CONTROLLER_SMITH_PREDICTOR_

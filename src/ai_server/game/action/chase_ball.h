@@ -45,8 +45,8 @@ private:
   bool fin_flag_  = false; //終了
 };
 
-} // namespace ai_server
-} // namespace game
 } // namespace action
+} // namespace game
+} // namespace ai_server
 
 #endif // AI_SERVER_GAME_ACTION_CHASE_BALL_H

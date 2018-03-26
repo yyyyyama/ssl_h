@@ -31,5 +31,5 @@ void refbox::parse_packet(const util::net::multicast::receiver::buffer_t& buffer
     errored_();
   }
 }
-}
-}
+} // namespace receiver
+} // namespace ai_server

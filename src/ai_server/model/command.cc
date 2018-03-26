@@ -40,5 +40,5 @@ void command::set_position(const command::position_t& position) {
 void command::set_velocity(const command::velocity_t& velocity) {
   setpoint_ = velocity;
 }
-}
-}
+} // namespace model
+} // namespace ai_server

@@ -62,6 +62,6 @@ double velocity_generator::control_vel(const double target) {
   return v_target_;
 }
 
-} // detail
-} // controller
-} // ai_server
+} // namespace detail
+} // namespace controller
+} // namespace ai_server

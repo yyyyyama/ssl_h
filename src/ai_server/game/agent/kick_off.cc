@@ -107,5 +107,5 @@ std::vector<std::shared_ptr<action::base>> kick_off::execute() {
 }
 
 } // namespace agent
-} // namespace agent
-} // napespace ai_server
+} // namespace game
+} // namespace ai_server

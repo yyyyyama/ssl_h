@@ -112,6 +112,6 @@ model::command marking::execute() {
 bool marking::finished() const {
   return flag;
 }
-}
-}
-}
+} // namespace action
+} // namespace game
+} // namespace ai_server

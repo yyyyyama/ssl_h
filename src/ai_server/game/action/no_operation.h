@@ -15,8 +15,8 @@ public:
 
   bool finished() const override;
 };
-}
-}
-}
+} // namespace action
+} // namespace game
+} // namespace ai_server
 
 #endif

@@ -24,7 +24,7 @@ private:
   bool flag_;
   model::ball previous_kick_ball_;
 };
-}
-}
-}
+} // namespace action
+} // namespace game
+} // namespace ai_server
 #endif

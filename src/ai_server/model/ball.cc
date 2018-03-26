@@ -61,5 +61,5 @@ void ball::set_ax(double ax) {
 void ball::set_ay(double ay) {
   ay_ = ay;
 }
-}
-}
+} // namespace model
+} // namespace ai_server

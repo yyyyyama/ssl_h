@@ -17,6 +17,6 @@ std::vector<std::shared_ptr<action::base>> halt::execute() {
 
   return exe;
 }
-}
-}
-}
+} // namespace agent
+} // namespace game
+} // namespace ai_server

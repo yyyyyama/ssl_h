@@ -42,7 +42,7 @@ public:
   void set_ay(double ay);
   void set_alpha(double alpha);
 };
-}
-}
+} // namespace model
+} // namespace ai_server
 
 #endif
