@@ -1,5 +1,5 @@
-#ifndef AI_SERVER_UTIL_GEOMETRY_H
-#define AI_SERVER_UTIL_GEOMETRY_H
+#ifndef AI_SERVER_UTIL_MATH_GEOMETRY_H
+#define AI_SERVER_UTIL_MATH_GEOMETRY_H
 
 #include <boost/math/constants/constants.hpp>
 #include <Eigen/Dense>

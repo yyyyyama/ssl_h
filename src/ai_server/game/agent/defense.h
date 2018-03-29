@@ -1,5 +1,5 @@
-#ifndef AI_SERVER_GAME_ACTION_DEFENSE_H
-#define AI_SERVER_GAME_ACTION_DEFENSE_H
+#ifndef AI_SERVER_GAME_AGENT_DEFENSE_H
+#define AI_SERVER_GAME_AGENT_DEFENSE_H
 
 #include <Eigen/Dense>
 #include <memory>
@@ -80,4 +80,4 @@ private:
 } // namespace agent
 } // namespace game
 } // namespace ai_server
-#endif // AI_SERVER_GAME_ACTION_DEFENSE_H
+#endif // AI_SERVER_GAME_AGENT_DEFENSE_H

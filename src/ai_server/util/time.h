@@ -1,5 +1,5 @@
-#ifndef AI_SERVER_UTIL_ALGORITHM_H
-#define AI_SERVER_UTIL_ALGORITHM_H
+#ifndef AI_SERVER_UTIL_TIME_H
+#define AI_SERVER_UTIL_TIME_H
 
 #include "detail/time.h"
 
@@ -32,4 +32,4 @@ inline constexpr Duration to_duration(double time) {
 } // namespace util
 } // namespace ai_server
 
-#endif // AI_SERVER_UTIL_ALGORITHM_H
+#endif // AI_SERVER_UTIL_TIME_H

@@ -1,3 +1,6 @@
+#ifndef AI_SERVER_FILTER_VA_CALCULATOR_H
+#define AI_SERVER_FILTER_VA_CALCULATOR_H
+
 #include <chrono>
 
 #include "base.h"
@@ -25,3 +28,5 @@ va_calculator<T>::va_calculator() : prev_time_(time_point_type::min()) {}
 
 } // namespace filter
 } // namespace ai_server
+
+#endif // AI_SERVER_FILTER_VA_CALCULATOR_H

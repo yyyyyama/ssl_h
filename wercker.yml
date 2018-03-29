@@ -43,5 +43,9 @@ static-validations:
       code: ./tools/validate/encoding.sh
 
     - script:
+      name: include guard
+      code: ./tools/validate/include_guard.sh
+
+    - script:
       name: format
       code: ./tools/validate/format.sh
