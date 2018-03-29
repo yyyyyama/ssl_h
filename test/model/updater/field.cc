@@ -19,8 +19,8 @@ BOOST_AUTO_TEST_CASE(normal) {
     BOOST_TEST(f1.width() == f2.width());
     BOOST_TEST(f1.center_radius() == f2.center_radius());
     BOOST_TEST(f1.goal_width() == f2.goal_width());
-    BOOST_TEST(f1.penalty_radius() == f2.penalty_radius());
-    BOOST_TEST(f1.penalty_line_length() == f2.penalty_line_length());
+    BOOST_TEST(f1.penalty_length() == f2.penalty_length());
+    BOOST_TEST(f1.penalty_width() == f2.penalty_width());
   }
 
   {
@@ -35,19 +35,6 @@ BOOST_AUTO_TEST_CASE(normal) {
     cca->set_name("CenterCircle");
     cca->set_radius(200);
 
-    auto lpa = mf->add_field_arcs();
-    lpa->set_name("LeftFieldLeftPenaltyArc");
-    lpa->set_radius(500);
-
-    auto lpl = mf->add_field_lines();
-    lpl->set_name("LeftPenaltyStretch");
-    auto mp1 = lpl->mutable_p1();
-    mp1->set_x(-4000);
-    mp1->set_y(-150);
-    auto mp2 = lpl->mutable_p2();
-    mp2->set_x(-4000);
-    mp2->set_y(150);
-
     fu.update(geometry);
   }
 
@@ -57,8 +44,6 @@ BOOST_AUTO_TEST_CASE(normal) {
     BOOST_TEST(f.width() == 6000);
     BOOST_TEST(f.goal_width() == 1000);
     BOOST_TEST(f.center_radius() == 200);
-    BOOST_TEST(f.penalty_radius() == 500);
-    BOOST_TEST(f.penalty_line_length() == 300);
   }
 
   {
@@ -73,19 +58,6 @@ BOOST_AUTO_TEST_CASE(normal) {
     cca->set_name("CenterCircle");
     cca->set_radius(100);
 
-    auto lpa = mf->add_field_arcs();
-    lpa->set_name("LeftFieldLeftPenaltyArc");
-    lpa->set_radius(250);
-
-    auto lpl = mf->add_field_lines();
-    lpl->set_name("LeftPenaltyStretch");
-    auto mp1 = lpl->mutable_p1();
-    mp1->set_x(-2750);
-    mp1->set_y(-250);
-    auto mp2 = lpl->mutable_p2();
-    mp2->set_x(-2750);
-    mp2->set_y(250);
-
     fu.update(geometry);
   }
 
@@ -95,8 +67,6 @@ BOOST_AUTO_TEST_CASE(normal) {
     BOOST_TEST(f.width() == 4500);
     BOOST_TEST(f.goal_width() == 800);
     BOOST_TEST(f.center_radius() == 100);
-    BOOST_TEST(f.penalty_radius() == 250);
-    BOOST_TEST(f.penalty_line_length() == 500);
   }
 }
 

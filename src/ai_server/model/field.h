@@ -9,8 +9,8 @@ private:
   int width_;
   int center_radius_;
   int goal_width_;
-  int penalty_radius_;
-  int penalty_line_length_;
+  int penalty_length_;
+  int penalty_width_;
 
 public:
   field();
@@ -18,14 +18,14 @@ public:
   int width() const;
   int center_radius() const;
   int goal_width() const;
-  int penalty_radius() const;
-  int penalty_line_length() const;
+  int penalty_length() const;
+  int penalty_width() const;
   void set_length(int length);
   void set_width(int width);
   void set_center_radius(int center_radius);
   void set_goal_width(int goal_width);
-  void set_penalty_radius(int penalty_radius);
-  void set_penalty_line_length(int penalty_line_length);
+  void set_penalty_length(int penalty_length);
+  void set_penalty_width(int penalty_width);
   double x_max() const;
   double x_min() const;
   double y_max() const;

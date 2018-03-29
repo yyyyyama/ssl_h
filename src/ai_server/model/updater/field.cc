@@ -21,15 +21,6 @@ void field::update(const ssl_protos::vision::Geometry& geometry) {
   for (const auto& arc : f.field_arcs()) {
     if (arc.name() == "CenterCircle") {
       field_.set_center_radius(arc.radius());
-    } else if (arc.name() == "LeftFieldLeftPenaltyArc") {
-      field_.set_penalty_radius(arc.radius());
-    }
-  }
-
-  for (const auto& line : f.field_lines()) {
-    if (line.name() == "LeftPenaltyStretch") {
-      field_.set_penalty_line_length(
-          std::abs(std::hypotf(line.p2().x() - line.p1().x(), line.p2().y() - line.p1().y())));
     }
   }
 }

@@ -20,8 +20,8 @@ BOOST_AUTO_TEST_CASE(nyan) {
     BOOST_TEST(w.field().width() == f.width());
     BOOST_TEST(w.field().center_radius() == f.center_radius());
     BOOST_TEST(w.field().goal_width() == f.goal_width());
-    BOOST_TEST(w.field().penalty_radius() == f.penalty_radius());
-    BOOST_TEST(w.field().penalty_line_length() == f.penalty_line_length());
+    BOOST_TEST(w.field().penalty_length() == f.penalty_length());
+    BOOST_TEST(w.field().penalty_width() == f.penalty_width());
 
     ai_server::model::ball b{};
     BOOST_TEST(w.ball().x() == b.x());
