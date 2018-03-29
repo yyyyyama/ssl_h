@@ -44,7 +44,7 @@ BOOST_AUTO_TEST_CASE(test02) {
 BOOST_AUTO_TEST_CASE(test03) {
   ai_server::model::refbox ref{};
 
-  BOOST_TEST(ref.packet_timestamp() == 0);
+  BOOST_TEST(ref.packet_timestamp().time_since_epoch().count() == 0);
   BOOST_TEST(ref.stage() == ai_server::model::refbox::stage_name::normal_first_half_pre);
   BOOST_TEST(ref.stage_time_left() == 0);
   BOOST_TEST(ref.command() == ai_server::model::refbox::game_command::halt);
@@ -56,8 +56,11 @@ BOOST_AUTO_TEST_CASE(test03) {
 BOOST_AUTO_TEST_CASE(test04) {
   ai_server::model::refbox ref{};
 
-  ref.set_packet_timestamp(1);
-  BOOST_TEST(ref.packet_timestamp() == 1);
+  constexpr auto dummy_time =
+      ai_server::util::time_point_type{std::chrono::microseconds{1513688793680551}};
+  ref.set_packet_timestamp(dummy_time);
+  BOOST_TEST(ref.packet_timestamp().time_since_epoch().count() ==
+             dummy_time.time_since_epoch().count());
   ref.set_stage(ai_server::model::refbox::stage_name::normal_first_half);
   BOOST_TEST(ref.stage() == ai_server::model::refbox::stage_name::normal_first_half);
   ref.set_stage_time_left(2);

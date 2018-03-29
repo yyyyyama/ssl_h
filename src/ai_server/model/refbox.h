@@ -2,6 +2,8 @@
 #define AI_SERVER_MODEL_REFBOX_H
 #include <string>
 
+#include "ai_server/util/time.h"
+
 namespace ai_server {
 namespace model {
 
@@ -72,13 +74,13 @@ public:
     ball_placement_blue
   };
   refbox();
-  int packet_timestamp() const;
+  util::time_point_type packet_timestamp() const;
   int stage_time_left() const;
   stage_name stage() const;
   game_command command() const;
   team_info team_yellow() const;
   team_info team_blue() const;
-  void set_packet_timestamp(int value);
+  void set_packet_timestamp(util::time_point_type value);
   void set_stage_time_left(int value);
   void set_stage(stage_name value);
   void set_command(game_command value);
@@ -86,7 +88,7 @@ public:
   void set_team_blue(const team_info& value);
 
 private:
-  int packet_timestamp_;
+  util::time_point_type packet_timestamp_;
   int stage_time_left_;
   stage_name stage_;
   game_command command_;

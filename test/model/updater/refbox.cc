@@ -19,7 +19,8 @@ BOOST_AUTO_TEST_CASE(normal) {
     const auto r1 = ru.value();
     const auto r2 = ai_server::model::refbox{};
 
-    BOOST_TEST(r1.packet_timestamp() == r2.packet_timestamp());
+    BOOST_TEST(r1.packet_timestamp().time_since_epoch().count() ==
+               r2.packet_timestamp().time_since_epoch().count());
     BOOST_TEST(r1.stage_time_left() == r2.stage_time_left());
     BOOST_TEST(r1.stage() == r2.stage());
     BOOST_TEST(r1.command() == r2.command());
@@ -30,7 +31,7 @@ BOOST_AUTO_TEST_CASE(normal) {
 
   ssl_protos::refbox::Referee referee{};
   {
-    referee.set_packet_timestamp(1);
+    referee.set_packet_timestamp(1513688793680551);
     referee.set_stage(ssl_protos::refbox::Referee::Stage::Referee_Stage_NORMAL_FIRST_HALF_PRE);
     // stage_time_leftはoptionalなので送られてこない場合がある
     // referee.set_stage_time_left(2);
@@ -70,7 +71,10 @@ BOOST_AUTO_TEST_CASE(normal) {
   {
     const auto r = ru.value();
 
-    BOOST_TEST(r.packet_timestamp() == 1);
+    BOOST_TEST(r.packet_timestamp().time_since_epoch().count() ==
+               ai_server::util::time_point_type{std::chrono::microseconds{1513688793680551}}
+                   .time_since_epoch()
+                   .count());
     // 送られてこなかったらmax()
     BOOST_TEST(r.stage_time_left() ==
                std::numeric_limits<decltype(r.stage_time_left())>::max());

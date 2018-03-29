@@ -4,13 +4,12 @@ namespace ai_server {
 namespace model {
 
 refbox::refbox() : team_yellow_("yellow"), team_blue_("blue") {
-  packet_timestamp_ = 0;
-  stage_time_left_  = 0;
-  stage_            = refbox::stage_name::normal_first_half_pre;
-  command_          = refbox::game_command::halt;
+  stage_time_left_ = 0;
+  stage_           = refbox::stage_name::normal_first_half_pre;
+  command_         = refbox::game_command::halt;
 }
 
-int refbox::packet_timestamp() const {
+util::time_point_type refbox::packet_timestamp() const {
   return packet_timestamp_;
 }
 
@@ -34,7 +33,7 @@ refbox::team_info refbox::team_blue() const {
   return team_blue_;
 }
 
-void refbox::set_packet_timestamp(int value) {
+void refbox::set_packet_timestamp(util::time_point_type value) {
   packet_timestamp_ = value;
 }
 
