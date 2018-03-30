@@ -10,6 +10,10 @@ for f in $(git ls-files | grep -E '*\.(cc|h|txt)$'); do
     echo "Error: ${f} is not utf-8 (without BOM) encoded" >&2
     RETVAL=1
   fi
+  if [[ $out == *"with CRLF line terminators"* ]]; then
+    echo "Error: ${f} has CRLF line terminators" >&2
+    RETVAL=1
+  fi
 done
 
 exit $RETVAL
