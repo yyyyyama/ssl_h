@@ -1,12 +1,17 @@
 #include <cmath>
 #include <algorithm>
+#include <boost/math/constants/constants.hpp>
 
 #include "ai_server/game/action/move.h"
 #include "ai_server/game/action/no_operation.h"
+#include "ai_server/game/action/vec.h"
 #include "ai_server/game/action/autonomous_ball_place.h"
 #include "ai_server/util/math.h"
+#include "ai_server/util/math/angle.h"
 
 #include "stopgame.h"
+
+using boost::math::constants::pi;
 
 namespace ai_server {
 namespace game {
@@ -30,6 +35,9 @@ stopgame::stopgame(const model::world& world, bool is_yellow,
   if (nearest_robot_id != ids_.end()) {
     nearest_robot_ = *nearest_robot_id;
   }
+
+  abp_ = std::make_shared<action::autonomous_ball_place>(world_, is_yellow_, nearest_robot_,
+                                                         abp_target_);
 }
 
 // ABP用のコンストラクタ
@@ -42,9 +50,10 @@ stopgame::stopgame(const model::world& world, bool is_yellow,
   const auto our_robots = is_yellow_ ? world_.robots_yellow() : world_.robots_blue();
   const auto ball       = world_.ball();
 
-  // 一番ボールに近いロボットを探索し、ボールを追いかけるロボットとする
-  const auto nearest_robot_id =
-      std::min_element(ids_.cbegin(), ids_.cend(), [&ball, &our_robots](auto& a, auto& b) {
+  // 一番ボールに近いボールを運べるロボットを探索し、ボールを追いかけるロボットとする
+  std::vector<unsigned int> placer_ids_{3, 5};
+  const auto nearest_robot_id = std::min_element(
+      placer_ids_.cbegin(), placer_ids_.cend(), [&ball, &our_robots](auto& a, auto& b) {
         return std::hypot(our_robots.at(a).x() - ball.x(), our_robots.at(a).y() - ball.y()) <
                std::hypot(our_robots.at(b).x() - ball.x(), our_robots.at(b).y() - ball.y());
       });
@@ -57,6 +66,9 @@ stopgame::stopgame(const model::world& world, bool is_yellow,
 
 std::vector<std::shared_ptr<action::base>> stopgame::execute() {
   std::vector<std::shared_ptr<action::base>> baseaction;
+  if (abp_flag_) {
+    abp_flag_ = !(abp_->finished());
+  }
   if (ids_.size() == 0) {
     return baseaction;
   }
@@ -66,11 +78,17 @@ std::vector<std::shared_ptr<action::base>> stopgame::execute() {
     return baseaction;
   }
   const auto ball            = world_.ball();
-  const double ballx         = ball.x();
-  const double bally         = ball.y();
+  const double ballx         = abp_flag_ ? abp_target_.x() : ball.x();
+  const double bally         = abp_flag_ ? abp_target_.y() : ball.y();
   const double ballxsign     = ((ballx > 0) || (std::abs(ballx) < 250)) ? 1.0 : -1.0;
   const double ballysign     = ((bally > 0) || (std::abs(bally) < 250)) ? 1.0 : -1.0;
   const double enemygoalsign = world_.field().x_max() > 0 ? 1.0 : -1.0;
+
+  const auto enemy_robots = is_yellow_ ? world_.robots_blue() : world_.robots_yellow();
+  std::vector<unsigned int> enemies_id;
+  for (auto& enemy : enemy_robots) {
+    enemies_id.push_back(enemy.first);
+  }
 
   double targetx;
   double targety;
@@ -82,6 +100,18 @@ std::vector<std::shared_ptr<action::base>> stopgame::execute() {
     const auto& robot   = our_robots.at(id);
     const double robotx = robot.x();
     const double roboty = robot.y();
+
+    unsigned int nearest_enemy;
+    const auto nearest_enemy_id =
+        std::min_element(enemies_id.cbegin(), enemies_id.cend(), [&](auto& a, auto& b) {
+          return std::hypot(enemy_robots.at(a).x() - robotx, enemy_robots.at(a).y() - roboty) <
+                 std::hypot(enemy_robots.at(b).x() - robotx, enemy_robots.at(b).y() - roboty);
+        });
+    if (nearest_enemy_id != enemies_id.end()) {
+      nearest_enemy = *nearest_enemy_id;
+    }
+    // 避ける対象
+    const auto& it = abp_flag_ ? our_robots.at(nearest_robot_) : enemy_robots.at(nearest_enemy);
 
     if (std::abs(ballx) > 2000) {
       // 敵または味方のゴール近く
@@ -137,7 +167,27 @@ std::vector<std::shared_ptr<action::base>> stopgame::execute() {
     if (id == nearest_robot_ && abp_flag_) {
       // Autonomous Ball Placement
       baseaction.push_back(abp_);
-      abp_flag_ = !(abp_->finished());
+    } else if (std::hypot(it.x() - robotx, it.y() - roboty) < 500.0) {
+      // Autonomous Ball Placementをするロボットを避ける
+      double vx, vy;
+      const double p_to_atheta = util::math::wrap_to_2pi(
+          std::atan2(abp_target_.y() - it.y(), abp_target_.x() - it.x()));
+      const double p_to_rtheta =
+          util::math::wrap_to_2pi(std::atan2(roboty - it.y(), robotx - it.x()));
+      const double c_to_ptheta = util::math::wrap_to_2pi(std::atan2(it.y(), it.x()));
+      const double c_to_rtheta = util::math::wrap_to_2pi(std::atan2(roboty, robotx));
+      if (std::abs(p_to_atheta - p_to_rtheta) < 3.0 * 3.0 * 3.0 * pi<double>() / 4.0) {
+        vx = 1000 * (robotx - it.x()) / std::hypot(it.x() - robotx, it.y() - roboty);
+        vy = 1000 * (roboty - it.y()) / std::hypot(it.x() - robotx, it.y() - roboty);
+      } else {
+        vx = 1000 * std::sin(p_to_rtheta) *
+             ((c_to_ptheta > c_to_rtheta) - (c_to_ptheta < c_to_rtheta));
+        vy = -1000 * std::cos(p_to_rtheta) *
+             ((c_to_ptheta > c_to_rtheta) - (c_to_ptheta < c_to_rtheta));
+      }
+      auto vec = std::make_shared<action::vec>(world_, is_yellow_, id);
+      vec->move_to(vx, vy, 0.0);
+      baseaction.push_back(vec);
     } else if (std::hypot(targetx - robotx, targety - roboty) > 100) {
       auto move                 = std::make_shared<action::move>(world_, is_yellow_, id);
       const double to_balltheta = std::atan2(bally - robot.y(), ballx - robot.x());

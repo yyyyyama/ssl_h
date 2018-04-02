@@ -30,7 +30,8 @@ model::command autonomous_ball_place::execute() {
   const auto& robot     = our_robots.at(id_);
   const auto ball       = world_.ball();
   // 許容誤差(ルール上は10[cm]以内?)
-  const double xy_allow = 50.0;
+  const double xy_allow            = 50.0;
+  const unsigned int dribble_value = 9;
   // 目標角度
   auto theta =
       util::math::wrap_to_2pi(std::atan2(ball.y() - target_.y(), ball.x() - target_.x()));
@@ -74,12 +75,12 @@ model::command autonomous_ball_place::execute() {
                  util::math::wrap_to_2pi(std::atan2(
                      robot.y() - target_.y(), robot.x() - target_.x()))) > pi<double>() / 4.0) {
       // 回り込み
-      const double vx = 1000 *
+      const double vx = 1000.0 *
                         std::sin(util::math::wrap_to_2pi(
                             std::atan2(robot.y() - target_.y(), robot.x() - target_.x()))) *
                         sign(util::math::wrap_to_2pi(std::atan2(ball.y(), ball.x())),
                              util::math::wrap_to_2pi(std::atan2(robot.y(), robot.x())));
-      const double vy = -1000 *
+      const double vy = -1000.0 *
                         std::cos(util::math::wrap_to_2pi(
                             std::atan2(robot.y() - target_.y(), robot.x() - target_.x()))) *
                         sign(util::math::wrap_to_2pi(std::atan2(ball.y(), ball.x())),
@@ -102,10 +103,11 @@ model::command autonomous_ball_place::execute() {
     if (now_ - begin_ >= 1s) {
       state_ = running_state::leave;
     }
-  } else if ((dist_b_to_t < xy_allow) ||
-             (state_ == running_state::place && std::abs(target_.x()) > std::abs(robot.x()) &&
-              std::abs(target_.y()) > std::abs(robot.y()) && !ball_visible() &&
-              std::abs(dist_r_to_t - 120.0) < 10.0)) {
+  } else if ((dist_b_to_t < xy_allow && ball_visible()) ||
+             (state_ == running_state::place &&
+              std::abs(first_ballx_) > std::abs(target_.x()) &&
+              std::abs(first_bally_) > std::abs(target_.y()) && !(ball_visible()) &&
+              std::abs(dist_r_to_t - 100.0) < 10.0)) {
     // 許容誤差以内にボールがあれば配置完了(ボールが見えていなければロボットの位置で判定)
     finished_  = false;
     state_     = running_state::wait;
@@ -116,22 +118,22 @@ model::command autonomous_ball_place::execute() {
     // 配置
     finished_ = false;
     state_    = running_state::place;
-    if (ball_visible() && std::hypot(ball.vx(), ball.vy()) < 10.0 &&
-        std::hypot(robot.x() - first_ballx_, robot.y() - first_bally_) > 300.0) {
+    if (ball_visible() && std::hypot(ball.vx(), ball.vy()) < 300.0 &&
+        std::hypot(robot.x() - first_ballx_, robot.y() - first_bally_) > 150.0) {
       // ボール速度がある程度落ち、ボール初期位置よりある程度動いていればボール前まで移動する処理に移行(ボールが全く移動していないとき、ボールはカメラから見えていないと考える)
       state_ = running_state::move;
     }
     if (std::abs(target_.x() - ball.x()) <= std::numeric_limits<double>::epsilon()) {
       const double x = target_.x();
       const double y = target_.y() + 95.0 * sign(target_.y(), ball.y());
-      command_.set_dribble(9);
+      command_.set_dribble(dribble_value);
       command_.set_position({x, y, theta});
     } else {
       const double x  = target_.x() + distx * sign(target_.x(), ball.x());
       const double y  = ball_to_target_f(x);
       const double vx = 500.0 * (x - robot.x()) / std::hypot(x - robot.x(), y - robot.y());
       const double vy = 500.0 * (y - robot.y()) / std::hypot(x - robot.x(), y - robot.y());
-      command_.set_dribble(9);
+      command_.set_dribble(dribble_value);
       command_.set_velocity({vx, vy, 0.0});
     }
     first_ballx_ = ball.x();
@@ -145,7 +147,7 @@ model::command autonomous_ball_place::execute() {
       command_.set_velocity({0.0, 0.0, 0.0});
       return command_;
     }
-    command_.set_dribble(9);
+    command_.set_dribble(dribble_value);
     command_.set_position({first_ballx_, first_bally_, theta});
   } else if (std::abs(theta - util::math::wrap_to_2pi(
                                   std::atan2(ball.y() - robot.y(), ball.x() - robot.x()))) <
@@ -156,7 +158,7 @@ model::command autonomous_ball_place::execute() {
     round_flag_  = false;
     first_ballx_ = ball.x();
     first_bally_ = ball.y();
-    command_.set_dribble(9);
+    command_.set_dribble(dribble_value);
     command_.set_velocity({0.0, 0.0, 0.0});
   } else {
     // 移動
