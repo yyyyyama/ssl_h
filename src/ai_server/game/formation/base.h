@@ -16,7 +16,7 @@ class base {
 public:
   /// @param world            WorldModelの参照
   /// @param is_yellow        チームカラーは黄色か
-  base(const model::world& world, bool is_yellow, const model::refbox& refcommand_);
+  base(const model::world& world, bool is_yellow, const model::refbox& refcommand);
 
   virtual ~base() = default;
 
