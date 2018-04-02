@@ -64,8 +64,8 @@ model::command get_ball::execute() {
 
   const auto ball_pos = util::math::position(world_.ball());
   const auto ball_vec = util::math::velocity(world_.ball());
-  // 2.0秒後のボールの位置
-  const Eigen::Vector2d ball = ball_pos + ball_vec * 2.0;
+  // 3.0秒後のボールの位置
+  const Eigen::Vector2d ball = ball_pos + ball_vec * 3.0;
 
   //移動目標
   Eigen::Vector2d position{Eigen::Vector2d::Zero()};
@@ -149,10 +149,10 @@ model::command get_ball::execute() {
         //判定の幅
         const auto mergin = 500.0;
 
-        const auto[tmp1, tmp2] = util::math::calc_isosceles_vertexes(robot, ball_pos, mergin);
-        const auto b2r         = vectorangle(robot - ball);
-        const auto b2p         = vectorangle(position - ball);
-        position               = util::math::wrap_to_pi(b2p - b2r) < 0 ? tmp1 : tmp2;
+        const auto [tmp1, tmp2] = util::math::calc_isosceles_vertexes(robot, ball_pos, mergin);
+        const auto b2r          = vectorangle(robot - ball);
+        const auto b2p          = vectorangle(position - ball);
+        position                = util::math::wrap_to_pi(b2p - b2r) < 0 ? tmp1 : tmp2;
       }
     }
     theta =
@@ -200,12 +200,13 @@ model::command get_ball::execute() {
         //間にボールがあったら回り込む
         if (!bg::disjoint(p, poly) && flag) {
           //判定の幅
-          const auto mergin = 1000.0;
+          const auto mergin = 800.0;
 
-          const auto[tmp1, tmp2] = util::math::calc_isosceles_vertexes(robot, ball_pos, mergin);
-          const auto b2r         = vectorangle(robot - ball);
-          const auto b2p         = vectorangle(position - ball);
-          position               = util::math::wrap_to_pi(b2p - b2r) < 0 ? tmp1 : tmp2;
+          const auto [tmp1, tmp2] =
+              util::math::calc_isosceles_vertexes(robot, ball_pos, mergin);
+          const auto b2r = vectorangle(robot - ball);
+          const auto b2p = vectorangle(position - ball);
+          position       = util::math::wrap_to_pi(b2p - b2r) < 0 ? tmp1 : tmp2;
 
           is_position = false;
           velocity    = position - robot;
@@ -215,7 +216,7 @@ model::command get_ball::execute() {
           // 当たらないようにする
           if (std::abs(util::math::wrap_to_pi(nb2r - nb2p)) < 0.1) {
             const auto margin = 200.0;
-            const auto[tmp1, tmp2] =
+            const auto [tmp1, tmp2] =
                 util::math::calc_isosceles_vertexes(robot, ball_pos, mergin);
             const auto b2r = vectorangle(robot - ball);
             const auto b2p = vectorangle(position - ball);
@@ -266,7 +267,7 @@ model::command get_ball::execute() {
     command.set_position({position.x(), position.y(), theta});
   } else {
     velocity =
-        velocity.norm() < 500 ? Eigen::Vector2d(velocity / 2) : Eigen::Vector2d(velocity * 2);
+        velocity.norm() < 500 ? Eigen::Vector2d(velocity / 2) : Eigen::Vector2d(velocity);
     command.set_velocity({velocity.x(), velocity.y(), theta - robot_theta});
   }
 

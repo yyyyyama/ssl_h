@@ -112,7 +112,7 @@ std::vector<std::shared_ptr<action::base>> setplay::execute() {
     state_      = state::shoot;
     shooter_id_ = kicker_id_;
   }
-  constexpr int run_dist = 3500;
+  constexpr int run_dist = 3000;
   switch (state_) {
     case setplay::state::setup: {
       // ロボットを指定位置へ移動させる
@@ -238,11 +238,11 @@ std::vector<std::shared_ptr<action::base>> setplay::execute() {
       }
 
       // 何時でもけれる状態で移動を待機する
-      const double power = line_flag ? 60 : 255;
+      const double power = line_flag ? 60 : 180;
       if (mode_ == 1 && pos_ == pos::far)
-        kick_->kick_to(passpos_.x() + run_dist - 1000, passpos_.y());
+        kick_->kick_to(passpos_.x() + run_dist - 2500, passpos_.y());
       else
-        kick_->kick_to(passpos_.x(), passpos_.y());
+        kick_->kick_to(passpos_.x() + 230, passpos_.y());
       kick_->set_dribble(3);
       kick_->set_angle_margin(0.10);
       kick_->set_stop_ball(true);
@@ -458,10 +458,7 @@ int setplay::chose_location(std::vector<Eigen::Vector2d> targets,
     for (auto& enemy_robot_p : enemy_robots) {
       auto& enemy_robot = std::get<1>(enemy_robot_p);
       // ボールと目的位置の間に敵ロボットがいるかしらべたかったがこれだとがばがばなので要修正
-      if (/* (ball.x() - enemy_robot.x()) * (target.x() - enemy_robot.x()) < 0 &&
- */ (ball.y() - enemy_robot.y()) *
-              (target.y() - enemy_robot.y()) <
-          0) {
+      if ((ball.y() - enemy_robot.y()) * (target.y() - enemy_robot.y()) < 0) {
         const Eigen::Vector3d to_target(target.x() - ball.x(), target.y() - ball.y(), 0);
         const Eigen::Vector3d to_enemy(enemy_robot.x() - ball.x(), enemy_robot.y() - ball.y(),
                                        0);
