@@ -21,7 +21,10 @@ public:
   enum mark_option { normal, no_mark };
 
   regular(const model::world& world, bool is_yellow, const std::vector<unsigned int>& ids);
+  regular(const model::world& world, bool is_yellow, const std::vector<unsigned int>& ids,
+          unsigned int default_chaser);
   bool has_chaser() const;
+  unsigned int chaser_id() const;
   void customize_marking(mark_option option);
   // ボールを追いかけるか否か（全てのロボットをマーキングにする時はfalse）
   void use_chaser(bool use_chaser);
@@ -77,6 +80,8 @@ private:
   std::vector<unsigned int> follower_ids_;
   // moveロボットの移動先
   std::vector<point> reserved_points_;
+  // moveロボットの移動先を少しの間保持
+  std::vector<point> reserved_points_old_;
   // get_ball
   std::shared_ptr<action::get_ball> get_ball_;
 

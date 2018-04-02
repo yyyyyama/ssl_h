@@ -20,8 +20,22 @@ regular::regular(const model::world& world, bool is_yellow,
   chaser_id_ = select_chaser();
 }
 
+regular::regular(const model::world& world, bool is_yellow,
+                 const std::vector<unsigned int>& ids, unsigned int default_chaser)
+    : base(world, is_yellow),
+      ids_(ids),
+      can_chase_(true),
+      has_chaser_(true),
+      need_reset_chaser_(true),
+      mark_option_(mark_option::normal),
+      chaser_id_(default_chaser) {}
+
 bool regular::has_chaser() const {
   return has_chaser_;
+}
+
+unsigned int regular::chaser_id() const {
+  return chaser_id_;
 }
 
 void regular::use_chaser(bool use_chaser) {
@@ -42,15 +56,27 @@ void regular::customize_marking(regular::mark_option option) {
 
 std::vector<std::shared_ptr<action::base>> regular::execute() {
   std::vector<std::shared_ptr<action::base>> actions;
-  const auto our_team = is_yellow_ ? world_.robots_yellow() : world_.robots_blue();
-  const auto ball     = world_.ball();
+  const auto our_team       = is_yellow_ ? world_.robots_yellow() : world_.robots_blue();
+  const auto ball           = world_.ball();
+  const auto penalty_width  = world_.field().penalty_width();
+  const auto penalty_length = world_.field().penalty_length();
+  const double margin       = 200;
 
   // chaserを使う時
   if (has_chaser_) {
-    if ( // 自分側のゴール中心に近いか
-        std::hypot(ball.x() - world_.field().x_min(), ball.y()) <= 2000 ||
-        // 相手側のゴール中心に近いか
-        std::hypot(ball.x() - world_.field().x_max(), ball.y()) <= 1380) {
+    // 自分側のゴール
+    regular::area my_goal{world_.field().x_min(), -penalty_width / 2 - margin,
+                          world_.field().x_min() + penalty_length + margin,
+                          penalty_width / 2 + margin, 0.0};
+    // 相手側のゴール
+    regular::area enemy_goal{world_.field().x_max(), -penalty_width / 2 - margin,
+                             world_.field().x_max() - penalty_length - margin,
+                             penalty_width / 2 + margin, 0.0};
+
+    if ( // 自分側のゴール中心に入っているか
+        regular::in_area(ball.x(), ball.y(), my_goal) ||
+        // 相手側のゴール中心に入っているか
+        regular::in_area(ball.x(), ball.y(), enemy_goal)) {
       // ボールを追いかけないようにする
       can_chase_ = false;
       get_ball_  = nullptr;
@@ -216,6 +242,7 @@ void regular::update_first_marking() {
   }
 
   const auto those_team = !is_yellow_ ? world_.robots_yellow() : world_.robots_blue();
+
   std::unordered_map<unsigned int, unsigned int> new_marked_list;
 
   // == マーキングを維持させる
@@ -323,7 +350,8 @@ void regular::update_second_mariking() {
 //　余ったロボットへの割当て
 void regular::update_recievers() {
   move_.clear();
-  reserved_points_.clear();
+  reserved_points_ = reserved_points_old_;
+  std::vector<point> tmp_reserved_points;
 
   const auto ball       = world_.ball();
   const auto our_team   = is_yellow_ ? world_.robots_yellow() : world_.robots_blue();
@@ -349,13 +377,14 @@ void regular::update_recievers() {
     area_top = world_.field().x_max() * 0.5;
   } else {
     //　目一杯前にいく
-    area_top = world_.field().x_max() - 1000.0;
+    area_top = world_.field().x_max() - world_.field().penalty_length() - 300;
   }
 
   // action生成
   for (const auto& id : follower_ids_) {
     // ロボットがいられる範囲
-    area field{area_top, world_.field().y_min() + 200.0, world_.field().x_min() + 1000,
+    area field{area_top, world_.field().y_min() + 200.0,
+               world_.field().x_min() + world_.field().penalty_length() + 300,
                world_.field().y_max() - 200.0, 0.0};
     // 空いている場所を探す
     auto a = empty_area(field, follower_ids_);
@@ -398,9 +427,12 @@ void regular::update_recievers() {
     }
     // ロボットが移動する先を予約する
     reserved_points_.push_back(p);
+    tmp_reserved_points.push_back(p);
   }
 
   receive_ = new_receive;
+  // 保持用
+  reserved_points_old_ = tmp_reserved_points;
 }
 
 // 敵リストの作成
@@ -413,6 +445,17 @@ std::priority_queue<regular::id_importance> regular::make_enemy_list() {
   const auto those_team = !is_yellow_ ? world_.robots_yellow() : world_.robots_blue();
   // ボール
   const auto ball = world_.ball();
+
+  // ペナルティエリアの高さ
+  const auto penalty_length = world_.field().penalty_length();
+  // ペナルティエリアの幅
+  const auto penalty_width = world_.field().penalty_width();
+  // ペナルティエリアとのマージン
+  const double margin = 500;
+  // 自分側のペナルティエリア
+  regular::area my_penalty_area{world_.field().x_min(), -penalty_width / 2 - margin,
+                                world_.field().x_min() + penalty_length + margin,
+                                penalty_width / 2 + margin, 0.0};
 
   for (const auto& that_rob : those_team) {
     // 敵ロボットのID
@@ -441,7 +484,7 @@ std::priority_queue<regular::id_importance> regular::make_enemy_list() {
         // 敵側に寄りすぎていないか
         that_p.x() < world_.field().x_max() * 0.65 &&
         // ペナルティエリア付近にいないか
-        gall_dist > 1800 &&
+        !regular::in_area(that_p.x(), that_p.y(), my_penalty_area) &&
         // ディフェンスの近くにいないか
         !(std::abs(ball_gall_angle - gall_angle) < atan2(1.2, 4.0) && gall_dist < 4000);
 
@@ -517,12 +560,14 @@ std::priority_queue<regular::id_importance> regular::make_enemy_list() {
 
 // パス経路を生成してポイントを返す
 regular::point regular::select_target() {
+  // ゴール幅
+  const auto goal_width = world_.field().goal_width();
   // 敵ゴールの左端
-  const regular::point goal_left = {world_.field().x_max(), 350};
+  const regular::point goal_left{world_.field().x_max(), goal_width / 2 - 150};
   // 敵ゴールの右端
-  const regular::point goal_right = {world_.field().x_max(), -350};
+  const regular::point goal_right{world_.field().x_max(), -goal_width / 2 + 150};
   // 敵ゴールの中心
-  const regular::point goal_center = {world_.field().x_max(), 0.0};
+  const regular::point goal_center{world_.field().x_max(), 0.0};
   // 味方
   const auto our_team = is_yellow_ ? world_.robots_yellow() : world_.robots_blue();
   // 敵
@@ -538,13 +583,26 @@ regular::point regular::select_target() {
   std::vector<regular::point> shoot_points;
 
   // 敵の位置 & 敵ディフェンス の追加
-  for (const auto& that_rob : those_team) {
-    regular::point p{that_rob.second.x(), that_rob.second.y()};
+  {
+    // ペナルティエリアの幅
+    const auto penalty_width = world_.field().penalty_width();
+    // ペナルティエリアの高さ
+    const auto penalty_length = world_.field().penalty_length();
+    // マージン
+    const double margin = 400;
+    // ディフェンスがいるエリア
+    const regular::area d_area{world_.field().x_max(), -penalty_width / 2 - margin,
+                               world_.field().x_max() - penalty_length - margin,
+                               penalty_width / 2 + margin, 0.0};
 
-    if (std::hypot(p.x() - world_.field().x_max(), p.y()) < 2000) {
-      defense_points.push_back(p);
-    } else {
-      enemy_points.push_back(p);
+    for (const auto& that_rob : those_team) {
+      regular::point p{that_rob.second.x(), that_rob.second.y()};
+
+      if (regular::in_area(p.x(), p.y(), d_area)) {
+        defense_points.push_back(p);
+      } else {
+        enemy_points.push_back(p);
+      }
     }
   }
 
@@ -582,7 +640,7 @@ regular::point regular::select_target() {
       // 最も邪魔な敵の位置
       const auto defense_p = std::min_element(
           defense_points.begin(), defense_points.end(),
-          [&p, &ball, &p_ball_theta](regular::point a, regular::point b) {
+          [&ball, &p_ball_theta](regular::point a, regular::point b) {
             double theta_a = std::atan2(a.y() - ball.y(), a.x() - ball.x());
             double theta_b = std::atan2(b.y() - ball.y(), b.x() - ball.x());
             return std::abs(theta_a - p_ball_theta) < std::abs(theta_b - p_ball_theta);
@@ -606,10 +664,12 @@ regular::point regular::select_target() {
   std::vector<regular::point> pass_points;
   // パス先候補の追加
   for (const auto& p : reserved_points_) {
-    if ( // ボールより前にいるか
-        p.x() > ball.x() ||
-        // フィールドの敵側にある程度寄っているか
-        p.x() > 0.0) {
+    if (( // ボールより前にいるか
+            p.x() > ball.x() ||
+            // フィールドの敵側にある程度寄っているか
+            p.x() > 0.0) &&
+        // 打つ場所から離れているか
+        std::hypot(p.x() - ball.x(), p.y() - ball.y()) > 3000) {
       pass_points.push_back(p);
     }
   }
