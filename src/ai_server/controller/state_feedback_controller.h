@@ -8,6 +8,7 @@
 
 #include "ai_server/controller/detail/smith_predictor.h"
 #include "ai_server/controller/detail/velocity_generator.h"
+#include "ai_server/model/world.h"
 #include "base.h"
 
 namespace ai_server {
@@ -25,6 +26,7 @@ class state_feedback_controller : public base {
 
 private:
   double cycle_;                    // 制御周期
+  const model::world& world_;       // worldmodel
   const static double k_;           // 極,収束の速さ
   static const double zeta_;        // モデルパラメータζ
   static const double omega_;       // モデルパラメータω
@@ -47,9 +49,16 @@ private:
   // フィールド基準座標系からロボット基準座標系に変換
   Eigen::Vector3d convert(const Eigen::Vector3d& raw, const double robot_theta);
 
+  // 出力計算及び後処理
+  void calculate_output(Eigen::Vector3d target, double target_angle);
+
+  // 2点と角度から,2点を通る直線と原点を通る指定角度の直線との交点を求め
+  // 原点から交点までの距離を返す
+  double find_cross_point(const double x_1, const double y_2, const double angle);
+
 public:
   // コンストラクタ
-  explicit state_feedback_controller(double cycle);
+  explicit state_feedback_controller(double cycle, const model::world& world);
 
   void set_velocity_limit(const double limit) override;
 
