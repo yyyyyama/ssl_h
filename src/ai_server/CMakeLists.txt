@@ -1,5 +1,5 @@
-include_directories(${CMAKE_BINARY_DIR}/3rd)
 file(GLOB_RECURSE SOURCES ./*.cc)
 add_library(ai-server-lib ${SOURCES})
 add_dependencies(ai-server-lib ssl-protos)
+add_dependencies(ai-server-lib yamlizer)
 set_target_properties(ai-server-lib PROPERTIES OUTPUT_NAME ai-server)

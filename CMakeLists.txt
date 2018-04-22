@@ -52,8 +52,9 @@ if(ENABLE_CODE_COVERAGE)
 endif()
 
 # Required libraries
-find_package(Boost 1.59.0 COMPONENTS coroutine system unit_test_framework REQUIRED)
+find_package(Boost 1.61.0 COMPONENTS coroutine system unit_test_framework REQUIRED)
 find_package(Eigen3 3.2 REQUIRED)
+find_package(LibYAML REQUIRED)
 find_package(Protobuf 3.2 REQUIRED)
 find_package(Threads REQUIRED)
 
@@ -63,6 +64,8 @@ enable_testing()
 # Include directories
 include_directories(
   ${PROJECT_SOURCE_DIR}/src
+  ${CMAKE_BINARY_DIR}/3rd
+  ${PROJECT_SOURCE_DIR}/3rd/yamlizer/src
   ${Boost_INCLUDE_DIRS}
   ${Protobuf_INCLUDE_DIRS}
 )

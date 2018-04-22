@@ -1,3 +1,6 @@
 [submodule "3rd/ssl-protos"]
 	path = 3rd/ssl-protos
 	url = https://github.com/kiksworks/ssl-protos.git
+[submodule "3rd/yamlizer"]
+	path = 3rd/yamlizer
+	url = https://github.com/Tosainu/yamlizer.git
