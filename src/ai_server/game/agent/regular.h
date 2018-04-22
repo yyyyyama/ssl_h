@@ -79,9 +79,9 @@ private:
   // マーキング割り当ての際に余ったロボットID
   std::vector<unsigned int> follower_ids_;
   // moveロボットの移動先
-  std::vector<point> reserved_points_;
+  std::unordered_map<unsigned int, point> reserved_points_;
   // moveロボットの移動先を少しの間保持
-  std::vector<point> reserved_points_old_;
+  std::unordered_map<unsigned int, point> reserved_points_old_;
   // get_ball
   std::shared_ptr<action::get_ball> get_ball_;
 
@@ -101,7 +101,8 @@ private:
   std::vector<unsigned int>::const_iterator nearest_id(const std::vector<unsigned int>& can_ids,
                                                        double target_x, double target_y) const;
   // 空いているエリアを返す
-  area empty_area(const area& area, const std::vector<unsigned int>& our_ids);
+  area empty_area(const area& area, unsigned int my_id,
+                  const std::vector<unsigned int>& our_ids);
   // 指定位置がエリア上にあるかどうか
   bool in_area(double x, double y, const regular::area& area);
 };

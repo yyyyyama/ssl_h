@@ -351,7 +351,7 @@ void regular::update_second_mariking() {
 void regular::update_recievers() {
   move_.clear();
   reserved_points_ = reserved_points_old_;
-  std::vector<point> tmp_reserved_points;
+  std::unordered_map<unsigned int, point> tmp_reserved_points;
 
   const auto ball       = world_.ball();
   const auto our_team   = is_yellow_ ? world_.robots_yellow() : world_.robots_blue();
@@ -387,7 +387,7 @@ void regular::update_recievers() {
                world_.field().x_min() + world_.field().penalty_length() + 300,
                world_.field().y_max() - 200.0, 0.0};
     // 空いている場所を探す
-    auto a = empty_area(field, follower_ids_);
+    auto a = empty_area(field, id, follower_ids_);
     // デフォルトの移動場所は、空いている場所の中心
     regular::point p{(a.x1 + a.x2) / 2, (a.y1 + a.y2) / 2};
 
@@ -426,8 +426,8 @@ void regular::update_recievers() {
       }
     }
     // ロボットが移動する先を予約する
-    reserved_points_.push_back(p);
-    tmp_reserved_points.push_back(p);
+    reserved_points_[id]    = p;
+    tmp_reserved_points[id] = p;
   }
 
   receive_ = new_receive;
@@ -665,12 +665,12 @@ regular::point regular::select_target() {
   // パス先候補の追加
   for (const auto& p : reserved_points_) {
     if (( // ボールより前にいるか
-            p.x() > ball.x() ||
+            p.second.x() > ball.x() ||
             // フィールドの敵側にある程度寄っているか
-            p.x() > 0.0) &&
+            p.second.x() > 0.0) &&
         // 打つ場所から離れているか
-        std::hypot(p.x() - ball.x(), p.y() - ball.y()) > 3000) {
-      pass_points.push_back(p);
+        std::hypot(p.second.x() - ball.x(), p.second.y() - ball.y()) > 3000) {
+      pass_points.push_back(p.second);
     }
   }
 
@@ -773,7 +773,7 @@ std::vector<unsigned int>::const_iterator regular::nearest_id(
 }
 
 // 空いているエリアを返す
-regular::area regular::empty_area(const regular::area& area,
+regular::area regular::empty_area(const regular::area& area, unsigned int my_id,
                                   const std::vector<unsigned int>& our_ids) {
   // X方向の分割数
   const int split_x = 3;
@@ -807,7 +807,9 @@ regular::area regular::empty_area(const regular::area& area,
 
   // 予約済みの位置を追加
   for (const auto& p : reserved_points_) {
-    points.push_back(p);
+    if (p.first != my_id) {
+      points.push_back(p.second);
+    }
   }
 
   // == our_idsに含まれていないロボットの現在位置を追加
@@ -884,7 +886,7 @@ regular::area regular::empty_area(const regular::area& area,
   }
 
   // 最小のスコアが0より大きいなら再帰
-  return tmp_area.score > 0 ? empty_area(tmp_area, our_ids) : tmp_area;
+  return tmp_area.score > 0 ? empty_area(tmp_area, my_id, our_ids) : tmp_area;
 }
 
 // 指定位置がエリア上にあるかどうか
