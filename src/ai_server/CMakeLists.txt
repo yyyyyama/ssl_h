@@ -1,5 +1,14 @@
 file(GLOB_RECURSE SOURCES ./*.cc)
 add_library(ai-server-lib ${SOURCES})
-add_dependencies(ai-server-lib ssl-protos)
-add_dependencies(ai-server-lib yamlizer)
+target_link_libraries(ai-server-lib PUBLIC
+  Boost::boost
+  Boost::coroutine
+  Boost::system
+  Eigen3::Eigen
+  Threads::Threads
+  protobuf::libprotobuf
+  ssl-protos::ssl-protos
+  yamlizer::yamlizer
+)
+target_include_directories(ai-server-lib PUBLIC ${PROJECT_SOURCE_DIR}/src)
 set_target_properties(ai-server-lib PROPERTIES OUTPUT_NAME ai-server)

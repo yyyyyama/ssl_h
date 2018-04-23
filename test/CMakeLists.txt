@@ -9,14 +9,7 @@ foreach(TEST_SOURCE_FILE ${SOURCES})
   target_compile_definitions(${TEST_EXECUTABLE_NAME} PRIVATE BOOST_TEST_MODULE=${TEST_MODULE_NAME})
   target_link_libraries(${TEST_EXECUTABLE_NAME}
     ai-server-lib
-    ssl-protos
-    yamlizer
-    ${Boost_COROUTINE_LIBRARY}
-    ${Boost_SYSTEM_LIBRARY}
-    ${Boost_UNIT_TEST_FRAMEWORK_LIBRARY}
-    ${LibYAML_LIBRARY}
-    ${Protobuf_LIBRARY}
-    ${CMAKE_THREAD_LIBS_INIT}
+    Boost::unit_test_framework
   )
   add_test(${TEST_MODULE_NAME} ${EXECUTABLE_OUTPUT_PATH}/${TEST_EXECUTABLE_NAME})
 endforeach()
