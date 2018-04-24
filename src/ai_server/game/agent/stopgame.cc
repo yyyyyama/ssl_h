@@ -170,19 +170,16 @@ std::vector<std::shared_ptr<action::base>> stopgame::execute() {
     } else if (std::hypot(it.x() - robotx, it.y() - roboty) < 500.0) {
       // Autonomous Ball Placementをするロボットを避ける
       double vx, vy;
-      const double p_to_atheta = util::math::wrap_to_2pi(
-          std::atan2(abp_target_.y() - it.y(), abp_target_.x() - it.x()));
-      const double p_to_rtheta =
-          util::math::wrap_to_2pi(std::atan2(roboty - it.y(), robotx - it.x()));
       const double c_to_ptheta = util::math::wrap_to_2pi(std::atan2(it.y(), it.x()));
       const double c_to_rtheta = util::math::wrap_to_2pi(std::atan2(roboty, robotx));
-      if (std::abs(p_to_atheta - p_to_rtheta) < 3.0 * 3.0 * 3.0 * pi<double>() / 4.0) {
+      if (std::abs(robot.x()) < world_.field().x_max() - 750.0 &&
+          std::abs(robot.y()) < world_.field().y_max() - 750.0) {
         vx = 1000 * (robotx - it.x()) / std::hypot(it.x() - robotx, it.y() - roboty);
         vy = 1000 * (roboty - it.y()) / std::hypot(it.x() - robotx, it.y() - roboty);
       } else {
-        vx = 1000 * std::sin(p_to_rtheta) *
+        vx = 1000 * std::sin(c_to_rtheta) *
              ((c_to_ptheta > c_to_rtheta) - (c_to_ptheta < c_to_rtheta));
-        vy = -1000 * std::cos(p_to_rtheta) *
+        vy = -1000 * std::cos(c_to_rtheta) *
              ((c_to_ptheta > c_to_rtheta) - (c_to_ptheta < c_to_rtheta));
       }
       auto vec = std::make_shared<action::vec>(world_, is_yellow_, id);
