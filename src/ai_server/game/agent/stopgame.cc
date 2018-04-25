@@ -6,7 +6,6 @@
 #include "ai_server/game/action/no_operation.h"
 #include "ai_server/game/action/vec.h"
 #include "ai_server/game/action/autonomous_ball_place.h"
-#include "ai_server/util/math.h"
 #include "ai_server/util/math/angle.h"
 
 #include "stopgame.h"
@@ -93,7 +92,9 @@ std::vector<std::shared_ptr<action::base>> stopgame::execute() {
   double targetx;
   double targety;
 
-  const double dist = (6000 - std::abs(3000 - std::abs(bally))) / ids_.size();
+  const double dist =
+      (2 * world_.field().y_max() - std::abs(world_.field().y_max() - std::abs(bally))) /
+      ids_.size();
 
   int i = 2;
   for (auto id : ids_) {
@@ -113,7 +114,7 @@ std::vector<std::shared_ptr<action::base>> stopgame::execute() {
     // 避ける対象
     const auto& it = abp_flag_ ? our_robots.at(nearest_robot_) : enemy_robots.at(nearest_enemy);
 
-    if (std::abs(ballx) > 2000) {
+    if (std::abs(ballx) > world_.field().x_max() - 2500) {
       // 敵または味方のゴール近く
       if (id == nearest_robot_) {
         targetx = ballx - enemygoalsign * 650;
@@ -122,7 +123,8 @@ std::vector<std::shared_ptr<action::base>> stopgame::execute() {
         // それ以外
         targetx = ballx - enemygoalsign * i * 500;
         targety = bally - dist * ballysign * (i % 2 == 0 ? i : -i) / 2;
-        if (std::abs(targety) > 3000) targety = bally - dist * ballysign * (i - 1);
+        if (std::abs(targety) > world_.field().y_max())
+          targety = bally - dist * ballysign * (i - 1);
         i++;
       }
     } else {
@@ -134,7 +136,8 @@ std::vector<std::shared_ptr<action::base>> stopgame::execute() {
         // それ以外
         targetx = ballx - enemygoalsign * i * 500;
         targety = bally - dist * ballysign * (i % 2 == 0 ? -i : i) / 2;
-        if (std::abs(targety) > 3000) targety = bally - dist * ballysign * (i - 1);
+        if (std::abs(targety) > world_.field().y_max())
+          targety = bally - dist * ballysign * (i - 1);
         i++;
       }
     }
@@ -147,7 +150,7 @@ std::vector<std::shared_ptr<action::base>> stopgame::execute() {
     } else if (std::hypot(ballx - robotx, bally - roboty) < 520) {
       const double to_targettheta = std::atan2(targety - bally, targetx - ballx);
       const double to_robottheta  = std::atan2(roboty - bally, robotx - ballx);
-      const double theta          = util::wrap_to_pi(to_targettheta - to_robottheta);
+      const double theta          = util::math::wrap_to_pi(to_targettheta - to_robottheta);
 
       if (theta > 0 && std::abs(theta) > 0.3) {
         targetx = robotx - 200 * std::sin(to_robottheta);
@@ -156,12 +159,12 @@ std::vector<std::shared_ptr<action::base>> stopgame::execute() {
         targetx = robotx + 200 * std::sin(to_robottheta);
         targety = roboty - 200 * std::cos(to_robottheta);
       }
-    } else if (std::abs(targetx) > 3000 && std::abs(roboty) < 1500) {
-      targetx = ballxsign * 2900;
-    } else if (std::abs(targetx) > 4200) {
-      targetx = ballxsign * 4200;
-    } else if (std::abs(robotx) > 3000 && std::abs(roboty) < 1500) {
-      targetx = ballxsign * 2900;
+    } else if (std::abs(targetx) > world_.field().x_max() - 1500 && std::abs(roboty) < 1500) {
+      targetx = ballxsign * (world_.field().x_max() - 1600);
+    } else if (std::abs(targetx) > world_.field().x_max() - 300) {
+      targetx = ballxsign * (world_.field().x_max() - 300);
+    } else if (std::abs(robotx) > world_.field().x_max() - 1500 && std::abs(roboty) < 1500) {
+      targetx = ballxsign * (world_.field().x_max() - 1600);
     }
 
     if (id == nearest_robot_ && abp_flag_) {
