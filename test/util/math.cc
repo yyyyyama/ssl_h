@@ -19,6 +19,9 @@ BOOST_AUTO_TEST_CASE(affine, *boost::unit_test::tolerance(0.0000001)) {
   model::ball b{100, 200, 0};
   model::robot r{0, 300, 400, 0};
 
+  auto t2d = std::make_tuple(100.0, 200.0);
+  auto t3d = std::make_tuple(300.0, 400.0, 0.0);
+
   {
     // 何もしない変換
     const auto mat = util::math::make_transformation_matrix(.0, .0, .0);
@@ -31,6 +34,15 @@ BOOST_AUTO_TEST_CASE(affine, *boost::unit_test::tolerance(0.0000001)) {
     BOOST_TEST(r2.x() == r.x());
     BOOST_TEST(r2.y() == r.y());
     BOOST_TEST(r2.theta() == r.theta());
+
+    const auto t1 = util::math::transform(mat, t2d);
+    BOOST_TEST(std::get<0>(t1) == std::get<0>(t2d));
+    BOOST_TEST(std::get<1>(t1) == std::get<1>(t2d));
+
+    const auto t2 = util::math::transform(mat, t3d);
+    BOOST_TEST(std::get<0>(t2) == std::get<0>(t3d));
+    BOOST_TEST(std::get<1>(t2) == std::get<1>(t3d));
+    BOOST_TEST(std::get<2>(t2) == std::get<2>(t3d));
   }
 
   {
@@ -46,6 +58,15 @@ BOOST_AUTO_TEST_CASE(affine, *boost::unit_test::tolerance(0.0000001)) {
     BOOST_TEST(r2.x() == -r.y() + 10);
     BOOST_TEST(r2.y() == r.x() + 20);
     BOOST_TEST(r2.theta() == 3 * half_pi);
+
+    const auto t1 = util::math::transform(mat, t2d);
+    BOOST_TEST(std::get<0>(t1) == -std::get<1>(t2d) + 10);
+    BOOST_TEST(std::get<1>(t1) == std::get<0>(t2d) + 20);
+
+    const auto t2 = util::math::transform(mat, t3d);
+    BOOST_TEST(std::get<0>(t2) == -std::get<1>(t3d) + 10);
+    BOOST_TEST(std::get<1>(t2) == std::get<0>(t3d) + 20);
+    BOOST_TEST(std::get<2>(t2) == -half_pi);
   }
 }
 
