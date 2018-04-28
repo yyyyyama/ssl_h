@@ -50,7 +50,7 @@ public:
               const double margin = 100.0);
 
 private:
-  model::world world_;
+  const model::world& world_;
   std::vector<std::shared_ptr<struct node>> tree_; // 探索木(nodeの集まり)
   std::shared_ptr<struct node> nearest_node_;      // 次の目標節点
   std::vector<struct object> default_obstacles_; // 固定障害物,セットしなくても避ける
