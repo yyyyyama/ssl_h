@@ -55,7 +55,7 @@ velocity_t state_feedback_controller::update(const model::robot& robot,
   Eigen::Vector3d target;
   target.x() = velocity_generator_[0].control_pos(-delta_p.x());
   target.y() = velocity_generator_[1].control_pos(-delta_p.y());
-  target.z() = util::math::wrap_to_pi(delta_p.z());
+  target.z() = util::math::wrap_to_pi(delta_p.z()) * 2.0;
 
   calculate_output(target, target_angle);
 
@@ -111,11 +111,6 @@ void state_feedback_controller::calculate_output(Eigen::Vector3d target, double 
   // 速度が大きいときに角速度が大きくなりすぎないように
   double omega_limit = pi<double>() * std::exp(-std::hypot(target.x(), target.y()) / 2000.0);
   target.z() = std::clamp(util::math::wrap_to_pi(target.z()) * 2, -omega_limit, omega_limit);
-
-  // 加速度制限の結果,進みたい方向とずれる可能性があるため,調整
-  double speed = std::hypot(target.x(), target.y());
-  target.x()   = speed * std::cos(target_angle);
-  target.y()   = speed * std::sin(target_angle);
 
   // スピンしてる(角速度が大きすぎる)ときは速度落とす
   if (estimated_robot_(2, 1) > 10) {
