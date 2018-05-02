@@ -1,9 +1,11 @@
 #define BOOST_TEST_DYN_LINK
 
 #include <limits>
+#include <boost/math/constants/constants.hpp>
 #include <boost/test/unit_test.hpp>
 
 #include "ai_server/model/updater/refbox.h"
+#include "ai_server/util/math/affine.h"
 #include "ssl-protos/refbox/referee.pb.h"
 
 BOOST_TEST_DONT_PRINT_LOG_VALUE(ai_server::model::refbox::game_command)
@@ -108,6 +110,67 @@ BOOST_AUTO_TEST_CASE(normal) {
   referee.set_stage_time_left(123);
   BOOST_REQUIRE_NO_THROW(ru.update(referee));
   BOOST_TEST(ru.value().stage_time_left() == 123);
+}
+
+BOOST_AUTO_TEST_CASE(abp) {
+  ssl_protos::refbox::Referee referee{};
+  {
+    referee.set_packet_timestamp(1513688793680551);
+    referee.set_stage(ssl_protos::refbox::Referee::Stage::Referee_Stage_NORMAL_FIRST_HALF_PRE);
+    referee.set_command_counter(3);
+    referee.set_command(
+        ssl_protos::refbox::Referee::Command::Referee_Command_BALL_PLACEMENT_BLUE);
+    referee.set_command_timestamp(4);
+
+    ssl_protos::refbox::Referee_TeamInfo blue{};
+    blue.set_name("blue");
+    blue.set_score(10);
+    blue.set_goalie(11);
+    blue.set_red_cards(12);
+    blue.set_yellow_cards(13);
+    blue.set_timeouts(15);
+    blue.set_timeout_time(16);
+    referee.mutable_blue()->CopyFrom(blue);
+
+    ssl_protos::refbox::Referee_TeamInfo yellow{};
+    yellow.set_name("yellow");
+    yellow.set_score(21);
+    yellow.set_goalie(22);
+    yellow.set_red_cards(23);
+    yellow.set_yellow_cards(24);
+    yellow.set_timeouts(28);
+    yellow.set_timeout_time(29);
+    referee.mutable_yellow()->CopyFrom(yellow);
+
+    ssl_protos::refbox::Referee_Point point{};
+    point.set_x(100);
+    point.set_y(200);
+    referee.mutable_designated_position()->CopyFrom(point);
+  }
+
+  {
+    // 座標変換なし
+    ai_server::model::updater::refbox ru{};
+    ru.update(referee);
+
+    const auto& r = ru.value();
+    BOOST_TEST(std::get<0>(r.ball_placement_position()) = 100.0);
+    BOOST_TEST(std::get<1>(r.ball_placement_position()) = 200.0);
+  }
+
+  {
+    // 座標変換あり
+    using namespace boost::math::double_constants;
+    const auto mat = ai_server::util::math::make_transformation_matrix(10.0, 20.0, half_pi);
+
+    ai_server::model::updater::refbox ru{};
+    ru.set_transformation_matrix(mat);
+    ru.update(referee);
+
+    const auto& r = ru.value();
+    BOOST_TEST(std::get<0>(r.ball_placement_position()) = 200.0 + 10);
+    BOOST_TEST(std::get<1>(r.ball_placement_position()) = 100.0 + 20);
+  }
 }
 
 BOOST_AUTO_TEST_SUITE_END()

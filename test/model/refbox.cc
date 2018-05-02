@@ -8,7 +8,7 @@ BOOST_AUTO_TEST_SUITE(refbox)
 
 // team_info getter and initialization check
 BOOST_AUTO_TEST_CASE(test01) {
-  ai_server::model::refbox::team_info team_test{"t"};
+  ai_server::model::team_info team_test{"t"};
 
   BOOST_TEST(team_test.name() == "t");
   BOOST_TEST(team_test.score() == 0);
@@ -22,7 +22,7 @@ BOOST_AUTO_TEST_CASE(test01) {
 
 // team_info setter check
 BOOST_AUTO_TEST_CASE(test02) {
-  ai_server::model::refbox::team_info team_test{"t"};
+  ai_server::model::team_info team_test{"t"};
 
   team_test.set_score(1);
   BOOST_TEST(team_test.score() == 1);
@@ -50,6 +50,8 @@ BOOST_AUTO_TEST_CASE(test03) {
   BOOST_TEST(ref.command() == ai_server::model::refbox::game_command::halt);
   BOOST_TEST(ref.team_yellow().name() == "yellow");
   BOOST_TEST(ref.team_blue().name() == "blue");
+  BOOST_TEST(std::get<0>(ref.ball_placement_position()) == 0.0);
+  BOOST_TEST(std::get<1>(ref.ball_placement_position()) == 0.0);
 }
 
 // refbox setter check
@@ -67,12 +69,16 @@ BOOST_AUTO_TEST_CASE(test04) {
   BOOST_TEST(ref.stage_time_left() == 2);
   ref.set_command(ai_server::model::refbox::game_command::stop);
   BOOST_TEST(ref.command() == ai_server::model::refbox::game_command::stop);
-  ai_server::model::refbox::team_info test_yellow{"test_yellow"};
+  ai_server::model::team_info test_yellow{"test_yellow"};
   ref.set_team_yellow(test_yellow);
   BOOST_TEST(ref.team_yellow().name() == test_yellow.name());
-  ai_server::model::refbox::team_info test_blue{"test_blue"};
+  ai_server::model::team_info test_blue{"test_blue"};
   ref.set_team_blue(test_blue);
   BOOST_TEST(ref.team_blue().name() == test_blue.name());
+
+  ref.set_ball_placement_position({1.23, 4.56});
+  BOOST_TEST(std::get<0>(ref.ball_placement_position()) == 1.23);
+  BOOST_TEST(std::get<1>(ref.ball_placement_position()) == 4.56);
 }
 
 BOOST_AUTO_TEST_SUITE_END()

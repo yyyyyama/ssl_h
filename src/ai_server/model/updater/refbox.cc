@@ -1,6 +1,8 @@
 #include <limits>
+#include <tuple>
 
 #include "ai_server/util/time.h"
+#include "ai_server/util/math/affine.h"
 #include "refbox.h"
 #include "ssl-protos/refbox/referee.pb.h"
 
@@ -8,7 +10,7 @@ namespace ai_server {
 namespace model {
 namespace updater {
 
-refbox::refbox() : refbox_{} {}
+refbox::refbox() : refbox_{}, affine_{Eigen::Translation3d{.0, .0, .0}} {}
 
 void refbox::update(const ssl_protos::refbox::Referee& referee) {
   std::unique_lock<std::shared_timed_mutex> lock(mutex_);
@@ -23,7 +25,7 @@ void refbox::update(const ssl_protos::refbox::Referee& referee) {
   refbox_.set_command(static_cast<model::refbox::game_command>(referee.command()));
 
   auto to_team_info = [](auto&& team_info) {
-    model::refbox::team_info result{team_info.name()};
+    model::team_info result{team_info.name()};
     result.set_score(team_info.score());
     result.set_goalie(team_info.goalie());
     result.set_red_cards(team_info.red_cards());
@@ -36,6 +38,17 @@ void refbox::update(const ssl_protos::refbox::Referee& referee) {
   };
   refbox_.set_team_blue(to_team_info(referee.blue()));
   refbox_.set_team_yellow(to_team_info(referee.yellow()));
+
+  if (referee.has_designated_position()) {
+    const auto& dp = referee.designated_position();
+    const auto p   = std::make_tuple(static_cast<double>(dp.x()), static_cast<double>(dp.y()));
+    refbox_.set_ball_placement_position(util::math::transform(affine_, p));
+  }
+}
+
+void refbox::set_transformation_matrix(const Eigen::Affine3d& matrix) {
+  std::unique_lock<std::shared_timed_mutex> lock(mutex_);
+  affine_ = matrix;
 }
 
 model::refbox refbox::value() const {

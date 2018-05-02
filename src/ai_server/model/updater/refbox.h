@@ -2,6 +2,7 @@
 #define AI_SERVER_MODEL_UPDATER_REFBOX_H
 
 #include <shared_mutex>
+#include <Eigen/Geometry>
 #include "ai_server/model/refbox.h"
 
 // 前方宣言
@@ -21,6 +22,9 @@ class refbox {
   mutable std::shared_timed_mutex mutex_;
   model::refbox refbox_;
 
+  /// 変換行列
+  Eigen::Affine3d affine_;
+
 public:
   refbox();
 
@@ -30,6 +34,10 @@ public:
   /// @brief          RefereeパケットでRefBoxの情報を更新する
   /// @param referee  SSL Referee BoxのRefereeパケット
   void update(const ssl_protos::refbox::Referee& referee);
+
+  /// @brief           updaterに変換行列を設定する
+  /// @param matrix    変換行列
+  void set_transformation_matrix(const Eigen::Affine3d& matrix);
 
   /// @brief          値を取得する
   model::refbox value() const;
