@@ -27,21 +27,17 @@ model::command rush::execute() {
   //速度計算
   const auto& robot = robots.at(id_);
   double theta      = std::atan2(ball.y() - robot.y(), ball.x() - robot.x());
-  double omega      = theta - robot.theta();
-  double vx         = 2000 * std::cos(theta);
-  double vy         = 2000 * std::sin(theta);
 
   //ボールを蹴ったと判断したら終了
-  if (std::hypot(previous_kick_ball_.x() - ball.x(), previous_kick_ball_.y() - ball.y()) >
-      200) {
-    command.set_velocity({0.0, 0.0, omega});
+  if (std::hypot(previous_kick_ball_.x() - ball.x(), previous_kick_ball_.y() - ball.y()) > 50) {
+    command.set_velocity({0.0, 0.0, 0.0});
     flag_ = true;
     return command;
   }
 
-  //速度を与えて動作させる
-  command.set_kick_flag({model::command::kick_type_t::line, 10});
-  command.set_velocity({vx, vy, omega});
+  //ボール位置で動作させる
+  command.set_kick_flag({model::command::kick_type_t::line, 60});
+  command.set_position({ball.x(), ball.y(), theta});
 
   flag_               = false;
   previous_kick_ball_ = ball;

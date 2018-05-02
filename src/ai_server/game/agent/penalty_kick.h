@@ -31,27 +31,29 @@ public:
 private:
   penalty_mode mode_;
   //パラメータ計算
-  void calculate_kick_position(double keep_out, double theta);
   void calculate_kick_position(double keep_out); //半径keep_outだけボールに近づく
   bool start_rush(model::ball ball);
   bool time_over(std::chrono::high_resolution_clock::time_point point, int count);
 
   bool start_flag_;
   std::vector<unsigned int> ids_;
-  bool flag_ = false;
   std::chrono::high_resolution_clock::time_point change_command_time_;
   std::shared_ptr<action::move> move_;
   std::shared_ptr<action::rush> rush_;
   std::shared_ptr<action::move> rush_move_;
 
-  bool time_flag_;
+  bool initial_flag_;
+  int shoot_count_;
+  model::ball setted_ball_;
+  model::robot setted_robot_;
 
   unsigned int kicker_id_;
   // PK待機位置
   double kick_x_;
   double kick_y_;
   double kick_theta_;
-  double prev_kick_theta_;
+  double theta_;
+  double prev_theta_;
   bool prev_dec_;
 
   //敵キーパーの動きを監視して蹴るタイミングを変える

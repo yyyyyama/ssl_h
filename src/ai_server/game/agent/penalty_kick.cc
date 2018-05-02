@@ -17,11 +17,14 @@ penalty_kick::penalty_kick(const model::world& world, bool is_yellow, unsigned i
       ids_(ids),
       move_(std::make_shared<action::move>(world_, is_yellow_, kicker_id_)),
       rush_(std::make_shared<action::rush>(world_, is_yellow_, kicker_id_)),
-      time_flag_(true),
+      initial_flag_(true),
+      shoot_count_(6),
+      setted_ball_(world_.ball()),
       kicker_id_(kicker_id),
       kick_x_(0),
       kick_y_(0),
       kick_theta_(0),
+      theta_(0),
       keeper_id_(enemy_keeper) {}
 
 penalty_kick::penalty_mode penalty_kick::mode() {
@@ -48,7 +51,7 @@ std::vector<std::shared_ptr<action::base>> penalty_kick::execute() {
   //////////////////////////////
   //      キッカーの処理
   /////////////////////////////
-
+  using boost::math::constants::pi;
   std::vector<std::shared_ptr<action::base>> exe;
   const auto our_robots = is_yellow_ ? world_.robots_yellow() : world_.robots_blue();
   std::vector<unsigned int> visible_robots;
@@ -60,8 +63,10 @@ std::vector<std::shared_ptr<action::base>> penalty_kick::execute() {
   //攻撃側が指定されているとき
   if (mode_ == penalty_kick::penalty_mode::attack && our_robots.count(kicker_id_)) {
     if (!start_flag_) {
-      calculate_kick_position(550, 0);
-      auto move = std::make_shared<action::move>(world_, is_yellow_, kicker_id_);
+      kick_x_     = ball.x() - 550;
+      kick_y_     = 0;
+      kick_theta_ = 0;
+      auto move   = std::make_shared<action::move>(world_, is_yellow_, kicker_id_);
       move->move_to(kick_x_, kick_y_, kick_theta_);
       exe.push_back(move);
       if (move->finished()) {
@@ -69,18 +74,34 @@ std::vector<std::shared_ptr<action::base>> penalty_kick::execute() {
         exe.push_back(nop);
       }
     } else {
-      if (time_flag_) {
+      if (initial_flag_) {
         change_command_time_ = point;
-        time_flag_           = false;
+        setted_ball_         = world_.ball();
+        setted_robot_        = our_robots.at(kicker_id_);
+        initial_flag_        = false;
+        rush_move_           = std::make_shared<action::move>(world_, is_yellow_, kicker_id_);
+        calculate_kick_position(200);
+        rush_move_->move_to(kick_x_, kick_y_, kick_theta_);
       }
-      if (rush_ && start_rush(ball) || time_over(point, 6)) {
-        exe.push_back(rush_);
+      if ((rush_ && start_rush(ball)) || time_over(point, shoot_count_)) {
+        if (std::hypot((setted_ball_.x() - ball.x()), setted_ball_.y() - ball.y()) < 30 ||
+            std::hypot((setted_robot_.x() - our_robots.at(kicker_id_).x()),
+                       setted_robot_.y() - our_robots.at(kicker_id_).y()) < 50) {
+          exe.push_back(rush_);
+        } else {
+          auto nop = std::make_shared<action::no_operation>(world_, is_yellow_, kicker_id_);
+          exe.push_back(nop);
+          shoot_count_ = 0;
+        }
       } else {
         rush_.reset();
         rush_ = std::make_shared<action::rush>(world_, is_yellow_, kicker_id_);
-        calculate_kick_position(180);
-        rush_move_ = std::make_shared<action::move>(world_, is_yellow_, kicker_id_);
-        rush_move_->move_to(kick_x_, kick_y_, kick_theta_);
+        if (std::hypot(our_robots.at(kicker_id_).x() - kick_x_,
+                       our_robots.at(kicker_id_).y() - kick_y_) < 30 &&
+            std::fabs(kick_theta_ - our_robots.at(kicker_id_).theta()) < pi<double>() / 6) {
+          calculate_kick_position(200);
+          rush_move_->move_to(kick_x_, kick_y_, kick_theta_);
+        }
         exe.push_back(rush_move_);
       }
     }
@@ -119,52 +140,45 @@ std::vector<std::shared_ptr<action::base>> penalty_kick::execute() {
 }
 
 // PK待機位置の計算
-void penalty_kick::calculate_kick_position(double keep_out, double theta) {
-  using boost::math::constants::pi;
-  const auto our_robots = is_yellow_ ? world_.robots_yellow() : world_.robots_blue();
-  const auto ball       = world_.ball();
-
-  kick_theta_ = 0;
-  kick_x_     = ball.x() - keep_out;
-  kick_y_     = 0;
-}
-
 void penalty_kick::calculate_kick_position(double keep_out) {
   using boost::math::constants::pi;
   const auto ball  = world_.ball();
-  const auto omega = pi<double>() / 64;
+  const auto omega = pi<double>() / 32;
 
-  if (kick_theta_ > atan2(2, 2)) {
-    kick_theta_ -= omega;
-  } else if (kick_theta_ < -atan2(2, 2)) {
-    kick_theta_ += omega;
+  if (theta_ > std::atan2(2, 2)) {
+    theta_ -= omega;
+  } else if (theta_ < -std::atan2(2, 2)) {
+    theta_ += omega;
   } else {
-    kick_theta_ = prev_dec_ ? kick_theta_ - omega : kick_theta_ + omega;
+    theta_ = prev_dec_ ? theta_ - omega : theta_ + omega;
   }
-  prev_dec_ = kick_theta_ - prev_kick_theta_ < 0;
-  kick_x_   = ball.x() - keep_out;
-  kick_y_   = -keep_out * std::sin(pi<double>() - kick_theta_);
-  kick_y_ += ball.y();
-  prev_kick_theta_ = kick_theta_;
+  prev_dec_   = theta_ - prev_theta_ < 0;
+  kick_x_     = ball.x() - keep_out * std::cos(theta_);
+  kick_y_     = ball.y() - keep_out * std::sin(theta_);
+  prev_theta_ = theta_;
+  kick_theta_ = std::atan2(ball.y() - kick_y_, ball.x() - kick_x_);
 }
 
 bool penalty_kick::start_rush(model::ball ball) {
+  using boost::math::constants::pi;
   const auto enemies    = is_yellow_ ? world_.robots_blue() : world_.robots_yellow();
   const auto our_robots = is_yellow_ ? world_.robots_yellow() : world_.robots_blue();
   const auto x          = our_robots.at(kicker_id_).x();
   const auto y          = our_robots.at(kicker_id_).y();
+  const auto t          = our_robots.at(kicker_id_).theta();
 
-  const auto a        = (ball.x() - x) / (ball.y() - y);
-  const auto b        = x - a * y;
+  const auto a        = (ball.y() - y) / (ball.x() - x);
+  const auto b        = y - a * x;
   const auto target_x = world_.field().x_max();
-  const auto target_y = 1000 * tan(kick_theta_);
+  const auto target_y = a * target_x + b;
 
   if (!enemies.count(keeper_id_)) {
     return true;
   }
   const auto keeper_y = enemies.at(keeper_id_).y();
-  if (std::abs(keeper_y - target_y) > 400 && std::fabs(target_y) < 350 &&
-      std::hypot((x - ball.x()), y - ball.y()) < 300) {
+  if (std::abs(keeper_y - target_y) > 400 && std::fabs(target_y) < 400 &&
+      std::hypot((x - ball.x()), y - ball.y()) < 300 &&
+      std::fabs(theta_ - t) < pi<double>() / 12) {
     return true;
   }
   return false;
