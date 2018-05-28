@@ -53,9 +53,9 @@ velocity_t state_feedback_controller::update(const model::robot& robot,
   double target_angle     = std::atan2(delta_p.y(), delta_p.x());
 
   Eigen::Vector3d target;
-  target.x() = velocity_generator_[0].control_pos(-delta_p.x());
-  target.y() = velocity_generator_[1].control_pos(-delta_p.y());
-  target.z() = util::math::wrap_to_pi(delta_p.z()) * 2.0;
+  target.x() = velocity_generator_[0].control_pos(-delta_p.x(), stable_flag_);
+  target.y() = velocity_generator_[1].control_pos(-delta_p.y(), stable_flag_);
+  target.z() = util::math::wrap_to_pi(delta_p.z());
 
   calculate_output(target, target_angle);
 
@@ -70,9 +70,12 @@ velocity_t state_feedback_controller::update(const model::robot& robot,
   Eigen::Vector3d target = convert(set, estimated_robot_(2, 0));
   double target_angle    = std::atan2(setpoint.vy, setpoint.vx);
 
-  target.x() = velocity_generator_[0].control_vel(target.x());
-  target.y() = velocity_generator_[1].control_vel(target.y());
-  target.z() = set.z();
+  // no_operation等で入力0が入ったら計算せずにそのまま出す
+  if (!(setpoint.vx == 0.0 && setpoint.vy == 0.0 && setpoint.omega == 0.0)) {
+    target.x() = velocity_generator_[0].control_vel(target.x(), stable_flag_);
+    target.y() = velocity_generator_[1].control_vel(target.y(), stable_flag_);
+    target.z() = set.z();
+  }
 
   calculate_output(target, target_angle);
 
@@ -156,36 +159,46 @@ void state_feedback_controller::calculate_output(Eigen::Vector3d target, double 
       vy_min = 0.0;
     }
   }
+
+  double ratio = 1.0;
+  if (std::abs(estimated_robot_(2, 1)) > pi<double>()) {
+    ratio = pi<double>() / std::abs(estimated_robot_(2, 1));
+  }
+  double posi_x = ratio;
+  double nega_x = ratio;
+  double posi_y = ratio;
+  double nega_y = ratio;
   // 各方向の速度制限線が作る四角形がロボットの速度制限
   // 2直線の交点を求めることでロボットのxyに対しての速度制限計算
-  double posi_x;
-  double nega_x;
-  double posi_y;
-  double nega_y;
   if (estimated_robot_(2, 0) < -half_pi<double>()) {
-    posi_x = find_cross_point(vx_min, vy_max, estimated_robot_(2, 0) + half_pi<double>());
-    posi_y = find_cross_point(vx_min, vy_min, estimated_robot_(2, 0));
-    nega_x = find_cross_point(vx_max, vy_min, estimated_robot_(2, 0) + half_pi<double>());
-    nega_y = find_cross_point(vx_max, vy_max, estimated_robot_(2, 0));
+    posi_x *= find_cross_point(vx_min, vy_max, estimated_robot_(2, 0) + half_pi<double>());
+    posi_y *= find_cross_point(vx_min, vy_min, estimated_robot_(2, 0));
+    nega_x *= find_cross_point(vx_max, vy_min, estimated_robot_(2, 0) + half_pi<double>());
+    nega_y *= find_cross_point(vx_max, vy_max, estimated_robot_(2, 0));
   } else if (estimated_robot_(2, 0) < 0) {
-    posi_x = find_cross_point(vx_min, vy_min, estimated_robot_(2, 0) - half_pi<double>());
-    posi_y = find_cross_point(vx_max, vy_min, estimated_robot_(2, 0));
-    nega_x = find_cross_point(vx_max, vy_max, estimated_robot_(2, 0) + half_pi<double>());
-    nega_y = find_cross_point(vx_min, vy_max, estimated_robot_(2, 0));
+    posi_x *= find_cross_point(vx_min, vy_min, estimated_robot_(2, 0) - half_pi<double>());
+    posi_y *= find_cross_point(vx_max, vy_min, estimated_robot_(2, 0));
+    nega_x *= find_cross_point(vx_max, vy_max, estimated_robot_(2, 0) + half_pi<double>());
+    nega_y *= find_cross_point(vx_min, vy_max, estimated_robot_(2, 0));
   } else if (estimated_robot_(2, 0) < half_pi<double>()) {
-    posi_x = find_cross_point(vx_max, vy_min, estimated_robot_(2, 0) - half_pi<double>());
-    posi_y = find_cross_point(vx_max, vy_max, estimated_robot_(2, 0));
-    nega_x = find_cross_point(vx_min, vy_max, estimated_robot_(2, 0) + half_pi<double>());
-    nega_y = find_cross_point(vx_min, vy_min, estimated_robot_(2, 0));
+    posi_x *= find_cross_point(vx_max, vy_min, estimated_robot_(2, 0) - half_pi<double>());
+    posi_y *= find_cross_point(vx_max, vy_max, estimated_robot_(2, 0));
+    nega_x *= find_cross_point(vx_min, vy_max, estimated_robot_(2, 0) + half_pi<double>());
+    nega_y *= find_cross_point(vx_min, vy_min, estimated_robot_(2, 0));
   } else {
-    posi_x = find_cross_point(vx_max, vy_max, estimated_robot_(2, 0) - half_pi<double>());
-    posi_y = find_cross_point(vx_min, vy_max, estimated_robot_(2, 0));
-    nega_x = find_cross_point(vx_min, vy_min, estimated_robot_(2, 0) - half_pi<double>());
-    nega_y = find_cross_point(vx_max, vy_min, estimated_robot_(2, 0));
+    posi_x *= find_cross_point(vx_max, vy_max, estimated_robot_(2, 0) - half_pi<double>());
+    posi_y *= find_cross_point(vx_min, vy_max, estimated_robot_(2, 0));
+    nega_x *= find_cross_point(vx_min, vy_min, estimated_robot_(2, 0) - half_pi<double>());
+    nega_y *= find_cross_point(vx_max, vy_min, estimated_robot_(2, 0));
   }
   // 速度制限
   u_[0].x() = std::clamp(u_[0].x(), -nega_x, posi_x);
   u_[0].y() = std::clamp(u_[0].y(), -nega_y, posi_y);
+
+  // 最終的に速度ベクトルが目標通りになるように
+  double speed = std::hypot(u_[0].x(), u_[0].y());
+  u_[0].x()    = speed * std::cos(target_angle);
+  u_[0].y()    = speed * std::sin(target_angle);
 
   // 値の更新
   up_[1] = up_[0];

@@ -69,6 +69,10 @@ public:
   /// @param limit            速度の制限値
   void set_velocity_limit(double limit);
 
+  /// @brief                  制御モードの切り替え
+  /// @param stable           true->安定,false->通常
+  void set_stable(const bool stable);
+
 private:
   /// @brief                  cycle_毎に呼ばれる制御部のメインループ
   void main_loop(const boost::system::error_code& error);

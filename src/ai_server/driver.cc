@@ -34,6 +34,11 @@ void driver::set_velocity_limit(double limit) {
   for (auto&& meta : robots_metadata_) std::get<1>(meta.second)->set_velocity_limit(limit);
 }
 
+void driver::set_stable(const bool stable) {
+  std::lock_guard<std::mutex> lock(mutex_);
+  for (auto&& meta : robots_metadata_) std::get<1>(meta.second)->set_stable(stable);
+}
+
 void driver::register_robot(unsigned int id, controller_type controller, sender_type sender) {
   std::lock_guard<std::mutex> lock(mutex_);
   robots_metadata_.emplace(

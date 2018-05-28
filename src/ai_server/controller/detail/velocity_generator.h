@@ -23,11 +23,13 @@ public:
 
   /// @brief  位置制御計算関数
   /// @param  delta_p  位置偏差(現在位置-目標位置)
-  double control_pos(const double delta_p);
+  /// @param  stable   安定制御用(true->安定,false->通常)
+  double control_pos(const double delta_p, const bool stable);
 
   /// @brief  速度制御計算関数
-  /// @param  target  目標速度
-  double control_vel(const double target);
+  /// @param  target   目標速度
+  /// @param  stable   安定制御用(true->安定,false->通常)
+  double control_vel(const double target, const bool stable);
 };
 
 } // namespace detail

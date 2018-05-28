@@ -8,8 +8,8 @@ namespace ai_server {
 namespace controller {
 namespace detail {
 
-const double velocity_generator::a_max_       = 4000.0;
-const double velocity_generator::a_min_       = 1000.0;
+const double velocity_generator::a_max_       = 5000.0;
+const double velocity_generator::a_min_       = 2000.0;
 const double velocity_generator::reach_speed_ = 1000.0;
 const double velocity_generator::kp_          = 1.0;
 
@@ -17,9 +17,14 @@ velocity_generator::velocity_generator(double cycle) : cycle_(cycle) {
   v_target_ = 0.0;
 }
 
-double velocity_generator::control_pos(const double delta_p) {
+double velocity_generator::control_pos(const double delta_p, const bool stable) {
   // 速度に応じて応答を変える
-  double k          = kp_ * 10.0 * std::exp(-std::abs(v_target_) / 1000.0);
+  double k;
+  if (stable) {
+    k = kp_;
+  } else {
+    k = kp_ * 10.0 * std::exp(-std::abs(v_target_) / 1000.0);
+  }
   double a_required = std::abs(delta_p) * std::pow(k, 2);
   double state;
 
@@ -47,7 +52,7 @@ double velocity_generator::control_pos(const double delta_p) {
   return v_target_;
 }
 
-double velocity_generator::control_vel(const double target) {
+double velocity_generator::control_vel(const double target, const bool stable) {
   double state = v_target_ - target;
   // 制限加速度計算
   // 速度によって加速度が変化,初動でスリップしないように
