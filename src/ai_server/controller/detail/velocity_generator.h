@@ -11,6 +11,7 @@ class velocity_generator {
 private:
   double v_target_;                 // 目標指令速度
   double cycle_;                    // 周期
+  static const double v_max_;       //
   static const double a_max_;       // 最大加速度
   static const double a_min_;       // 最小加速度
   static const double reach_speed_; // 最大加速度に達するときの速度
