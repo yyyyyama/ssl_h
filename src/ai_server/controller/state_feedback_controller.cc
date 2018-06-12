@@ -110,7 +110,7 @@ Eigen::Vector3d state_feedback_controller::convert(const Eigen::Vector3d& raw,
 void state_feedback_controller::calculate_output(Eigen::Vector3d target, double target_angle) {
   // 速度が大きいときに角速度が大きくなりすぎないように
   double omega_limit = pi<double>() * std::exp(-std::hypot(target.x(), target.y()) / 2000.0);
-  target.z() = std::clamp(util::math::wrap_to_pi(target.z()) * 2.0, -omega_limit, omega_limit);
+  target.z()         = std::clamp(target.z(), -omega_limit, omega_limit);
 
   // スピンしてる(角速度が大きすぎる)ときは速度落とす
   if (estimated_robot_(2, 1) > 10) {
