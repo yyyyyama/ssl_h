@@ -27,7 +27,7 @@ protected:
   /// @param id               ロボットのID
   /// @param args             Actionのコンストラクタに渡すその他の引数
   template <class T, class... Args>
-  std::shared_ptr<T> make_action(unsigned int id, Args... args) {
+  std::shared_ptr<T> make_action(unsigned int id, Args&&... args) {
     return std::make_shared<T>(world_, is_yellow_, id, std::forward<Args>(args)...);
   }
 
