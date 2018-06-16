@@ -69,7 +69,7 @@ velocity_t state_feedback_controller::update(const model::robot& robot,
 
   Eigen::Vector3d set    = {setpoint.vx, setpoint.vy, setpoint.omega};
   Eigen::Vector3d target = convert(set, estimated_robot_(2, 0));
-  double target_angle    = std::atan2(setpoint.vy, setpoint.vx);
+  double target_angle    = std::atan2(target.y(), target.x());
 
   target.x() = velocity_generator_[0].control_vel(target.x(), stable_flag_);
   target.y() = velocity_generator_[1].control_vel(target.y(), stable_flag_);
