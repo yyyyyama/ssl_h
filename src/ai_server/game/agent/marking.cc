@@ -3,10 +3,13 @@
 
 #include "ai_server/game/action/get_ball.h"
 #include "ai_server/game/action/marking.h"
+#include "ai_server/game/action/move.h"
 #include "ai_server/game/action/vec.h"
 #include "ai_server/util/math/angle.h"
 
 #include "marking.h"
+
+using boost::math::constants::pi;
 
 namespace ai_server {
 namespace game {
@@ -192,6 +195,21 @@ std::vector<std::shared_ptr<action::base>> marking::execute() {
     }
   }
 
+  const auto marker_ids = marker_ids_;
+
+  std::vector<unsigned int> our_ids;
+  for (const auto& our : our_robots) {
+    our_ids.push_back(our.first);
+  }
+  const auto nearest_id = std::min_element(
+      our_ids.cbegin(), our_ids.cend(),
+      [&our_robots, &ball](const unsigned int a, const unsigned int b) {
+        return std::hypot(our_robots.at(a).x() - ball.x(), our_robots.at(a).y() - ball.y()) <
+               std::hypot(our_robots.at(b).x() - ball.x(), our_robots.at(b).y() - ball.y());
+      });
+  const auto nid = *nearest_id;
+  our_ids.erase(nearest_id);
+
   // それぞれのロボットに動作設定
   for (auto itr = mark_pairs_.cbegin(); itr != mark_pairs_.cend(); itr++) {
     const auto id     = itr->first;
@@ -227,7 +245,23 @@ std::vector<std::shared_ptr<action::base>> marking::execute() {
       baseaction.push_back(vec);
     } else if (setplay_flag_) {
       // 敵チームセットプレイ時
-      if (std::hypot(robot.x() - ball.x(), robot.y() - ball.y()) < 600.0) {
+      if (id == nid && enemy_robots.count(eid)) {
+        auto r_theta = util::math::wrap_to_2pi(std::atan2(ball.y() - enemy_robots.at(eid).y(),
+                                                          ball.x() - enemy_robots.at(eid).x()));
+        auto x       = ball.x() + 650 * std::cos(r_theta);
+        auto y       = ball.y() + 650 * std::sin(r_theta);
+        if (std::abs(x) > world_.field().x_max() || std::abs(y) > world_.field().y_max()) {
+          const auto b2gtheta = util::math::wrap_to_2pi(
+              std::atan2(0 - ball.y(), world_.field().x_min() - ball.x()));
+          x = ball.x() + 650 * std::sin(b2gtheta);
+          y = ball.y() + 650 * std::cos(b2gtheta);
+        }
+        const auto to_ball_theta =
+            util::math::wrap_to_2pi(std::atan2(ball.y() - y, ball.x() - x));
+        auto move = std::make_shared<action::move>(world_, is_yellow_, id);
+        move->move_to(x, y, to_ball_theta);
+        baseaction.push_back(move);
+      } else if (std::hypot(robot.x() - ball.x(), robot.y() - ball.y()) < 600.0) {
         // ボールから離れる
         double vx, vy;
         const double c_to_rtheta =
@@ -266,37 +300,38 @@ std::vector<std::shared_ptr<action::base>> marking::execute() {
         }
       }
     } else {
-      std::vector<unsigned int> our_ids;
-
-      for (const auto& our : our_robots) {
-        our_ids.push_back(our.first);
-      }
-      const auto nearest_id = std::min_element(
-          our_ids.cbegin(), our_ids.cend(),
-          [&our_robots, &ball](const unsigned int a, const unsigned int b) {
-            return std::hypot(our_robots.at(a).x() - ball.x(),
-                              our_robots.at(a).y() - ball.y()) <
-                   std::hypot(our_robots.at(b).x() - ball.x(), our_robots.at(b).y() - ball.y());
-          });
-      const auto nid = *nearest_id;
-      our_ids.erase(nearest_id);
-
       if ((std::abs(ball.x()) < world_.field().x_max() - 1200.0 ||
            std::abs(ball.y()) > 1200.0) &&
           std::hypot(robot.x() - ball.x(), robot.y() - ball.y()) < 700.0 && id == nid &&
           std::all_of(our_ids.cbegin(), our_ids.cend(),
-                      [&our_robots, &ball](const unsigned int our_id) {
-                        return std::hypot(our_robots.at(our_id).x() - ball.x(),
+                      [&our_robots, &ball, &marker_ids](const unsigned int our_id) {
+                        return std::any_of(marker_ids.cbegin(), marker_ids.cend(),
+                                           [&our_id](const unsigned int mid) {
+                                             return mid == our_id;
+                                           }) ||
+                               std::hypot(our_robots.at(our_id).x() - ball.x(),
                                           our_robots.at(our_id).y() - ball.y()) > 700.0;
                       })) {
         // ボールに近く、ボールの近くに味方ロボットがいない場合、ボールを相手ゴール方向に蹴る
         auto get_ball = std::make_shared<action::get_ball>(world_, is_yellow_, id);
         get_ball->set_target(world_.field().x_max(), 0.0);
-        get_ball->set_chip(true);
         baseaction.push_back(get_ball);
       } else {
         if (enemy_robots.count(eid) != 0) {
           // マーク
+          if (std::any_of(
+                  our_ids.cbegin(), our_ids.cend(),
+                  [&our_robots, &enemy_robots, &marker_ids, &eid](const unsigned int our_id) {
+                    return std::all_of(
+                               marker_ids.cbegin(), marker_ids.cend(),
+                               [&our_id](const unsigned int mid) { return mid != our_id; }) &&
+                           std::hypot(enemy_robots.at(eid).x() - our_robots.at(our_id).x(),
+                                      enemy_robots.at(eid).y() - our_robots.at(our_id).y()) <
+                               500.0;
+                  })) {
+            // 近くにマーカー以外のロボットがいればモード変更
+            mark_mode = action::marking::mark_mode::shoot_block;
+          }
           auto mark = std::make_shared<action::marking>(world_, is_yellow_, id);
           mark->mark_robot(eid);
           mark->set_mode(mark_mode);
