@@ -22,6 +22,7 @@ public:
   // leave:ボールから離れる
   // finished:動作終了(停止)
   enum class running_state { move, hold, place, wait, leave, finished };
+  enum class place_mode { pull, push, pass };
 
   model::command execute() override;
 
@@ -32,12 +33,14 @@ public:
 private:
   model::command command_;
   running_state state_;
+  place_mode mode_;
   bool finished_;
   bool wait_flag_;
   bool round_flag_;
   util::time_point_type begin_;
   util::time_point_type now_;
   Eigen::Vector2d target_;
+  Eigen::Vector2d abp_target_;
   double first_ballx_;
   double first_bally_;
 };
