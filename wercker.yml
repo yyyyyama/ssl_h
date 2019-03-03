@@ -30,7 +30,7 @@ build:
       name: code coverage
       code: |
         cd build
-        bash <(curl -s https://codecov.io/bash) -x ../tools/llvm-cov.sh
+        bash <(curl -s https://codecov.io/bash) -x "${PWD}/../tools/llvm-cov.sh"
 
     - slack-notifier:
       url:  $SLACK_WEBHOOK_URL
