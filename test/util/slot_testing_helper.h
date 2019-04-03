@@ -21,7 +21,7 @@ public:
         connection_{(object.*f)(
             // テストしたいSignalに,
             // 渡された引数をslot_testing_helper::slotに転送するlambdaを接続
-            [this](auto&&... args) { slot(std::forward<decltype(args)>(args)...); })} {}
+            [this](auto&&... args) { this->slot(std::forward<decltype(args)>(args)...); })} {}
 
   ~slot_testing_helper() {
     // Slotを切断する
