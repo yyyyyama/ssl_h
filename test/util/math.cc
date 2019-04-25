@@ -155,4 +155,43 @@ BOOST_AUTO_TEST_CASE(wrap_to_pi, *boost::unit_test::tolerance(0.0000001)) {
   BOOST_TEST(util::math::wrap_to_pi(-25 * two_pi + pi) == pi);
 }
 
+BOOST_AUTO_TEST_CASE(delta_theta, *boost::unit_test::tolerance(0.0000001)) {
+  using namespace boost::math::double_constants;
+
+  BOOST_TEST(util::math::delta_theta(0.0, pi / 4) == pi / 4);
+  BOOST_TEST(util::math::delta_theta(pi / 8, -pi / 8) == -pi / 4);
+  BOOST_TEST(util::math::delta_theta(pi / 4, -pi / 4) == -half_pi);
+  BOOST_TEST(util::math::delta_theta(pi / 3, -pi / 3) == -two_thirds_pi);
+  BOOST_TEST(util::math::delta_theta(-half_pi, half_pi) == pi);
+  BOOST_TEST(util::math::delta_theta(half_pi, -half_pi) == -pi);
+  BOOST_TEST(util::math::delta_theta(two_pi, 0.0) == 0.0);
+  BOOST_TEST(util::math::delta_theta(two_thirds_pi, 4.0 * third_pi) == third_pi * 2.0);
+  BOOST_TEST(util::math::delta_theta(two_pi * 10 + two_thirds_pi, 4.0 * third_pi) ==
+             third_pi * 2.0);
+}
+
+BOOST_AUTO_TEST_CASE(theta_ave, *boost::unit_test::tolerance(0.0000001)) {
+  using namespace boost::math::double_constants;
+  using vec_t = std::vector<double>;
+
+  // 空
+  vec_t v0{};
+  BOOST_TEST(util::math::theta_average(v0.begin(), v0.end()) == 0.0);
+
+  vec_t v1{1.0};
+  BOOST_TEST(util::math::theta_average(v1.begin(), v1.end()) == 1.0);
+
+  vec_t v2{1.0, -1.0};
+  BOOST_TEST(util::math::theta_average(v2.begin(), v2.end()) == 0.0);
+
+  vec_t v3{pi / 4.0, 7.0 * pi / 4.0};
+  BOOST_TEST(util::math::theta_average(v3.begin(), v3.end()) == 0.0);
+
+  vec_t v4{0.0, 2.0 * pi, 4.0 * pi, 6.0 * pi};
+  BOOST_TEST(util::math::theta_average(v4.begin(), v4.end()) == 0.0);
+
+  vec_t v5{-pi, pi, 3.0 * pi};
+  BOOST_TEST(util::math::theta_average(v5.begin(), v5.end()) == pi);
+}
+
 BOOST_AUTO_TEST_SUITE_END()
