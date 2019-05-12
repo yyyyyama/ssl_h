@@ -1,19 +1,23 @@
 #include <cmath>
+#include <boost/math/constants/constants.hpp>
 
 #include "ai_server/game/action/receive.h"
+#include "ai_server/util/math/angle.h"
 #include "ai_server/util/math/to_vector.h"
-#include "ai_server/util/math.h"
+
+using boost::math::constants::pi;
 
 namespace ai_server {
 namespace game {
 namespace action {
 receive::receive(const model::world& world, bool is_yellow, unsigned int id)
-    : base(world, is_yellow, id) {
-  const auto& robots   = is_yellow_ ? world_.robots_yellow() : world_.robots_blue();
-  const auto& robot    = robots.at(id_);
-  const auto robot_pos = util::math::position(robot);
-  dummy_pos_           = robot_pos;
-}
+    : base(world, is_yellow, id),
+      dribble_(0),
+      passer_id_(0),
+      flag_(false),
+      shoot_flag_(false),
+      approaching_flag_(false) {}
+
 void receive::set_dribble(int dribble) {
   dribble_ = dribble;
 }
@@ -33,28 +37,35 @@ void receive::set_shoot(Eigen::Vector2d shoot_pos) {
 void receive::set_kick_type(const model::command::kick_flag_t& kick_type) {
   kick_type_ = kick_type;
 }
+
 model::command receive::execute() {
   //それぞれ自機を生成
   model::command command(id_);
 
-  const auto& robots = is_yellow_ ? world_.robots_yellow() : world_.robots_blue();
-  if (!robots.count(id_) || !robots.count(passer_id_)) {
-    command.set_velocity({0.0, 0.0, 0.0});
-    return command;
-  }
+  command.set_kick_flag(kick_type_);
+  command.set_dribble(dribble_);
 
-  const auto& robot      = robots.at(id_);
-  const auto robot_theta = util::wrap_to_pi(robot.theta());
-  const auto robot_pos =
-      util::math::position(robot) +
-      (shoot_flag_ ? Eigen::Vector2d(80 * std::cos(robot_theta), 80 * std::sin(robot_theta))
-                   : Eigen::Vector2d(0, 0));
-  const auto ball_pos = util::math::position(world_.ball());
-  const auto ball_vec = util::math::velocity(world_.ball());
+  // 最大速度
+  constexpr double max_vel = 5000.0;
+  // 最小速度
+  constexpr double min_vel = 0.0;
+  // 遅延時間
+  constexpr double delay = 0.0;
 
-  const auto& passer      = robots.at(passer_id_);
-  const auto passer_pos   = util::math::position(passer);
-  const auto passer_theta = util::wrap_to_pi(passer.theta());
+  const auto our_robots = is_yellow_ ? world_.robots_yellow() : world_.robots_blue();
+  if (!our_robots.count(id_)) return command;
+  const auto& robot               = our_robots.at(id_);
+  const Eigen::Vector2d robot_vel = util::math::velocity(robot);
+  const Eigen::Vector2d robot_pos = util::math::position(robot) + robot_vel * delay;
+  const Eigen::Vector2d ball_vel  = util::math::velocity(world_.ball());
+  const Eigen::Vector2d ball_pos  = util::math::position(world_.ball()) + ball_vel * delay;
+  const double theta =
+      shoot_flag_ ? std::atan2(shoot_pos_.y() - robot_pos.y(), shoot_pos_.x() - robot_pos.x())
+                  : std::atan2(ball_pos.y() - robot_pos.y(), ball_pos.x() - robot_pos.x());
+  const double omega = 4.0 * util::math::wrap_to_pi(theta - robot.theta());
+
+  // シュート時にボールの直線から離れる距離
+  const double kick_dist = (robot_pos - ball_pos).norm() > 120 ? 100.0 : 70.0;
 
   //ボールがめっちゃ近くに来たら受け取ったと判定
   //現状だとボールセンサに反応があるか分からないので
@@ -63,56 +74,41 @@ model::command receive::execute() {
       approaching_flag_ = true;
     } else if (approaching_flag_) {
       flag_ = true;
-      command.set_velocity({0.0, 0.0, 0.0});
       return command;
     }
   } else if ((robot_pos - ball_pos).norm() < 100) {
     flag_ = true;
-    command.set_velocity({0.0, 0.0, 0.0});
     return command;
   }
 
-  decltype(util::math::position(passer)) normalize; //正面に移動したい対象の単位ベクトル
-  decltype(util::math::position(passer)) position; //正面に移動したい対象の位置
+  bool no_kicker_flag     = !our_robots.count(passer_id_);
+  const auto passer_theta = no_kicker_flag ? 0 : our_robots.at(passer_id_).theta();
 
-  if (ball_vec.norm() < 500) { // passerの正面に移動したい
+  Eigen::Vector2d normalize; // 正面に移動したい対象の単位ベクトル
+
+  if (ball_vel.norm() < 500) { // passerの正面に移動したい
     normalize = Eigen::Vector2d{std::cos(passer_theta), std::sin(passer_theta)};
-    position  = passer_pos;
-  } else { //ボールの移動予測地点に移動したい
-    normalize = ball_vec.normalized();
-    position  = ball_pos;
+  } else { // ボールの移動予測地点に移動したい
+    normalize = ball_vel.normalized();
   }
 
-  //対象とreceiverの距離
-  const auto length = robot_pos - position;
-  //内積より,対象と自分の直交する位置
-  const auto dot = normalize.dot(length);
-
-  //目標位置と角度
-  const auto to_ball  = ball_pos - robot_pos;
-  const auto to_shoot = shoot_pos_ - robot_pos;
-  const auto theta    = shoot_flag_ ? std::atan2(to_shoot.y(), to_shoot.x())
-                                 : std::atan2(to_ball.y(), to_ball.x());
-  const auto target = (position + dot * normalize * 0.95) -
-                      (shoot_flag_ ? Eigen::Vector2d(80 * std::cos(theta), 80 * std::sin(theta))
-                                   : Eigen::Vector2d(0, 0));
-
-  //位置から速度へ
-  Eigen::Vector2d target_vec{(target - robot_pos) * 8};
-  if ((robot_pos - ball_pos).norm() < 300 && ball_vec.norm() > 500) {
-    target_vec = target_vec + ball_vec / 3;
-  }
-
-  const auto omega = (theta - robot_theta);
-  command.set_position({target.x(), target.y(), theta});
-  if (shoot_flag_) {
-    command.set_kick_flag(kick_type_);
-  } else {
-    //ドリブルさせる
-    command.set_dribble(dribble_);
-  }
-
-  flag_ = false;
+  // 目標位置
+  const Eigen::Vector2d target_pos =
+      ball_pos + normalize * (robot_pos - ball_pos).norm() -
+      kick_dist * (shoot_flag_ ? Eigen::Vector2d(std::cos(theta), std::sin(theta))
+                               : Eigen::Vector2d::Zero());
+  // ボールから遠ざからないようにするための基準位置
+  const Eigen::Vector2d base_pos =
+      target_pos + kick_dist * (shoot_flag_ ? Eigen::Vector2d(std::cos(theta), std::sin(theta))
+                                            : Eigen::Vector2d::Zero());
+  // 目標への速度を決める係数
+  const double coe =
+      std::clamp(100.0 * std::pow((target_pos - robot_pos).norm(), 0.3), min_vel, max_vel);
+  // 速度
+  const Eigen::Vector2d vel =
+      (target_pos - robot_pos).normalized() * coe + ball_vel -
+      (base_pos - ball_pos).normalized() * ball_vel.dot((base_pos - ball_pos).normalized());
+  command.set_velocity({vel.x(), vel.y(), omega});
   return command;
 }
 bool receive::finished() const {
