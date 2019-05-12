@@ -3,7 +3,6 @@
 
 #include <memory>
 #include <vector>
-#include <boost/variant.hpp>
 #include <chrono>
 
 #include "base.h"

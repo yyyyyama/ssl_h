@@ -1,5 +1,6 @@
 #include <boost/math/constants/constants.hpp>
 #include <cmath>
+#include <variant>
 
 #include "ai_server/sender/kiks.h"
 #include "ai_server/util/math.h"
@@ -39,7 +40,7 @@ kiks::data_t kiks::to_data_t(const model::command& command) {
   }
   // data[1~6]
   const auto& setpoint = command.setpoint();
-  if (const auto velocity = boost::get<model::command::velocity_t>(&setpoint)) {
+  if (const auto velocity = std::get_if<model::command::velocity_t>(&setpoint)) {
     // rotate
     data[0] |= ((velocity->omega >= 0) ? 0b00000000 : 0b10000000);
     // vec

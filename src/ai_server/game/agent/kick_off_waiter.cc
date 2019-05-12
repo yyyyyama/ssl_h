@@ -1,5 +1,6 @@
 #include "kick_off_waiter.h"
 
+#include <algorithm>
 #include <cmath>
 
 namespace ai_server {

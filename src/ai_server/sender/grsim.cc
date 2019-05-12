@@ -1,6 +1,6 @@
-#include <boost/variant.hpp>
 #include <ostream>
 #include <tuple>
+#include <variant>
 
 #include "grsim.h"
 
@@ -42,7 +42,7 @@ void grsim::send_command(const model::command& command) {
   }
 
   const auto& setpoint = command.setpoint();
-  if (const auto velocity = boost::get<model::command::velocity_t>(&setpoint)) {
+  if (const auto velocity = std::get_if<model::command::velocity_t>(&setpoint)) {
     // velocity_tへのキャストが成功した時
     grcommand->set_veltangent(velocity->vx / 1000);
     grcommand->set_velnormal(velocity->vy / 1000);

@@ -1,4 +1,6 @@
 #define BOOST_TEST_DYN_LINK
+
+#include <variant>
 #include <boost/test/unit_test.hpp>
 #include "ai_server/model/command.h"
 BOOST_TEST_DONT_PRINT_LOG_VALUE(ai_server::model::command::kick_type_t)
@@ -14,11 +16,12 @@ BOOST_AUTO_TEST_CASE(test01) {
   auto kick_flag_test = command.kick_flag();
   BOOST_TEST(std::get<0>(kick_flag_test) == ai_server::model::command::kick_type_t::none);
   BOOST_TEST(std::get<1>(kick_flag_test) == 0.0);
-  const auto& test_velocity =
-      boost::get<ai_server::model::command::velocity_t>(command.setpoint());
-  BOOST_TEST(test_velocity.vx == 0.0);
-  BOOST_TEST(test_velocity.vy == 0.0);
-  BOOST_TEST(test_velocity.omega == 0.0);
+  const auto test_velocity =
+      std::get_if<ai_server::model::command::velocity_t>(&command.setpoint());
+  BOOST_TEST(test_velocity != nullptr);
+  BOOST_TEST(test_velocity->vx == 0.0);
+  BOOST_TEST(test_velocity->vy == 0.0);
+  BOOST_TEST(test_velocity->omega == 0.0);
 }
 
 // command setter check
@@ -35,18 +38,20 @@ BOOST_AUTO_TEST_CASE(test02) {
   BOOST_TEST(std::get<1>(kick_flag_test2) == 2.0);
   ai_server::model::command::position_t position{3.0, 4.0, 5.0};
   command.set_position(position);
-  const auto& test_position =
-      boost::get<ai_server::model::command::position_t>(command.setpoint());
-  BOOST_TEST(test_position.x == 3.0);
-  BOOST_TEST(test_position.y == 4.0);
-  BOOST_TEST(test_position.theta == 5.0);
+  const auto test_position =
+      std::get_if<ai_server::model::command::position_t>(&command.setpoint());
+  BOOST_TEST(test_position != nullptr);
+  BOOST_TEST(test_position->x == 3.0);
+  BOOST_TEST(test_position->y == 4.0);
+  BOOST_TEST(test_position->theta == 5.0);
   ai_server::model::command::velocity_t velocity{6.0, 7.0, 8.0};
   command.set_velocity(velocity);
-  const auto& test_velocity =
-      boost::get<ai_server::model::command::velocity_t>(command.setpoint());
-  BOOST_TEST(test_velocity.vx == 6.0);
-  BOOST_TEST(test_velocity.vy == 7.0);
-  BOOST_TEST(test_velocity.omega == 8.0);
+  const auto test_velocity =
+      std::get_if<ai_server::model::command::velocity_t>(&command.setpoint());
+  BOOST_TEST(test_velocity != nullptr);
+  BOOST_TEST(test_velocity->vx == 6.0);
+  BOOST_TEST(test_velocity->vy == 7.0);
+  BOOST_TEST(test_velocity->omega == 8.0);
 }
 
 BOOST_AUTO_TEST_SUITE_END()

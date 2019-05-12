@@ -1,7 +1,7 @@
 #include <algorithm>
 #include <stdexcept>
+#include <variant>
 #include <boost/format.hpp>
-#include <boost/variant.hpp>
 
 #include "driver.h"
 
@@ -100,9 +100,9 @@ void driver::process(const model::world& world, metadata_type& metadata) {
 
   // commandの指令値をControllerに通す
   auto controller = [ id, &c = *std::get<1>(metadata), &r = robots.at(id) ](auto&& s) {
-    return c(r, std::forward<decltype(s)>(s));
+    return c.update(r, std::forward<decltype(s)>(s));
   };
-  command.set_velocity(boost::apply_visitor(controller, command.setpoint()));
+  command.set_velocity(std::visit(controller, command.setpoint()));
 
   // Senderで送信
   std::get<2>(metadata)->send_command(command);

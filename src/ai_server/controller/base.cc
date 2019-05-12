@@ -8,14 +8,6 @@ base::base() : velocity_limit_(std::numeric_limits<double>::max()), stable_flag_
 
 base::base(const double limit) : velocity_limit_(limit), stable_flag_(false) {}
 
-velocity_t base::operator()(const model::robot& robot, const position_t& setpoint) {
-  return update(robot, setpoint);
-}
-
-velocity_t base::operator()(const model::robot& robot, const velocity_t& setpoint) {
-  return update(robot, setpoint);
-}
-
 double base::velocity_limit() const {
   return velocity_limit_;
 }

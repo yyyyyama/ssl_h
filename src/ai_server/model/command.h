@@ -1,7 +1,7 @@
 #ifndef AI_SERVER_MODEL_COMMAND_H
 #define AI_SERVER_MODEL_COMMAND_H
 #include <tuple>
-#include <boost/variant.hpp>
+#include <variant>
 
 namespace ai_server {
 namespace model {
@@ -28,7 +28,7 @@ public:
     double alpha;
   };
 
-  using setpoint_t  = boost::variant<position_t, velocity_t>;
+  using setpoint_t  = std::variant<position_t, velocity_t>;
   using kick_flag_t = std::tuple<kick_type_t, double>;
 
   explicit command(unsigned int id);
