@@ -60,13 +60,13 @@ void driver::update_command(const model::command& command) {
 
   // ロボットが登録されていなかったらエラー
   const auto id = command.id();
-  if (robots_metadata_.count(id) == 0) {
+  if (auto it = robots_metadata_.find(id); it != robots_metadata_.end()) {
+    std::get<0>(it->second) = command;
+  } else {
     throw std::runtime_error(
         boost::str(boost::format("driver: %1% robot id %2% is not registered") %
                    (static_cast<bool>(team_color_) ? "yellow" : "blue") % id));
   }
-
-  std::get<0>(robots_metadata_.at(id)) = command;
 }
 
 void driver::main_loop(const boost::system::error_code& error) {
@@ -90,25 +90,32 @@ void driver::main_loop(const boost::system::error_code& error) {
 }
 
 void driver::process(const model::world& world, metadata_type& metadata) {
-  auto command  = std::get<0>(metadata);
+  auto& [command, controller, sender] = metadata;
+
   const auto id = command.id();
   const auto robots =
       static_cast<bool>(team_color_) ? world.robots_yellow() : world.robots_blue();
 
   // ロボットが検出されていないときは何もしない
-  if (robots.count(id) == 0) return;
+  if (const auto it = robots.find(id); it != robots.cend()) {
+    const auto& robot = it->second;
 
-  // commandの指令値をControllerに通す
-  auto controller = [ id, &c = *std::get<1>(metadata), &r = robots.at(id) ](auto&& s) {
-    return c.update(r, std::forward<decltype(s)>(s));
-  };
-  command.set_velocity(std::visit(controller, command.setpoint()));
+    // 指令値を Controller に通して速度を得る
+    auto c = [&robot, &c = *controller](auto&& s) {
+      return c.update(robot, std::forward<decltype(s)>(s));
+    };
+    const auto velocity = std::visit(c, command.setpoint());
 
-  // Senderで送信
-  std::get<2>(metadata)->send_command(command);
+    // 実際に送信する命令
+    auto actual_command = command;
+    actual_command.set_velocity(velocity);
 
-  // 登録された関数があればそれを呼び出す
-  command_updated_(command);
+    // Senderで送信
+    sender->send_command(actual_command);
+
+    // 登録された関数があればそれを呼び出す
+    command_updated_(actual_command);
+  }
 }
 
 } // namespace ai_server
