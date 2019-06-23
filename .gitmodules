@@ -4,3 +4,6 @@
 [submodule "3rd/yamlizer"]
 	path = 3rd/yamlizer
 	url = https://github.com/Tosainu/yamlizer.git
+[submodule "3rd/fmt"]
+	path = 3rd/fmt
+	url = https://github.com/fmtlib/fmt.git

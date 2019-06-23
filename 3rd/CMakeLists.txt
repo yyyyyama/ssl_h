@@ -1,6 +1,8 @@
 # Suppress all warnings from this directory
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -w")
 
+add_subdirectory(fmt)
+
 add_subdirectory(ssl-protos)
 
 set(YAMLIZER_BUILD_EXAMPLES   OFF CACHE BOOL "Build example files")

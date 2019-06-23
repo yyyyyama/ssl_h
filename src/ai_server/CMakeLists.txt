@@ -6,6 +6,7 @@ target_link_libraries(ai-server-lib PUBLIC
   Boost::system
   Eigen3::Eigen
   Threads::Threads
+  fmt::fmt
   protobuf::libprotobuf
   ssl-protos::ssl-protos
   yamlizer::yamlizer
