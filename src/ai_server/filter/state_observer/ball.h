@@ -10,7 +10,7 @@
 namespace ai_server {
 namespace filter {
 namespace state_observer {
-class ball : public base<model::ball, timing::on_updated> {
+class ball : public base<model::ball, timing::same> {
 private:
   // 係数群
   static constexpr double fric_coef_     = 0.004;        // 床とボールの摩擦係数
@@ -45,7 +45,8 @@ public:
   /// @param ball Visionが観測したのボール情報
   /// @param time Visionがフレームをキャプチャした時刻
   /// @return 状態推定後のボール情報
-  model::ball update(const model::ball& ball, util::time_point_type time) override;
+  std::optional<model::ball> update(std::optional<model::ball> ball,
+                                    util::time_point_type time) override;
 
   virtual ~ball() = default;
 };

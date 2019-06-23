@@ -11,9 +11,9 @@ namespace filter = ai_server::filter;
 BOOST_AUTO_TEST_SUITE(filter_base)
 
 // 新しい値を受け取ったときに更新されるfilter.
-// filter::base<任意の型, filter::timing::on_updated>を継承し,
+// filter::base<任意の型, filter::timing::same>を継承し,
 // update()メンバ関数をoverrideすれば良い.
-class test_filter1 : public filter::base<std::string, filter::timing::on_updated> {
+class test_filter1 : public filter::base<std::string, filter::timing::same> {
   std::string suffix_;
 
 public:
@@ -21,19 +21,24 @@ public:
   test_filter1(const std::string& suffix) : suffix_(suffix) {}
 
   // filterの更新処理
-  std::string update(const std::string& value, ai_server::util::time_point_type) override {
+  std::optional<std::string> update(std::optional<std::string> value,
+                                    ai_server::util::time_point_type) override {
     // 何らかの処理を行い, 結果を返す
-    return value + suffix_;
+    if (value.has_value()) {
+      return *value + suffix_;
+    } else {
+      return std::nullopt;
+    }
   }
 };
 
-BOOST_AUTO_TEST_CASE(on_updated) {
+BOOST_AUTO_TEST_CASE(same) {
   ai_server::util::time_point_type t{};
 
   test_filter1 f{"er"};
 
-  BOOST_TEST(f.update("C++", t) == "C++er"s);
-  BOOST_TEST(f.update("Haskell", t) == "Haskeller"s);
+  BOOST_TEST(f.update("C++", t).value() == "C++er"s);
+  BOOST_TEST(f.update("Haskell", t).value() == "Haskeller"s);
 }
 
 // 値の更新を任意のタイミングで行うfilter.
@@ -44,23 +49,27 @@ class test_filter2 : public filter::base<std::string, filter::timing::manual> {
   using own_type = filter::base<std::string, filter::timing::manual>;
 
   std::string prefix_;
+  std::optional<std::string> value_;
 
 public:
   // コンストラクタで値を受け取る必要がなければ
   // using filter::base<std::string, filter::timing::manual>::base;
   // コンストラクタで値を受け取る必要がある場合は次のようにする
-  test_filter2(own_type::last_value_func_type lf, own_type::writer_func_type wf,
-               const std::string& prefix)
-      : base(lf, wf), prefix_(prefix) {}
+  test_filter2(own_type::writer_func_type wf, const std::string& prefix)
+      : base(wf), prefix_(prefix) {}
+
+  // 観測値を受け取るメンバ関数
+  void set_raw_value(std::optional<std::string> value,
+                     ai_server::util::time_point_type) override {
+    value_ = std::move(value);
+  }
 
   // 更新を行うメンバ関数
   // 名前は適当で良い
   void add_prefix() {
-    // 対象データの取得にはlast_value()を使う
-    const auto value = last_value();
-    if (value) {
+    if (value_) {
       // 値の更新はwrite()を使う
-      write(prefix_ + *value);
+      write(prefix_ + *value_);
     } else {
       // std::nulloptで更新すれば値が存在しないものとして処理される
       write(std::nullopt);
@@ -70,32 +79,25 @@ public:
 
 BOOST_AUTO_TEST_CASE(manual) {
   // 更新対象のデータ
-  std::optional<std::string> value{"Haskell"};
-
-  // 値を取得するための関数
-  auto f1 = [&value] { return value; };
+  std::optional<std::string> target{};
   // 値を更新するための関数
-  auto f2 = [&value](std::optional<std::string> new_value) { value = new_value; };
+  auto writer = [&target](std::optional<std::string> new_value) { target = new_value; };
 
-  test_filter2 f{f1, f2, "すごい"};
+  test_filter2 f{writer, "すごい"};
 
   // filterを初期化するだけでは値は変化しない
-  BOOST_TEST(*value == "Haskell");
-
-  // filterの状態を更新すると値が変化する
-  f.add_prefix();
-  BOOST_TEST(*value == "すごいHaskell");
-  f.add_prefix();
-  BOOST_TEST(*value == "すごいすごいHaskell");
-  f.add_prefix();
-  BOOST_TEST(*value == "すごいすごいすごいHaskell");
+  BOOST_TEST(!target.has_value());
 
   // nulloptでも問題ない
-  value = std::nullopt;
   BOOST_CHECK_NO_THROW(f.add_prefix());
 
+  // filterの状態を更新すると値が変化する
+  f.set_raw_value("Haskell", {});
+  f.add_prefix();
+  BOOST_TEST(*target == "すごいHaskell");
+
   // 関数が登録されていなくても例外で落ちない
-  test_filter2 bad_filter{{}, {}, ""};
+  test_filter2 bad_filter{{}, ""};
   BOOST_CHECK_NO_THROW(bad_filter.add_prefix());
 }
 

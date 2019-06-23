@@ -52,30 +52,42 @@ void ball::update(const ssl_protos::vision::Frame& detection) {
   if (reliable != raw_balls_.cend()) {
     // 選択された値のカメラIDとdetectionのカメラIDが一致していたらデータを更新する
     if (std::get<0>(*reliable) == camera_id) {
-      const auto& value = std::get<1>(*reliable);
-      reliable_ball_ =
-          util::math::transform(affine_, model::ball{value.x(), value.y(), value.z()});
+      const auto value = util::math::transform(affine_, [reliable] {
+        const auto& r = std::get<1>(*reliable);
+        return model::ball{r.x(), r.y(), r.z()};
+      }());
 
-      if (on_updated_filter_) {
-        // on_updated_filter_が設定されていたらFilterを通した値を使う
-        ball_ = on_updated_filter_->update(*reliable_ball_, captured_time);
-      } else if (!manual_filter_) {
+      if (filter_same_) {
+        // filter_same_が設定されていたらFilterを通した値を使う
+        if (auto v = filter_same_->update(value, captured_time); v.has_value()) {
+          ball_ = std::move(*v);
+        }
+      } else if (filter_manual_) {
+        // filter_manual_が設定されていたら観測値を通知する
+        filter_manual_->set_raw_value(value, captured_time);
+      } else {
         // Filterが登録されていない場合はそのままの値を使う
-        ball_.set_x(reliable_ball_->x());
-        ball_.set_y(reliable_ball_->y());
-        ball_.set_z(reliable_ball_->z());
+        ball_.set_x(value.x());
+        ball_.set_y(value.y());
+        ball_.set_z(value.z());
       }
     }
   } else {
-    // 現時点ではボールが存在しない場合を想定していないので何もしない
-    reliable_ball_ = std::nullopt;
+    // Filter が設定されていたらロストしたことを通知する
+    if (filter_same_) {
+      if (auto v = filter_same_->update(std::nullopt, captured_time); v.has_value()) {
+        ball_ = std::move(*v);
+      }
+    } else if (filter_manual_) {
+      filter_manual_->set_raw_value(std::nullopt, captured_time);
+    }
   }
 }
 
 void ball::clear_filter() {
   std::unique_lock<std::shared_timed_mutex> lock(mutex_);
-  on_updated_filter_.reset();
-  manual_filter_.reset();
+  filter_same_.reset();
+  filter_manual_.reset();
 }
 
 } // namespace updater

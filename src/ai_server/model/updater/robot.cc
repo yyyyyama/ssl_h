@@ -85,15 +85,22 @@ void robot<Color>::update(const ssl_protos::vision::Frame& detection) {
 
       // 2つのFilterが設定されておらず, かつfilter_initializer_が設定されていたら
       // filter_initializer_でFilterを初期化する
-      if (filter_initializer_ && !on_updated_filters_.count(robot_id) &&
-          !manual_filters_.count(robot_id)) {
-        on_updated_filters_[robot_id] = filter_initializer_();
+      if (filter_initializer_ && !filters_same_.count(robot_id) &&
+          !filters_manual_.count(robot_id)) {
+        filters_same_[robot_id] = filter_initializer_();
       }
 
-      if (on_updated_filters_.count(robot_id)) {
-        // on_updated_filter_が設定されていたらFilterを通した値を使う
-        robots_[robot_id] = on_updated_filters_.at(robot_id)->update(value, captured_time);
-      } else if (!manual_filters_.count(robot_id)) {
+      if (auto f = filters_same_.find(robot_id); f != filters_same_.end()) {
+        // `timing::same` なFilterが設定されていたらFilterを通した値を使う
+        if (auto v = f->second->update(value, captured_time); v.has_value()) {
+          robots_[robot_id] = std::move(*v);
+        } else {
+          robots_.erase(robot_id);
+        }
+      } else if (auto f = filters_manual_.find(robot_id); f != filters_manual_.end()) {
+        // `timing::manual` なFilterが設定されていたら観測値を通知する
+        f->second->set_raw_value(value, captured_time);
+      } else {
         // Filterが登録されていない場合はそのままの値を使う
         robots_[robot_id] = value;
       }
@@ -106,18 +113,31 @@ void robot<Color>::update(const ssl_protos::vision::Frame& detection) {
     // イテレータを次のロボットIDの位置まで進める
     it = range.second;
   }
-  reliable_robots_ = std::move(reliables);
 
   // 最終的なデータのリストから, フィールド全体で検出されなかったIDを取り除く
-  // ただし, manual_filterが設定されている場合は例外とする
   for (auto it = robots_.begin(); it != robots_.end();) {
     const auto id = it->first;
-    if (reliable_robots_.count(id) || manual_filters_.count(id)) {
+    if (reliables.count(id)) {
       ++it;
     } else {
-      it = robots_.erase(it);
+      // Filter が設定されていたらロストしたことを通知する
+      if (auto f = filters_same_.find(id); f != filters_same_.end()) {
+        if (auto v = f->second->update(std::nullopt, captured_time); v.has_value()) {
+          robots_[id] = std::move(*v);
+          ++it;
+        } else {
+          it = robots_.erase(it);
+        }
+      } else if (auto f = filters_manual_.find(id); f != filters_manual_.end()) {
+        f->second->set_raw_value(std::nullopt, captured_time);
+        ++it;
+      } else {
+        it = robots_.erase(it);
+      }
     }
   }
+
+  reliable_robots_ = std::move(reliables);
 }
 
 template <model::team_color Color>
@@ -135,15 +155,15 @@ void robot<Color>::set_transformation_matrix(const Eigen::Affine3d& matrix) {
 template <model::team_color Color>
 void robot<Color>::clear_filter(unsigned int id) {
   std::unique_lock<std::shared_timed_mutex> lock(mutex_);
-  on_updated_filters_.erase(id);
-  manual_filters_.erase(id);
+  filters_same_.erase(id);
+  filters_manual_.erase(id);
 }
 
 template <model::team_color Color>
 void robot<Color>::clear_all_filters() {
   std::unique_lock<std::shared_timed_mutex> lock(mutex_);
-  on_updated_filters_.clear();
-  manual_filters_.clear();
+  filters_same_.clear();
+  filters_manual_.clear();
 }
 
 template <model::team_color Color>

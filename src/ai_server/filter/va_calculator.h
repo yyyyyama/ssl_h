@@ -9,14 +9,14 @@ namespace ai_server {
 namespace filter {
 
 template <class T>
-class va_calculator : public base<T, timing::on_updated> {
+class va_calculator : public base<T, timing::same> {
   using value_type      = T;
   using time_point_type = util::time_point_type;
 
 public:
   va_calculator();
 
-  value_type update(const value_type&, time_point_type) override;
+  std::optional<value_type> update(std::optional<value_type>, time_point_type) override;
 
 private:
   time_point_type prev_time_;

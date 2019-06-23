@@ -3,16 +3,23 @@
 #include <boost/math/constants/constants.hpp>
 
 #include "ai_server/model/robot.h"
-#include "ai_server/util/math.h"
+#include "ai_server/util/math/angle.h"
 #include "va_calculator.h"
 
 namespace ai_server {
 namespace filter {
 
 template <>
-model::robot va_calculator<model::robot>::va_calculator::update(const model::robot& value,
-                                                                util::time_point_type time) {
-  auto result = value;
+std::optional<model::robot> va_calculator<model::robot>::va_calculator::update(
+    std::optional<model::robot> value, util::time_point_type time) {
+  // 対象がロストしたらロストさせる
+  if (!value.has_value()) {
+    // 再び見えるようになった時に変な値が計算されないように prev_time_ を初期化する
+    prev_time_ = time_point_type::min();
+    return std::nullopt;
+  }
+
+  auto result = std::move(*value);
 
   if (prev_time_ == time_point_type::min()) {
     // 初めてupdateが呼ばれたときは速度加速度を計算しない
@@ -39,12 +46,12 @@ model::robot va_calculator<model::robot>::va_calculator::update(const model::rob
     // 境界で大きな値になるのを防ぐために, 偏差がpi以下かそうでないかで処理を変える
     // https://github.com/kiksworks/ai-server/pull/63#pullrequestreview-29453425
     const auto dtheta =
-        util::wrap_to_2pi(result.theta()) - util::wrap_to_2pi(prev_state_.theta());
+        util::math::wrap_to_2pi(result.theta()) - util::math::wrap_to_2pi(prev_state_.theta());
     if (std::abs(dtheta) < bmc::pi) {
       result.set_omega(dtheta / dt);
     } else {
       const auto dtheta2 =
-          util::wrap_to_pi(result.theta()) - util::wrap_to_pi(prev_state_.theta());
+          util::math::wrap_to_pi(result.theta()) - util::math::wrap_to_pi(prev_state_.theta());
       result.set_omega(dtheta2 / dt);
     }
 

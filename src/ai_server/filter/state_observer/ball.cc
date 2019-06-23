@@ -22,7 +22,14 @@ ball::ball(const model::ball& ball, util::time_point_type time)
   ball_.set_vy(0);
 }
 
-model::ball ball::update(const model::ball& ball, util::time_point_type time) {
+std::optional<model::ball> ball::update(std::optional<model::ball> ball,
+                                        util::time_point_type time) {
+  // 対象がロストしたらロストさせる
+  // TODO: 任意フレーム補間させる...？
+  if (!ball.has_value()) {
+    return std::nullopt;
+  }
+
   Eigen::Matrix<double, 2, 2> A;
   static const Eigen::Matrix<double, 1, 2> C = {1, 0};
   Eigen::Matrix<double, 2, 1> h;
@@ -63,7 +70,7 @@ model::ball ball::update(const model::ball& ball, util::time_point_type time) {
   // x_hat_dot = (A - hC) * x_hat_ + h * y
   Eigen::Matrix<double, 2, 1> x_hat_dot;
   x_hat_dot =
-      (A - h * C) * x_hat_[0] + h * std::floor(ball.x() / quant_limit_x_) * quant_limit_x_;
+      (A - h * C) * x_hat_[0] + h * std::floor(ball->x() / quant_limit_x_) * quant_limit_x_;
   x_hat_dot *= passed_time;
   x_hat_[0] += x_hat_dot;
   ball_.set_x(x_hat_[0](0));
@@ -87,7 +94,7 @@ model::ball ball::update(const model::ball& ball, util::time_point_type time) {
   }
 
   x_hat_dot =
-      (A - h * C) * x_hat_[1] + h * std::floor(ball.y() / quant_limit_y_) * quant_limit_y_;
+      (A - h * C) * x_hat_[1] + h * std::floor(ball->y() / quant_limit_y_) * quant_limit_y_;
   x_hat_dot *= passed_time;
   x_hat_[1] += x_hat_dot;
   ball_.set_y(x_hat_[1](0));

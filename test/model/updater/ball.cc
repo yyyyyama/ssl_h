@@ -13,6 +13,9 @@ namespace filter = ai_server::filter;
 namespace model  = ai_server::model;
 namespace util   = ai_server::util;
 
+// tをhigh_resolution_clockの型に変換する関数 (長すぎ)
+auto dc = [](auto t) { return std::chrono::duration_cast<util::duration_type>(t); };
+
 BOOST_AUTO_TEST_SUITE(updater_ball)
 
 BOOST_AUTO_TEST_CASE(normal) {
@@ -157,39 +160,39 @@ BOOST_AUTO_TEST_CASE(transformation, *boost::unit_test::tolerance(0.0000001)) {
   }
 }
 
-struct mock_filter1 : public filter::base<model::ball, filter::timing::on_updated> {
+struct mock_filter1 : public filter::base<model::ball, filter::timing::same> {
   // コンストラクタの引数に渡された値
   int arg1;
   int arg2;
 
   // 最後にupdateの引数に与えられた値
-  model::ball v;
+  std::optional<model::ball> v;
   util::time_point_type t;
 
   mock_filter1(int a1, int a2) : arg1(a1), arg2(a2) {}
 
-  model::ball update(const model::ball& value, util::time_point_type time) override {
+  std::optional<model::ball> update(std::optional<model::ball> value,
+                                    util::time_point_type time) override {
     v = value;
     t = time;
 
-    // vx, ayに適当な値をセットして返す
-    model::ball r{};
-    r.set_vx(value.x() * 2);
-    r.set_ay(value.y() * 3);
-    return r;
+    if (v.has_value()) {
+      // vx, ayに適当な値をセットして返す
+      model::ball r{};
+      r.set_vx(value->x() * 2);
+      r.set_ay(value->y() * 3);
+      return r;
+    } else {
+      return std::nullopt;
+    }
   }
 };
 
-BOOST_AUTO_TEST_CASE(on_updated_filter) {
+BOOST_AUTO_TEST_CASE(filter_same) {
   model::updater::ball bu;
 
   // mock_filter1を設定
   const auto fp = bu.set_filter<mock_filter1>(123, 456).lock();
-
-  // tをhigh_resolution_clockの型に変換する関数 (長すぎ)
-  auto duration_cast = [](auto t) {
-    return std::chrono::duration_cast<util::duration_type>(t);
-  };
 
   // set_filterの引数に与えた値がFilterのコンストラクタに正しく渡されているか
   BOOST_TEST(fp->arg1 == 123);
@@ -211,10 +214,10 @@ BOOST_AUTO_TEST_CASE(on_updated_filter) {
 
   {
     // updateの引数に値が正しく渡されているか
-    BOOST_TEST(fp->v.x() == 1);
-    BOOST_TEST(fp->v.y() == 2);
-    BOOST_TEST(fp->v.z() == 3);
-    BOOST_TEST(fp->t.time_since_epoch().count() == duration_cast(2s).count());
+    BOOST_TEST(fp->v->x() == 1);
+    BOOST_TEST(fp->v->y() == 2);
+    BOOST_TEST(fp->v->z() == 3);
+    BOOST_TEST(fp->t.time_since_epoch().count() == dc(2s).count());
 
     // vx, ayが選択された値の2倍, 3倍になっている
     const auto b = bu.value();
@@ -238,10 +241,10 @@ BOOST_AUTO_TEST_CASE(on_updated_filter) {
 
   {
     // updateの引数に値が正しく渡されているか
-    BOOST_TEST(fp->v.x() == 10);
-    BOOST_TEST(fp->v.y() == 20);
-    BOOST_TEST(fp->v.z() == 30);
-    BOOST_TEST(fp->t.time_since_epoch().count() == duration_cast(4s).count());
+    BOOST_TEST(fp->v->x() == 10);
+    BOOST_TEST(fp->v->y() == 20);
+    BOOST_TEST(fp->v->z() == 30);
+    BOOST_TEST(fp->t.time_since_epoch().count() == dc(4s).count());
 
     // vx, ayが選択された値の2倍, 3倍になっている
     const auto b = bu.value();
@@ -269,20 +272,104 @@ BOOST_AUTO_TEST_CASE(on_updated_filter) {
     BOOST_TEST(b.vx() == 20);
     BOOST_TEST(b.ay() == 60);
   }
+
+  {
+    ssl_protos::vision::Frame f1;
+    f1.set_camera_id(1);
+    f1.set_t_capture(10.0);
+
+    bu.update(f1);
+
+    ssl_protos::vision::Frame f2;
+    f2.set_camera_id(0);
+    f2.set_t_capture(10.0);
+
+    bu.update(f2);
+  }
+
+  {
+    // 対象がロストしたらnulloptが渡されている
+    BOOST_TEST(!fp->v.has_value());
+    BOOST_TEST(fp->t.time_since_epoch().count() == dc(10s).count());
+  }
 }
 
-struct mock_filter2 : public filter::base<model::ball, filter::timing::manual> {
+struct mock_filter2 : public filter::base<model::ball, filter::timing::same> {
+  std::optional<model::ball> update(std::optional<model::ball> value,
+                                    util::time_point_type) override {
+    // 引数に値が渡された時にnullopt, そうでない時に値を返すFilter
+    if (value.has_value()) {
+      return std::nullopt;
+    } else {
+      return model::ball{123, 456, 789};
+    }
+  }
+};
+
+BOOST_AUTO_TEST_CASE(filter_same2) {
+  model::updater::ball bu;
+
+  // mock_filter2を設定
+  const auto fp = bu.set_filter<mock_filter2>().lock();
+
+  {
+    // 初期状態
+    const auto b = bu.value();
+    BOOST_TEST(b.x() == 0);
+    BOOST_TEST(b.y() == 0);
+    BOOST_TEST(b.z() == 0);
+  }
+
+  {
+    ssl_protos::vision::Frame f;
+    f.set_camera_id(0);
+    f.set_t_capture(2.0);
+
+    auto b1 = f.add_balls();
+    b1->set_x(1);
+    b1->set_y(2);
+    b1->set_z(3);
+    b1->set_confidence(90.0);
+
+    bu.update(f);
+
+    const auto b = bu.value();
+    BOOST_TEST(b.x() == 0);
+    BOOST_TEST(b.y() == 0);
+    BOOST_TEST(b.z() == 0);
+  }
+
+  {
+    ssl_protos::vision::Frame f;
+    f.set_camera_id(0);
+    f.set_t_capture(4.0);
+
+    bu.update(f);
+
+    // 空で更新したら値がセットされている
+    const auto b = bu.value();
+    BOOST_TEST(b.x() == 123);
+    BOOST_TEST(b.y() == 456);
+    BOOST_TEST(b.z() == 789);
+  }
+}
+
+struct mock_filter3 : public filter::base<model::ball, filter::timing::manual> {
   using own_type = filter::base<model::ball, filter::timing::manual>;
 
   // コンストラクタの引数に渡された値
   int arg1;
   int arg2;
 
-  mock_filter2(own_type::last_value_func_type lf, own_type::writer_func_type wf, int a1, int a2)
-      : base(lf, wf), arg1(a1), arg2(a2) {}
+  // set_raw_value で渡された値
+  std::optional<model::ball> value;
+  util::time_point_type time;
 
-  auto lv() {
-    return last_value();
+  mock_filter3(own_type::writer_func_type wf, int a1, int a2) : base(wf), arg1(a1), arg2(a2) {}
+
+  void set_raw_value(std::optional<model::ball> v, util::time_point_type t) override {
+    value = v;
+    time  = t;
   }
 
   void wv(std::optional<model::ball> v) {
@@ -293,15 +380,12 @@ struct mock_filter2 : public filter::base<model::ball, filter::timing::manual> {
 BOOST_AUTO_TEST_CASE(manual_filter) {
   model::updater::ball bu;
 
-  // mock_filter2を設定
-  const auto fp = bu.set_filter<mock_filter2>(123, 456).lock();
+  // mock_filter3を設定
+  const auto fp = bu.set_filter<mock_filter3>(123, 456).lock();
 
   // set_filterの引数に与えた値がFilterのコンストラクタに正しく渡されているか
   BOOST_TEST(fp->arg1 == 123);
   BOOST_TEST(fp->arg2 == 456);
-
-  // 初期状態はnullopt
-  BOOST_TEST(!fp->lv());
 
   {
     ssl_protos::vision::Frame f;
@@ -325,12 +409,14 @@ BOOST_AUTO_TEST_CASE(manual_filter) {
     BOOST_TEST(b1.y() == b2.y());
     BOOST_TEST(b1.z() == b2.z());
 
-    // last_valueから選択された値が取れる
-    const auto lv = fp->lv();
-    BOOST_TEST(static_cast<bool>(lv));
+    // set_raw_value から観測値が渡されている
+    const auto lv = fp->value;
     BOOST_TEST(lv->x() == 1);
     BOOST_TEST(lv->y() == 2);
     BOOST_TEST(lv->z() == 3);
+
+    const auto lt = fp->time;
+    BOOST_TEST(lt.time_since_epoch().count() == dc(2s).count());
   }
 
   {
@@ -352,11 +438,16 @@ BOOST_AUTO_TEST_CASE(manual_filter) {
   }
 
   {
-    // 候補リストを空にするとlast_valueがnulloptを返す
+    // 候補リストを空にするとset_raw_valueにnulloptが渡されている
     ssl_protos::vision::Frame f;
     f.set_camera_id(0);
+    f.set_t_capture(4.0);
     bu.update(f);
-    BOOST_TEST(!fp->lv());
+
+    const auto lv = fp->value;
+    BOOST_TEST(!lv.has_value());
+    const auto lt = fp->time;
+    BOOST_TEST(lt.time_since_epoch().count() == dc(4s).count());
   }
 }
 
@@ -370,14 +461,14 @@ BOOST_AUTO_TEST_CASE(clear_filter) {
   BOOST_TEST(fp1.expired());
 
   // manualなFilterも同様
-  const auto fp2 = bu.set_filter<mock_filter2>(123, 456);
+  const auto fp2 = bu.set_filter<mock_filter3>(123, 456);
   BOOST_TEST(!fp2.expired());
   bu.clear_filter();
   BOOST_TEST(fp2.expired());
 
-  // on_updatedなFilterが登録されている状態でmanualなFilterを登録するとon_updatedなFilterは死ぬ
+  // sameなFilterが登録されている状態でmanualなFilterを登録するとsameなFilterは死ぬ
   const auto fp3 = bu.set_filter<mock_filter1>(123, 456);
-  const auto fp4 = bu.set_filter<mock_filter2>(123, 456);
+  const auto fp4 = bu.set_filter<mock_filter3>(123, 456);
   BOOST_TEST(fp3.expired());
   BOOST_TEST(!fp4.expired());
 

@@ -36,13 +36,22 @@ BOOST_AUTO_TEST_CASE(rest, *boost::unit_test::tolerance(0.1)) {
     // 状態オブザーバを20ms * 500回更新する
     for (auto i = 0u; i < 500; ++i) {
       t += 20ms;
-      b = obs.update(ball, t);
+      b = obs.update(ball, t).value();
     }
 
     // それっぽい値が返ってくるか
     BOOST_TEST(b.x() == ball.x());
     BOOST_TEST(b.y() == ball.y());
   }
+}
+
+BOOST_AUTO_TEST_CASE(null) {
+  auto t = ai_server::util::time_point_type{};
+  filter::state_observer::ball obs{{}, t};
+
+  // nullopt で更新したときの結果はnullopt
+  const auto b = obs.update(std::nullopt, t);
+  BOOST_TEST(!b.has_value());
 }
 
 BOOST_AUTO_TEST_SUITE_END()

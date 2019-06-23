@@ -20,10 +20,10 @@ namespace updater {
 /// @class   ball
 /// @brief   SSL-VisionのDetectionパケットでボールの情報を更新する
 class ball {
-  /// 更新タイミングがon_updatedなFilterの型
-  using on_updated_filter_type = filter::base<model::ball, filter::timing::on_updated>;
+  /// 更新タイミングがsameなFilterの型
+  using filter_same_type = filter::base<model::ball, filter::timing::same>;
   /// 更新タイミングがmanualなFilterの型
-  using manual_filter_type = filter::base<model::ball, filter::timing::manual>;
+  using filter_manual_type = filter::base<model::ball, filter::timing::manual>;
 
 public:
   ball();
@@ -45,17 +45,16 @@ public:
   /// @brief           設定されたFilterを解除する
   void clear_filter();
 
-  /// @brief           更新タイミングがon_updatedなFilterを設定する
+  /// @brief           更新タイミングがsameなFilterを設定する
   /// @param args      Filterの引数
   /// @return          初期化されたFilterへのポインタ
   template <class Filter, class... Args>
-  std::weak_ptr<
-      std::enable_if_t<std::is_base_of<on_updated_filter_type, Filter>::value, Filter>>
+  std::weak_ptr<std::enable_if_t<std::is_base_of<filter_same_type, Filter>::value, Filter>>
   set_filter(Args&&... args) {
     std::unique_lock<std::shared_timed_mutex> lock(mutex_);
-    manual_filter_.reset();
-    auto p             = std::make_shared<Filter>(std::forward<Args>(args)...);
-    on_updated_filter_ = p;
+    filter_manual_.reset();
+    auto p       = std::make_shared<Filter>(std::forward<Args>(args)...);
+    filter_same_ = p;
     return p;
   }
 
@@ -63,16 +62,11 @@ public:
   /// @param args      Filterの引数
   /// @return          初期化されたFilterへのポインタ
   template <class Filter, class... Args>
-  std::weak_ptr<std::enable_if_t<std::is_base_of<manual_filter_type, Filter>::value, Filter>>
+  std::weak_ptr<std::enable_if_t<std::is_base_of<filter_manual_type, Filter>::value, Filter>>
   set_filter(Args&&... args) {
     std::unique_lock<std::shared_timed_mutex> lock(mutex_);
-    on_updated_filter_.reset();
+    filter_same_.reset();
     auto p = std::make_shared<Filter>(
-        // 最新の値を取得する関数オブジェクト
-        [this] {
-          std::shared_lock<std::shared_timed_mutex> lock(mutex_);
-          return reliable_ball_;
-        },
         // 値を更新する関数オブジェクト
         [this](std::optional<model::ball> value) {
           // 現時点ではボールが存在しない場合を想定していないので,
@@ -84,7 +78,7 @@ public:
         },
         // 残りの引数
         std::forward<Args>(args)...);
-    manual_filter_ = p;
+    filter_manual_ = p;
     return p;
   }
 
@@ -96,13 +90,11 @@ private:
 
   /// 各カメラで検出されたボールの生データ
   std::unordered_map<unsigned int, ssl_protos::vision::Ball> raw_balls_;
-  /// 検出された中から選ばれた, 最も確かとされる値
-  std::optional<model::ball> reliable_ball_;
 
-  /// 更新タイミングがon_updatedなFilter
-  std::shared_ptr<on_updated_filter_type> on_updated_filter_;
+  /// 更新タイミングがsameなFilter
+  std::shared_ptr<filter_same_type> filter_same_;
   /// 更新タイミングがmanualなFilter
-  std::shared_ptr<manual_filter_type> manual_filter_;
+  std::shared_ptr<filter_manual_type> filter_manual_;
 
   /// 変換行列
   Eigen::Affine3d affine_;

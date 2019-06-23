@@ -34,10 +34,10 @@ class robot {
   using source_function_pointer_type =
       const raw_data_array_type& (ssl_protos::vision::Frame::*)() const;
 
-  /// 更新タイミングがon_updatedなFilterの型
-  using on_updated_filter_type = filter::base<model::robot, filter::timing::on_updated>;
+  /// 更新タイミングがsameなFilterの型
+  using filters_same_type = filter::base<model::robot, filter::timing::same>;
   /// 更新タイミングがmanualなFilterの型
-  using manual_filter_type = filter::base<model::robot, filter::timing::manual>;
+  using filters_manual_type = filter::base<model::robot, filter::timing::manual>;
 
 public:
   robot();
@@ -69,18 +69,17 @@ public:
   /// clear_filter()などを呼ぶ必要がある
   void clear_default_filter();
 
-  /// @brief           更新タイミングがon_updatedなFilterを設定する
+  /// @brief           更新タイミングがsameなFilterを設定する
   /// @param id        Filterを設定するロボットのID
   /// @param args      Filterの引数
   /// @return          初期化されたFilterへのポインタ
   template <class Filter, class... Args>
-  std::weak_ptr<
-      std::enable_if_t<std::is_base_of<on_updated_filter_type, Filter>::value, Filter>>
+  std::weak_ptr<std::enable_if_t<std::is_base_of<filters_same_type, Filter>::value, Filter>>
   set_filter(unsigned int id, Args&&... args) {
     std::unique_lock<std::shared_timed_mutex> lock(mutex_);
-    manual_filters_.erase(id);
-    auto p                  = std::make_shared<Filter>(std::forward<Args>(args)...);
-    on_updated_filters_[id] = p;
+    filters_manual_.erase(id);
+    auto p            = std::make_shared<Filter>(std::forward<Args>(args)...);
+    filters_same_[id] = p;
     return p;
   }
 
@@ -89,21 +88,11 @@ public:
   /// @param args      Filterの引数
   /// @return          初期化されたFilterへのポインタ
   template <class Filter, class... Args>
-  std::weak_ptr<std::enable_if_t<std::is_base_of<manual_filter_type, Filter>::value, Filter>>
+  std::weak_ptr<std::enable_if_t<std::is_base_of<filters_manual_type, Filter>::value, Filter>>
   set_filter(unsigned int id, Args&&... args) {
     std::unique_lock<std::shared_timed_mutex> lock(mutex_);
-    on_updated_filters_.erase(id);
+    filters_same_.erase(id);
     auto p = std::make_shared<Filter>(
-        // 最新の値を取得する関数オブジェクト
-        [id, this]() -> std::optional<model::robot> {
-          std::shared_lock<std::shared_timed_mutex> lock(mutex_);
-          // 選ばれた観測データの中に対象のロボットの値があればそれを, なければnulloptを返す
-          if (reliable_robots_.count(id)) {
-            return reliable_robots_.at(id);
-          } else {
-            return std::nullopt;
-          }
-        },
         // 値を更新する関数オブジェクト
         [id, this](std::optional<model::robot> value) {
           std::unique_lock<std::shared_timed_mutex> lock(mutex_);
@@ -117,7 +106,7 @@ public:
         },
         // 残りの引数
         std::forward<Args>(args)...);
-    manual_filters_[id] = p;
+    filters_manual_[id] = p;
     return p;
   }
 
@@ -125,10 +114,10 @@ public:
   /// @param args      Filterの引数
   ///
   /// set_filter()でFilterが設定されていないロボットが使うFilterを設定する
-  /// ここで設定できるものは更新タイミングがon_updatedなFilterのみとする
+  /// ここで設定できるものは更新タイミングがsameなFilterのみとする
   template <class Filter, class... Args>
   auto set_default_filter(Args... args)
-      -> std::enable_if_t<std::is_base_of<on_updated_filter_type, Filter>::value> {
+      -> std::enable_if_t<std::is_base_of<filters_same_type, Filter>::value> {
     std::unique_lock<std::shared_timed_mutex> lock(mutex_);
     filter_initializer_ = [args...] { return std::make_shared<Filter>(args...); };
   }
@@ -148,12 +137,12 @@ private:
   /// 検出された中から選ばれた, 各IDをの最も確かとされる値のリスト
   robots_list_type reliable_robots_;
 
-  /// 更新タイミングがon_updatedなFilter
-  std::unordered_map<unsigned int, std::shared_ptr<on_updated_filter_type>> on_updated_filters_;
+  /// 更新タイミングがsameなFilter
+  std::unordered_map<unsigned int, std::shared_ptr<filters_same_type>> filters_same_;
   /// 更新タイミングがmanualなFilter
-  std::unordered_map<unsigned int, std::shared_ptr<manual_filter_type>> manual_filters_;
+  std::unordered_map<unsigned int, std::shared_ptr<filters_manual_type>> filters_manual_;
   /// Filterを初期化するための関数オブジェクト
-  std::function<std::shared_ptr<on_updated_filter_type>()> filter_initializer_;
+  std::function<std::shared_ptr<filters_same_type>()> filter_initializer_;
 
   /// 変換行列
   Eigen::Affine3d affine_;
