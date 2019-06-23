@@ -1,6 +1,8 @@
 #include <cmath>
 #include <boost/math/constants/constants.hpp>
 #include "move.h"
+#include "ai_server/util/math/angle.h"
+#include "ai_server/util/math/to_vector.h"
 
 using boost::math::constants::pi;
 
@@ -8,34 +10,55 @@ namespace ai_server {
 namespace game {
 namespace action {
 
+move::move(const model::world& world, bool is_yellow, unsigned int id)
+    : base(world, is_yellow, id),
+      target_(0.0, 0.0, 0.0),
+      margin_{10.0, pi<double>() / 180.0},
+      finished_(false) {}
+
 void move::move_to(double x, double y, double theta) {
-  x_     = x;
-  y_     = y;
-  theta_ = theta;
+  target_ = {x, y, theta};
 }
 
-model::command move::execute() {
-  const double xy_allow = 10.0; //指定位置と取得した位置のズレの許容値[mm]
-  const double theta_allow =
-      1.0 * pi<double>() / 180.0; //指定角度と取得した角度のズレの許容値[rad]
-  const auto this_robot_team = is_yellow_ ? world_.robots_yellow() : world_.robots_blue();
-  const auto& this_robot     = this_robot_team.at(id_);
-  model::command command(id_);
+void move::move_to(const Eigen::Vector2d& pos, double theta) {
+  target_.head<2>() = pos;
+  target_.z()       = theta;
+}
 
-  if (std::abs(this_robot.x() - x_) <= xy_allow && std::abs(this_robot.y() - y_) <= xy_allow &&
-      std::abs(this_robot.theta() - theta_) <= theta_allow) {
-    //ロボットが指定位置に存在するとき
-    finished_ = true;
-  } else {
-    //ロボットが指定位置に存在しないとき
-    finished_ = false;
-    command.set_position({x_, y_, theta_});
-  }
-  return command;
+void move::move_to(const Eigen::Vector3d& target) {
+  target_ = target;
+}
+
+void move::set_margin(const move::margin_t& margin) {
+  margin_ = margin;
 }
 
 bool move::finished() const {
   return finished_;
+}
+
+move::margin_t move::margin() const {
+  return margin_;
+}
+
+Eigen::Vector3d move::target() const {
+  return target_;
+}
+
+model::command move::execute() {
+  const auto our_robot_team = is_yellow_ ? world_.robots_yellow() : world_.robots_blue();
+  const auto robot_p        = util::math::position3d(our_robot_team.at(id_));
+  model::command command(id_);
+
+  //ロボットが指定位置に存在するか
+  finished_ = (robot_p - target_).head<2>().norm() <= margin_.position &&
+              std::abs(util::math::delta_theta(robot_p.z(), target_.z())) <= margin_.theta;
+
+  if (!finished_) {
+    command.set_position({target_.x(), target_.y(), target_.z()});
+  }
+
+  return command;
 }
 } // namespace action
 } // namespace game
