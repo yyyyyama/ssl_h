@@ -26,7 +26,7 @@ struct coordinate_system<Eigen::Matrix<T, DimensionCount, 1>> {
 template <class T, int DimensionCount>
 struct dimension<Eigen::Matrix<T, DimensionCount, 1>> : boost::mpl::int_<DimensionCount> {};
 
-template <class T, int DimensionCount, int CoordinateAxis>
+template <class T, int DimensionCount, std::size_t CoordinateAxis>
 struct access<Eigen::Matrix<T, DimensionCount, 1>, CoordinateAxis> {
   static T get(const Eigen::Matrix<T, DimensionCount, 1>& p) {
     return p(CoordinateAxis);
