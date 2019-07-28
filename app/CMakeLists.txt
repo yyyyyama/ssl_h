@@ -26,3 +26,4 @@ function(ai_server_create_symlink target)
 endfunction()
 
 ai_server_add_subdirectory(ai-server ON)
+ai_server_add_subdirectory(standalone-gui ON)
