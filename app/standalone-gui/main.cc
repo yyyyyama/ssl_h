@@ -28,6 +28,7 @@
 #include "ai_server/receiver/vision.h"
 #include "ai_server/sender/grsim.h"
 #include "ai_server/sender/kiks.h"
+#include "ai_server/util/math/affine.h"
 #include "ai_server/util/time.h"
 
 using namespace std::chrono_literals;
@@ -57,6 +58,7 @@ static constexpr auto use_ball_observer = true; // ボールの状態オブザ�
 // Visionの設定
 static constexpr char vision_address[] = "224.5.23.2";
 static constexpr short vision_port     = 10006;
+static constexpr int num_cameras       = 8;
 
 // Refboxの設定
 static constexpr char global_refbox_address[] = "224.5.23.1";
@@ -72,6 +74,9 @@ static constexpr short grsim_command_port = 20011;
 
 // 制御周期の設定
 static constexpr auto cycle = std::chrono::duration_cast<util::duration_type>(fps60_type{1});
+
+// stopgame時の速度制限
+static constexpr double velocity_limit_at_stopgame = 800.0;
 
 // 簡易loggerの設定
 static constexpr auto use_logger = true;
@@ -127,7 +132,7 @@ public:
         is_global_refbox_{true},
         sender_(sender),
         driver_(driver_io_, cycle, updater_world_, team_color_),
-        active_robots_({0u, 1u, 2u, 3u, 4u, 5u}) {
+        active_robots_({0u, 1u, 2u, 3u, 4u, 5u, 6u, 7u}) {
     driver_thread_ = std::thread([this] {
       try {
         driver_io_.run();
@@ -230,6 +235,13 @@ public:
     }
   }
 
+  void set_transformation_matrix(double x, double y, double theta) {
+    const auto mat = util::math::make_transformation_matrix(x, y, theta);
+    updater_world_.set_transformation_matrix(mat);
+    updater_refbox1_.set_transformation_matrix(mat);
+    updater_refbox2_.set_transformation_matrix(mat);
+  }
+
 private:
   void main_loop() {
     logger::success("game started!");
@@ -255,7 +267,7 @@ private:
 
           if (current_cmd != prev_cmd) {
             if (current_cmd == model::refbox::game_command::stop) {
-              driver_.set_velocity_limit(800);
+              driver_.set_velocity_limit(velocity_limit_at_stopgame);
             } else {
               driver_.set_velocity_limit(std::numeric_limits<double>::max());
             }
@@ -350,7 +362,7 @@ public:
       dir_.add(dir_box_);
       left_.pack_start(dir_, Gtk::PACK_SHRINK, 4);
 
-      robots_.set_label("Active obots");
+      robots_.set_label("Active robots");
       robots_id_box_.set_border_width(4);
       robots_id_box_.set_max_children_per_line(6);
       for (auto i = 0u; i < 12; ++i) {
@@ -370,7 +382,7 @@ public:
       camera_.set_label("Camera");
       camera_id_box_.set_border_width(4);
       camera_id_box_.set_max_children_per_line(6);
-      for (auto i = 0u; i < 4; ++i) {
+      for (auto i = 0u; i < num_cameras; ++i) {
         camera_cb_.emplace_back(std::to_string(i));
         camera_id_box_.add(camera_cb_.back());
       }
@@ -437,11 +449,8 @@ private:
 
   void init_radio_buttons() {
     dir_r1_.signal_toggled().connect([this] {
-      if (dir_r1_.get_active()) {
-        updater_world_.set_transformation_matrix(0.0, 0.0, 0.0);
-      } else {
-        updater_world_.set_transformation_matrix(0.0, 0.0, boost::math::double_constants::pi);
-      }
+      runner_.set_transformation_matrix(
+          0.0, 0.0, dir_r1_.get_active() ? 0.0 : boost::math::double_constants::pi);
     });
 
     color_r1_.signal_toggled().connect([this] {
@@ -475,7 +484,7 @@ private:
           sigc::mem_fun(*this, &game_window::handle_active_robots_changed));
     }
 
-    for (auto i = 0u; i < 4; ++i) {
+    for (auto i = 0u; i < num_cameras; ++i) {
       auto& cb = camera_cb_.at(i);
       cb.set_active(updater_world_.is_camera_enabled(i));
       cb.signal_toggled().connect([id = i, this] {
