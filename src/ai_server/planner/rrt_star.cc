@@ -11,7 +11,7 @@ using node_ptr_t = std::shared_ptr<ai_server::planner::rrt_star::node>;
 template <>
 struct indexable<node_ptr_t> {
   using value_type  = node_ptr_t;
-  using result_type = const boost::geometry::model::d2::point_xy<double>&;
+  using result_type = const Eigen::Vector2d&;
   result_type operator()(const value_type& v) const {
     return v->position;
   }
@@ -30,8 +30,8 @@ void rrt_star::set_obstacles(const std::vector<object>& obstacles) {
   std::vector<typename obstacles_tree_t::value_type> tmp;
   tmp.reserve(obstacles.size());
   std::transform(obstacles.begin(), obstacles.end(), std::back_inserter(tmp), [this](auto a) {
-    return std::make_pair<box_t, object>({to_point(a.position - a.r * Eigen::Vector2d::Ones()),
-                                          to_point(a.position + a.r * Eigen::Vector2d::Ones())},
+    return std::make_pair<box_t, object>({a.position - a.r * Eigen::Vector2d::Ones(),
+                                          a.position + a.r * Eigen::Vector2d::Ones()},
                                          std::move(a));
   });
 
@@ -67,7 +67,7 @@ void rrt_star::search(const position_t& start, const position_t& goal,
 
   // 有効なエリア
   box_t area;
-  boost::geometry::intersection(game_area_, box_t{to_point(min_pos), to_point(max_pos)}, area);
+  boost::geometry::intersection(game_area_, box_t{min_pos, max_pos}, area);
   // 探索木(nodeの集まり)
   tree_t tree;
 
@@ -85,8 +85,8 @@ void rrt_star::search(const position_t& start, const position_t& goal,
     const double r = r_a * std::sqrt(std::log10(c + 1) / (c + 1));
 
     // 先に大まかに絞り込むための範囲
-    const box_t around{to_point(to_vector(new_node->position) - r * Eigen::Vector2d::Ones()),
-                       to_point(to_vector(new_node->position) + r * Eigen::Vector2d::Ones())};
+    const box_t around{new_node->position - r * Eigen::Vector2d::Ones(),
+                       new_node->position + r * Eigen::Vector2d::Ones()};
 
     // 近傍点リスト
     std::vector<std::weak_ptr<node>> list;
@@ -94,7 +94,7 @@ void rrt_star::search(const position_t& start, const position_t& goal,
     tree.query(boost::geometry::index::within(around) &&
                    boost::geometry::index::satisfies(
                        [this, &np = new_node->position, r, margin](const auto& a) {
-                         if (boost::geometry::distance(a->position, np) < r) {
+                         if ((a->position - np).norm() < r) {
                            const line_t line{a->position, np};
                            return !is_obstructed(line, margin) && !in_penalty(line);
                          }
@@ -106,13 +106,13 @@ void rrt_star::search(const position_t& start, const position_t& goal,
     if (!list.empty()) {
       const auto min = *std::min_element(
           list.begin(), list.end(), [& np = new_node->position](const auto& a, const auto& b) {
-            return a.lock()->cost + boost::geometry::distance(np, a.lock()->position) <
-                   b.lock()->cost + boost::geometry::distance(np, b.lock()->position);
+            return a.lock()->cost + (np - a.lock()->position).norm() <
+                   b.lock()->cost + (np - b.lock()->position).norm();
           });
 
       //コスト低ならノード再接続
-      const auto min_cost = min.lock()->cost +
-                            boost::geometry::distance(new_node->position, min.lock()->position);
+      const auto min_cost =
+          min.lock()->cost + (new_node->position - min.lock()->position).norm();
       if (min_cost < new_node->cost) {
         new_node->parent = min.lock();
         new_node->cost   = min_cost;
@@ -124,8 +124,7 @@ void rrt_star::search(const position_t& start, const position_t& goal,
 
     // 他のノードから新たなノードに再接続
     for (auto& a : list) {
-      const double cost =
-          new_node->cost + boost::geometry::distance(new_node->position, a.lock()->position);
+      const double cost = new_node->cost + (new_node->position - a.lock()->position).norm();
       if (cost < a.lock()->cost) {
         a.lock()->parent = new_node;
         a.lock()->cost   = cost;
@@ -134,18 +133,18 @@ void rrt_star::search(const position_t& start, const position_t& goal,
   }
 
   // 目標位置に最も近いノード
-  const auto nearest_node = tree.qbegin(boost::geometry::index::nearest(to_point(goal_pos), 1));
+  const auto nearest_node = tree.qbegin(boost::geometry::index::nearest(goal_pos, 1));
 
   // 目的地を探す。
   const auto& p = [this, &nearest_node, &start_pos, &goal_pos, margin, max_branch_length]() {
     // スムージングした後の値を返す。
     for (std::weak_ptr<node> n = *nearest_node; n.lock()->parent.lock(); n = n.lock()->parent) {
       const auto& p = n.lock()->position;
-      priority_points_.push(to_vector(p));
+      priority_points_.push(p);
 
-      const line_t line{to_point(start_pos), p};
+      const line_t line{start_pos, p};
       if (!is_obstructed(line, margin) && !in_penalty(line)) {
-        return to_vector(n.lock()->position);
+        return n.lock()->position;
       }
     }
     // start_posを指定し続けると進まないので、とりあえず目標に進ませる
@@ -181,14 +180,14 @@ std::optional<Eigen::Vector2d> rrt_star::exit_position(const Eigen::Vector2d& st
   // 避けきれない障害物を調べる
   if (!obstacles_.empty()) {
     // パフォーマンス向上のため，調べる範囲を限定する
-    const box_t area{to_point(start - margin * Eigen::Vector2d::Ones()),
-                     to_point(start + margin * Eigen::Vector2d::Ones())};
+    const box_t area{start - margin * Eigen::Vector2d::Ones(),
+                     start + margin * Eigen::Vector2d::Ones()};
 
     // 実際に障害物に当たっているかを調べる
     // 近い障害物ほど優先度高めに
-    for (auto itr = obstacles_.qbegin(
-             boost::geometry::index::intersects(area) &&
-             boost::geometry::index::nearest(to_point(start), obstacles_.size()));
+    for (auto itr =
+             obstacles_.qbegin(boost::geometry::index::intersects(area) &&
+                               boost::geometry::index::nearest(start, obstacles_.size()));
          itr != obstacles_.qend(); ++itr) {
       const auto& obj = std::get<1>(*itr);
 
@@ -210,7 +209,7 @@ std::optional<Eigen::Vector2d> rrt_star::exit_position(const Eigen::Vector2d& st
   }
 
   // field外かペナルティエリア内のとき
-  if (in_penalty(to_point(start)) || !boost::geometry::within(to_point(start), game_area_)) {
+  if (in_penalty(start) || !boost::geometry::within(start, game_area_)) {
     return Eigen::Vector2d::Zero();
   }
 
@@ -259,38 +258,25 @@ std::shared_ptr<rrt_star::node> rrt_star::make_node(const Eigen::Vector2d& goal,
     }();
 
     // 最も近い点
-    const auto nearest_node = tree.qbegin(boost::geometry::index::nearest(to_point(sample), 1));
+    const auto nearest_node = tree.qbegin(boost::geometry::index::nearest(sample, 1));
 
     // 同じ点だったら却下
-    if (!boost::geometry::equals(to_point(sample), (*nearest_node)->position)) {
+    if (!boost::geometry::equals(sample, (*nearest_node)->position)) {
       // 最も近い点から一定距離を置いて点を打ち、コースに障害物がないことを確認
-      const auto new_p = to_new_p(to_vector((*nearest_node)->position), sample);
+      const auto new_p = to_new_p((*nearest_node)->position, sample);
 
-      if (!is_obstructed(to_point(new_p), margin) && !in_penalty(to_point(new_p)) &&
-          boost::geometry::within(to_point(new_p), area)) {
+      if (!is_obstructed(new_p, margin) && !in_penalty(new_p) &&
+          boost::geometry::within(new_p, area)) {
         return std::make_shared<node>(
-            new_p,
-            (*nearest_node)->cost + (new_p - to_vector((*nearest_node)->position)).norm(),
+            new_p, (*nearest_node)->cost + (new_p - (*nearest_node)->position).norm(),
             *nearest_node);
       }
     }
   }
 }
 
-rrt_star::point_t rrt_star::to_point(const Eigen::Vector2d& p) const {
-  return {p.x(), p.y()};
-}
-
-rrt_star::line_t rrt_star::to_line(const Eigen::Vector2d& a, const Eigen::Vector2d& b) const {
-  return {to_point(a), to_point(b)};
-}
-
-Eigen::Vector2d rrt_star::to_vector(const point_t& p) const {
-  return {p.x(), p.y()};
-}
-
 rrt_star::node::node(const Eigen::Vector2d& pos, double c, const std::shared_ptr<node>& ptr)
-    : position({pos.x(), pos.y()}), cost(c), parent(ptr) {}
+    : position(pos), cost(c), parent(ptr) {}
 
 rrt_star::object::object(const Eigen::Vector2d& pos, double radius)
     : position(pos), r(radius) {}

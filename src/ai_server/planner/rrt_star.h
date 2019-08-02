@@ -19,6 +19,7 @@
 #include "ai_server/model/command.h"
 #include "ai_server/model/world.h"
 #include "ai_server/planner/base.h"
+#include "ai_server/util/math/geometry_traits.h"
 
 namespace ai_server {
 namespace planner {
@@ -30,7 +31,7 @@ public:
 
   // 節点
   struct node {
-    boost::geometry::model::d2::point_xy<double> position; // 座標
+    Eigen::Vector2d position;   // 座標
     double cost;                // 親ノードまでに必要なコスト
     std::weak_ptr<node> parent; // 親ノードを指すポインタ
 
@@ -65,7 +66,7 @@ public:
               const double margin = 120.0);
 
 private:
-  using point_t = boost::geometry::model::d2::point_xy<double>;
+  using point_t = Eigen::Vector2d;
   using box_t   = boost::geometry::model::box<point_t>;
   using line_t  = boost::geometry::model::segment<point_t>;
   using tree_t =
@@ -92,15 +93,6 @@ private:
   /// @brief  フィールド情報を更新する
   void update_field();
 
-  // point_tに変換
-  point_t to_point(const Eigen::Vector2d& p) const;
-
-  // line_tに変換
-  line_t to_line(const Eigen::Vector2d& a, const Eigen::Vector2d& b) const;
-
-  // Eigen::Vector2dに変換
-  Eigen::Vector2d to_vector(const point_t& p) const;
-
   /// @brief  障害物が存在するか
   /// @param  geometry 図形
   /// @param  margin  避けるときのマージン
@@ -110,10 +102,8 @@ private:
     // 図形を包括するエリア
     auto area = boost::geometry::return_envelope<box_t>(geometry);
     // マージン分拡大
-    area.min_corner().x(area.min_corner().x() - margin);
-    area.min_corner().y(area.min_corner().y() - margin);
-    area.max_corner().x(area.max_corner().x() + margin);
-    area.max_corner().y(area.max_corner().y() + margin);
+    area.min_corner() -= margin * Eigen::Vector2d::Ones();
+    area.max_corner() += margin * Eigen::Vector2d::Ones();
 
     // 先に範囲を限定する
     const auto itr = obstacles_.qbegin(boost::geometry::index::intersects(area));
@@ -121,7 +111,7 @@ private:
     return std::any_of(itr, obstacles_.qend(), [this, margin, &geometry](const auto& a) {
       const auto& obj = std::get<1>(a);
       // 詳しく調べる
-      return boost::geometry::distance(to_point(obj.position), geometry) < margin + obj.r;
+      return boost::geometry::distance(obj.position, geometry) < margin + obj.r;
     });
   }
 
