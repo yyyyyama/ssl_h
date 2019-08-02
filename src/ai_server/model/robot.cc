@@ -83,5 +83,26 @@ void robot::set_ay(double ay) {
 void robot::set_alpha(double alpha) {
   alpha_ = alpha;
 }
+
+bool robot::has_estimator() const {
+  return static_cast<bool>(estimator_);
+}
+
+void robot::set_estimator(robot::estimator_type f) {
+  estimator_ = std::move(f);
+}
+
+void robot::clear_estimator() {
+  estimator_ = nullptr;
+}
+
+std::optional<robot> robot::state_after(util::duration_type t) const {
+  if (estimator_) {
+    return estimator_(*this, t);
+  } else {
+    return std::nullopt;
+  }
+}
+
 } // namespace model
 } // namespace ai_server

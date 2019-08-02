@@ -61,5 +61,26 @@ void ball::set_ax(double ax) {
 void ball::set_ay(double ay) {
   ay_ = ay;
 }
+
+bool ball::has_estimator() const {
+  return static_cast<bool>(estimator_);
+}
+
+void ball::set_estimator(ball::estimator_type f) {
+  estimator_ = std::move(f);
+}
+
+void ball::clear_estimator() {
+  estimator_ = nullptr;
+}
+
+std::optional<ball> ball::state_after(util::duration_type t) const {
+  if (estimator_) {
+    return estimator_(*this, t);
+  } else {
+    return std::nullopt;
+  }
+}
+
 } // namespace model
 } // namespace ai_server

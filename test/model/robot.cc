@@ -83,4 +83,60 @@ BOOST_AUTO_TEST_CASE(test003) {
   BOOST_TEST(r.theta() == 0.0);
 }
 
+BOOST_AUTO_TEST_CASE(estimator) {
+  using namespace std::chrono_literals;
+
+  ai_server::model::robot b1{};
+
+  // model::robot 初期化後は推定関数は設定されていない
+  BOOST_TEST(!b1.has_estimator());
+  // 推定関数が設定されていないときの推定結果は nullopt
+  BOOST_TEST(!b1.state_after(0s).has_value());
+
+  b1.set_x(1);
+  b1.set_y(2);
+  b1.set_theta(3);
+
+  ai_server::util::duration_type f1t{};
+  auto f1 = [&f1t](auto&& b, auto&& t) {
+    f1t = t;
+    return std::forward<decltype(b)>(b);
+  };
+  b1.set_estimator(f1);
+
+  // 推定関数は設定したら true
+  BOOST_TEST(b1.has_estimator());
+
+  // 設定した推定関数が正しく呼ばれているか
+  const auto r1 = b1.state_after(2s);
+  BOOST_TEST(f1t.count() == ai_server::util::duration_type{2s}.count());
+  BOOST_TEST(r1->x() == 1.0);
+  BOOST_TEST(r1->y() == 2.0);
+  BOOST_TEST(r1->theta() == 3.0);
+
+  ai_server::util::duration_type f2t{};
+  auto f2 = [&f2t](auto&&, auto&& t) {
+    f2t = t;
+    return std::nullopt;
+  };
+  b1.set_estimator(f2);
+
+  // 推定関数は設定したら true
+  BOOST_TEST(b1.has_estimator());
+
+  const auto r2 = b1.state_after(4s);
+  BOOST_TEST(f2t.count() == ai_server::util::duration_type{4s}.count());
+  BOOST_TEST(!r2.has_value());
+
+  // const なオブジェクトでも利用できるか
+  const auto b2 = b1;
+  const auto r3 = b2.state_after(6s);
+  BOOST_TEST(f2t.count() == ai_server::util::duration_type{6s}.count());
+  BOOST_TEST(!r3.has_value());
+
+  // clear_estimator で推定関数が解除されるか
+  b1.clear_estimator();
+  BOOST_TEST(!b1.has_estimator());
+}
+
 BOOST_AUTO_TEST_SUITE_END()
