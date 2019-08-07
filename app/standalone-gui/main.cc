@@ -276,10 +276,7 @@ private:
           const auto visible_robots =
               static_cast<bool>(team_color_) ? world_.robots_yellow() : world_.robots_blue();
 
-          if (std::all_of(active_robots_.cbegin(), active_robots_.cend(),
-                          [&visible_robots](auto&& id) { return visible_robots.count(id); })) {
-            evalute_formation();
-          }
+          evalute_formation();
 
           prev_time = current_time;
         }
