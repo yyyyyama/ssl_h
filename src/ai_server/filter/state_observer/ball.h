@@ -22,10 +22,10 @@ private:
       6 * boost::math::double_constants::pi * air_viscosity_ * ball_radius_;
   static constexpr double friction_ =
       fric_coef_ * ball_weight_ * 9.8; // 床とボールの最大動摩擦力[N]
-  static constexpr double quant_limit_x_ =
-      6000 / 1000; // カメラの量子化限界(幅方向)。フィールド幅[mm] / カメラ分解能
-  static constexpr double quant_limit_y_ =
-      9000 / 1000; // カメラの量子化限界(奥行き方向)。フィールド奥行き[mm] / カメラ分解能
+  // 暫定(TODO?: カメラの量子化限界(奥行き方向)。フィールド奥行き[mm] / カメラ分解能)
+  static constexpr double quant_limit_x_ = 1.0;
+  // 暫定(TODO?: カメラの量子化限界(幅方向)。フィールド幅[mm] / カメラ分解能)
+  static constexpr double quant_limit_y_   = 1.0;
   static constexpr double lambda_observer_ = -9; // ボールの状態オブザーバの極
 
   model::ball ball_;
