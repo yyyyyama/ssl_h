@@ -47,7 +47,7 @@ std::vector<std::shared_ptr<agent::base>> first_formation::execute() {
                [&our_robots](auto id) { return our_robots.count(id); });
 
   //全て見えない場合は何もしない
-  if (visible_robots.size() < 3) {
+  if (visible_robots.empty()) {
     return exe;
   }
 
