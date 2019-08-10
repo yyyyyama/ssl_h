@@ -72,21 +72,24 @@ stopgame::stopgame(const model::world& world, bool is_yellow,
     pull_ = std::make_shared<action::autonomous_ball_place>(world_, is_yellow_, nearest_robot_,
                                                             abp_target_);
   } else {
-    std::vector<unsigned int> placer_ids = ids_;
-    const auto nearest_robot_id          = std::min_element(
-        placer_ids.cbegin(), placer_ids.cend(), [&ball, &our_robots](auto& a, auto& b) {
-          return std::hypot(our_robots.at(a).x() - ball.x(), our_robots.at(a).y() - ball.y()) <
-                 std::hypot(our_robots.at(b).x() - ball.x(), our_robots.at(b).y() - ball.y());
-        });
-    if (nearest_robot_id != ids_.end()) {
-      nearest_robot_ = *nearest_robot_id;
+    if (ids_.size() != 0) {
+      std::vector<unsigned int> placer_ids = ids_;
+      const auto nearest_robot_id          = std::min_element(
+          placer_ids.cbegin(), placer_ids.cend(), [&ball, &our_robots](auto& a, auto& b) {
+            return std::hypot(our_robots.at(a).x() - ball.x(),
+                              our_robots.at(a).y() - ball.y()) <
+                   std::hypot(our_robots.at(b).x() - ball.x(), our_robots.at(b).y() - ball.y());
+          });
+      if (nearest_robot_id != ids_.end()) {
+        nearest_robot_ = *nearest_robot_id;
+      }
+      kick_    = std::make_shared<action::kick_action>(world_, is_yellow_, nearest_robot_);
+      receive_ = std::make_shared<action::receive>(world_, is_yellow_, nearest_robot_);
+      abp_ = std::make_shared<action::autonomous_ball_place>(world_, is_yellow_, nearest_robot_,
+                                                             abp_target_);
+      pull_ = std::make_shared<action::autonomous_ball_place>(world_, is_yellow_,
+                                                              nearest_robot_, abp_target_);
     }
-    kick_    = std::make_shared<action::kick_action>(world_, is_yellow_, nearest_robot_);
-    receive_ = std::make_shared<action::receive>(world_, is_yellow_, receiver_robot_);
-    abp_  = std::make_shared<action::autonomous_ball_place>(world_, is_yellow_, nearest_robot_,
-                                                           abp_target_);
-    pull_ = std::make_shared<action::autonomous_ball_place>(world_, is_yellow_, nearest_robot_,
-                                                            abp_target_);
   }
 }
 
@@ -138,43 +141,48 @@ stopgame::stopgame(const model::world& world, bool is_yellow,
     if (nearest_robot_id != init_ids_.end()) {
       nearest_robot_ = *nearest_robot_id;
     }
-    kick_    = std::make_shared<action::kick_action>(world_, is_yellow_, nearest_robot_);
-    receive_ = std::make_shared<action::receive>(world_, is_yellow_, receiver_robot_);
+    init_ids_.clear();
+    for (auto id : ids_) {
+      if (our_robots.count(id)) init_ids_.push_back(id);
+    }
+    init_ids_size_ = init_ids_.size();
+    kick_          = std::make_shared<action::kick_action>(world_, is_yellow_, nearest_robot_);
+    receive_       = std::make_shared<action::receive>(world_, is_yellow_, receiver_robot_);
     abp_  = std::make_shared<action::autonomous_ball_place>(world_, is_yellow_, receiver_robot_,
                                                            abp_target_);
     pull_ = std::make_shared<action::autonomous_ball_place>(world_, is_yellow_, nearest_robot_,
                                                             abp_target_);
   } else {
-    // 単独でabp
-    std::vector<unsigned int> init_ids_ = ids_;
-    const auto nearest_robot_id         = std::min_element(
-        init_ids_.cbegin(), init_ids_.cend(), [&ball, &our_robots](auto& a, auto& b) {
-          return std::hypot(our_robots.at(a).x() - ball.x(), our_robots.at(a).y() - ball.y()) <
-                 std::hypot(our_robots.at(b).x() - ball.x(), our_robots.at(b).y() - ball.y());
-        });
-    if (nearest_robot_id != init_ids_.end()) {
-      nearest_robot_ = *nearest_robot_id;
+    if (ids_.size() != 0) {
+      // 単独でabp
+      std::vector<unsigned int> init_ids_ = ids_;
+      const auto nearest_robot_id         = std::min_element(
+          init_ids_.cbegin(), init_ids_.cend(), [&ball, &our_robots](auto& a, auto& b) {
+            return std::hypot(our_robots.at(a).x() - ball.x(),
+                              our_robots.at(a).y() - ball.y()) <
+                   std::hypot(our_robots.at(b).x() - ball.x(), our_robots.at(b).y() - ball.y());
+          });
+      if (nearest_robot_id != init_ids_.end()) {
+        nearest_robot_ = *nearest_robot_id;
+      }
+      kick_    = std::make_shared<action::kick_action>(world_, is_yellow_, nearest_robot_);
+      receive_ = std::make_shared<action::receive>(world_, is_yellow_, nearest_robot_);
+      abp_ = std::make_shared<action::autonomous_ball_place>(world_, is_yellow_, nearest_robot_,
+                                                             abp_target_);
+      pull_ = std::make_shared<action::autonomous_ball_place>(world_, is_yellow_,
+                                                              nearest_robot_, abp_target_);
     }
-    kick_    = std::make_shared<action::kick_action>(world_, is_yellow_, nearest_robot_);
-    receive_ = std::make_shared<action::receive>(world_, is_yellow_, receiver_robot_);
-    abp_  = std::make_shared<action::autonomous_ball_place>(world_, is_yellow_, nearest_robot_,
-                                                           abp_target_);
-    pull_ = std::make_shared<action::autonomous_ball_place>(world_, is_yellow_, nearest_robot_,
-                                                            abp_target_);
   }
 }
 
 std::vector<std::shared_ptr<action::base>> stopgame::execute() {
   std::vector<std::shared_ptr<action::base>> baseaction;
-
   std::vector<unsigned int> visible_ids;
   const auto our_robots = is_yellow_ ? world_.robots_yellow() : world_.robots_blue();
-  for (auto id : ids_) {
+  for (auto id : ids_)
     if (our_robots.count(id)) visible_ids.push_back(id);
-  }
-  if (visible_ids.size() == 0) {
-    return baseaction;
-  }
+  if (ids_.size() == 0 || visible_ids.size() == 0) return baseaction;
+
   if (abp_flag_) {
     abp_flag_ = !(abp_->finished());
     if (kick_failed_) abp_flag_ = !(pull_->finished());
@@ -183,12 +191,16 @@ std::vector<std::shared_ptr<action::base>> stopgame::execute() {
       nearest_robot_ = receiver_robot_;
     }
   }
-  const auto ball            = world_.ball();
-  const double ballx         = is_placement_ ? abp_target_.x() : ball.x();
-  const double bally         = is_placement_ ? abp_target_.y() : ball.y();
+  const auto ball    = world_.ball();
+  const double ballx = is_placement_ ? abp_target_.x() : ball.x();
+  const double bally = is_placement_ ? abp_target_.y() : ball.y();
+  const Eigen::Vector2d ball_pos(ballx, bally);
   const double ballxsign     = ((ballx > 0) || (std::abs(ballx) < 250)) ? 1.0 : -1.0;
   const double ballysign     = ((bally > 0) || (std::abs(bally) < 250)) ? 1.0 : -1.0;
   const double enemygoalsign = world_.field().x_max() > 0 ? 1.0 : -1.0;
+  constexpr double margin    = 700.0;
+  // b基準のaの符号
+  auto sign = [](double a, double b) { return ((a > b) - (a < b)); };
 
   const auto enemy_robots = is_yellow_ ? world_.robots_blue() : world_.robots_yellow();
   std::vector<unsigned int> enemies_id;
@@ -202,16 +214,18 @@ std::vector<std::shared_ptr<action::base>> stopgame::execute() {
       (2 * world_.field().y_max() - std::abs(world_.field().y_max() - std::abs(bally))) /
       ids_.size();
 
-  if (init_ids_.size() >= 2) {
+  if (init_ids_size_ >= 2 && our_robots.count(receiver_robot_)) {
     receiverxy_ =
         Eigen::Vector2d(our_robots.at(receiver_robot_).x(), our_robots.at(receiver_robot_).y());
   }
 
   {
     // パスでのABP関連の処理
-    kick_abp_flag_ =
-        init_ids_.size() >= 2 && !kick_->finished() &&
-        std::hypot(abp_target_.x() - ball.x(), abp_target_.y() - ball.y()) > pass_dist_;
+    kick_abp_flag_ = false;
+    /*
+    init_ids_size_ >= 2 && !(kick_->finished()) &&
+    std::hypot(abp_target_.x() - ball.x(), abp_target_.y() - ball.y()) > pass_dist_;
+    */
 
     if (visible_ids.size() >= 2 && !before_kick_finished_ && kick_->finished())
       kick_time_ = util::clock_type::now();
@@ -231,6 +245,7 @@ std::vector<std::shared_ptr<action::base>> stopgame::execute() {
       const auto& robot   = our_robots.at(id);
       const double robotx = robot.x();
       const double roboty = robot.y();
+      const Eigen::Vector2d robot_pos(robotx, roboty);
 
       // ロボットに一番近い敵ロボット抽出
       unsigned int nearest_enemy;
@@ -248,7 +263,8 @@ std::vector<std::shared_ptr<action::base>> stopgame::execute() {
                             ? our_robots.at(nearest_robot_)
                             : enemy_robots.at(nearest_enemy);
       Eigen::Vector2d it{abp_robot.x(), abp_robot.y()};
-      if (abp_flag_ && init_ids_.size() >= 2 && !kick_abp_flag_) {
+      if (abp_flag_ && init_ids_size_ >= 2 && !kick_abp_flag_ &&
+          our_robots.count(receiver_robot_)) {
         it = Eigen::Vector2d(our_robots.at(receiver_robot_).x(),
                              our_robots.at(receiver_robot_).y());
       }
@@ -258,10 +274,10 @@ std::vector<std::shared_ptr<action::base>> stopgame::execute() {
         if (id == nearest_robot_) {
           if (is_placement_) {
             const double to_robot = std::atan2(roboty - bally, robotx - ballx);
-            targetx               = ballx + 650 * std::cos(to_robot);
-            targety               = bally + 650 * std::sin(to_robot);
+            targetx               = ballx + margin * std::cos(to_robot);
+            targety               = bally + margin * std::sin(to_robot);
           } else {
-            targetx = ballx - enemygoalsign * 650;
+            targetx = ballx - enemygoalsign * margin;
             targety = bally;
           }
         } else {
@@ -275,14 +291,9 @@ std::vector<std::shared_ptr<action::base>> stopgame::execute() {
       } else {
         // 中間
         if (id == nearest_robot_) {
-          if (is_placement_) {
-            const double to_robot = std::atan2(roboty - bally, robotx - ballx);
-            targetx               = ballx + 650 * std::cos(to_robot);
-            targety               = bally + 650 * std::sin(to_robot);
-          } else {
-            targetx = ballx - 650;
-            targety = bally;
-          }
+          const double to_robot = std::atan2(roboty - bally, robotx - ballx);
+          targetx               = ballx - margin;
+          targety               = bally;
         } else {
           // それ以外
           targetx = ballx - enemygoalsign * i * 500;
@@ -293,36 +304,39 @@ std::vector<std::shared_ptr<action::base>> stopgame::execute() {
         }
       }
 
-      if (std::hypot(ballx - robotx, bally - roboty) < 510) {
-        // ボールに近かったら遠ざかる
-        const double to_robot = std::atan2(roboty - bally, robotx - ballx);
-        targetx               = robotx + 200 * std::cos(to_robot);
-        targety               = roboty + 200 * std::sin(to_robot);
-      } else if (std::hypot(ballx - robotx, bally - roboty) < 520) {
-        const double to_targettheta = std::atan2(targety - bally, targetx - ballx);
-        const double to_robottheta  = std::atan2(roboty - bally, robotx - ballx);
-        const double theta          = util::math::wrap_to_pi(to_targettheta - to_robottheta);
+      if (id != nearest_robot_) {
+        if (std::hypot(ballx - robotx, bally - roboty) < 600) {
+          // ボールに近かったら遠ざかる
+          const double to_robot = std::atan2(roboty - bally, robotx - ballx);
+          targetx               = robotx + 200 * std::cos(to_robot);
+          targety               = roboty + 200 * std::sin(to_robot);
+        } else if (std::hypot(ballx - robotx, bally - roboty) < 610) {
+          const double to_targettheta = std::atan2(targety - bally, targetx - ballx);
+          const double to_robottheta  = std::atan2(roboty - bally, robotx - ballx);
+          const double theta          = util::math::wrap_to_pi(to_targettheta - to_robottheta);
 
-        if (theta > 0 && std::abs(theta) > 0.3) {
-          targetx = robotx - 200 * std::sin(to_robottheta);
-          targety = roboty + 200 * std::cos(to_robottheta);
-        } else {
-          targetx = robotx + 200 * std::sin(to_robottheta);
-          targety = roboty - 200 * std::cos(to_robottheta);
+          if (theta > 0 && std::abs(theta) > 0.3) {
+            targetx = robotx - 200 * std::sin(to_robottheta);
+            targety = roboty + 200 * std::cos(to_robottheta);
+          } else {
+            targetx = robotx + 200 * std::sin(to_robottheta);
+            targety = roboty - 200 * std::cos(to_robottheta);
+          }
+        } else if (std::abs(targetx) > world_.field().x_max() - 1500 &&
+                   std::abs(roboty) < 1500) {
+          targetx = ballxsign * (world_.field().x_max() - 1600);
+        } else if (std::abs(targetx) > world_.field().x_max() - 300) {
+          targetx = ballxsign * (world_.field().x_max() - 300);
+        } else if (std::abs(robotx) > world_.field().x_max() - 1500 &&
+                   std::abs(roboty) < 1500) {
+          targetx = ballxsign * (world_.field().x_max() - 1600);
         }
-      } else if (std::abs(targetx) > world_.field().x_max() - 1500 && std::abs(roboty) < 1500) {
-        targetx = ballxsign * (world_.field().x_max() - 1600);
-      } else if (std::abs(targetx) > world_.field().x_max() - 300) {
-        targetx = ballxsign * (world_.field().x_max() - 300);
-      } else if (std::abs(robotx) > world_.field().x_max() - 1500 && std::abs(roboty) < 1500) {
-        targetx = ballxsign * (world_.field().x_max() - 1600);
       }
 
       if (kick_abp_flag_ && id == nearest_robot_ && is_placement_ && abp_flag_ &&
           kick_failed_) {
         baseaction.push_back(pull_);
-      } else if (visible_ids.size() >= 2 && id == nearest_robot_ && abp_flag_ &&
-                 kick_abp_flag_) {
+      } else if (init_ids_size_ >= 2 && id == nearest_robot_ && abp_flag_ && kick_abp_flag_) {
         // Autonomous Ball Placement kicker
         if (std::hypot(receiverxy_.x() - abp_target_.x(), receiverxy_.y() - abp_target_.y()) <
                 200.0 &&
@@ -394,7 +408,7 @@ std::vector<std::shared_ptr<action::base>> stopgame::execute() {
         // 単独でABP
         baseaction.push_back(pull_);
       } else if (is_placement_ && our_robots.at(id).x() != it.x() &&
-                 std::hypot(it.x() - robotx, it.y() - roboty) < 500.0) {
+                 std::hypot(it.x() - robotx, it.y() - roboty) < 650.0) {
         // Autonomous Ball Placementをするロボットを避ける
         double vx, vy;
         const double c_to_ptheta = util::math::wrap_to_2pi(std::atan2(it.y(), it.x()));
@@ -449,11 +463,28 @@ std::vector<std::shared_ptr<action::base>> stopgame::execute() {
       } else if (std::hypot(targetx - robotx, targety - roboty) > 100 ||
                  (util::math::wrap_to_2pi(std::atan2(bally - robot.y(), ballx - robot.x())) -
                   robot.theta()) > pi<double>() / 8.0) {
-        auto move = std::make_shared<action::move>(world_, is_yellow_, id);
-        const double to_balltheta =
-            util::math::wrap_to_2pi(std::atan2(bally - robot.y(), ballx - robot.x()));
-        move->move_to(targetx, targety, to_balltheta);
-        baseaction.push_back(move);
+        auto vec                   = std::make_shared<action::vec>(world_, is_yellow_, id);
+        const double to_balltheta  = std::atan2(bally - roboty, ballx - robotx);
+        const double to_robottheta = std::atan2(roboty - bally, robotx - ballx);
+        const double omega         = 2.0 * util::math::wrap_to_pi(to_balltheta - robot.theta());
+
+        const double tmp_y = ((targety - bally) / (targetx - ballx)) * (robotx - ballx) + bally;
+        const int r_sign   = sign(robot.y(), tmp_y) * sign(targetx, ball.x());
+        const Eigen::Vector2d to_orbit(
+            ball_pos +
+            margin * Eigen::Vector2d(std::cos(to_robottheta), std::sin(to_robottheta)) -
+            robot_pos);
+        const Eigen::Vector2d to_target =
+            (id == nearest_robot_ &&
+             std::hypot(robot.x() - ball.x(), robot.y() - ball.y()) < margin + 100)
+                ? r_sign * 500.0 *
+                          Eigen::Vector2d(std::sin(to_robottheta), -std::cos(to_robottheta)) +
+                      to_orbit
+                : Eigen::Vector2d(targetx - robot.x(), targety - robot.y());
+
+        const Eigen::Vector2d velocity = Eigen::Vector2d(ball.vx(), ball.vy()) + to_target;
+        vec->move_to(velocity.x(), velocity.y(), omega);
+        baseaction.push_back(vec);
       } else {
         baseaction.push_back(std::make_shared<action::no_operation>(world_, is_yellow_, id));
       }

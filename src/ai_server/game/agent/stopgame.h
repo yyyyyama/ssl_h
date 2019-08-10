@@ -19,6 +19,8 @@ private:
   unsigned int nearest_robot_;
   unsigned int receiver_robot_;
 
+  unsigned int init_ids_size_;
+
   bool is_placement_;
   bool abp_flag_;
   bool kick_abp_flag_;
