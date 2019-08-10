@@ -59,11 +59,14 @@ model::command marking::execute() {
       position = (-ratio * enemy + 1 * ball) / (1 - ratio);
       tmp_pos  = ball;
       break;
-    case mark_mode::shoot_block:                 //シュートを阻止
-      const auto length = (goal - enemy).norm(); //敵機とゴールの距離
-      tmp               = std::signbit(2000 - length / 2)
+    case mark_mode::shoot_block:                        //シュートを阻止
+      const auto length        = (goal - enemy).norm(); //敵機とゴールの距離
+      const double penalty_rad = std::sqrt(std::pow(world_.field().penalty_width() / 2.0, 2.0) +
+                                           std::pow(world_.field().penalty_length(), 2.0)) +
+                                 300.0;
+      tmp = std::signbit(penalty_rad - length / 2)
                 ? 0
-                : 2000 - length / 2; //敵機-ゴール中央の中間地点とゴールラインの差
+                : penalty_rad - length / 2; //敵機-ゴール中央の中間地点とゴールラインの差
       ratio    = (length / 2 + tmp) / length;
       position = (1 - ratio) * goal + ratio * enemy;
       tmp_pos  = enemy;
@@ -95,11 +98,12 @@ model::command marking::execute() {
     }
   }
   //向きをボールの方へ
-  const auto theta = util::wrap_to_2pi(
-      std::atan2(position.y() - tmp_pos.y(), position.x() - tmp_pos.x()) + pi<double>());
+  const auto theta =
+      std::atan2(position.y() - tmp_pos.y(), position.x() - tmp_pos.x()) + pi<double>();
 
   //目標位置が外側に行ったらその場で停止
-  if (std::abs(position.x()) > 4500.0 || std::abs(position.y()) > 3000.0) {
+  if (std::abs(position.x()) > world_.field().x_max() ||
+      std::abs(position.y()) > world_.field().y_max()) {
     ally_robot.set_velocity({0.0, 0.0, 0.0});
     return ally_robot;
   }
