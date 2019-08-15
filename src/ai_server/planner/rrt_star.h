@@ -38,7 +38,7 @@ public:
     node(const Eigen::Vector2d& pos, double c, const std::shared_ptr<node>& ptr);
   };
 
-  // 障害物
+  // 障害物(一定の半径を持つ円)
   struct object {
     Eigen::Vector2d position; // 座標
     double r;                 // 物体の半径
@@ -46,9 +46,24 @@ public:
     object(const Eigen::Vector2d& pos, double radius);
   };
 
-  /// @brief  障害物の任意指定
+  // 障害物(一定の太さを持つ線分)
+  struct line {
+    boost::geometry::model::segment<Eigen::Vector2d> center_line; // 中心線
+    double r;                                                     // 中心線を覆う半径
+
+    line(const boost::geometry::model::segment<Eigen::Vector2d>& center, double radius);
+  };
+
+  /// @brief  障害物(一定の半径を持つ円)の任意指定
   /// @param  obstacles 障害物(struct object)のvector
   void set_obstacles(const std::vector<object>& obstacles);
+
+  /// @brief  障害物(一定の太さを持つ線分)の任意指定
+  /// @param  first_point 線分の点1
+  /// @param  second_point 線分の点2
+  /// @param  radius 線分の太さを表す半径
+  void set_lines(const Eigen::Vector2d& first_point, const Eigen::Vector2d& second_point,
+                 double radius);
 
   /// @brief  探索関数(木の生成)
   /// @param  start 初期位置
@@ -85,15 +100,17 @@ private:
   box_t enemy_penalty_area_;
   // 自分のペナルティエリア
   box_t my_penalty_area_;
-  // 障害物
+  // 障害物(一定の半径を持つ円)
   obstacles_tree_t obstacles_;
+  // 障害物(一定の太さを持つ線分)
+  std::vector<line> lines_;
   // あるループで生成された最適なルート木，次ループで優先して探索
   std::queue<Eigen::Vector2d> priority_points_;
 
   /// @brief  フィールド情報を更新する
   void update_field();
 
-  /// @brief  障害物が存在するか
+  /// @brief  障害物(一定の半径を持つ円)が存在するか
   /// @param  geometry 図形
   /// @param  margin  避けるときのマージン
   template <class Geometry>
@@ -112,6 +129,17 @@ private:
       const auto& obj = std::get<1>(a);
       // 詳しく調べる
       return boost::geometry::distance(obj.position, geometry) < margin + obj.r;
+    });
+  }
+
+  /// @brief  障害物(一定の太さを持つ線分)が存在するか
+  /// @param  geometry 図形
+  /// @param  margin  避けるときのマージン
+  template <class Geometry>
+  auto is_lined(const Geometry& geometry, const double margin) const
+      -> decltype(boost::geometry::distance(geometry, line_t()), bool()) {
+    return std::any_of(lines_.begin(), lines_.end(), [this, margin, &geometry](const auto& a) {
+      return boost::geometry::distance(geometry, a.center_line) < margin + a.r;
     });
   }
 

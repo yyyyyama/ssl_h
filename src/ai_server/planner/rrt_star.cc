@@ -40,6 +40,11 @@ void rrt_star::set_obstacles(const std::vector<object>& obstacles) {
                                 std::make_move_iterator(tmp.end())};
 }
 
+void rrt_star::set_lines(const point_t& first_point, const point_t& second_point,
+                         double radius) {
+  lines_.emplace_back(line(boost::geometry::model::segment(first_point, second_point), radius));
+}
+
 void rrt_star::search(const position_t& start, const position_t& goal,
                       const Eigen::Vector2d& max_pos, const Eigen::Vector2d& min_pos,
                       const int search_num, const double max_branch_length,
@@ -96,7 +101,8 @@ void rrt_star::search(const position_t& start, const position_t& goal,
                        [this, &np = new_node->position, r, margin](const auto& a) {
                          if ((a->position - np).norm() < r) {
                            const line_t line{a->position, np};
-                           return !is_obstructed(line, margin) && !in_penalty(line);
+                           return !is_obstructed(line, margin) && !in_penalty(line) &&
+                                  !is_lined(line, margin);
                          }
                          return false;
                        }),
@@ -143,7 +149,7 @@ void rrt_star::search(const position_t& start, const position_t& goal,
       priority_points_.push(p);
 
       const line_t line{start_pos, p};
-      if (!is_obstructed(line, margin) && !in_penalty(line)) {
+      if (!is_obstructed(line, margin) && !in_penalty(line) && !is_lined(line, margin)) {
         return n.lock()->position;
       }
     }
@@ -177,6 +183,44 @@ void rrt_star::update_field() {
 std::optional<Eigen::Vector2d> rrt_star::exit_position(const Eigen::Vector2d& start,
                                                        const Eigen::Vector2d& goal,
                                                        double margin, double d) const {
+  //線分の範囲内のとき
+  if (is_lined(start, margin)) {
+    for (const auto& tmp : lines_) {
+      if (boost::geometry::distance(start, tmp.center_line) < margin + tmp.r) {
+        //線分を作る2点
+        const Eigen::Vector2d p1 = std::get<0>(tmp.center_line);
+        const Eigen::Vector2d p2 = std::get<1>(tmp.center_line);
+
+        //線分を表すベクトル
+        const Eigen::Vector2d line_vec = p2 - p1;
+
+        //線分の端の一点からstartへの方向のベクトル
+        const Eigen::Vector2d p1_to_start_vec = start - p1;
+        const Eigen::Vector2d p2_to_start_vec = start - p2;
+
+        //線分に対して法線ベクトルが引けず、p1側にstartがある時
+        if (line_vec.dot(p1_to_start_vec) < 0.0) {
+          return start + d * p2_to_start_vec.normalized();
+
+          //線分に対して法線ベクトルが引けず、p2側にstartがある時
+        } else if (line_vec.dot(p2_to_start_vec) > 0.0) {
+          return start + d * p1_to_start_vec.normalized();
+
+          //線分に対して法線ベクトルが引けるとき
+        } else {
+          //線分を表すベクトルによって出来る直線上で、startに最も近い点
+          const Eigen::Vector2d nearest_point =
+              p1 + line_vec * (line_vec.dot(p1_to_start_vec) / std::pow(line_vec.norm(), 2));
+
+          //単位法線ベクトル(ロボットの動く方向)
+          const Eigen::Vector2d no_vec = (start - nearest_point).normalized();
+
+          return start + d * no_vec;
+        }
+      }
+    }
+  }
+
   // 避けきれない障害物を調べる
   if (!obstacles_.empty()) {
     // パフォーマンス向上のため，調べる範囲を限定する
@@ -265,7 +309,7 @@ std::shared_ptr<rrt_star::node> rrt_star::make_node(const Eigen::Vector2d& goal,
       // 最も近い点から一定距離を置いて点を打ち、コースに障害物がないことを確認
       const auto new_p = to_new_p((*nearest_node)->position, sample);
 
-      if (!is_obstructed(new_p, margin) && !in_penalty(new_p) &&
+      if (!is_obstructed(new_p, margin) && !in_penalty(new_p) && !is_lined(new_p, margin) &&
           boost::geometry::within(new_p, area)) {
         return std::make_shared<node>(
             new_p, (*nearest_node)->cost + (new_p - (*nearest_node)->position).norm(),
@@ -280,6 +324,8 @@ rrt_star::node::node(const Eigen::Vector2d& pos, double c, const std::shared_ptr
 
 rrt_star::object::object(const Eigen::Vector2d& pos, double radius)
     : position(pos), r(radius) {}
+
+rrt_star::line::line(const line_t& center, double radius) : center_line(center), r(radius) {}
 
 } // namespace planner
 } // namespace ai_server
