@@ -23,6 +23,14 @@ void field::update(const ssl_protos::vision::Geometry& geometry) {
       field_.set_center_radius(arc.radius());
     }
   }
+  for (const auto& line : f.field_lines()) {
+    const auto& name = line.name();
+    if (name == "LeftPenaltyStretch") {
+      field_.set_penalty_width(line.p2().y() - line.p1().y());
+    } else if (name == "LeftFieldLeftPenaltyStretch") {
+      field_.set_penalty_length(line.p2().x() - line.p1().x());
+    }
+  }
 }
 
 model::field field::value() const {
