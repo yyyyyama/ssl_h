@@ -6,6 +6,7 @@
 #include "ai_server/game/action/move.h"
 #include "ai_server/game/action/no_operation.h"
 #include "ai_server/game/action/rush.h"
+#include "ai_server/game/action/turn_kick.h"
 #include "ai_server/game/action/kick_action.h"
 
 #include <memory>
@@ -32,15 +33,15 @@ private:
   penalty_mode mode_;
   //パラメータ計算
   void calculate_kick_position(double keep_out); //半径keep_outだけボールに近づく
-  bool start_rush(model::ball ball);
+  bool start_turn_kick(model::ball ball);
   bool time_over(std::chrono::high_resolution_clock::time_point point, int count);
 
   bool start_flag_;
   std::vector<unsigned int> ids_;
   std::chrono::high_resolution_clock::time_point change_command_time_;
   std::shared_ptr<action::move> move_;
-  std::shared_ptr<action::rush> rush_;
-  std::shared_ptr<action::move> rush_move_;
+  std::shared_ptr<action::turn_kick> turn_kick_;
+  std::shared_ptr<action::move> turn_kick_move_;
 
   bool initial_flag_;
   int shoot_count_;
