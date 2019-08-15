@@ -23,12 +23,11 @@ public:
 private:
   int dribble_;
   unsigned int passer_id_;
-  bool flag_       = false;
-  bool shoot_flag_ = false;
+  bool flag_;
+  bool shoot_flag_;
+  bool kick_type_setted_;
   model::command::kick_flag_t kick_type_;
   Eigen::Vector2d shoot_pos_;
-  Eigen::Vector2d dummy_pos_;
-  bool approaching_flag_ = false;
 };
 } // namespace action
 } // namespace game
