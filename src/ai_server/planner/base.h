@@ -14,12 +14,17 @@ class base {
 protected:
   position_t target_; // 目標(位置or速度)
 
+  double trajectory_length_; // 経路長
+
 public:
   base();
   virtual ~base();
 
   /// @brief  計算後の目標(位置or速度)を返す
   virtual position_t target();
+
+  /// @brief  経路長を返す
+  virtual double trajectory_length();
 };
 
 } // namespace planner
