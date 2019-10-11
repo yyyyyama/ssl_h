@@ -8,7 +8,7 @@ namespace math {
 
 model::ball transform(const Eigen::Affine3d& matrix, const model::ball& ball) {
   // 回転方向は必要ないので
-  Eigen::Vector3d p{};
+  Eigen::Vector3d p{.0, .0, .0};
   p.head<2>() = util::math::position(ball);
 
   // matrixで座標の変換をする
