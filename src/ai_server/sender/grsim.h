@@ -15,7 +15,7 @@ namespace sender {
 
 class grsim final : public base {
 public:
-  grsim(boost::asio::io_service& io_service, const std::string& grsim_addr, short port);
+  grsim(boost::asio::io_context& io_context, const std::string& grsim_addr, short port);
 
   void send_command(const model::command& command) override;
 

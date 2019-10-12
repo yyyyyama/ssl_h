@@ -19,7 +19,7 @@ class refbox {
   using error_signal_t = boost::signals2::signal<void(void)>;
 
 public:
-  refbox(boost::asio::io_service& io_service, const std::string& listen_addr,
+  refbox(boost::asio::io_context& io_context, const std::string& listen_addr,
          const std::string& multicast_addr, short port);
   boost::signals2::connection on_receive(const receive_signal_t::slot_type& slot);
   boost::signals2::connection on_error(const error_signal_t::slot_type& slot);

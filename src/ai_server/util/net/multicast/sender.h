@@ -17,12 +17,12 @@ public:
   /// @brief                  コンストラクタ
   /// @param multicast_addr   マルチキャストアドレス
   /// @param port             ポート
-  sender(boost::asio::io_service& io_service, const std::string& multicast_addr, short port);
+  sender(boost::asio::io_context& io_context, const std::string& multicast_addr, short port);
 
   /// @brief                  コンストラクタ
   /// @param multicast_addr   マルチキャストアドレス
   /// @param port             ポート
-  sender(boost::asio::io_service& io_service, const boost::asio::ip::address& multicast_addr,
+  sender(boost::asio::io_context& io_context, const boost::asio::ip::address& multicast_addr,
          short port);
 
   /// @brief                  buffer を送信する

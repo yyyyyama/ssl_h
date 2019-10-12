@@ -32,14 +32,14 @@ public:
   /// @param listen_addr      通信に使うインターフェースのIPアドレス
   /// @param multicast_addr   マルチキャストアドレス
   /// @param port             ポート
-  receiver(boost::asio::io_service& io_service, const std::string& listen_addr,
+  receiver(boost::asio::io_context& io_context, const std::string& listen_addr,
            const std::string& multicast_addr, short port);
 
   /// @brief                  コンストラクタ
   /// @param listen_addr      通信に使うインターフェースのIPアドレス
   /// @param multicast_addr   マルチキャストアドレス
   /// @param port             ポート
-  receiver(boost::asio::io_service& io_service, const boost::asio::ip::address& listen_addr,
+  receiver(boost::asio::io_context& io_context, const boost::asio::ip::address& listen_addr,
            const boost::asio::ip::address& multicast_addr, short port);
 
   /// @brief                  データ受信時に slot が呼ばれるようにする

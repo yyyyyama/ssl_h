@@ -33,7 +33,7 @@ public:
   /// @param cycle            制御周期
   /// @param world            updater::worldの参照
   /// @param color            チームカラー
-  driver(boost::asio::io_service& io_service, util::duration_type cycle,
+  driver(boost::asio::io_context& io_context, util::duration_type cycle,
          const model::updater::world& world, model::team_color color);
 
   /// @brief                  現在設定されているチームカラーを取得する

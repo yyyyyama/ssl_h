@@ -8,8 +8,8 @@
 namespace ai_server {
 namespace sender {
 
-kiks::kiks(boost::asio::io_service& io_service, const std::string& device)
-    : serial_(io_service, device) {
+kiks::kiks(boost::asio::io_context& io_context, const std::string& device)
+    : serial_(io_context, device) {
   serial_.set_baud_rate(57600);
 }
 

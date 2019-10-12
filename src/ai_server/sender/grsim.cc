@@ -7,8 +7,8 @@
 namespace ai_server {
 namespace sender {
 
-grsim::grsim(boost::asio::io_service& io_service, const std::string& grsim_addr, short port)
-    : udp_sender_(io_service, grsim_addr, port) {
+grsim::grsim(boost::asio::io_context& io_context, const std::string& grsim_addr, short port)
+    : udp_sender_(io_context, grsim_addr, port) {
   //プロトコルバッファのバージョン確認
   GOOGLE_PROTOBUF_VERIFY_VERSION;
 }

@@ -4,9 +4,9 @@
 namespace ai_server {
 namespace receiver {
 
-vision::vision(boost::asio::io_service& io_service, const std::string& listen_addr,
+vision::vision(boost::asio::io_context& io_context, const std::string& listen_addr,
                const std::string& multicast_addr, short port)
-    : receiver_(io_service, listen_addr, multicast_addr, port) {
+    : receiver_(io_context, listen_addr, multicast_addr, port) {
   // Google Protocol Buffersライブラリのバージョンをチェックする
   // 互換性のないバージョンが使われていた場合は例外吐いて落ちる()
   GOOGLE_PROTOBUF_VERIFY_VERSION;

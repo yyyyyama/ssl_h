@@ -18,7 +18,7 @@ public:
 
   /// @brief                  コンストラクタ
   /// @param device           利用するシリアルポートのデバイス名
-  serial(boost::asio::io_service& io_service, const std::string& device);
+  serial(boost::asio::io_context& io_context, const std::string& device);
 
   /// @brief                  ボーレートを取得する
   unsigned int baud_rate();

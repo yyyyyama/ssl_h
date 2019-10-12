@@ -6,15 +6,15 @@ namespace util {
 namespace net {
 namespace multicast {
 
-receiver::receiver(boost::asio::io_service& io_service, const std::string& listen_addr,
+receiver::receiver(boost::asio::io_context& io_context, const std::string& listen_addr,
                    const std::string& multicast_addr, short port)
-    : receiver(io_service, boost::asio::ip::address::from_string(listen_addr),
+    : receiver(io_context, boost::asio::ip::address::from_string(listen_addr),
                boost::asio::ip::address::from_string(multicast_addr), port) {}
 
-receiver::receiver(boost::asio::io_service& io_service,
+receiver::receiver(boost::asio::io_context& io_context,
                    const boost::asio::ip::address& listen_addr,
                    const boost::asio::ip::address& multicast_addr, short port)
-    : socket_(io_service) {
+    : socket_(io_context) {
   boost::asio::ip::udp::endpoint listen_endpoint(listen_addr, port);
 
   // ソケットの初期化
@@ -26,7 +26,7 @@ receiver::receiver(boost::asio::io_service& io_service,
   socket_.set_option(boost::asio::ip::multicast::join_group(multicast_addr));
 
   // コルーチンを作成し, データを受信する
-  boost::asio::spawn(socket_.get_io_service(),
+  boost::asio::spawn(socket_.get_executor(),
                      std::bind(&receiver::receive_data, this, std::placeholders::_1));
 }
 

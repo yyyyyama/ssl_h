@@ -316,7 +316,7 @@ private:
   model::updater::refbox& updater_refbox2_;
   bool is_global_refbox_;
 
-  boost::asio::io_service driver_io_;
+  boost::asio::io_context driver_io_;
   std::shared_ptr<sender::base> sender_;
   ai_server::driver driver_;
 
@@ -552,7 +552,7 @@ private:
 auto main(int argc, char** argv) -> int {
   logger::success("(⋈◍＞◡＜◍)。✧♡");
 
-  boost::asio::io_service receiver_io{};
+  boost::asio::io_context receiver_io{};
 
   // Receiver, Driverなどを回すスレッド
   std::thread io_thread{};

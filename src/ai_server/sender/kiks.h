@@ -12,7 +12,7 @@ namespace sender {
 class kiks final : public base {
 public:
   using data_t = std::array<std::uint8_t, 11>;
-  kiks(boost::asio::io_service& io_service, const std::string& device);
+  kiks(boost::asio::io_context& io_context, const std::string& device);
   void send_command(const model::command& command) override;
 
 #if defined(AI_SERVER_UNIT_TESTING)

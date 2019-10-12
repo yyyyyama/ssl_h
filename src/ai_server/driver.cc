@@ -7,9 +7,9 @@
 
 namespace ai_server {
 
-driver::driver(boost::asio::io_service& io_service, util::duration_type cycle,
+driver::driver(boost::asio::io_context& io_context, util::duration_type cycle,
                const model::updater::world& world, model::team_color color)
-    : timer_(io_service), cycle_(cycle), world_(world), team_color_(color) {
+    : timer_(io_context), cycle_(cycle), world_(world), team_color_(color) {
   // タイマが開始されたらdriver::main_loop()が呼び出されるように設定
   timer_.async_wait([this](auto&& error) { main_loop(std::forward<decltype(error)>(error)); });
 }
