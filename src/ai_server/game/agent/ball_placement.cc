@@ -27,7 +27,7 @@ ball_placement::ball_placement(const model::world& world, bool is_yellow,
     : base(world, is_yellow),
       ids_(ids),
       visible_ids_(ids),
-      lost_count_(1s),
+      lost_count_(3s),
       abp_target_(target),
       is_active_(is_active) {
   const auto our_robots = is_yellow_ ? world_.robots_yellow() : world_.robots_blue();
@@ -173,9 +173,8 @@ std::vector<std::shared_ptr<action::base>> ball_placement::execute() {
         receive_[id]->set_dribble(5);
         baseaction.push_back(receive_[id]);
       } else if (std::abs(ball_pos.x()) > wf.x_max() || std::abs(ball_pos.y()) > wf.y_max() ||
-                 !pass_flag ||
-                 (pass_flag &&
-                  (robot_pos_[current_receiver_] - abp_target_).norm() > receiver_margin)) {
+                 !pass_flag || !our_robots.count(current_receiver_) ||
+                 (robot_pos_[current_receiver_] - abp_target_).norm() > receiver_margin) {
         abp_[id]->set_kick_type({model::command::kick_type_t::none, 0});
         baseaction.push_back(abp_[id]);
       } else if (pass_flag &&
