@@ -1,60 +1,50 @@
 #include <cmath>
 #include "smith_predictor.h"
+#include "ai_server/util/math/angle.h"
+#include "ai_server/util/math/to_vector.h"
 
 namespace ai_server {
 namespace controller {
 namespace detail {
 
-smith_predictor::smith_predictor(const double cycle, const double zeta, const double omega)
-    : cycle_(cycle), zeta_(zeta), omega_(omega) {
-  for (int i = 0; i < 7; i++) {
-    u_[i] = Eigen::Vector3d::Zero();
-  }
-}
+smith_predictor::smith_predictor(double cycle, double zeta, double omega)
+    : cycle_(cycle), zeta_(zeta), omega_(omega), u_(7, Eigen::Vector3d::Zero()) {}
 
 Eigen::Matrix3d smith_predictor::interpolate(const model::robot& robot,
                                              const Eigen::Vector3d& u) {
-  u_[0] = u; // 受け取った制御入力を最新入力として
+  // 更新
+  u_.push_back(u);
+  u_.pop_front();
 
   // 受け取ったロボットの状態(無駄時間分の遅れ含む)
   // 計算しやすいように,ベクトルに変換
-  Eigen::Vector3d pre_position(robot.x(), robot.y(), robot.theta());
-  Eigen::Vector3d pre_velocity(robot.vx(), robot.vy(), robot.omega());
-  Eigen::Vector3d pre_acceleration(robot.ax(), robot.ay(), robot.alpha());
-
-  Eigen::Vector3d now_position     = pre_position;
-  Eigen::Vector3d now_velocity     = pre_velocity;
-  Eigen::Vector3d now_acceleration = pre_acceleration;
+  auto now_p = util::math::position3d(robot);
+  auto now_v = util::math::velocity3d(robot);
+  auto now_a = util::math::acceleration3d(robot);
 
   // 1ループ毎に当時の制御入力によって1フレーム分の補間をする
-  for (int i = 6; i >= 0; i--) {
-    // p=p+v*dt
-    now_position = now_position + cycle_ * pre_velocity;
-    // v=v+a*dt
-    now_velocity = now_velocity + cycle_ * pre_acceleration;
-    // a=a+omega^2*v*dt-2*zeta*omega*a+omega^2*u
-    now_acceleration = now_acceleration + cycle_ * (-std::pow(omega_, 2) * pre_velocity -
-                                                    2 * zeta_ * omega_ * pre_acceleration +
-                                                    std::pow(omega_, 2) * u);
+  for (const auto& u_n : u_) {
+    const auto pre_v = now_v;
 
-    // 更新
-    if (i != 0) {
-      u_[i] = u_[i - 1];
-    }
-    pre_position     = now_position;
-    pre_velocity     = now_velocity;
-    pre_acceleration = now_acceleration;
+    // p=p+v*dt
+    now_p += cycle_ * pre_v;
+    // v=v+a*dt
+    now_v += cycle_ * now_a;
+    // a=a+(-omega^2*v-2*zeta*omega*a+omega^2*u)*dt
+    now_a += cycle_ * (-std::pow(omega_, 2) * pre_v - 2 * zeta_ * omega_ * now_a +
+                       std::pow(omega_, 2) * u_n);
   }
 
   // 返すために変換
   Eigen::Matrix3d now_state;
-  now_state.col(0) = now_position;
-  now_state.col(1) = now_velocity;
-  now_state.col(2) = now_acceleration;
+  now_state.col(0) = now_p;
+  now_state.col(1) = now_v;
+  now_state.col(2) = now_a;
+  // 角度情報が荒ぶらないように正規化
+  now_state(2, 0) = util::math::wrap_to_pi(now_state(2, 0));
 
   return now_state;
 }
-
 } // namespace detail
 } // namespace controller
 } // namespace ai_server
