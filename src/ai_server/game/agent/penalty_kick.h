@@ -2,12 +2,8 @@
 #define AI_SERVER_GAME_AGENT_PENALTY_KICK_H
 
 #include "base.h"
-#include "ai_server/model/ball.h"
 #include "ai_server/game/action/move.h"
-#include "ai_server/game/action/no_operation.h"
-#include "ai_server/game/action/rush.h"
 #include "ai_server/game/action/turn_kick.h"
-#include "ai_server/game/action/kick_action.h"
 
 #include <memory>
 #include <vector>
@@ -22,7 +18,7 @@ public:
                const std::vector<unsigned int>& ids, unsigned int enemy_keeper);
   enum class penalty_mode { attack, defense }; //攻撃側と守備側で変える
 
-  penalty_kick::penalty_mode mode();
+  penalty_kick::penalty_mode mode() const;
   void set_mode(penalty_kick::penalty_mode);
   bool start_flag() const;
   void set_start_flag(bool start_flag);
@@ -30,32 +26,17 @@ public:
   bool finished();
 
 private:
+  enum class attack_state { wait, kick }; //攻撃の状態
+  attack_state state_;
+
   penalty_mode mode_;
-  //パラメータ計算
-  void calculate_kick_position(double keep_out); //半径keep_outだけボールに近づく
-  bool start_turn_kick(model::ball ball);
-  bool time_over(std::chrono::high_resolution_clock::time_point point, int count);
 
   bool start_flag_;
   std::vector<unsigned int> ids_;
-  std::chrono::high_resolution_clock::time_point change_command_time_;
-  std::shared_ptr<action::move> move_;
   std::shared_ptr<action::turn_kick> turn_kick_;
-  std::shared_ptr<action::move> turn_kick_move_;
-
-  bool initial_flag_;
-  int shoot_count_;
-  model::ball setted_ball_;
-  model::robot setted_robot_;
+  std::shared_ptr<action::move> kicker_move_;
 
   unsigned int kicker_id_;
-  // PK待機位置
-  double kick_x_;
-  double kick_y_;
-  double kick_theta_;
-  double theta_;
-  double prev_theta_;
-  bool prev_dec_;
 
   //敵キーパーの動きを監視して蹴るタイミングを変える
   unsigned int keeper_id_;
