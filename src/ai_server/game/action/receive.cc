@@ -18,7 +18,7 @@ receive::receive(const model::world& world, bool is_yellow, unsigned int id)
       shoot_flag_(false),
       kick_type_setted_(false),
       kick_type_({model::command::kick_type_t::none, 0}),
-      shoot_pos_(Eigen::Vector2d::Zero(1, 2)) {}
+      shoot_pos_(Eigen::Vector2d::Zero()) {}
 
 void receive::set_dribble(int dribble) {
   dribble_ = dribble;
