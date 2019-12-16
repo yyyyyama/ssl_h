@@ -40,8 +40,8 @@ void rrt_star::set_obstacles(const std::vector<object>& obstacles) {
                                 std::make_move_iterator(tmp.end())};
 }
 
-void rrt_star::set_lines(const point_t& first_point, const point_t& second_point,
-                         double radius) {
+void rrt_star::set_lines(const Eigen::Vector2d& first_point,
+                         const Eigen::Vector2d& second_point, double radius) {
   lines_.emplace_back(line(boost::geometry::model::segment(first_point, second_point), radius));
 }
 
@@ -58,13 +58,15 @@ void rrt_star::search(const position_t& start, const position_t& goal,
 
   // 障害物の圏内から脱出する必要があるとき
   if (auto p = exit_position(start_pos, goal_pos, margin, max_branch_length)) {
-    target_ = {p->x(), p->y(), goal.theta};
+    target_            = {p->x(), p->y(), goal.theta};
+    trajectory_length_ = (*p - start_pos).norm();
     return;
   }
 
   // 目的地周辺のとき
-  if ((start_pos - goal_pos).norm() < 200.0) {
-    target_ = goal;
+  if ((start_pos - goal_pos).norm() < 80.0) {
+    target_            = goal;
+    trajectory_length_ = (goal_pos - start_pos).norm();
     return;
   }
 
@@ -143,22 +145,32 @@ void rrt_star::search(const position_t& start, const position_t& goal,
 
   // 目的地を探す。
   const auto& p = [this, &nearest_node, &start_pos, &goal_pos, margin, max_branch_length]() {
+    // 目的地とその一つ手前のノード間の距離を代入
+    trajectory_length_ = ((*nearest_node)->position - goal_pos).norm();
+
     // スムージングした後の値を返す。
     for (std::weak_ptr<node> n = *nearest_node; n.lock()->parent.lock(); n = n.lock()->parent) {
       const auto& p = n.lock()->position;
       priority_points_.push(p);
 
+      // それぞれのノード間の距離を積分
+      trajectory_length_ += (p - n.lock()->parent.lock()->position).norm();
+
       const line_t line{start_pos, p};
+
+      // スタート地点とノード間に障害物が無くなったとき
       if (!is_obstructed(line, margin) && !in_penalty(line) && !is_lined(line, margin)) {
+        // スタート地点とノード間の距離を加算
+        trajectory_length_ += (p - start_pos).norm();
+
         return n.lock()->position;
       }
     }
-    // start_posを指定し続けると進まないので、とりあえず目標に進ませる
-    const Eigen::Vector2d ret =
-        start_pos + std::min(max_branch_length, (goal_pos - start_pos).norm()) *
-                        (goal_pos - start_pos).normalized();
-    return ret;
+    // start_posを指定し続ける
+    trajectory_length_ = 0.0;
+    return start_pos;
   }();
+
   target_ = {p.x(), p.y(), goal.theta};
 }
 
@@ -208,14 +220,27 @@ std::optional<Eigen::Vector2d> rrt_star::exit_position(const Eigen::Vector2d& st
 
           //線分に対して法線ベクトルが引けるとき
         } else {
-          //線分を表すベクトルによって出来る直線上で、startに最も近い点
-          const Eigen::Vector2d nearest_point =
-              p1 + line_vec * (line_vec.dot(p1_to_start_vec) / std::pow(line_vec.norm(), 2));
+          //通常の線分のとき
+          if (line_vec.norm() != 0) {
+            //線分を表すベクトルによって出来る直線上で、startに最も近い点
+            const Eigen::Vector2d nearest_point =
+                p1 + line_vec * (line_vec.dot(p1_to_start_vec) / std::pow(line_vec.norm(), 2));
 
-          //単位法線ベクトル(ロボットの動く方向)
-          const Eigen::Vector2d no_vec = (start - nearest_point).normalized();
+            //単位法線ベクトル(ロボットの動く方向)
+            const Eigen::Vector2d no_vec = (start - nearest_point).normalized();
 
-          return start + d * no_vec;
+            return start + d * no_vec;
+
+            //線分が短すぎて点になったとき
+          } else {
+            //線分を表すベクトルによって出来る直線上で、startに最も近い点
+            const Eigen::Vector2d nearest_point = p1;
+
+            //単位法線ベクトル(ロボットの動く方向)
+            const Eigen::Vector2d no_vec = (start - nearest_point).normalized();
+
+            return start + d * no_vec;
+          }
         }
       }
     }
