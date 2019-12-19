@@ -10,7 +10,7 @@ class base {
 public:
   virtual ~base() = default;
 
-  virtual void send_command(const model::command& command) = 0;
+  virtual void send_command(const model::command& command, model::team_color color) = 0;
 };
 
 } // namespace sender

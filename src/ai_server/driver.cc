@@ -111,7 +111,7 @@ void driver::process(const model::world& world, metadata_type& metadata) {
     actual_command.set_velocity(velocity);
 
     // Senderで送信
-    sender->send_command(actual_command);
+    sender->send_command(actual_command, team_color_);
 
     // 登録された関数があればそれを呼び出す
     command_updated_(actual_command);

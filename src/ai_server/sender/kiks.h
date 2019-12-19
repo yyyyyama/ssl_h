@@ -4,6 +4,7 @@
 #include <boost/asio.hpp>
 
 #include "ai_server/model/command.h"
+#include "ai_server/model/team_color.h"
 #include "ai_server/util/serial.h"
 #include "ai_server/sender/base.h"
 
@@ -13,7 +14,7 @@ class kiks final : public base {
 public:
   using data_t = std::array<std::uint8_t, 11>;
   kiks(boost::asio::io_context& io_context, const std::string& device);
-  void send_command(const model::command& command) override;
+  void send_command(const model::command& command, model::team_color color) override;
 
 #if defined(AI_SERVER_UNIT_TESTING)
 public:

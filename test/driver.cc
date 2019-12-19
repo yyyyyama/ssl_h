@@ -103,9 +103,11 @@ protected:
 
 struct mock_sender : public sender::base {
   std::vector<model::command> commands_;
+  model::team_color color_;
 
-  void send_command(const model::command& command) {
+  void send_command(const model::command& command, model::team_color color) {
     commands_.push_back(command);
+    color_ = color;
   }
 };
 
@@ -219,6 +221,8 @@ BOOST_AUTO_TEST_CASE(main_loop) {
     BOOST_TEST(v->vx == 0);
     BOOST_TEST(v->vy == 0);
     BOOST_TEST(v->omega == 0);
+    // コンストラクタのteam_colorの設定が反映されている
+    BOOST_TEST(s1.color_ == model::team_color::blue);
     c1.executed_ = false;
     s1.commands_.clear();
   }
@@ -264,6 +268,8 @@ BOOST_AUTO_TEST_CASE(main_loop) {
     BOOST_TEST(v->vx == 0);
     BOOST_TEST(v->vy == 0);
     BOOST_TEST(v->omega == 0);
+    // set_team_colorでのteam_colorの変更が反映されている
+    BOOST_TEST(s1.color_ == model::team_color::yellow);
     c1.executed_ = false;
     s1.commands_.clear();
   }

@@ -13,12 +13,12 @@ grsim::grsim(boost::asio::io_context& io_context, const std::string& grsim_addr,
   GOOGLE_PROTOBUF_VERIFY_VERSION;
 }
 
-void grsim::send_command(const model::command& command) {
+void grsim::send_command(const model::command& command, model::team_color color) {
   ssl_protos::grsim::Packet packet{};
 
   //パケットに値をセット
   auto commands = packet.mutable_commands();
-  commands->set_isteamyellow(true);
+  commands->set_isteamyellow(static_cast<bool>(color));
   commands->set_timestamp(0.0);
 
   auto grcommand = commands->add_robot_commands();

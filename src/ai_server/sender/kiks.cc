@@ -13,7 +13,8 @@ kiks::kiks(boost::asio::io_context& io_context, const std::string& device)
   serial_.set_baud_rate(57600);
 }
 
-void kiks::send_command(const model::command& command) {
+void kiks::send_command(const model::command& command,
+                        [[maybe_unused]] model::team_color color) {
   auto data = to_data_t(command);
   serial_.send(data);
 }

@@ -5,6 +5,7 @@
 #include <boost/asio.hpp>
 
 #include "ai_server/model/command.h"
+#include "ai_server/model/team_color.h"
 #include "ai_server/util/net/multicast/sender.h"
 #include "ssl-protos/grsim/packet.pb.h"
 
@@ -17,7 +18,7 @@ class grsim final : public base {
 public:
   grsim(boost::asio::io_context& io_context, const std::string& grsim_addr, short port);
 
-  void send_command(const model::command& command) override;
+  void send_command(const model::command& command, model::team_color color) override;
 
 private:
   util::net::multicast::sender udp_sender_;
