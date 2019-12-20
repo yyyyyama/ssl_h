@@ -42,6 +42,33 @@ std::tuple<Eigen::Matrix<T, 2, 1>, Eigen::Matrix<T, 2, 1>> calc_isosceles_vertex
   //回転した後の正しい座標
   return std::make_tuple((rotate * tmp1) + move, (rotate * tmp2) + move);
 }
+
+/// @brief   ある円と，任意の点から引いたその円への接線があるとき，その接点を求めて返す
+/// @param p      円の外側にある任意の点
+/// @param center 円の中心
+/// @param r      円の半径
+/// @return
+/// std::tuple<Eigen::Matrix<T,2,1>,Eigen::Matrix<T,2,1>>{点pから見て円の左側の接点,
+/// 点pから見て円の右側の接点}
+template <class T, std::enable_if_t<std::is_floating_point<T>::value, std::nullptr_t> = nullptr>
+inline auto contact_points(const Eigen::Matrix<T, 2, 1>& p,
+                           const Eigen::Matrix<T, 2, 1>& center, T r) {
+  // 点pからある円の中心へ進むベクトル
+  const Eigen::Matrix<T, 2, 1> pc = center - p;
+
+  // ある点と接点の距離
+  // 円の中心から接点へ伸びる線と，接点から点pに伸びる線が垂直に交わることを利用
+  const T d = std::sqrt(std::pow(pc.norm(), 2) - std::pow(r, 2));
+
+  // 長さを接点までの距離に合わせる
+  const Eigen::Matrix<T, 2, 1> pc_dash = d * pc.normalized();
+
+  //回転行列
+  const Eigen::Rotation2D<T> rot(std::atan2(r, d));
+
+  return std::make_tuple<Eigen::Matrix<T, 2, 1>, Eigen::Matrix<T, 2, 1>>(
+      p + rot * pc_dash, p + rot.inverse() * pc_dash);
+}
 } // namespace math
 } // namespace util
 } // namespace ai_server
