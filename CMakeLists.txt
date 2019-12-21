@@ -1,8 +1,8 @@
-cmake_minimum_required(VERSION 3.10)
+cmake_minimum_required(VERSION 3.13)
 
 project(ai-server CXX)
 
-set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_SOURCE_DIR}/cmake/Modules/")
+set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_CURRENT_SOURCE_DIR}/cmake/Modules/")
 
 # Disable in-source build
 set(CMAKE_DISABLE_IN_SOURCE_BUILD ON)
@@ -49,7 +49,7 @@ if(ENABLE_CODE_COVERAGE)
 endif()
 
 # Required libraries
-find_package(Boost 1.61.0 COMPONENTS coroutine system unit_test_framework REQUIRED)
+find_package(Boost 1.66.0 COMPONENTS coroutine system unit_test_framework REQUIRED)
 find_package(Eigen3 3.3 REQUIRED)
 find_package(Protobuf 3.2 REQUIRED)
 find_package(Threads REQUIRED)
