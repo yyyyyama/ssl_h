@@ -16,7 +16,7 @@ build:
       name: build
       code: |
         cd build
-        cmake .. -G Ninja -DCMAKE_BUILD_TYPE=Debug -DENABLE_SANITIZERS=ON -DENABLE_CODE_COVERAGE=ON
+        cmake .. -G Ninja -DCMAKE_BUILD_TYPE=Debug -DENABLE_SANITIZERS=ON -DENABLE_CODE_COVERAGE=ON -DUSE_SYSTEM_NNABLA=ON
         ninja-build -v
 
     - script:

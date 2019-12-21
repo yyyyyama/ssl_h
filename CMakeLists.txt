@@ -54,6 +54,11 @@ find_package(Eigen3 3.3 REQUIRED)
 find_package(Protobuf 3.2 REQUIRED)
 find_package(Threads REQUIRED)
 
+option(USE_SYSTEM_NNABLA "try to use system installed nnabla" OFF)
+if(USE_SYSTEM_NNABLA)
+  find_package(NNabla 1.4 COMPONENTS NNabla Utils)
+endif()
+
 # Enable CTest
 enable_testing()
 

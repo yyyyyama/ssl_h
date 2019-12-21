@@ -7,6 +7,8 @@ target_link_libraries(ai-server-lib PUBLIC
   Eigen3::Eigen
   Threads::Threads
   fmt::fmt
+  nnabla::nnabla
+  nnabla::nnabla_utils
   protobuf::libprotobuf
   ssl-protos::ssl-protos
   yamlizer::yamlizer
