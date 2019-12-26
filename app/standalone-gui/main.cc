@@ -10,8 +10,10 @@
 #include <thread>
 
 #include <boost/asio.hpp>
-#include <boost/format.hpp>
 #include <boost/math/constants/constants.hpp>
+
+#include <fmt/format.h>
+#include <fmt/ranges.h>
 
 #include <gtkmm.h>
 
@@ -20,6 +22,8 @@
 #include "ai_server/filter/state_observer/ball.h"
 #include "ai_server/filter/va_calculator.h"
 #include "ai_server/game/formation/first_formation.h"
+#include "ai_server/logger/logger.h"
+#include "ai_server/logger/sink/ostream.h"
 #include "ai_server/model/team_color.h"
 #include "ai_server/model/world.h"
 #include "ai_server/model/updater/refbox.h"
@@ -37,6 +41,7 @@ using namespace std::string_literals;
 namespace controller = ai_server::controller;
 namespace filter     = ai_server::filter;
 namespace game       = ai_server::game;
+namespace logger     = ai_server::logger;
 namespace model      = ai_server::model;
 namespace receiver   = ai_server::receiver;
 namespace sender     = ai_server::sender;
@@ -78,44 +83,6 @@ static constexpr auto cycle = std::chrono::duration_cast<util::duration_type>(fp
 // stopgame時の速度制限
 static constexpr double velocity_limit_at_stopgame = 800.0;
 
-// 簡易loggerの設定
-static constexpr auto use_logger = true;
-
-// 簡易logegr
-// --------------------------------
-namespace logger {
-namespace detail {
-struct info {
-  static constexpr auto symbol = "[*] ";
-};
-struct success {
-  static constexpr auto symbol = "[+] ";
-};
-struct error {
-  static constexpr auto symbol = "[ERROR] ";
-};
-static std::mutex mutex;
-template <class Type, class Stream, class String>
-inline void log(Stream&& stream, String&& str) {
-  if (!use_logger) return;
-  std::lock_guard<std::mutex> lock(mutex);
-  stream << Type::symbol << std::forward<String>(str) << std::endl;
-}
-} // namespace detail
-template <class String>
-inline void info(String&& str) {
-  detail::log<detail::info>(std::cout, std::forward<String>(str));
-}
-template <class String>
-inline void success(String&& str) {
-  detail::log<detail::success>(std::cout, std::forward<String>(str));
-}
-template <class String>
-inline void error(String&& str) {
-  detail::log<detail::error>(std::cerr, std::forward<String>(str));
-}
-} // namespace logger
-
 // Gameを行うクラス
 // --------------------------------
 class game_runner {
@@ -137,9 +104,9 @@ public:
       try {
         driver_io_.run();
       } catch (const std::exception& e) {
-        logger::error(boost::format("exception at driver_thread\n\t%1%") % e.what());
+        l_.error(fmt::format("exception at driver_thread\n\t{}", e.what()));
       } catch (...) {
-        logger::error("unknown exception at driver_thread");
+        l_.error("unknown exception at driver_thread");
       }
     });
 
@@ -170,7 +137,7 @@ public:
     std::unique_lock<std::shared_timed_mutex> lock(mutex_);
     running_ = false;
     game_thread_.join();
-    logger::info("game stopped!");
+    l_.info("game stopped!");
   }
 
   std::vector<unsigned int> active_robots() const {
@@ -199,14 +166,7 @@ public:
       }
     }
     if (changed) {
-      std::stringstream ss{};
-      ss << "active_robots changed: { ";
-      std::copy(active_robots_.cbegin(), active_robots_.cend(),
-                std::ostream_iterator<unsigned int>(ss, ", "));
-      ss << "} -> { ";
-      std::copy(ids.cbegin(), ids.cend(), std::ostream_iterator<unsigned int>(ss, ", "));
-      ss << "}";
-      logger::info(ss.str());
+      l_.info(fmt::format("active_robots changed: {} -> {}", active_robots_, ids));
 
       active_robots_ = ids;
       reset_formation();
@@ -230,7 +190,7 @@ public:
   void use_global_refbox(bool is_global) {
     std::unique_lock<std::shared_timed_mutex> lock(mutex_);
     if (is_global_refbox_ != is_global) {
-      logger::info("switched to "s + (is_global ? "global"s : "local"s) + " refbox");
+      l_.info("switched to "s + (is_global ? "global"s : "local"s) + " refbox");
       is_global_refbox_ = is_global;
     }
   }
@@ -244,7 +204,7 @@ public:
 
 private:
   void main_loop() {
-    logger::success("game started!");
+    l_.info("game started!");
     formation_.reset();
 
     ai_server::util::time_point_type prev_time{};
@@ -281,9 +241,9 @@ private:
           prev_time = current_time;
         }
       } catch (const std::exception& e) {
-        logger::error(boost::format("exception at game_thread\n\t%1%") % e.what());
+        l_.error(fmt::format("exception at game_thread\n\t{}", e.what()));
       } catch (...) {
-        logger::error("unknown exception at game_thread");
+        l_.error("unknown exception at game_thread");
       }
     }
   }
@@ -291,7 +251,7 @@ private:
   void reset_formation() {
     formation_ = std::make_unique<game::formation::first_formation>(
         world_, refbox_, static_cast<bool>(team_color_), active_robots_);
-    logger::info("formation resetted");
+    l_.info("formation resetted");
   }
 
   void evalute_formation() {
@@ -325,6 +285,8 @@ private:
   std::vector<unsigned int> active_robots_;
 
   std::unique_ptr<game::formation::base> formation_;
+
+  logger::logger_for<game_runner> l_;
 };
 
 // Gameを行うクラス
@@ -488,10 +450,10 @@ private:
         auto& cb = camera_cb_.at(id);
         if (cb.get_active()) {
           updater_world_.enable_camera(id);
-          logger::info(boost::format("camera%1% enabled") % id);
+          l_.info(fmt::format("camera{} enabled", id));
         } else {
           updater_world_.disable_camera(id);
-          logger::info(boost::format("camera%1% disabled") % id);
+          l_.info(fmt::format("camera{} disabled", id));
         }
       });
     }
@@ -547,10 +509,15 @@ private:
 
   model::updater::world& updater_world_;
   game_runner& runner_;
+
+  logger::logger_for<game_window> l_;
 };
 
 auto main(int argc, char** argv) -> int {
-  logger::success("(⋈◍＞◡＜◍)。✧♡");
+  logger::sink::ostream sink(std::cout, "{elapsed} {level:<5} {zone}: {message}");
+  logger::logger l{"main()"};
+
+  l.info("(⋈◍＞◡＜◍)。✧♡");
 
   boost::asio::io_context receiver_io{};
 
@@ -568,65 +535,63 @@ auto main(int argc, char** argv) -> int {
         updater_world.robots_yellow_updater()
             .set_default_filter<filter::va_calculator<model::robot>>();
       }
-      logger::info("va filter (robot): "s + (use_va_filter ? "enabled"s : "disabled"s));
+      l.info("va filter (robot): "s + (use_va_filter ? "enabled"s : "disabled"s));
       // ボールの状態オブザーバを使うか
       if (use_ball_observer) {
         updater_world.ball_updater().set_filter<filter::state_observer::ball>(
             model::ball{}, util::clock_type::now());
       }
-      logger::info("state observer (ball): "s + (use_ball_observer ? "enabled"s : "disabled"s));
+      l.info("state observer (ball): "s + (use_ball_observer ? "enabled"s : "disabled"s));
     }
 
     // Vision receiverの設定
     std::atomic<bool> vision_received{false};
     receiver::vision vision{receiver_io, "0.0.0.0", vision_address, vision_port};
-    vision.on_receive([&updater_world, &vision_received](auto&& p) {
+    vision.on_receive([&updater_world, &vision_received, &l](auto&& p) {
       if (!vision_received) {
         // 最初に受信したときにメッセージを表示する
-        logger::success("vision packet received!");
+        l.info("vision packet received!");
         vision_received = true;
       }
       updater_world.update(std::forward<decltype(p)>(p));
     });
-    logger::info(boost::format("vision: %1%:%2%") % vision_address % vision_port);
+    l.info(fmt::format("vision: {}:{}", vision_address, vision_port));
 
     // Refbox receiverの設定
     std::atomic<bool> refbox1_received{false};
     model::updater::refbox updater_refbox1_{};
     receiver::refbox refbox1{receiver_io, "0.0.0.0", global_refbox_address, global_refbox_port};
-    refbox1.on_receive([&updater_refbox1_, &refbox1_received](auto&& p) {
+    refbox1.on_receive([&updater_refbox1_, &refbox1_received, &l](auto&& p) {
       if (!refbox1_received) {
         // 最初に受信したときにメッセージを表示する
-        logger::success("refbox (global) packet received!");
+        l.info("refbox (global) packet received!");
         refbox1_received = true;
       }
 
       updater_refbox1_.update(std::forward<decltype(p)>(p));
     });
-    logger::info(boost::format("global refbox: %1%:%2%") % global_refbox_address %
-                 global_refbox_port);
+    l.info(fmt::format("global refbox: {}:{}", global_refbox_address, global_refbox_port));
 
     std::atomic<bool> refbox2_received{false};
     model::updater::refbox updater_refbox2_{};
     receiver::refbox refbox2{receiver_io, "0.0.0.0", local_refbox_address, local_refbox_port};
-    refbox2.on_receive([&updater_refbox2_, &refbox2_received](auto&& p) {
+    refbox2.on_receive([&updater_refbox2_, &refbox2_received, &l](auto&& p) {
       if (!refbox2_received) {
         // 最初に受信したときにメッセージを表示する
-        logger::success("refbox (local) packet received!");
+        l.info("refbox (local) packet received!");
         refbox2_received = true;
       }
 
       updater_refbox2_.update(std::forward<decltype(p)>(p));
     });
-    logger::info(boost::format("local refbox: %1%:%2%") % local_refbox_address %
-                 local_refbox_port);
+    l.info(fmt::format("local refbox: {}:{}", local_refbox_address, local_refbox_port));
 
     // receiver_ioに登録されたタスクを別スレッドで開始
-    io_thread = std::thread{[&receiver_io] {
+    io_thread = std::thread{[&receiver_io, &l] {
       try {
         receiver_io.run();
       } catch (std::exception& e) {
-        logger::error(boost::format("exception at io_thread: %1%") % e.what());
+        l.error(fmt::format("exception at io_thread: {}", e.what()));
       }
     }};
 
@@ -634,11 +599,10 @@ auto main(int argc, char** argv) -> int {
     std::shared_ptr<sender::base> sender{};
     if (is_grsim) {
       sender = std::make_shared<sender::grsim>(receiver_io, grsim_address, grsim_command_port);
-      logger::info(boost::format("sender: grSim (%1%:%2%)") % grsim_address %
-                   grsim_command_port);
+      l.info(fmt::format("sender: grSim ({}:{})", grsim_address, grsim_command_port));
     } else {
       sender = std::make_shared<sender::kiks>(receiver_io, xbee_path);
-      logger::info(boost::format("sender: kiks (%1%)") % xbee_path);
+      l.info(fmt::format("sender: kiks ({})", xbee_path));
     }
 
     auto app = Gtk::Application::create(argc, argv, "org.gtkmm.example");
@@ -647,14 +611,14 @@ auto main(int argc, char** argv) -> int {
     game_window gw{updater_world, runner};
     gw.show();
 
-    std::thread wait([&runner, &gw, &vision_received] {
+    std::thread wait([&runner, &gw, &vision_received, &l] {
       // Visionから値を受信するまで待つ
       do {
         std::this_thread::sleep_for(500ms);
       } while (!vision_received);
       // 状態オブザーバなどの値が収束するまで待つ
       std::this_thread::sleep_for(5s);
-      logger::success("ready!");
+      l.info("ready!");
       gw.set_ready();
     });
 
@@ -664,12 +628,12 @@ auto main(int argc, char** argv) -> int {
     receiver_io.stop();
     io_thread.join();
   } catch (std::exception& e) {
-    logger::error(e.what());
+    l.error(e.what());
     receiver_io.stop();
     io_thread.join();
     std::quick_exit(-1);
   } catch (...) {
-    logger::error("unknown error occurred");
+    l.error("unknown error occurred");
     receiver_io.stop();
     io_thread.join();
     std::quick_exit(-1);
