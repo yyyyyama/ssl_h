@@ -108,4 +108,51 @@ BOOST_AUTO_TEST_CASE(nyan) {
   }
 }
 
+BOOST_AUTO_TEST_CASE(helper_functions) {
+  ai_server::model::world w{};
+  // blue には ID1 が1台
+  w.set_robots_blue(ai_server::model::world::robots_list{{1, {1}}});
+  // yellow には ID2,ID4 が1台ずつ
+  w.set_robots_yellow(ai_server::model::world::robots_list{{2, {2}}, {4, {4}}});
+
+  const auto rb = w.robots_blue();
+  const auto ry = w.robots_yellow();
+
+  {
+    const auto r = ai_server::model::our_robots(w, ai_server::model::team_color::blue);
+    BOOST_TEST(r.size() == rb.size());
+    for (auto&& [k, v] : rb) {
+      BOOST_TEST(r.count(k) == 1);
+      BOOST_TEST(r.at(k).id() == rb.at(k).id());
+    }
+  }
+
+  {
+    const auto r = ai_server::model::our_robots(w, ai_server::model::team_color::yellow);
+    BOOST_TEST(r.size() == ry.size());
+    for (auto&& [k, v] : ry) {
+      BOOST_TEST(r.count(k) == 1);
+      BOOST_TEST(r.at(k).id() == ry.at(k).id());
+    }
+  }
+
+  {
+    const auto r = ai_server::model::enemy_robots(w, ai_server::model::team_color::blue);
+    BOOST_TEST(r.size() == ry.size());
+    for (auto&& [k, v] : ry) {
+      BOOST_TEST(r.count(k) == 1);
+      BOOST_TEST(r.at(k).id() == ry.at(k).id());
+    }
+  }
+
+  {
+    const auto r = ai_server::model::enemy_robots(w, ai_server::model::team_color::yellow);
+    BOOST_TEST(r.size() == rb.size());
+    for (auto&& [k, v] : rb) {
+      BOOST_TEST(r.count(k) == 1);
+      BOOST_TEST(r.at(k).id() == rb.at(k).id());
+    }
+  }
+}
+
 BOOST_AUTO_TEST_SUITE_END()

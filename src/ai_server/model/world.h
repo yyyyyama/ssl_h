@@ -8,6 +8,7 @@
 #include "ball.h"
 #include "field.h"
 #include "robot.h"
+#include "team_color.h"
 
 namespace ai_server {
 namespace model {
@@ -66,6 +67,26 @@ private:
   robots_list robots_blue_;
   robots_list robots_yellow_;
 };
+
+// @brief \p w から \p color のロボットの情報を取得する
+inline auto our_robots(const world& w, team_color color) {
+  switch (color) {
+    case team_color::blue:
+      return w.robots_blue();
+    case team_color::yellow:
+      return w.robots_yellow();
+  }
+}
+
+// @brief \p w から \p color の敵ロボットの情報を取得する
+inline auto enemy_robots(const world& w, team_color color) {
+  switch (color) {
+    case team_color::blue:
+      return w.robots_yellow();
+    case team_color::yellow:
+      return w.robots_blue();
+  }
+}
 
 } // namespace model
 } // namespace ai_server
