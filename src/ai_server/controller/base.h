@@ -2,6 +2,7 @@
 #define AI_SERVER_CONTROLLER_BASE_H
 
 #include "ai_server/model/command.h"
+#include "ai_server/model/field.h"
 #include "ai_server/model/robot.h"
 
 namespace ai_server {
@@ -26,8 +27,10 @@ public:
   /// @param stable           true->安定,false->通常
   virtual void set_stable(const bool stable);
 
-  virtual velocity_t update(const model::robot& robot, const position_t& setpoint) = 0;
-  virtual velocity_t update(const model::robot& robot, const velocity_t& setpoint) = 0;
+  virtual velocity_t update(const model::robot& robot, const model::field& field,
+                            const position_t& setpoint) = 0;
+  virtual velocity_t update(const model::robot& robot, const model::field& field,
+                            const velocity_t& setpoint) = 0;
 
 protected:
   double velocity_limit_; // 制限速度

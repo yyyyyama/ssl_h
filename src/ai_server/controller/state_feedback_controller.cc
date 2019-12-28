@@ -17,11 +17,9 @@ const double state_feedback_controller::omega_     = 49.17;
 const double state_feedback_controller::v_max_     = 10000.0;
 const double state_feedback_controller::omega_max_ = 2.0;
 
-state_feedback_controller::state_feedback_controller(const double cycle,
-                                                     const model::world& world)
+state_feedback_controller::state_feedback_controller(const double cycle)
     : base(v_max_),
       cycle_(cycle),
-      world_(world),
       velocity_generator_(cycle_),
       smith_predictor_(cycle_, zeta_, omega_) {
   // 状態フィードバックゲイン
@@ -47,6 +45,7 @@ void state_feedback_controller::set_velocity_limit(const double limit) {
 }
 
 velocity_t state_feedback_controller::update(const model::robot& robot,
+                                             [[maybe_unused]] const model::field& field,
                                              const position_t& setpoint) {
   calculate_regulator(robot);
   Eigen::Vector3d set     = {setpoint.x, setpoint.y, setpoint.theta};
@@ -64,12 +63,13 @@ velocity_t state_feedback_controller::update(const model::robot& robot,
     target.z() = std::clamp(4.0 * util::math::wrap_to_pi(delta_p.z()), -omega_max_, omega_max_);
   }
 
-  calculate_output(target);
+  calculate_output(field, target);
 
   return velocity_t{u_[0].x(), u_[0].y(), u_[0].z()};
 }
 
 velocity_t state_feedback_controller::update(const model::robot& robot,
+                                             [[maybe_unused]] const model::field& field,
                                              const velocity_t& setpoint) {
   calculate_regulator(robot);
 
@@ -84,7 +84,7 @@ velocity_t state_feedback_controller::update(const model::robot& robot,
   target.y() = vel.y();
   target.z() = std::clamp(set.z(), -omega_max_, omega_max_);
 
-  calculate_output(target);
+  calculate_output(field, target);
 
   return velocity_t{u_[0].x(), u_[0].y(), u_[0].z()};
 }
@@ -116,7 +116,8 @@ Eigen::Vector3d state_feedback_controller::convert(const Eigen::Vector3d& raw,
   return target;
 }
 // 出力計算及び後処理
-void state_feedback_controller::calculate_output(Eigen::Vector3d target) {
+void state_feedback_controller::calculate_output(const model::field& field,
+                                                 Eigen::Vector3d target) {
   // ロボット入力計算
   u_[0] = u_[0] + (std::pow(k_, 2) / std::pow(omega_, 2)) * target;
   if (u_[0].head<2>().norm() > velocity_limit_) {
@@ -140,15 +141,16 @@ void state_feedback_controller::calculate_output(Eigen::Vector3d target) {
       constexpr double margin = 400.0;
       // フィールド基準のロボット座標
       const Eigen::Vector2d robot_pos = estimated_robot_.col(0).topRows(2);
-      const auto wf                   = world_.field();
 
       // 制限速度計算
-      const double posi_limit_vx = std::sqrt(2.0 * acc * (wf.x_max() + margin - robot_pos.x()));
+      const double posi_limit_vx =
+          std::sqrt(2.0 * acc * (field.x_max() + margin - robot_pos.x()));
       const double nega_limit_vx =
-          -std::sqrt(2.0 * acc * (wf.x_min() - margin - robot_pos.x()));
-      const double posi_limit_vy = std::sqrt(2.0 * acc * (wf.y_max() + margin - robot_pos.y()));
+          -std::sqrt(2.0 * acc * (field.x_min() - margin - robot_pos.x()));
+      const double posi_limit_vy =
+          std::sqrt(2.0 * acc * (field.y_max() + margin - robot_pos.y()));
       const double nega_limit_vy =
-          -std::sqrt(2.0 * acc * (wf.y_min() - margin - robot_pos.y()));
+          -std::sqrt(2.0 * acc * (field.y_min() - margin - robot_pos.y()));
 
       Eigen::Vector3d vel;
       {

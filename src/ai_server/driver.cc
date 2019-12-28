@@ -96,13 +96,15 @@ void driver::process(const model::world& world, metadata_type& metadata) {
   const auto robots =
       static_cast<bool>(team_color_) ? world.robots_yellow() : world.robots_blue();
 
+  const auto field = world.field();
+
   // ロボットが検出されていないときは何もしない
   if (const auto it = robots.find(id); it != robots.cend()) {
     const auto& robot = it->second;
 
     // 指令値を Controller に通して速度を得る
-    auto c = [&robot, &c = *controller](auto&& s) {
-      return c.update(robot, std::forward<decltype(s)>(s));
+    auto c = [&robot, &field, &c = *controller](auto&& s) {
+      return c.update(robot, field, std::forward<decltype(s)>(s));
     };
     const auto velocity = std::visit(c, command.setpoint());
 

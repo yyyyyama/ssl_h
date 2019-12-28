@@ -112,8 +112,7 @@ public:
 
     for (auto id : active_robots_) {
       constexpr auto cycle_count = std::chrono::duration<double>(cycle).count();
-      auto controller =
-          std::make_unique<controller::state_feedback_controller>(cycle_count, world_);
+      auto controller = std::make_unique<controller::state_feedback_controller>(cycle_count);
       driver_.register_robot(id, std::move(controller), sender_);
     }
   }
@@ -152,8 +151,7 @@ public:
     for (auto id : ids) {
       if (!driver_.registered(id)) {
         constexpr auto cycle_count = std::chrono::duration<double>(cycle).count();
-        auto controller =
-            std::make_unique<controller::state_feedback_controller>(cycle_count, world_);
+        auto controller = std::make_unique<controller::state_feedback_controller>(cycle_count);
         driver_.register_robot(id, std::move(controller), sender_);
         changed = true;
       }

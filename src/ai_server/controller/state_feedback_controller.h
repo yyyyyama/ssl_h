@@ -26,7 +26,6 @@ class state_feedback_controller : public base {
 
 private:
   double cycle_;                    // 制御周期
-  const model::world& world_;       // worldmodel
   const static double k_;           // 極,収束の速さ
   static const double zeta_;        // モデルパラメータζ
   static const double omega_;       // モデルパラメータω
@@ -51,7 +50,7 @@ private:
   Eigen::Vector3d convert(const Eigen::Vector3d& raw, double robot_theta);
 
   // 出力計算及び後処理
-  void calculate_output(Eigen::Vector3d target);
+  void calculate_output(const model::field& field, Eigen::Vector3d target);
 
   // 2点と角度から,2点を通る直線と原点を通る指定角度の直線との交点を求め
   // 原点から交点までの距離を返す
@@ -59,13 +58,15 @@ private:
 
 public:
   // コンストラクタ
-  explicit state_feedback_controller(double cycle, const model::world& world);
+  explicit state_feedback_controller(double cycle);
 
   void set_velocity_limit(double limit) override;
 
   // 制御入力更新関数
-  velocity_t update(const model::robot& robot, const position_t& setpoint) override;
-  velocity_t update(const model::robot& robot, const velocity_t& setpoint) override;
+  velocity_t update(const model::robot& robot, const model::field& field,
+                    const position_t& setpoint) override;
+  velocity_t update(const model::robot& robot, const model::field& field,
+                    const velocity_t& setpoint) override;
 };
 
 } // namespace controller

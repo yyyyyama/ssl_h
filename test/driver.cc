@@ -90,13 +90,19 @@ struct mock_controller : public controller::base {
 
   bool executed_ = false;
 
+  model::field field_;
+
 protected:
-  controller::velocity_t update(const model::robot&, const controller::position_t&) {
+  controller::velocity_t update(const model::robot&, const model::field& field,
+                                const controller::position_t&) {
     executed_ = true;
+    field_    = field;
     return {};
   }
-  controller::velocity_t update(const model::robot&, const controller::velocity_t& v) {
+  controller::velocity_t update(const model::robot&, const model::field& field,
+                                const controller::velocity_t& v) {
     executed_ = true;
+    field_    = field;
     return v;
   }
 };
@@ -345,6 +351,77 @@ BOOST_AUTO_TEST_CASE(main_loop) {
     BOOST_TEST(v->omega == 0);
     c2.executed_ = false;
     s2.commands_.clear();
+  }
+}
+
+BOOST_AUTO_TEST_CASE(main_loop2) {
+  boost::asio::io_context ctx{};
+  ai_server::model::updater::world wu{};
+  ai_server::driver d{ctx, 100us, wu, model::team_color::blue};
+
+  auto c1_ptr = std::make_unique<mock_controller>();
+  auto s1_ptr = std::make_unique<mock_sender>();
+  auto& c1    = *c1_ptr;
+  auto& s1    = *s1_ptr;
+  d.register_robot(1, std::move(c1_ptr), std::move(s1_ptr));
+
+  {
+    ssl_protos::vision::Packet p{};
+
+    auto md = p.mutable_detection();
+    md->set_camera_id(0);
+
+    auto r = md->add_robots_blue();
+    r->set_robot_id(1);
+    r->set_x(0);
+    r->set_y(0);
+    r->set_orientation(0);
+    r->set_confidence(100);
+
+    auto mf = p.mutable_geometry()->mutable_field();
+    mf->set_field_length(9000);
+    mf->set_field_width(6000);
+
+    wu.update(p);
+  }
+
+  ctx.run_one();
+  {
+    BOOST_TEST(c1.executed_);
+    const auto& c = s1.commands_.back();
+    BOOST_TEST(c.id() == 1);
+
+    // field が正しく渡されているか
+    BOOST_TEST(c1.field_.length() == 9000);
+    BOOST_TEST(c1.field_.width() == 6000);
+
+    c1.executed_ = false;
+    s1.commands_.clear();
+  }
+
+  // field の値を変えてみる
+  {
+    ssl_protos::vision::Packet p{};
+
+    auto mf = p.mutable_geometry()->mutable_field();
+    mf->set_field_length(18000);
+    mf->set_field_width(12000);
+
+    wu.update(p);
+  }
+
+  ctx.run_one();
+  {
+    BOOST_TEST(c1.executed_);
+    const auto& c = s1.commands_.back();
+    BOOST_TEST(c.id() == 1);
+
+    // field が正しく渡されているか
+    BOOST_TEST(c1.field_.length() == 18000);
+    BOOST_TEST(c1.field_.width() == 12000);
+
+    c1.executed_ = false;
+    s1.commands_.clear();
   }
 }
 

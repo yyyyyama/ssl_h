@@ -52,7 +52,9 @@ void pid_controller::set_velocity_limit(const double limit) {
   base::set_velocity_limit(std::min(limit, max_velocity_));
 }
 
-velocity_t pid_controller::update(const model::robot& robot, const position_t& setpoint) {
+velocity_t pid_controller::update(const model::robot& robot,
+                                  [[maybe_unused]] const model::field& field,
+                                  const position_t& setpoint) {
   robot_ = robot;
   // 位置偏差
   position_t ep;
@@ -85,7 +87,9 @@ velocity_t pid_controller::update(const model::robot& robot, const position_t& s
   return u_[0];
 }
 
-velocity_t pid_controller::update(const model::robot& robot, const velocity_t& setpoint) {
+velocity_t pid_controller::update(const model::robot& robot,
+                                  [[maybe_unused]] const model::field& field,
+                                  const velocity_t& setpoint) {
   robot_               = robot;
   double set_direction = std::atan2(setpoint.vy, setpoint.vx);
   double set_speed     = std::hypot(setpoint.vx, setpoint.vy);
