@@ -2,6 +2,7 @@
 
 #include <chrono>
 #include <future>
+#include <sstream>
 #include <string>
 #include <thread>
 #include <boost/asio.hpp>
@@ -9,15 +10,55 @@
 
 #include "../util/slot_testing_helper.h"
 
+#include "ssl-protos/vision/wrapperpacket.pb.h"
+
+#include "ai_server/logger/sink/ostream.h"
 #include "ai_server/receiver/vision.h"
 #include "ai_server/util/net/multicast/sender.h"
 
 using namespace std::chrono_literals;
 using namespace std::string_literals;
+using namespace ai_server::logger;
 using namespace ai_server::receiver;
 using namespace ai_server::util::net::multicast;
 
+inline std::thread run_io_context_in_new_thread(boost::asio::io_context& ctx) {
+  return std::thread{
+      static_cast<std::size_t (boost::asio::io_context::*)()>(&boost::asio::io_context::run),
+      &ctx};
+}
+
 BOOST_AUTO_TEST_SUITE(vision_receiver)
+
+BOOST_AUTO_TEST_CASE(receiver_error, *boost::unit_test::timeout(30)) {
+  std::ostringstream s{};
+  sink::ostream o{s, "nyan"};
+
+  boost::asio::io_context ctx{};
+
+  // 第2引数がマルチキャストアドレスではなく、
+  // util::net::multicast::receiver 側でエラーが発生するケース
+  vision v{ctx, "0.0.0.0", "10.0.0.0", 10008};
+
+  // まだエラーメッセージは出力されていない
+  BOOST_TEST(s.str() == "");
+
+  auto t = run_io_context_in_new_thread(ctx);
+
+  {
+    slot_testing_helper wrapper{&vision::on_error, v};
+
+    // on_error に登録したハンドラが呼ばれる
+    BOOST_CHECK_NO_THROW(wrapper.result());
+
+    // エラーメッセージが出力される
+    BOOST_TEST(s.str() == "nyan\n");
+  }
+
+  // 受信の終了
+  ctx.stop();
+  t.join();
+}
 
 BOOST_AUTO_TEST_CASE(send_and_receive, *boost::unit_test::timeout(30)) {
   // ダミーパケットの作成
@@ -31,18 +72,24 @@ BOOST_AUTO_TEST_CASE(send_and_receive, *boost::unit_test::timeout(30)) {
   auto md = dummy_packet.mutable_detection();
   md->CopyFrom(dummy_frame);
 
-  boost::asio::io_service io_service;
+  boost::asio::io_context ctx{};
 
   // SSL-Vision受信クラスの初期化
   // listen_addr = 0.0.0.0, multicast_addr = 224.5.23.3, port = 10008
-  vision v(io_service, "0.0.0.0", "224.5.23.3", 10008);
+  vision v{ctx, "0.0.0.0", "224.5.23.3", 10008};
+
+  // 初期値は0
+  BOOST_TEST(v.total_messages() == 0);
+  BOOST_TEST(v.messages_per_second() == 0);
+  BOOST_TEST(v.parse_error() == 0);
+  BOOST_TEST((v.last_updated() == ai_server::util::time_point_type{}));
 
   // 送信クラスの初期化
   // multicast_addr = 224.5.23.3, port = 10008
-  sender s(io_service, "224.5.23.3", 10008);
+  sender s{ctx, "224.5.23.3", 10008};
 
   // 受信を開始する
-  std::thread t([&] { io_service.run(); });
+  auto t = run_io_context_in_new_thread(ctx);
 
   // 念の為少し待つ
   std::this_thread::sleep_for(50ms);
@@ -68,26 +115,37 @@ BOOST_AUTO_TEST_CASE(send_and_receive, *boost::unit_test::timeout(30)) {
     BOOST_TEST(d.t_capture() == dummy_frame.t_capture());
     BOOST_TEST(d.t_sent() == dummy_frame.t_sent());
     BOOST_TEST(d.camera_id() == dummy_frame.camera_id());
+
+    // 情報が更新されている
+    BOOST_TEST(v.total_messages() == 1);
+    BOOST_TEST(v.parse_error() == 0);
   }
 
+  // 前回の1秒間に受信したメッセージは1
+  std::this_thread::sleep_for(1s);
+  BOOST_TEST(v.messages_per_second() == 1);
+
   // 受信の終了
-  io_service.stop();
+  ctx.stop();
   t.join();
 }
 
 BOOST_AUTO_TEST_CASE(non_protobuf_data, *boost::unit_test::timeout(30)) {
-  boost::asio::io_service io_service;
+  std::ostringstream ss{};
+  sink::ostream o{ss, "{message}"};
+
+  boost::asio::io_context ctx{};
 
   // SSL-Vision受信クラスの初期化
   // listen_addr = 0.0.0.0, multicast_addr = 224.5.23.4, port = 10010
-  vision v(io_service, "0.0.0.0", "224.5.23.4", 10010);
+  vision v{ctx, "0.0.0.0", "224.5.23.4", 10010};
 
   // 送信クラスの初期化
   // multicast_addr = 224.5.23.4, port = 10010
-  sender s(io_service, "224.5.23.4", 10010);
+  sender s{ctx, "224.5.23.4", 10010};
 
   // 受信を開始する
-  std::thread t([&] { io_service.run(); });
+  auto t = run_io_context_in_new_thread(ctx);
 
   // 念の為少し待つ
   std::this_thread::sleep_for(50ms);
@@ -101,10 +159,21 @@ BOOST_AUTO_TEST_CASE(non_protobuf_data, *boost::unit_test::timeout(30)) {
     // on_errorに設定したハンドラが呼ばれるまで待つ
     static_cast<void>(wrapper.result());
     BOOST_TEST(true);
+
+    // 情報が更新されている
+    BOOST_TEST(v.total_messages() == 1);
+    BOOST_TEST(v.parse_error() == 1);
+
+    // 警告が出力されている
+    BOOST_TEST(ss.str() == "failed to parse message 1\n");
   }
 
+  // 前回の1秒間に受信したメッセージは1
+  std::this_thread::sleep_for(1s);
+  BOOST_TEST(v.messages_per_second() == 1);
+
   // 受信の終了
-  io_service.stop();
+  ctx.stop();
   t.join();
 }
 

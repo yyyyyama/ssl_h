@@ -2,6 +2,7 @@
 
 #include <chrono>
 #include <future>
+#include <sstream>
 #include <string>
 #include <thread>
 #include <boost/asio.hpp>
@@ -9,21 +10,55 @@
 
 #include "../util/slot_testing_helper.h"
 
+#include "ssl-protos/refbox/referee.pb.h"
+
+#include "ai_server/logger/sink/ostream.h"
 #include "ai_server/receiver/refbox.h"
 #include "ai_server/util/net/multicast/sender.h"
 
 using namespace std::chrono_literals;
 using namespace std::string_literals;
-using namespace ai_server;
+using namespace ai_server::logger;
 using namespace ai_server::receiver;
 using namespace ai_server::util::net::multicast;
 
-BOOST_TEST_DONT_PRINT_LOG_VALUE(ssl_protos::refbox::Referee::Stage)
-BOOST_TEST_DONT_PRINT_LOG_VALUE(ssl_protos::refbox::Referee::Command)
-BOOST_TEST_DONT_PRINT_LOG_VALUE(ai_server::model::refbox::stage_name)
-BOOST_TEST_DONT_PRINT_LOG_VALUE(ai_server::model::refbox::game_command)
+inline std::thread run_io_context_in_new_thread(boost::asio::io_context& ctx) {
+  return std::thread{
+      static_cast<std::size_t (boost::asio::io_context::*)()>(&boost::asio::io_context::run),
+      &ctx};
+}
 
 BOOST_AUTO_TEST_SUITE(refbox_receiver)
+
+BOOST_AUTO_TEST_CASE(receiver_error, *boost::unit_test::timeout(30)) {
+  std::ostringstream s{};
+  sink::ostream o{s, "nyan"};
+
+  boost::asio::io_context ctx{};
+
+  // 第2引数がマルチキャストアドレスではなく、
+  // util::net::multicast::receiver 側でエラーが発生するケース
+  refbox r{ctx, "0.0.0.0", "10.0.0.0", 10008};
+
+  // まだエラーメッセージは出力されていない
+  BOOST_TEST(s.str() == "");
+
+  auto t = run_io_context_in_new_thread(ctx);
+
+  {
+    slot_testing_helper wrapper{&refbox::on_error, r};
+
+    // on_error に登録したハンドラが呼ばれる
+    BOOST_CHECK_NO_THROW(wrapper.result());
+
+    // エラーメッセージが出力される
+    BOOST_TEST(s.str() == "nyan\n");
+  }
+
+  // 受信の終了
+  ctx.stop();
+  t.join();
+}
 
 BOOST_AUTO_TEST_CASE(send_and_receive, *boost::unit_test::timeout(30)) {
   // ダミーパケットの作成
@@ -61,18 +96,24 @@ BOOST_AUTO_TEST_CASE(send_and_receive, *boost::unit_test::timeout(30)) {
   auto b = dummy_frame.mutable_blue();
   b->CopyFrom(blue);
 
-  boost::asio::io_service io_service;
+  boost::asio::io_context ctx{};
 
   // refbox受信クラスの初期化
   // listen_addr = 0.0.0.0, multicast_addr = 224.5.23.1, port = 10088
-  refbox r(io_service, "0.0.0.0", "224.5.23.1", 10088);
+  refbox r{ctx, "0.0.0.0", "224.5.23.1", 10088};
+
+  // 初期値は0
+  BOOST_TEST(r.total_messages() == 0);
+  BOOST_TEST(r.messages_per_second() == 0);
+  BOOST_TEST(r.parse_error() == 0);
+  BOOST_TEST((r.last_updated() == ai_server::util::time_point_type{}));
 
   // 送信クラスの初期化
   // multicast_addr = 224.5.23.1, port = 10088
-  sender s(io_service, "224.5.23.1", 10088);
+  sender s{ctx, "224.5.23.1", 10088};
 
   // 受信を開始する
-  std::thread t([&] { io_service.run(); });
+  auto t = run_io_context_in_new_thread(ctx);
 
   // 念の為少し待つ
   std::this_thread::sleep_for(50ms);
@@ -112,26 +153,37 @@ BOOST_AUTO_TEST_CASE(send_and_receive, *boost::unit_test::timeout(30)) {
     BOOST_TEST(f.blue().yellow_card_times(0) == dummy_frame.blue().yellow_card_times(0));
     BOOST_TEST(f.blue().timeouts() == dummy_frame.blue().timeouts());
     BOOST_TEST(f.blue().timeout_time() == dummy_frame.blue().timeout_time());
+
+    // 情報が更新されている
+    BOOST_TEST(r.total_messages() == 1);
+    BOOST_TEST(r.parse_error() == 0);
   }
 
+  // 前回の1秒間に受信したメッセージは1
+  std::this_thread::sleep_for(1s);
+  BOOST_TEST(r.messages_per_second() == 1);
+
   // 受信の終了
-  io_service.stop();
+  ctx.stop();
   t.join();
 }
 
 BOOST_AUTO_TEST_CASE(non_protobuf_data, *boost::unit_test::timeout(30)) {
-  boost::asio::io_service io_service;
+  std::ostringstream ss{};
+  sink::ostream o{ss, "{message}"};
+
+  boost::asio::io_context ctx{};
 
   // refbox受信クラスの初期化
   // listen_addr = 0.0.0.0, multicast_addr = 224.5.23.4, port = 10080
-  refbox r(io_service, "0.0.0.0", "224.5.23.4", 10080);
+  refbox r{ctx, "0.0.0.0", "224.5.23.4", 10080};
 
   // 送信クラスの初期化
   // multicast_addr = 224.5.23.4, port = 10080
-  sender s(io_service, "224.5.23.4", 10080);
+  sender s{ctx, "224.5.23.4", 10080};
 
   // 受信を開始する
-  std::thread t([&] { io_service.run(); });
+  auto t = run_io_context_in_new_thread(ctx);
 
   // 念の為少し待つ
   std::this_thread::sleep_for(50ms);
@@ -145,10 +197,21 @@ BOOST_AUTO_TEST_CASE(non_protobuf_data, *boost::unit_test::timeout(30)) {
     // on_errorに設定したハンドラが呼ばれるまで待つ
     static_cast<void>(referee.result());
     BOOST_TEST(true);
+
+    // 情報が更新されている
+    BOOST_TEST(r.total_messages() == 1);
+    BOOST_TEST(r.parse_error() == 1);
+
+    // 警告が出力されている
+    BOOST_TEST(ss.str() == "failed to parse message 1\n");
   }
 
+  // 前回の1秒間に受信したメッセージは1
+  std::this_thread::sleep_for(1s);
+  BOOST_TEST(r.messages_per_second() == 1);
+
   // 受信の終了
-  io_service.stop();
+  ctx.stop();
   t.join();
 }
 
