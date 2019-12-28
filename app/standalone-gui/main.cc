@@ -605,7 +605,7 @@ auto main(int argc, char** argv) -> int {
       l.info(fmt::format("sender: kiks ({})", xbee_path));
     }
 
-    auto app = Gtk::Application::create(argc, argv, "org.gtkmm.example");
+    auto app = Gtk::Application::create(argc, argv);
 
     game_runner runner{updater_world, updater_refbox1_, updater_refbox2_, sender};
     game_window gw{updater_world, runner};
