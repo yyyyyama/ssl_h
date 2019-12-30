@@ -32,15 +32,9 @@ public:
 
   /// @brief 動作の状態を表現する
   /// @var move ボール前まで移動
-  /// @var hold ボールを持つ
   /// @var dribble ボールを蹴ることができるようになるまでドリブルして蹴る
   /// @var finished 動作終了(停止)
-  enum class running_state { move, hold, dribble, finished };
-
-  /// @brief 動作のモードを表現する
-  /// @var pull ボールを引く(未完成)
-  /// @var push ボールを押す
-  enum class place_mode { pull, push, pass };
+  enum class running_state { move, dribble, finished };
 
   /// @brief 目標位置を設定する
   /// @param x, y 目標とする座標
@@ -48,15 +42,16 @@ public:
 
   /// @brief キックパワーを設定する
   /// @param pow キックパワー
-  void set_pow(double pow);
+  void set_pow(int pow);
 
-  /// @brief チップするかしないかを設定する
-  /// @param chip チップするかしないか
+  /// @brief チップするかを設定する
+  /// @param chip チップするか
   void set_chip(bool chip);
 
   /// @brief 許容する目標位置とボールとの距離を設定する(キック時)
   /// @param margin 距離
   void set_kick_margin(double margin);
+  void set_kick_type(const model::command::kick_flag_t& kick_type);
 
   /// @brief 許容する目標位置とボールとの距離を設定する(終了判定時)
   /// @param allow 距離
@@ -64,12 +59,6 @@ public:
 
   /// @return 現在の目標位置
   Eigen::Vector2d target() const;
-
-  /// @return キックパワー
-  double pow() const;
-
-  /// @return チップフラグが立っているか?
-  bool chip() const;
 
   /// @return 現在の状態
   running_state state() const;
@@ -81,25 +70,19 @@ private:
   // キックフラグを設定する
   void kick(const Eigen::Vector2d& robot_pos,
             const std::unordered_map<unsigned int, model::robot>& enemy_robots,
-            model::command& command, const double pow, const bool chip);
+            model::command& command);
   // 状態
   running_state state_;
-  // ボールを押すか引くかのモード
-  place_mode mode_;
-  // 回り込みをしているか
-  bool round_flag_;
-  // 暫定目標
+  // 目標
   Eigen::Vector2d target_;
-  // 最終目標
-  Eigen::Vector2d final_target_;
   // ボール位置を一時的に保持
   Eigen::Vector2d first_ball_;
-  // 蹴る強さ
-  double pow_;
   // 目標位置との許容誤差
   double kick_margin_;
-  // チップキックにするかどうか
-  bool chip_;
+  // キックの種類・パワー
+  model::command::kick_flag_t kick_type_;
+  // agent指定のkick_typeをそのまま使うか
+  bool manual_kick_flag_;
   // 許容誤差
   double allow_;
 };
