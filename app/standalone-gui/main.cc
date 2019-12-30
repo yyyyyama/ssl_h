@@ -12,6 +12,7 @@
 #include <boost/asio.hpp>
 #include <boost/math/constants/constants.hpp>
 
+#include <fmt/chrono.h>
 #include <fmt/format.h>
 #include <fmt/ranges.h>
 
@@ -287,16 +288,12 @@ private:
   logger::logger_for<game_runner> l_;
 };
 
-// Gameを行うクラス
+// game_runner などを設定するパネル
 // --------------------------------
-class game_window final : public Gtk::Window {
+class game_panel final : public Gtk::VBox {
 public:
-  game_window(model::updater::world& world, game_runner& runner)
+  game_panel(model::updater::world& world, game_runner& runner)
       : updater_world_(world), runner_(runner) {
-    set_border_width(10);
-    set_default_size(800, 500);
-    set_title("Game configurations");
-
     {
       // left widgets
       color_.set_label("Team color");
@@ -307,7 +304,7 @@ public:
       color_box_.pack_start(color_r1_);
       color_box_.pack_start(color_r2_);
       color_.add(color_box_);
-      left_.pack_start(color_, Gtk::PACK_SHRINK, 4);
+      this->pack_start(color_, Gtk::PACK_SHRINK, 4);
 
       dir_.set_label("Attack direction");
       dir_r1_.set_label("Right");
@@ -317,7 +314,7 @@ public:
       dir_box_.pack_start(dir_r1_);
       dir_box_.pack_start(dir_r2_);
       dir_.add(dir_box_);
-      left_.pack_start(dir_, Gtk::PACK_SHRINK, 4);
+      this->pack_start(dir_, Gtk::PACK_SHRINK, 4);
 
       robots_.set_label("Active robots");
       robots_id_box_.set_border_width(4);
@@ -330,11 +327,11 @@ public:
       apply_.set_border_width(4);
       apply_.set_sensitive(false);
       apply_.signal_clicked().connect(
-          sigc::mem_fun(*this, &game_window::handle_change_active_robots));
+          sigc::mem_fun(*this, &game_panel::handle_change_active_robots));
       robots_box_.pack_start(robots_id_box_);
       robots_box_.pack_start(apply_);
       robots_.add(robots_box_);
-      left_.pack_start(robots_, Gtk::PACK_SHRINK, 4);
+      this->pack_start(robots_, Gtk::PACK_SHRINK, 4);
 
       camera_.set_label("Camera");
       camera_id_box_.set_border_width(4);
@@ -344,7 +341,7 @@ public:
         camera_id_box_.add(camera_cb_.back());
       }
       camera_.add(camera_id_box_);
-      left_.pack_start(camera_, Gtk::PACK_SHRINK, 4);
+      this->pack_start(camera_, Gtk::PACK_SHRINK, 4);
 
       refbox_.set_label("Refbox");
       refbox_r1_.set_label("Global");
@@ -354,25 +351,15 @@ public:
       refbox_box_.pack_start(refbox_r1_);
       refbox_box_.pack_start(refbox_r2_);
       refbox_.add(refbox_box_);
-      left_.pack_start(refbox_, Gtk::PACK_SHRINK, 4);
+      this->pack_start(refbox_, Gtk::PACK_SHRINK, 4);
 
       start_.set_label("start");
       start_.set_sensitive(false);
-      start_.signal_clicked().connect(sigc::mem_fun(*this, &game_window::handle_start_stop));
-      left_.pack_end(start_, Gtk::PACK_SHRINK);
+      start_.signal_clicked().connect(sigc::mem_fun(*this, &game_panel::handle_start_stop));
+      this->pack_end(start_, Gtk::PACK_SHRINK);
 
-      left_.set_size_request(320, -1);
-      center_.pack_start(left_, Gtk::PACK_SHRINK, 10);
+      this->set_size_request(320, -1);
     }
-
-    {
-      // right widgets
-      init_tree();
-      center_.pack_end(tree_, Gtk::PACK_EXPAND_WIDGET, 10);
-    }
-
-    add(center_);
-    show_all_children();
 
     init_radio_buttons();
     init_check_buttons();
@@ -383,27 +370,6 @@ public:
   }
 
 private:
-  void init_tree() {
-    treestore_ = Gtk::TreeStore::create(model_);
-    tree_.set_model(treestore_);
-    tree_.append_column_editable("Agent/Action", model_.name_);
-    tree_.append_column("Robot ID", model_.id_);
-
-    auto r1            = *(treestore_->append());
-    r1[model_.name_]   = "stopgame";
-    auto r1_1          = *(treestore_->append(r1.children()));
-    r1_1[model_.name_] = "no_op";
-    r1_1[model_.id_]   = 0;
-    auto r1_2          = *(treestore_->append(r1.children()));
-    r1_2[model_.name_] = "no_op";
-    r1_2[model_.id_]   = 1;
-    auto r1_3          = *(treestore_->append(r1.children()));
-    r1_3[model_.name_] = "no_op";
-    r1_3[model_.id_]   = 2;
-
-    tree_.expand_all();
-  }
-
   void init_radio_buttons() {
     dir_r1_.signal_toggled().connect([this] {
       runner_.set_transformation_matrix(
@@ -438,7 +404,7 @@ private:
       auto& cb = robots_cb_.at(i);
       cb.set_active(std::find(robots.cbegin(), robots.cend(), i) != robots.cend());
       cb.signal_toggled().connect(
-          sigc::mem_fun(*this, &game_window::handle_active_robots_changed));
+          sigc::mem_fun(*this, &game_panel::handle_active_robots_changed));
     }
 
     for (auto i = 0u; i < num_cameras; ++i) {
@@ -482,33 +448,115 @@ private:
     apply_.set_sensitive(false);
   }
 
-  class tree_model : public Gtk::TreeModel::ColumnRecord {
-  public:
-    tree_model() {
-      add(name_);
-      add(id_);
-    }
-
-    Gtk::TreeModelColumn<Glib::ustring> name_;
-    Gtk::TreeModelColumn<unsigned int> id_;
-  };
-
-  tree_model model_;
-
   Gtk::Frame color_, dir_, robots_, refbox_, camera_;
-  Gtk::VBox left_, robots_box_;
-  Gtk::HBox center_, color_box_, dir_box_, refbox_box_;
+  Gtk::VBox robots_box_;
+  Gtk::HBox color_box_, dir_box_, refbox_box_;
   Gtk::RadioButton color_r1_, color_r2_, dir_r1_, dir_r2_, refbox_r1_, refbox_r2_;
   std::vector<Gtk::CheckButton> robots_cb_, camera_cb_;
   Gtk::FlowBox robots_id_box_, camera_id_box_;
   Gtk::Button apply_, start_;
-  Gtk::TreeView tree_;
-  Glib::RefPtr<Gtk::TreeStore> treestore_;
 
   model::updater::world& updater_world_;
   game_runner& runner_;
 
-  logger::logger_for<game_window> l_;
+  logger::logger_for<game_panel> l_;
+};
+
+// 各種ステータスを表示するパネル
+class status_tree final : public Gtk::TreeView {
+public:
+  status_tree() : store_{Gtk::TreeStore::create(columns_)} {
+    this->set_model(store_);
+    this->append_column("Name", columns_.name);
+    this->append_column("Value", columns_.value);
+    this->set_enable_tree_lines();
+  }
+
+  struct model final : public Gtk::TreeModel::ColumnRecord {
+    model() {
+      add(name);
+      add(value);
+    }
+    Gtk::TreeModelColumn<Glib::ustring> name;
+    Gtk::TreeModelColumn<Glib::ustring> value;
+  };
+
+  template <class T, class = void>
+  struct handler;
+
+  template <class, class = void>
+  struct has_handler : std::false_type {};
+
+  template <class T>
+  struct has_handler<
+      T, std::void_t<decltype(std::string{handler<T>::category_name}),
+                     decltype(std::declval<const handler<T>>().update(std::declval<T>())),
+                     std::enable_if_t<std::is_constructible_v<handler<T>, model,
+                                                              std::function<Gtk::TreeRow()>>>>>
+      : std::true_type {};
+
+  template <class T>
+  auto add(const std::string& name, const T& value, int interval = 1000)
+      -> std::enable_if_t<has_handler<T>::value> {
+    auto category       = *new_or_existing_row(handler<T>::category_name);
+    auto base           = *store_->append(category.children());
+    base[columns_.name] = name;
+
+    auto h = handler<T>{columns_, [&] { return *store_->append(base.children()); }};
+    Glib::signal_timeout().connect(
+        [h, &value] {
+          h.update(value);
+          return true;
+        },
+        interval);
+  }
+
+private:
+  Gtk::TreeModel::iterator new_or_existing_row(const std::string& name) {
+    if (auto it = rows_.find(name); it != rows_.end()) {
+      return it->second;
+    }
+    auto r = store_->append();
+    rows_.insert({name, r});
+    (*r)[columns_.name] = name;
+    return r;
+  }
+
+  model columns_;
+  std::unordered_map<std::string, Gtk::TreeModel::iterator> rows_;
+  Glib::RefPtr<Gtk::TreeStore> store_;
+};
+
+template <class T>
+struct status_tree::handler<T, std::void_t<decltype(std::declval<T>().total_messages()),
+                                           decltype(std::declval<T>().messages_per_second()),
+                                           decltype(std::declval<T>().parse_error()),
+                                           decltype(std::declval<T>().last_updated())>> {
+  static constexpr auto category_name = "Receivers";
+
+  template <class F>
+  handler(const status_tree::model& m, F add_row)
+      : model{m}, r1{add_row()}, r2{add_row()}, r3{add_row()}, r4{add_row()} {
+    r1[model.name] = "Total received messages";
+    r2[model.name] = "Messages per second";
+    r3[model.name] = "Parse error";
+    r4[model.name] = "Last updated time";
+  }
+
+  void update(const T& receiver) const {
+    const auto lu = receiver.last_updated();
+    const auto tt = util::clock_type::to_time_t(lu);
+    const auto e  = lu.time_since_epoch();
+    const auto ms = (e - std::chrono::duration_cast<std::chrono::seconds>(e)) / 1ms;
+
+    r1[model.value] = fmt::format("{}", receiver.total_messages());
+    r2[model.value] = fmt::format("{}", receiver.messages_per_second());
+    r3[model.value] = fmt::format("{}", receiver.parse_error());
+    r4[model.value] = fmt::format("{:%T}.{:03d}", *std::localtime(&tt), ms);
+  }
+
+  const status_tree::model& model;
+  Gtk::TreeRow r1, r2, r3, r4;
 };
 
 auto main(int argc, char** argv) -> int {
@@ -606,10 +654,9 @@ auto main(int argc, char** argv) -> int {
     auto app = Gtk::Application::create(argc, argv);
 
     game_runner runner{updater_world, updater_refbox1_, updater_refbox2_, sender};
-    game_window gw{updater_world, runner};
-    gw.show();
+    game_panel gp{updater_world, runner};
 
-    std::thread wait([&runner, &gw, &vision_received, &l] {
+    std::thread wait([&runner, &gp, &vision_received, &l] {
       // Visionから値を受信するまで待つ
       do {
         std::this_thread::sleep_for(500ms);
@@ -617,10 +664,29 @@ auto main(int argc, char** argv) -> int {
       // 状態オブザーバなどの値が収束するまで待つ
       std::this_thread::sleep_for(5s);
       l.info("ready!");
-      gw.set_ready();
+      gp.set_ready();
     });
 
-    app->run(gw);
+    status_tree tree{};
+    tree.add("Vision", vision);
+    tree.add("Global RefBox", refbox1);
+    tree.add("Local RefBox", refbox2);
+    tree.expand_all();
+
+    auto win = Gtk::Window{};
+    auto box = Gtk::HBox{};
+    {
+      win.set_border_width(10);
+      win.set_default_size(800, 500);
+      win.set_title("Game configurations");
+
+      box.pack_start(gp, Gtk::PACK_SHRINK, 10);
+      box.pack_end(tree, Gtk::PACK_EXPAND_WIDGET, 10);
+
+      win.add(box);
+      win.show_all_children();
+    }
+    app->run(win);
 
     wait.detach();
     receiver_io.stop();
