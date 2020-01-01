@@ -656,16 +656,21 @@ auto main(int argc, char** argv) -> int {
     game_runner runner{updater_world, updater_refbox1_, updater_refbox2_, sender};
     game_panel gp{updater_world, runner};
 
-    std::thread wait([&runner, &gp, &vision_received, &l] {
-      // Visionから値を受信するまで待つ
-      do {
-        std::this_thread::sleep_for(500ms);
-      } while (!vision_received);
-      // 状態オブザーバなどの値が収束するまで待つ
-      std::this_thread::sleep_for(5s);
-      l.info("ready!");
-      gp.set_ready();
-    });
+    Glib::signal_timeout().connect(
+        [&vision_received, &gp, &l] {
+          // Visionから値が取れてなかったら待つ
+          if (!vision_received) return true;
+
+          // 状態オブザーバなどの値が収束するまでもう少し待つ
+          Glib::signal_timeout().connect_seconds_once(
+              [&gp, &l] {
+                l.info("ready!");
+                gp.set_ready();
+              },
+              5);
+          return false;
+        },
+        500);
 
     status_tree tree{};
     tree.add("Vision", vision);
@@ -688,7 +693,6 @@ auto main(int argc, char** argv) -> int {
     }
     app->run(win);
 
-    wait.detach();
     receiver_io.stop();
     io_thread.join();
   } catch (std::exception& e) {
