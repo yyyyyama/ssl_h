@@ -6,6 +6,11 @@ codecov:
 
 coverage:
   range: "50...80"
-  ignore: "test/.*"
+
+ignore:
+  - "3rd/**/*"
+  - "app/**/*"
+  - "test/*"
+  - "test/**/*"
 
 comment: false
