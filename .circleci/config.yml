@@ -1,0 +1,84 @@
+version: 2
+
+anchors:
+  - &docker
+    - image: kiks/build-env
+
+  - &environment-clang
+    CC: clang
+    CXX: clang++
+
+  - &environment-gcc
+    CC: gcc
+    CXX: g++
+
+  - &build
+    docker: *docker
+    working_directory: ~/build
+    steps:
+      - checkout:
+          path: ~/project
+      - run:
+          name: Initialize git submodules
+          working_directory: ~/project
+          command: |
+            git submodule sync --recursive
+            git submodule update --recursive --init
+
+      - run: cmake ~/project -G Ninja -DCMAKE_BUILD_TYPE=Debug -DENABLE_SANITIZERS=ON -DENABLE_CODE_COVERAGE=ON -DUSE_SYSTEM_NNABLA=ON
+      - run: ninja -v -j 4
+
+      - persist_to_workspace:
+          root: ~/
+          paths:
+            - build
+            - project
+
+jobs:
+  build:
+    <<: *build
+    environment: *environment-clang
+
+  build-gcc:
+    <<: *build
+    environment: *environment-gcc
+
+  test:
+    docker: *docker
+    working_directory: ~/build
+    steps:
+      - attach_workspace:
+          at: ~/
+      - run: ninja test
+      - run: bash <(curl -s https://codecov.io/bash) -x ~/project/tools/llvm-cov.sh -R ~/project
+
+  test-gcc:
+    docker: *docker
+    working_directory: ~/build
+    steps:
+      - attach_workspace:
+          at: ~/
+      - run: ninja test
+
+  static-validations:
+    docker: *docker
+    steps:
+      - checkout
+
+      - run: ./tools/validate/encoding.sh
+      - run: ./tools/validate/include_guard.sh
+      - run: ./tools/validate/format.sh
+
+workflows:
+  version: 2
+  build-and-test:
+    jobs:
+      - build
+      - test:
+          requires:
+            - build
+      # - build-gcc
+      # - test-gcc:
+      #     requires:
+      #       - build-gcc
+      - static-validations
