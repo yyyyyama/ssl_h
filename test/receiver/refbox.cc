@@ -69,7 +69,7 @@ BOOST_AUTO_TEST_CASE(send_and_receive, *boost::unit_test::timeout(30)) {
 
   yellow.set_name("yellow");
   yellow.set_score(1);
-  yellow.set_goalie(2);
+  yellow.set_goalkeeper(2);
   yellow.set_red_cards(3);
   yellow.set_yellow_cards(4);
   yellow.add_yellow_card_times(5);
@@ -77,7 +77,7 @@ BOOST_AUTO_TEST_CASE(send_and_receive, *boost::unit_test::timeout(30)) {
   yellow.set_timeout_time(7);
   blue.set_name("blue");
   blue.set_score(8);
-  blue.set_goalie(9);
+  blue.set_goalkeeper(9);
   blue.set_red_cards(10);
   blue.set_yellow_cards(11);
   blue.add_yellow_card_times(12);
@@ -139,7 +139,7 @@ BOOST_AUTO_TEST_CASE(send_and_receive, *boost::unit_test::timeout(30)) {
     BOOST_TEST(f.command_timestamp() == dummy_frame.command_timestamp());
     BOOST_TEST(f.yellow().name() == dummy_frame.yellow().name());
     BOOST_TEST(f.yellow().score() == dummy_frame.yellow().score());
-    BOOST_TEST(f.yellow().goalie() == dummy_frame.yellow().goalie());
+    BOOST_TEST(f.yellow().goalkeeper() == dummy_frame.yellow().goalkeeper());
     BOOST_TEST(f.yellow().red_cards() == dummy_frame.yellow().red_cards());
     BOOST_TEST(f.yellow().yellow_cards() == dummy_frame.yellow().yellow_cards());
     BOOST_TEST(f.yellow().yellow_card_times(0) == dummy_frame.yellow().yellow_card_times(0));
@@ -147,7 +147,7 @@ BOOST_AUTO_TEST_CASE(send_and_receive, *boost::unit_test::timeout(30)) {
     BOOST_TEST(f.yellow().timeout_time() == dummy_frame.yellow().timeout_time());
     BOOST_TEST(f.blue().name() == dummy_frame.blue().name());
     BOOST_TEST(f.blue().score() == dummy_frame.blue().score());
-    BOOST_TEST(f.blue().goalie() == dummy_frame.blue().goalie());
+    BOOST_TEST(f.blue().goalkeeper() == dummy_frame.blue().goalkeeper());
     BOOST_TEST(f.blue().red_cards() == dummy_frame.blue().red_cards());
     BOOST_TEST(f.blue().yellow_cards() == dummy_frame.blue().yellow_cards());
     BOOST_TEST(f.blue().yellow_card_times(0) == dummy_frame.blue().yellow_card_times(0));

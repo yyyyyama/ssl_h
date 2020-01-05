@@ -27,7 +27,7 @@ void refbox::update(const ssl_protos::refbox::Referee& referee) {
   auto to_team_info = [](auto&& team_info) {
     model::team_info result{team_info.name()};
     result.set_score(team_info.score());
-    result.set_goalie(team_info.goalie());
+    result.set_goalie(team_info.goalkeeper());
     result.set_red_cards(team_info.red_cards());
     result.set_yellow_cards(team_info.yellow_cards());
     result.set_yellow_card_times(

@@ -44,7 +44,7 @@ BOOST_AUTO_TEST_CASE(normal) {
     ssl_protos::refbox::Referee_TeamInfo blue{};
     blue.set_name("blue");
     blue.set_score(10);
-    blue.set_goalie(11);
+    blue.set_goalkeeper(11);
     blue.set_red_cards(12);
     blue.set_yellow_cards(13);
     // yellow_card_timesは送られてこない可能性があるので,
@@ -57,7 +57,7 @@ BOOST_AUTO_TEST_CASE(normal) {
     ssl_protos::refbox::Referee_TeamInfo yellow{};
     yellow.set_name("yellow");
     yellow.set_score(21);
-    yellow.set_goalie(22);
+    yellow.set_goalkeeper(22);
     yellow.set_red_cards(23);
     yellow.set_yellow_cards(24);
     // yellow_card_timesは複数送られてくる場合がある
@@ -86,7 +86,7 @@ BOOST_AUTO_TEST_CASE(normal) {
     const auto b = r.team_blue();
     BOOST_TEST(b.name() == referee.blue().name());
     BOOST_TEST(b.score() == referee.blue().score());
-    BOOST_TEST(b.goalie() == referee.blue().goalie());
+    BOOST_TEST(b.goalie() == referee.blue().goalkeeper());
     BOOST_TEST(b.red_cards() == referee.blue().red_cards());
     BOOST_TEST(b.yellow_cards() == referee.blue().yellow_cards());
     // 送られてこなかったら0
@@ -97,7 +97,7 @@ BOOST_AUTO_TEST_CASE(normal) {
     const auto y = r.team_yellow();
     BOOST_TEST(y.name() == referee.yellow().name());
     BOOST_TEST(y.score() == referee.yellow().score());
-    BOOST_TEST(y.goalie() == referee.yellow().goalie());
+    BOOST_TEST(y.goalie() == referee.yellow().goalkeeper());
     BOOST_TEST(y.red_cards() == referee.yellow().red_cards());
     BOOST_TEST(y.yellow_cards() == referee.yellow().yellow_cards());
     // 複数送られてきたら先頭の値
@@ -125,7 +125,7 @@ BOOST_AUTO_TEST_CASE(abp) {
     ssl_protos::refbox::Referee_TeamInfo blue{};
     blue.set_name("blue");
     blue.set_score(10);
-    blue.set_goalie(11);
+    blue.set_goalkeeper(11);
     blue.set_red_cards(12);
     blue.set_yellow_cards(13);
     blue.set_timeouts(15);
@@ -135,7 +135,7 @@ BOOST_AUTO_TEST_CASE(abp) {
     ssl_protos::refbox::Referee_TeamInfo yellow{};
     yellow.set_name("yellow");
     yellow.set_score(21);
-    yellow.set_goalie(22);
+    yellow.set_goalkeeper(22);
     yellow.set_red_cards(23);
     yellow.set_yellow_cards(24);
     yellow.set_timeouts(28);
