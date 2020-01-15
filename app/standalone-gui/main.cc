@@ -1,6 +1,7 @@
 #include <algorithm>
 #include <atomic>
 #include <chrono>
+#include <condition_variable>
 #include <functional>
 #include <iostream>
 #include <memory>
@@ -91,16 +92,15 @@ public:
   game_runner(model::updater::world& world, model::updater::refbox& refbox1,
               model::updater::refbox& refbox2, std::shared_ptr<sender::base>& sender)
       : running_{false},
-        game_thread_{},
-        driver_thread_{},
-        team_color_(model::team_color::yellow),
-        updater_world_(world),
-        updater_refbox1_(refbox1),
-        updater_refbox2_(refbox2),
         is_global_refbox_{true},
-        sender_(sender),
-        driver_(driver_io_, cycle, updater_world_, team_color_),
-        active_robots_({0u, 1u, 2u, 3u, 4u, 5u, 6u, 7u}) {
+        need_reset_{false},
+        team_color_{model::team_color::yellow},
+        updater_world_{world},
+        updater_refbox1_{refbox1},
+        updater_refbox2_{refbox2},
+        active_robots_{0u, 1u, 2u, 3u, 4u, 5u, 6u, 7u},
+        sender_{sender},
+        driver_{driver_io_, cycle, updater_world_, team_color_} {
     driver_thread_ = std::thread([this] {
       try {
         driver_io_.run();
@@ -119,14 +119,15 @@ public:
   }
 
   ~game_runner() {
-    std::unique_lock<std::shared_timed_mutex> lock(mutex_);
     running_ = false;
+    cv_.notify_all();
     if (game_thread_.joinable()) game_thread_.join();
     driver_io_.stop();
     if (driver_thread_.joinable()) driver_thread_.join();
   }
 
   void start() {
+    std::unique_lock lock{mutex_};
     if (!game_thread_.joinable()) {
       running_     = true;
       game_thread_ = std::thread([this] { main_loop(); });
@@ -134,19 +135,18 @@ public:
   }
 
   void stop() {
-    std::unique_lock<std::shared_timed_mutex> lock(mutex_);
     running_ = false;
+    cv_.notify_all();
     game_thread_.join();
-    l_.info("game stopped!");
   }
 
   std::vector<unsigned int> active_robots() const {
-    std::shared_lock<std::shared_timed_mutex> lock(mutex_);
+    std::unique_lock lock{mutex_};
     return active_robots_;
   }
 
   void set_active_robots(const std::vector<unsigned int>& ids) {
-    std::unique_lock<std::shared_timed_mutex> lock(mutex_);
+    std::unique_lock lock{mutex_};
     bool changed = false;
     // register new robots
     for (auto id : ids) {
@@ -168,26 +168,26 @@ public:
       l_.info(fmt::format("active_robots changed: {} -> {}", active_robots_, ids));
 
       active_robots_ = ids;
-      reset_formation();
+      need_reset_    = true;
     }
   }
 
   void set_team_color(model::team_color color) {
-    std::unique_lock<std::shared_timed_mutex> lock(mutex_);
+    std::unique_lock lock{mutex_};
     if (team_color_ != color) {
       driver_.set_team_color(color);
       team_color_ = color;
-      reset_formation();
+      need_reset_ = true;
     }
   }
 
   bool is_global_refbox() const {
-    std::shared_lock<std::shared_timed_mutex> lock(mutex_);
+    std::unique_lock lock{mutex_};
     return is_global_refbox_;
   }
 
   void use_global_refbox(bool is_global) {
-    std::unique_lock<std::shared_timed_mutex> lock(mutex_);
+    std::unique_lock lock{mutex_};
     if (is_global_refbox_ != is_global) {
       l_.info("switched to "s + (is_global ? "global"s : "local"s) + " refbox");
       is_global_refbox_ = is_global;
@@ -195,6 +195,7 @@ public:
   }
 
   void set_transformation_matrix(double x, double y, double theta) {
+    std::unique_lock lock{mutex_};
     const auto mat = util::math::make_transformation_matrix(x, y, theta);
     updater_world_.set_transformation_matrix(mat);
     updater_refbox1_.set_transformation_matrix(mat);
@@ -204,86 +205,86 @@ public:
 private:
   void main_loop() {
     l_.info("game started!");
-    formation_.reset();
+
+    model::world world{};
+    model::refbox refbox{};
+    std::unique_ptr<game::formation::base> formation{};
 
     ai_server::util::time_point_type prev_time{};
 
-    while (running_) {
+    for (;;) {
       try {
-        const auto current_time = util::clock_type::now();
-        if (current_time - prev_time < cycle) {
-          // std::this_thread::yield();
-          std::this_thread::sleep_for(1ms);
-        } else {
-          std::unique_lock<std::shared_timed_mutex> lock(mutex_);
-
-          const auto prev_cmd = refbox_.command();
-
-          world_  = updater_world_.value();
-          refbox_ = (is_global_refbox_ ? updater_refbox1_ : updater_refbox2_).value();
-
-          const auto current_cmd = refbox_.command();
-
-          if (current_cmd != prev_cmd) {
-            if (current_cmd == model::refbox::game_command::stop) {
-              driver_.set_velocity_limit(velocity_limit_at_stopgame);
-            } else {
-              driver_.set_velocity_limit(std::numeric_limits<double>::max());
-            }
-          }
-
-          const auto visible_robots =
-              static_cast<bool>(team_color_) ? world_.robots_yellow() : world_.robots_blue();
-
-          evalute_formation();
-
-          prev_time = current_time;
+        std::unique_lock lock{mutex_};
+        // 前回の処理開始から cycle 待つ
+        if (cv_.wait_until(lock, prev_time + cycle, [this] { return !running_; })) {
+          break; // その間に stop() されたらループを抜ける
         }
+
+        const auto current_time = util::clock_type::now();
+
+        const auto prev_cmd = refbox.command();
+
+        world  = updater_world_.value();
+        refbox = (is_global_refbox_ ? updater_refbox1_ : updater_refbox2_).value();
+
+        const auto current_cmd = refbox.command();
+
+        if (current_cmd != prev_cmd) {
+          if (current_cmd == model::refbox::game_command::stop) {
+            driver_.set_velocity_limit(velocity_limit_at_stopgame);
+          } else {
+            driver_.set_velocity_limit(std::numeric_limits<double>::max());
+          }
+        }
+
+        if (!formation || need_reset_) {
+          formation = std::make_unique<game::formation::first_formation>(
+              world, refbox, static_cast<bool>(team_color_), active_robots_);
+          need_reset_ = false;
+          l_.info("formation resetted");
+        }
+
+        auto agents = formation->execute();
+        for (auto agent : agents) {
+          auto actions = agent->execute();
+          for (auto action : actions) {
+            auto command = action->execute();
+            driver_.update_command(command);
+          }
+        }
+
+        prev_time = current_time;
       } catch (const std::exception& e) {
         l_.error(fmt::format("exception at game_thread\n\t{}", e.what()));
       } catch (...) {
         l_.error("unknown exception at game_thread");
       }
     }
+
+    l_.info("game stopped!");
   }
 
-  void reset_formation() {
-    formation_ = std::make_unique<game::formation::first_formation>(
-        world_, refbox_, static_cast<bool>(team_color_), active_robots_);
-    l_.info("formation resetted");
-  }
-
-  void evalute_formation() {
-    if (!formation_) reset_formation();
-    auto agents = formation_->execute();
-    for (auto agent : agents) {
-      auto actions = agent->execute();
-      for (auto action : actions) {
-        auto command = action->execute();
-        driver_.update_command(command);
-      }
-    }
-  }
-
-  mutable std::shared_timed_mutex mutex_;
+  mutable std::mutex mutex_;
+  std::condition_variable cv_;
   std::atomic<bool> running_;
-  std::thread game_thread_;
-  std::thread driver_thread_;
+
+  bool is_global_refbox_;
+  // formation のリセットが必要か
+  bool need_reset_;
+
   model::team_color team_color_;
   model::updater::world& updater_world_;
   model::updater::refbox& updater_refbox1_;
   model::updater::refbox& updater_refbox2_;
-  bool is_global_refbox_;
-
-  boost::asio::io_context driver_io_;
-  std::shared_ptr<sender::base> sender_;
-  ai_server::driver driver_;
-
-  model::world world_;
-  model::refbox refbox_;
   std::vector<unsigned int> active_robots_;
 
-  std::unique_ptr<game::formation::base> formation_;
+  std::shared_ptr<sender::base> sender_;
+
+  boost::asio::io_context driver_io_;
+  ai_server::driver driver_;
+
+  std::thread game_thread_;
+  std::thread driver_thread_;
 
   logger::logger_for<game_runner> l_;
 };
