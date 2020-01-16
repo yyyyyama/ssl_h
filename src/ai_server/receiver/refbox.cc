@@ -12,8 +12,6 @@ refbox::refbox(boost::asio::io_context& io_context, const std::string& listen_ad
       parse_error_{},
       last_updated_{},
       receiver_{io_context, listen_addr, multicast_addr, port} {
-  GOOGLE_PROTOBUF_VERIFY_VERSION;
-
   // multicast receiver のコールバック関数を登録する
   receiver_.on_receive(
       [&](auto&&... args) { handle_receive(std::forward<decltype(args)>(args)...); });

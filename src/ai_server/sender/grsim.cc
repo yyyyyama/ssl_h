@@ -8,10 +8,7 @@ namespace ai_server {
 namespace sender {
 
 grsim::grsim(boost::asio::io_context& io_context, const std::string& grsim_addr, short port)
-    : udp_sender_(io_context, grsim_addr, port) {
-  //プロトコルバッファのバージョン確認
-  GOOGLE_PROTOBUF_VERIFY_VERSION;
-}
+    : udp_sender_(io_context, grsim_addr, port) {}
 
 void grsim::send_command(const model::command& command, model::team_color color) {
   ssl_protos::grsim::Packet packet{};
