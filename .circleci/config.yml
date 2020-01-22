@@ -34,6 +34,12 @@ anchors:
             - build
             - project
 
+  - &filters
+    branches:
+      ignore:
+        - /archives\/.*/
+        - /skip-test\/.*/
+
 jobs:
   build:
     <<: *build
@@ -73,12 +79,17 @@ workflows:
   version: 2
   build-and-test:
     jobs:
-      - build
+      - build:
+          filters: *filters
       - test:
           requires:
             - build
-      # - build-gcc
+
+      - static-validations:
+          filters: *filters
+
+      # - build-gcc:
+      #     filters: *filters
       # - test-gcc:
       #     requires:
       #       - build-gcc
-      - static-validations
