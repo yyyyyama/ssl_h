@@ -1,6 +1,8 @@
 #ifndef AI_SERVER_GAME_ACTION_BASE_H
 #define AI_SERVER_GAME_ACTION_BASE_H
 
+#include <memory>
+
 #include "ai_server/model/command.h"
 #include "ai_server/model/world.h"
 #include "ai_server/planner/base.h"
