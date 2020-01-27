@@ -1,7 +1,8 @@
 #ifndef AI_SERVER_MODEL_UPDATER_WORLD_H
 #define AI_SERVER_MODEL_UPDATER_WORLD_H
 
-#include <vector>
+#include <mutex>
+#include <set>
 #include <Eigen/Geometry>
 
 #include "ai_server/model/world.h"
@@ -21,6 +22,8 @@ namespace model {
 namespace updater {
 
 class world {
+  mutable std::mutex mutex_;
+
   /// フィールドのupdater
   field field_;
   /// ボールのupdater
@@ -31,7 +34,7 @@ class world {
   robot<model::team_color::yellow> robots_yellow_;
 
   /// 無効化されたカメラID
-  std::vector<unsigned int> disabled_camera_;
+  std::set<unsigned int> disabled_camera_;
 
 public:
   world()             = default;
