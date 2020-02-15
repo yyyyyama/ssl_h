@@ -1,4 +1,9 @@
-box: kiks/build-env
+box:
+  id: docker.pkg.github.com/kiksworks/docker-build-env/build-env
+  tag: latest
+  registry: docker.pkg.github.com
+  username: $GH_PKG_USERNAME
+  password: $GH_PKG_PASSWORD
 
 build:
   steps:

@@ -2,7 +2,10 @@ version: 2
 
 anchors:
   - &docker
-    - image: kiks/build-env
+    - image: docker.pkg.github.com/kiksworks/docker-build-env/build-env:latest
+      auth:
+        username: $GH_PKG_USERNAME
+        password: $GH_PKG_PASSWORD
 
   - &environment-clang
     CC: clang
