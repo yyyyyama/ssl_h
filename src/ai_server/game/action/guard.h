@@ -11,26 +11,27 @@ namespace game {
 namespace action {
 class guard : public base {
 public:
-  using base::base;
-  void move_to(double x, double y, double theta);
+  guard(const model::world& world, bool is_yellow, unsigned int id);
+  void move_to(double x, double y);
+  void move_on(bool shift_flag);
   void set_kick_type(const model::command::kick_flag_t& kick_type);
-  unsigned int id();
-  model::command::kick_flag_t kick_type();
+  model::command::kick_flag_t kick_type() const;
   void set_dribble(int dribble);
-  int dribble();
+  int dribble() const;
   void set_magnification(double magnification);
   void set_halt(bool halt_flag);
   model::command execute() override;
   bool finished() const override;
 
 private:
-  Eigen::Vector2d pos_{0.0, 0.0};
-  double magnification_ = 5.0;
-  double theta_         = 0.0;
+  Eigen::Vector2d target_;
+  bool shift_flag_;
+  double magnification_;
+  double margin_;
+  double decelation_;
   int dribble_;
-  model::command::kick_flag_t kick_type_ = {model::command::kick_type_t::none, 0.0};
-  bool flag_                             = false;
-  bool halt_flag_                        = false;
+  model::command::kick_flag_t kick_type_;
+  bool halt_flag_;
 };
 } // namespace action
 } // namespace game

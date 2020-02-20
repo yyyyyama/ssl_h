@@ -1,17 +1,36 @@
+#include <algorithm>
 #include <cmath>
 
 #include "ai_server/game/action/guard.h"
 #include "ai_server/util/math.h"
+#include "ai_server/util/math/to_vector.h"
+
+#include <boost/math/constants/constants.hpp>
+
+using boost::math::constants::pi;
 
 namespace ai_server {
 namespace game {
 namespace action {
-void guard::move_to(double x, double y, double theta) {
-  pos_.x() = x;
-  pos_.y() = y;
-  theta_   = theta;
+
+guard::guard(const model::world& world, bool is_yellow, unsigned int id)
+    : base(world, is_yellow, id),
+      target_{0.0, 0.0},
+      shift_flag_(false),
+      magnification_(5.0),
+      margin_(0.0),
+      decelation_(0.0),
+      dribble_(0),
+      kick_type_{model::command::kick_type_t::none, 0.0},
+      halt_flag_(false) {}
+
+void guard::move_to(double x, double y) {
+  target_ = {x, y};
 }
-model::command::kick_flag_t guard::kick_type() {
+void guard::move_on(bool shift_flag) {
+  shift_flag_ = shift_flag;
+}
+model::command::kick_flag_t guard::kick_type() const {
   return kick_type_;
 }
 void guard::set_kick_type(const model::command::kick_flag_t& kick_type) {
@@ -26,11 +45,8 @@ void guard::set_halt(bool halt_flag) {
 void guard::set_magnification(double magnification) {
   magnification_ = magnification;
 }
-int guard::dribble() {
+int guard::dribble() const {
   return dribble_;
-}
-unsigned int guard::id() {
-  return id_;
 }
 model::command guard::execute() {
   //それぞれ自機を生成
@@ -47,36 +63,71 @@ model::command guard::execute() {
     return command;
   }
 
-  const auto robot = robots.at(id_);
-  const Eigen::Vector2d robot_pos{robot.x(), robot.y()};
-  const auto robot_theta = util::wrap_to_pi(robot.theta());
-  const auto omega       = theta_ - robot_theta;
-  if ((robot_pos - pos_).norm() < 100.0) {
-    magnification_ = 1000.0;
-  }
+  //座標の取得
+  const Eigen::Vector2d goal(world_.field().x_min(), 0.0);
+  const auto& robot              = robots.at(id_);
+  const Eigen::Vector2d wall_pos = util::math::position(robot);
 
-  const Eigen::Vector2d vec{(pos_ - robot_pos).normalized() * magnification_};
+  //ゴールからロボットの位置への角度
+  const auto wall_theta = std::atan2(robot.y() - goal.y(), robot.x() - goal.x());
+  //ゴールから対象の位置への角度
+  const auto target_theta = std::atan2(target_.y() - goal.y(), target_.x() - goal.x());
+  const auto corner_theta =
+      std::atan2(world_.field().penalty_width() / 2, world_.field().penalty_length());
 
-  //位置のマージン
+  const double robot_size = std::copysign(95, wall_pos.y());
+  //ゴールから壁の距離
+  const double distance = (wall_pos - goal).norm();
+  //目標地点の間隔
+  const double interval = 0.3;
+  //速度の倍率
+  const double magnification = 15000.0;
+  //速度の上限
+  const double limit = 1500.0;
+  const double range = std::hypot(robot.x() - goal.x(), robot.y() - goal.y());
 
-  const auto margin = 0.0;
+  margin_     = shift_flag_ ? 250 : 0.0;
+  decelation_ = std::clamp(std::abs(corner_theta - std::abs(wall_theta)) * 10, 0.2, 1.0);
 
-  //目標位置に居るなら終わり
-  //目標位置から現在地の距離
-  const auto lengh = (robot_pos - pos_).norm();
-  if (lengh < margin) {
-    command.set_velocity({0.0, 0.0, omega});
-    flag_ = true;
+  //壁からボール方向に目標地点をずらして座標を計算
+  if (range >= 2500) {
+    command.set_position({goal.x() + world_.field().penalty_length(), 0.0, 0.0});
     return command;
   }
-
-  command.set_position({pos_.x(), pos_.y(), theta_});
-
-  flag_ = false;
+  if (std::abs(wall_theta) <= corner_theta) {
+    const double x = goal.x() + world_.field().penalty_length() + 160.0 + margin_;
+    const double y =
+        std::sin(wall_theta + std::copysign(interval, target_theta - wall_theta)) * distance;
+    const double theta = target_theta;
+    const Eigen::Vector2d pos(x, y);
+    const Eigen::Vector2d vel =
+        std::min(std::abs(magnification * util::math::wrap_to_pi(target_theta - wall_theta) /
+                          pi<double>()),
+                 limit) *
+        (pos - wall_pos).normalized() * decelation_;
+    const double omega = 2.0 * util::math::wrap_to_pi(theta - robot.theta());
+    command.set_velocity({vel.x(), vel.y(), omega});
+  } else {
+    const double x = std::max(
+        goal.x() + std::cos(wall_theta + std::copysign(interval, target_theta - wall_theta)) *
+                       distance,
+        world_.field().x_min() + 100);
+    const double y = std::copysign(world_.field().penalty_width() / 2, wall_pos.y()) +
+                     robot_size + std::copysign(margin_, target_.y());
+    const double theta = target_theta;
+    const Eigen::Vector2d pos(x, y);
+    const Eigen::Vector2d vel =
+        std::min(std::abs(magnification * util::math::wrap_to_pi(target_theta - wall_theta) /
+                          pi<double>()),
+                 limit) *
+        (pos - wall_pos).normalized() * decelation_;
+    const double omega = 4.0 * util::math::wrap_to_pi(theta - robot.theta());
+    command.set_velocity({vel.x(), vel.y(), omega});
+  }
   return command;
 }
 bool guard::finished() const {
-  return flag_;
+  return false;
 }
 } // namespace action
 } // namespace game
