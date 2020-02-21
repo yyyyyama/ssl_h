@@ -60,6 +60,11 @@ void vision::handle_receive(const util::net::multicast::receiver::buffer_t& buff
       last_updated_   = time;
     }
 
+    if (packet.has_detection()) {
+      auto detection = packet.mutable_detection();
+      adjust_detection_timestamps(*detection, time);
+    }
+
     // 成功したら登録された関数を呼び出す
     receive_signal_(packet);
   } else {
@@ -84,6 +89,26 @@ void vision::handle_status_updated(std::uint64_t messages_per_second) {
 void vision::handle_error(const boost::system::error_code& ec) {
   logger_.error(ec.message());
   error_signal_();
+}
+
+void vision::adjust_detection_timestamps(ssl_protos::vision::Frame& detection,
+                                         util::time_point_type time) {
+  constexpr auto den = util::duration_type::period::den;
+  constexpr auto num = util::duration_type::period::num;
+
+  // time を Vision で使われる形式 (double で単位が秒) に変換
+  const auto te = time.time_since_epoch();
+  const auto tt = static_cast<double>(te.count() * num) / den;
+
+  // t_sent と ai-server 側の時刻の差を求める
+  const double d = tt - detection.t_sent();
+
+  // カメラID毎の平均時差を更新する
+  auto& [n, m] = time_diff_map_[detection.camera_id()];
+  m += (d - m) / ++n;
+
+  detection.set_t_capture(detection.t_capture() + m);
+  detection.set_t_sent(detection.t_sent() + m);
 }
 
 } // namespace receiver

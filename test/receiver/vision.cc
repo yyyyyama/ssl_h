@@ -15,6 +15,7 @@
 #include "ai_server/logger/sink/ostream.h"
 #include "ai_server/receiver/vision.h"
 #include "ai_server/util/net/multicast/sender.h"
+#include "ai_server/util/time.h"
 
 using namespace std::chrono_literals;
 using namespace std::string_literals;
@@ -112,8 +113,6 @@ BOOST_AUTO_TEST_CASE(send_and_receive, *boost::unit_test::timeout(30)) {
 
     const auto& d = f.detection();
     BOOST_TEST(d.frame_number() == dummy_frame.frame_number());
-    BOOST_TEST(d.t_capture() == dummy_frame.t_capture());
-    BOOST_TEST(d.t_sent() == dummy_frame.t_sent());
     BOOST_TEST(d.camera_id() == dummy_frame.camera_id());
 
     // 情報が更新されている
@@ -124,6 +123,77 @@ BOOST_AUTO_TEST_CASE(send_and_receive, *boost::unit_test::timeout(30)) {
   // 前回の1秒間に受信したメッセージは1
   std::this_thread::sleep_for(1s);
   BOOST_TEST(v.messages_per_second() == 1);
+
+  // 受信の終了
+  ctx.stop();
+  t.join();
+}
+
+BOOST_AUTO_TEST_CASE(timestamp_adjustment,
+                     *boost::unit_test::timeout(30) * boost::unit_test::tolerance(0.001)) {
+  auto current_time = [] {
+    constexpr auto den = ai_server::util::duration_type::period::den;
+    constexpr auto num = ai_server::util::duration_type::period::num;
+
+    // time を Vision で使われる形式 (double で単位が秒) に変換
+    const auto time = ai_server::util::clock_type::now();
+    const auto te   = time.time_since_epoch();
+    return static_cast<double>(te.count() * num) / den;
+  };
+
+  boost::asio::io_context ctx{};
+
+  // SSL-Vision受信クラスの初期化
+  // listen_addr = 0.0.0.0, multicast_addr = 224.5.23.3, port = 10009
+  vision v{ctx, "0.0.0.0", "224.5.23.3", 10009};
+
+  // 送信クラスの初期化
+  // multicast_addr = 224.5.23.3, port = 10009
+  sender s{ctx, "224.5.23.3", 10009};
+
+  // 受信を開始する
+  auto t = run_io_context_in_new_thread(ctx);
+
+  // 念の為少し待つ
+  std::this_thread::sleep_for(50ms);
+
+  for (auto i = 0u; i < 5; ++i) {
+    for (auto cam_id = 0u; cam_id < 5; ++cam_id) {
+      slot_testing_helper<ssl_protos::vision::Packet> wrapper{&vision::on_receive, v};
+
+      const auto tt = current_time();
+
+      // cam_id 秒の時差があるとする
+      ssl_protos::vision::Packet p{};
+      {
+        auto md = p.mutable_detection();
+        md->set_frame_number(1);
+        md->set_camera_id(cam_id);
+
+        md->set_t_sent(tt + cam_id);
+        md->set_t_capture(tt - 0.5 + cam_id);
+      }
+
+      boost::asio::streambuf buf{};
+      std::ostream os(&buf);
+      p.SerializeToOstream(&os);
+      s.send(buf.data());
+
+      // 受信したデータを取得
+      const auto f = std::get<0>(wrapper.result());
+
+      BOOST_TEST(f.has_detection());
+      BOOST_TEST(!f.has_geometry());
+
+      const auto& d = f.detection();
+      BOOST_TEST(d.camera_id() == cam_id);
+      // 時差が修正されている
+      BOOST_TEST(d.t_sent() == tt);
+      BOOST_TEST(d.t_capture() == tt - 0.5);
+    }
+
+    std::this_thread::sleep_for(50ms);
+  }
 
   // 受信の終了
   ctx.stop();

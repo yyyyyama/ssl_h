@@ -4,6 +4,7 @@
 #include <cstdint>
 #include <string>
 #include <shared_mutex>
+#include <unordered_map>
 
 #include <boost/asio.hpp>
 #include <boost/signals2.hpp>
@@ -15,8 +16,9 @@
 // 前方宣言
 namespace ssl_protos {
 namespace vision {
+class Frame;
 class Packet;
-}
+} // namespace vision
 } // namespace ssl_protos
 
 namespace ai_server {
@@ -77,6 +79,10 @@ private:
   /// @brief receiver_ でエラーが発生したときに呼ばれる関数
   void handle_error(const boost::system::error_code& ec);
 
+  /// @brief t_capture, t_sent を ai-server 基準の値に修正する
+  void adjust_detection_timestamps(ssl_protos::vision::Frame& detection,
+                                   util::time_point_type time);
+
   /// 受信した総メッセージ数
   std::uint64_t total_messages_;
   /// 1秒間に受信したメッセージ数
@@ -85,6 +91,9 @@ private:
   std::uint64_t parse_error_;
   /// 最後にメッセージを受信した日時
   util::time_point_type last_updated_;
+
+  // <カメラ ID, <受信したフレーム数, 時差 + 送受信の時間の平均>
+  std::unordered_map<std::uint32_t, std::tuple<std::uint64_t, double>> time_diff_map_;
 
   receive_signal_type receive_signal_;
   error_signal_type error_signal_;
