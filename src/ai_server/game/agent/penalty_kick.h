@@ -26,7 +26,7 @@ public:
   bool finished();
 
 private:
-  enum class attack_state { wait, kick }; //攻撃の状態
+  enum class attack_state { wait, check, kick }; //攻撃の状態
   attack_state state_;
 
   penalty_mode mode_;
@@ -40,6 +40,8 @@ private:
 
   //敵キーパーの動きを監視して蹴るタイミングを変える
   unsigned int keeper_id_;
+
+  util::time_point_type change_command_time_; // PKの経過時間
 };
 } // namespace agent
 } // namespace game
