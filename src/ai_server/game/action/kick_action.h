@@ -42,13 +42,8 @@ private:
   double margin_;
   model::command::kick_flag_t kick_type_;
   bool finishflag_;
-  bool aroundflag_;
-  bool advanceflag_;
-  double old_ball_x_;
-  double old_ball_y_;
-  bool quick_flag_;
   bool stop_ball_flag_;
-  Eigen::Vector3d sum_;
+  Eigen::Vector2d target_;
 };
 } // namespace action
 } // namespace game
