@@ -18,7 +18,7 @@ kick_off::kick_off(const model::world& world, bool is_yellow, unsigned int kicke
       kick_finished_(false),
       receive_finished_(false),
       move_(std::make_shared<action::move>(world_, is_yellow_, kicker_id_)),
-      kick_(std::make_shared<action::kick_action>(world_, is_yellow_, kicker_id_)),
+      kick_(std::make_shared<action::kick>(world_, is_yellow_, kicker_id_)),
       get_ball_(std::make_shared<action::get_ball>(world_, is_yellow_, kicker_id_)) {}
 
 kick_off::kick_off(const model::world& world, bool is_yellow, unsigned int kicker_id)
@@ -30,7 +30,7 @@ kick_off::kick_off(const model::world& world, bool is_yellow, unsigned int kicke
       kick_finished_(false),
       receive_finished_(true),
       move_(std::make_shared<action::move>(world_, is_yellow_, kicker_id_)),
-      kick_(std::make_shared<action::kick_action>(world_, is_yellow_, kicker_id_)),
+      kick_(std::make_shared<action::kick>(world_, is_yellow_, kicker_id_)),
       get_ball_(std::make_shared<action::get_ball>(world_, is_yellow_, kicker_id_)) {}
 
 void kick_off::set_start_flag(bool start_flag) {
@@ -78,7 +78,7 @@ std::vector<std::shared_ptr<action::base>> kick_off::execute() {
     if (move_finished_ && start_flag_) {
       // StartGameが指定され、所定の位置に移動済みの時
       auto kick_type = std::make_tuple(model::command::kick_type_t::line, 40.0);
-      auto kick_mode = action::kick_action::mode::goal;
+      auto kick_mode = action::kick::mode::goal;
       double kick_to_x;
       double kick_to_y;
 

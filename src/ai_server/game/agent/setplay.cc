@@ -19,7 +19,7 @@ namespace agent {
 setplay::setplay(const model::world& world, bool is_yellow, unsigned int kicker_id,
                  const std::vector<unsigned int>& receiver_ids)
     : base(world, is_yellow), kicker_id_(kicker_id), receiver_ids_(receiver_ids) {
-  kick_                            = make_action<action::kick_action>(kicker_id_);
+  kick_                            = make_action<action::kick>(kicker_id_);
   shooter_id_                      = 0;
   shooter_num_                     = 0;
   receive_                         = make_action<action::receive>(kicker_id_);
@@ -199,7 +199,7 @@ std::vector<std::shared_ptr<action::base>> setplay::execute() {
         const int chose_num = chose_location(positions_, enemy_robots);
         if (shooter_num_ != chose_num && chose_num < receiver_ids_.size()) {
           if ((chose_num + 1) < receiver_ids_.size() / 3 * 2) {
-            kick_        = make_action<action::kick_action>(kicker_id_);
+            kick_        = make_action<action::kick>(kicker_id_);
             shooter_num_ = chose_num;
             shooter_id_  = receiver_ids_[shooter_num_];
             passpos_     = {positions_[shooter_num_].x(), positions_[shooter_num_].y()};
@@ -209,7 +209,7 @@ std::vector<std::shared_ptr<action::base>> setplay::execute() {
         }
       }
       // パスを出す
-      kick_->set_mode(action::kick_action::mode::ball);
+      kick_->set_mode(action::kick::mode::ball);
 
       bool line_flag = true;
 
@@ -248,7 +248,7 @@ std::vector<std::shared_ptr<action::base>> setplay::execute() {
       kick_->set_stop_ball(true);
       auto kick_type =
           line_flag ? model::command::kick_type_t::line : model::command::kick_type_t::chip;
-      if (kick_->state() >= action::kick_action::running_state::round && !movedflag) {
+      if (kick_->state() >= action::kick::running_state::round && !movedflag) {
         kick_type = model::command::kick_type_t::none;
       }
       if (movedflag) {
@@ -294,7 +294,7 @@ std::vector<std::shared_ptr<action::base>> setplay::execute() {
                         vectorangle(ball_pos - receiver_pos));
           baseaction.push_back(move);
         } else {
-          if (kick_->state() == action::kick_action::running_state::kick && mode_ == 1 &&
+          if (kick_->state() == action::kick::running_state::kick && mode_ == 1 &&
               pos_ == pos::far && receive_flag_) {
             receive_->set_passer(kicker_id_);
             receive_->set_dribble(2);
@@ -315,7 +315,7 @@ std::vector<std::shared_ptr<action::base>> setplay::execute() {
                 vectorangle(ball_pos - receiver_pos));
             baseaction.push_back(move);
 
-          } else if (kick_->state() == action::kick_action::running_state::kick && movedflag &&
+          } else if (kick_->state() == action::kick::running_state::kick && movedflag &&
                      mode_ == 0) {
             receive_->set_dribble(9);
             receive_->set_passer(kicker_id_);
@@ -413,7 +413,7 @@ std::vector<std::shared_ptr<action::base>> setplay::execute() {
         const double power     = 255;
         kick_->kick_to(shoot_pos.x(), shoot_pos.y());
         kick_->set_dribble(0);
-        kick_->set_mode(action::kick_action::mode::ball);
+        kick_->set_mode(action::kick::mode::ball);
         kick_->set_angle_margin(0.15);
         kick_->set_kick_type({model::command::kick_type_t::line, power});
         baseaction.push_back(kick_);

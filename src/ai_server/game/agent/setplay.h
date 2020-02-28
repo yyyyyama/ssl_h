@@ -7,7 +7,7 @@
 #include "base.h"
 #include "ai_server/game/action/get_ball.h"
 #include "ai_server/model/world.h"
-#include "ai_server/game/action/kick_action.h"
+#include "ai_server/game/action/kick.h"
 #include "ai_server/game/action/receive.h"
 
 namespace ai_server {
@@ -38,7 +38,7 @@ private:
   unsigned int shooter_id_;
   const std::vector<unsigned int> receiver_ids_;
   Eigen::Vector2d prev_ball_vel_;
-  std::shared_ptr<action::kick_action> kick_;
+  std::shared_ptr<action::kick> kick_;
   std::shared_ptr<action::get_ball> get_ball_;
   std::shared_ptr<action::receive> receive_;
   Eigen::Vector2d passpos_;

@@ -2,12 +2,12 @@
 #include <cmath>
 #include "ai_server/util/math.h"
 #include "ai_server/util/math/to_vector.h"
-#include "kick_action.h"
+#include "kick.h"
 
 namespace ai_server {
 namespace game {
 namespace action {
-kick_action::kick_action(const model::world& world, bool is_yellow, unsigned int id)
+kick::kick(const model::world& world, bool is_yellow, unsigned int id)
     : base(world, is_yellow, id),
       mode_(mode::goal),
       state_(running_state::move),
@@ -16,36 +16,36 @@ kick_action::kick_action(const model::world& world, bool is_yellow, unsigned int
       finishflag_(false),
       stop_ball_flag_(false) {}
 
-void kick_action::kick_to(double x, double y) {
+void kick::kick_to(double x, double y) {
   target_ = Eigen::Vector2d{x, y};
 }
 
-void kick_action::set_kick_type(const model::command::kick_flag_t& kick_type) {
+void kick::set_kick_type(const model::command::kick_flag_t& kick_type) {
   kick_type_ = kick_type;
 }
 
 // 蹴れる位置に移動するときに蹴る目標位置を見ているかボールを見ているか指定する関数
-void kick_action::set_mode(mode mod) {
+void kick::set_mode(mode mod) {
   mode_ = mod;
 }
 
-void kick_action::set_dribble(int dribble) {
+void kick::set_dribble(int dribble) {
   dribble_ = dribble;
 }
 
-void kick_action::set_angle_margin(double margin) {
+void kick::set_angle_margin(double margin) {
   margin_ = margin;
 }
 
-kick_action::running_state kick_action::state() const {
+kick::running_state kick::state() const {
   return state_;
 }
 
-void kick_action::set_stop_ball(bool stop_ball_flag) {
+void kick::set_stop_ball(bool stop_ball_flag) {
   stop_ball_flag_ = stop_ball_flag;
 }
 
-model::command kick_action::execute() {
+model::command kick::execute() {
   using boost::math::constants::pi;
   using boost::math::constants::two_pi;
 
@@ -71,7 +71,7 @@ model::command kick_action::execute() {
   const bool kick_flag_tf    = std::get<0>(kick_type_) != model::command::kick_type_t::none;
 
   if ((ball_vel.norm() > kick_decision) || finishflag_) {
-    // executeが呼ばれる間の時間でボールが一定以上移動していたら蹴ったと判定
+    // executeが呼ばれる間の時間でボールが一定以上移動をしていたら蹴ったと判定
     command.set_velocity({0, 0, 0});
     finishflag_ = true;
     return command;
@@ -134,7 +134,7 @@ model::command kick_action::execute() {
   }
   return command;
 }
-bool kick_action::finished() const {
+bool kick::finished() const {
   return finishflag_;
 }
 } // namespace action

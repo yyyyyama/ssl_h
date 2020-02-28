@@ -2,7 +2,7 @@
 #define AI_SERVER_GAME_AGENT_KICK_OFF_H
 
 #include "base.h"
-#include "ai_server/game/action/kick_action.h"
+#include "ai_server/game/action/kick.h"
 #include "ai_server/game/action/move.h"
 #include "ai_server/game/action/no_operation.h"
 #include "ai_server/game/action/receive.h"
@@ -43,7 +43,7 @@ private:
 
   // action
   std::shared_ptr<action::move> move_;
-  std::shared_ptr<action::kick_action> kick_;
+  std::shared_ptr<action::kick> kick_;
   std::shared_ptr<action::get_ball> get_ball_;
   std::shared_ptr<action::receive> receive_;
 };

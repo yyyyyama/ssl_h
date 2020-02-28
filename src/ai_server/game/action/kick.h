@@ -1,5 +1,5 @@
-#ifndef AI_SERVER_GAME_ACTION_KICK_ACTION_H
-#define AI_SERVER_GAME_ACTION_KICK_ACTION_H
+#ifndef AI_SERVER_GAME_ACTION_KICK_H
+#define AI_SERVER_GAME_ACTION_KICK_H
 
 #include "ai_server/model/command.h"
 #include "base.h"
@@ -10,9 +10,9 @@ namespace ai_server {
 namespace game {
 namespace action {
 
-class kick_action : public base {
+class kick : public base {
 public:
-  kick_action(const model::world& world, bool is_yellow, unsigned int id);
+  kick(const model::world& world, bool is_yellow, unsigned int id);
 
   enum class mode { goal, ball };
   enum class running_state { move, round, kick };
