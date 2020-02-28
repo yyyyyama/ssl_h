@@ -85,7 +85,7 @@ model::command kick_action::execute() {
       if ((ball_pos - robot_pos).norm() < dist) {
         state_ = running_state::round;
       }
-      if (std::abs(util::wrap_to_pi(ball_target - robot_ball)) < margin_) {
+      if (std::abs(util::math::wrap_to_pi(ball_target - robot_ball)) < margin_) {
         state_ = running_state::kick;
       }
       //ボールのそばによる処理
@@ -99,12 +99,13 @@ model::command kick_action::execute() {
       if ((ball_pos - robot_pos).norm() > 1.5 * dist) {
         state_ = running_state::move;
       }
-      if (std::abs(util::wrap_to_pi(ball_target - robot_ball)) < margin_) {
+      if (std::abs(util::math::wrap_to_pi(ball_target - robot_ball)) < margin_) {
         state_ = running_state::kick;
       }
       //回りこみ処理
       const double velo =
-          (util::wrap_to_pi(ball_target + pi<double>() - ball_robot) / pi<double>()) * 1500;
+          (util::math::wrap_to_pi(ball_target + pi<double>() - ball_robot) / pi<double>()) *
+          1500;
       const double si = -std::sin(ball_robot) * velo;
       const double co = std::cos(ball_robot) * velo;
       command.set_velocity(
@@ -112,7 +113,7 @@ model::command kick_action::execute() {
     } break;
 
     case running_state::kick: { //キックの状態
-      if (std::abs(util::wrap_to_pi(ball_target - robot_ball)) > 1.5 * margin_) {
+      if (std::abs(util::math::wrap_to_pi(ball_target - robot_ball)) > 1.5 * margin_) {
         state_ = running_state::round;
       }
       if ((ball_pos - robot_pos).norm() > 1.5 * dist) {
@@ -122,7 +123,8 @@ model::command kick_action::execute() {
       command.set_kick_flag(kick_type_);
       command.set_dribble(dribble_);
       const double velo =
-          (util::wrap_to_pi(ball_target + pi<double>() - ball_robot) / pi<double>()) * 1500;
+          (util::math::wrap_to_pi(ball_target + pi<double>() - ball_robot) / pi<double>()) *
+          1500;
       const double si = -std::sin(ball_robot) * velo;
       const double co = std::cos(ball_robot) * velo;
       const double move_vel =

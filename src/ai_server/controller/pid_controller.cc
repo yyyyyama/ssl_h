@@ -60,10 +60,10 @@ velocity_t pid_controller::update(const model::robot& robot,
   position_t ep;
   ep.x     = setpoint.x - robot_.x();
   ep.y     = setpoint.y - robot_.y();
-  ep.theta = util::wrap_to_pi(setpoint.theta - robot_.theta());
+  ep.theta = util::math::wrap_to_pi(setpoint.theta - robot_.theta());
 
   double speed     = std::hypot(ep.x, ep.y);
-  double direction = util::wrap_to_pi(std::atan2(ep.y, ep.x) - robot_.theta());
+  double direction = util::math::wrap_to_pi(std::atan2(ep.y, ep.x) - robot_.theta());
   e_[0].vx         = speed * std::cos(direction);
   e_[0].vy         = speed * std::sin(direction);
   e_[0].omega      = ep.theta;

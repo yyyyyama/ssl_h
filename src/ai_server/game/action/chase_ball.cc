@@ -69,9 +69,9 @@ model::command chase_ball::execute() {
     sub_count_ = 0;
     init_flag_ = true;
 
-    if (std::abs(util::wrap_to_pi(v1_theta - v2_theta)) > half_pi<double>()) {
+    if (std::abs(util::math::wrap_to_pi(v1_theta - v2_theta)) > half_pi<double>()) {
       wrap_flag_ = true;
-      if (util::wrap_to_pi(v1_theta - v2_theta) < 0) {
+      if (util::math::wrap_to_pi(v1_theta - v2_theta) < 0) {
         sign_flag_ = true;
       }
     }
@@ -83,7 +83,8 @@ model::command chase_ball::execute() {
   // mode::wait_ballの選択
   if (mode_ == mode::wait_ball) {
     if (std::hypot(ball_vx, ball_vy) < 300 ||
-        std::abs(util::wrap_to_pi(pi<double>() + v1_theta - std::atan2(ball_vy, ball_vx))) >
+        std::abs(
+            util::math::wrap_to_pi(pi<double>() + v1_theta - std::atan2(ball_vy, ball_vx))) >
             90 * pi<double>() / 180) { // 角度の変更が出来るようにhalf_piを使っていない
       mode_      = mode::move_to_ball;
       init_flag_ = false;
@@ -91,7 +92,8 @@ model::command chase_ball::execute() {
     }
   } else {
     if (std::hypot(ball_vx, ball_vy) >= 1000) {
-      if (std::abs(util::wrap_to_pi(pi<double>() + v1_theta - std::atan2(ball_vy, ball_vx))) <
+      if (std::abs(
+              util::math::wrap_to_pi(pi<double>() + v1_theta - std::atan2(ball_vy, ball_vx))) <
           30 * pi<double>() / 180) {
         mode_       = mode::wait_ball;
         start_dist_ = dist;
@@ -137,8 +139,8 @@ model::command chase_ball::execute() {
   double dist2 = std::hypot(my_pos.x - second_pos.x, my_pos.y - second_pos.y);
 
   // 回転角度
-  double move_angle = util::wrap_to_pi(first_pos.theta - my_pos.theta);
-  double wrap_angle = util::wrap_to_pi(second_pos.theta - my_pos.theta);
+  double move_angle = util::math::wrap_to_pi(first_pos.theta - my_pos.theta);
+  double wrap_angle = util::math::wrap_to_pi(second_pos.theta - my_pos.theta);
 
   switch (mode_) {
     // first_posに移動

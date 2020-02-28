@@ -74,8 +74,8 @@ std::vector<std::shared_ptr<action::base>> setplay::execute() {
     Eigen::Vector2d shooter_pos = util::math::position(our_robots.at(shooter_id_));
 
     if (!receiver_ids_.empty() &&
-        std::abs(util::wrap_to_pi(vectorangle(ball_pos - kicker_pos) -
-                                  vectorangle(shooter_pos - kicker_pos))) > 0.8) {
+        std::abs(util::math::wrap_to_pi(vectorangle(ball_pos - kicker_pos) -
+                                        vectorangle(shooter_pos - kicker_pos))) > 0.8) {
       state_ = state::finished;
     }
     if ((shooter_pos - ball_pos).norm() < 500)
