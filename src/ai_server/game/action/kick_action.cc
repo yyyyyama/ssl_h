@@ -54,7 +54,6 @@ model::command kick_action::execute() {
   const Eigen::Vector2d robot_pos = util::math::position(robot_me);
   const Eigen::Vector2d ball_pos  = util::math::position(world_.ball());
   const Eigen::Vector2d ball_vel  = util::math::velocity(world_.ball());
-  const double robot_theta        = robot_me.theta();
   //ボールから目標
   const double ball_target = std::atan2(target_.y() - ball_pos.y(), target_.x() - ball_pos.x());
   //ボールからロボット
@@ -75,7 +74,6 @@ model::command kick_action::execute() {
     // executeが呼ばれる間の時間でボールが一定以上移動していたら蹴ったと判定
     command.set_velocity({0, 0, 0});
     finishflag_ = true;
-    state_      = running_state::finished;
     return command;
   }
 

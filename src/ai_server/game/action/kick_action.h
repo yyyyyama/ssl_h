@@ -15,7 +15,7 @@ public:
   kick_action(const model::world& world, bool is_yellow, unsigned int id);
 
   enum class mode { goal, ball };
-  enum class running_state { move, round, kick, finished };
+  enum class running_state { move, round, kick };
 
   void kick_to(double x, double y);
 
@@ -36,8 +36,6 @@ public:
 private:
   mode mode_;
   running_state state_;
-  double x_;
-  double y_;
   int dribble_;
   double margin_;
   model::command::kick_flag_t kick_type_;
