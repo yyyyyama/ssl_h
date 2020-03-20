@@ -49,7 +49,7 @@ if(build_success)
 
     if(libnbla_cli AND "CLI" IN_LIST NNabla_FIND_COMPONENTS)
       set(NNabla_CLI_FOUND TRUE)
-      set(NNabla_CLI_LIB   ${libnnabla_utils})
+      set(NNabla_CLI_LIB   ${libnbla_cli})
       list(APPEND NNabla_LIBRARIES   ${libnbla_cli})
       list(APPEND NNabla_INCLUDE_DIR ${nbla_cli_dir})
     endif()
