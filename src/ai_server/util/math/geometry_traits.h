@@ -1,11 +1,16 @@
 #ifndef AI_SERVER_UTIL_MATH_GEOMETRY_TRAITS_H
 #define AI_SERVER_UTIL_MATH_GEOMETRY_TRAITS_H
 
-#include <boost/geometry/geometry.hpp>
+#include <cstddef>
+// boost/geometry/algorithms/* が使えるようにする
+#include <boost/geometry/strategies/strategies.hpp>
 #include <Eigen/Core>
-#include <Eigen/Geometry>
 
-// Eigen::Matrix<T, DimensionCount, 1>を、boost::geometory::model::pointとして使えるようにする
+// Eigen::Matrix<T, DimensionCount, 1> を
+// boost::geometory::model::point<T , DimensionCount, cs::cartesian> と同等に扱えるようにする
+
+// 参考: boost/geometry/geometries/register/point.hpp
+
 namespace boost::geometry::traits {
 
 template <class T, int DimensionCount>
@@ -28,12 +33,14 @@ struct dimension<Eigen::Matrix<T, DimensionCount, 1>> : boost::mpl::int_<Dimensi
 
 template <class T, int DimensionCount, std::size_t CoordinateAxis>
 struct access<Eigen::Matrix<T, DimensionCount, 1>, CoordinateAxis> {
-  static T get(const Eigen::Matrix<T, DimensionCount, 1>& p) {
-    return p(CoordinateAxis);
+  static_assert(CoordinateAxis < DimensionCount);
+
+  static inline T get(const Eigen::Matrix<T, DimensionCount, 1>& p) {
+    return p.coeff(CoordinateAxis);
   }
 
-  static void set(Eigen::Matrix<T, DimensionCount, 1>& p, T value) {
-    p(CoordinateAxis) = value;
+  static inline void set(Eigen::Matrix<T, DimensionCount, 1>& p, T value) {
+    p.coeffRef(CoordinateAxis) = value;
   }
 };
 } // namespace boost::geometry::traits
