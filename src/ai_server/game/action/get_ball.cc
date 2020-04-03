@@ -125,17 +125,19 @@ model::command get_ball::execute() {
 
       // 障害物設定
       planner::rrt_star rrt(world_);
-      {
-        const planner::position_t robot_p{robot_pos.x(), robot_pos.y(), robot.theta()};
-        const planner::position_t target_p{tar.x(), tar.y(), theta};
-        std::vector<planner::rrt_star::object> objs;
-        for (const auto& r : enemy_robots)
-          objs.emplace_back(util::math::position(r.second), obs_robot_rad);
-        rrt.set_obstacles(objs);
-        rrt.search(robot_p, target_p);
+      const planner::position_t robot_p{robot_pos.x(), robot_pos.y(), robot.theta()};
+      const planner::position_t target_p{tar.x(), tar.y(), theta};
+      planner::obstacle_list obstacles;
+      for (const auto& r : enemy_robots) {
+        obstacles.add(model::obstacle::point{util::math::position(r.second), obs_robot_rad});
       }
+
+      const auto plan        = rrt.planner();
+      const auto plan_result = plan(robot_p, target_p, obstacles);
+
       const Eigen::Vector2d final_vel =
-          vel.norm() * (util::math::position(rrt.target()) - robot_pos).normalized();
+          vel.norm() *
+          (util::math::position(std::get<0>(plan_result)) - robot_pos).normalized();
       command.set_velocity({final_vel.x(), final_vel.y(), omega});
       break;
     }
@@ -167,19 +169,25 @@ model::command get_ball::execute() {
 
       // 障害物設定
       planner::rrt_star rrt(world_);
-      {
-        const planner::position_t robot_p{robot_pos.x(), robot_pos.y(), robot.theta()};
-        const planner::position_t target_p{tar.x(), tar.y(), theta};
-        std::vector<planner::rrt_star::object> objs;
-        for (const auto& r : our_robots)
-          if (r.first != id_) objs.emplace_back(util::math::position(r.second), obs_robot_rad);
-        for (const auto& r : enemy_robots)
-          objs.emplace_back(util::math::position(r.second), battle_flag ? 80.0 : obs_robot_rad);
-        rrt.set_obstacles(objs);
-        rrt.search(robot_p, target_p);
+      const planner::position_t robot_p{robot_pos.x(), robot_pos.y(), robot.theta()};
+      const planner::position_t target_p{tar.x(), tar.y(), theta};
+
+      planner::obstacle_list obstacles;
+      for (const auto& r : our_robots) {
+        if (r.first != id_)
+          obstacles.add(model::obstacle::point{util::math::position(r.second), obs_robot_rad});
       }
+      for (const auto& r : enemy_robots) {
+        obstacles.add(model::obstacle::point{util::math::position(r.second),
+                                             battle_flag ? 80.0 : obs_robot_rad});
+      }
+
+      const auto plan        = rrt.planner();
+      const auto plan_result = plan(robot_p, target_p, obstacles);
+
       const Eigen::Vector2d final_vel =
-          vel.norm() * (util::math::position(rrt.target()) - robot_pos).normalized();
+          vel.norm() *
+          (util::math::position(std::get<0>(plan_result)) - robot_pos).normalized();
       command.set_velocity({final_vel.x(), final_vel.y(), omega});
     }
   }

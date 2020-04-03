@@ -1,179 +1,33 @@
 #ifndef AI_SERVER_PLANNER_RRT_STAR_H
 #define AI_SERVER_PLANNER_RRT_STAR_H
 
-#include <algorithm>
-#include <limits>
-#include <memory>
-#include <optional>
-#include <queue>
-#include <vector>
-#include <boost/geometry/geometry.hpp>
-#include <boost/geometry/geometries/segment.hpp>
-#include <boost/geometry/geometries/polygon.hpp>
-#include <boost/geometry/geometries/point_xy.hpp>
-#include <boost/geometry/index/rtree.hpp>
-#include <boost/random.hpp>
-#include <Eigen/Core>
-#include <Eigen/Geometry>
-
-#include "ai_server/model/command.h"
 #include "ai_server/model/world.h"
-#include "ai_server/planner/base.h"
-#include "ai_server/util/math/geometry_traits.h"
+#include "base.h"
 
-namespace ai_server {
-namespace planner {
+namespace ai_server::planner {
 class rrt_star : public base {
-  using double_limits = std::numeric_limits<double>;
-
 public:
   rrt_star(const model::world& world);
 
-  // 節点
-  struct node {
-    Eigen::Vector2d position;   // 座標
-    double cost;                // 親ノードまでに必要なコスト
-    std::weak_ptr<node> parent; // 親ノードを指すポインタ
+  /// @brief ノードを作る回数を設定する
+  /// @param count 設定値．
+  void set_node_count(int count);
 
-    node(const Eigen::Vector2d& pos, double c, const std::shared_ptr<node>& ptr);
-  };
+  /// @brief 伸ばす枝の最大距離を設定する
+  /// @param length 設定値．
+  void set_max_branch_length(double length);
 
-  // 障害物(一定の半径を持つ円)
-  struct object {
-    Eigen::Vector2d position; // 座標
-    double r;                 // 物体の半径
-
-    object(const Eigen::Vector2d& pos, double radius);
-  };
-
-  // 障害物(一定の太さを持つ線分)
-  struct line {
-    boost::geometry::model::segment<Eigen::Vector2d> center_line; // 中心線
-    double r;                                                     // 中心線を覆う半径
-
-    line(const boost::geometry::model::segment<Eigen::Vector2d>& center, double radius);
-  };
-
-  /// @brief  障害物(一定の半径を持つ円)の任意指定
-  /// @param  obstacles 障害物(struct object)のvector
-  void set_obstacles(const std::vector<object>& obstacles);
-
-  /// @brief  障害物(一定の太さを持つ線分)の任意指定
-  /// @param  first_point 線分の点1
-  /// @param  second_point 線分の点2
-  /// @param  radius 線分の太さを表す半径
-  void set_lines(const Eigen::Vector2d& first_point, const Eigen::Vector2d& second_point,
-                 double radius);
-
-  /// @brief  探索関数(木の生成)
-  /// @param  start 初期位置
-  /// @param  goal  目標位置
-  /// @param  max_pos 探索最大座標
-  /// @param  min_pos 探索最小座標
-  /// @param  search_num  探索を行う回数
-  /// @param  max_branch_length 伸ばす枝の最大距離
-  /// @param  margin  避けるときのマージン
-  void search(const position_t& start, const position_t& goal,
-              const Eigen::Vector2d& max_pos = {double_limits::max(), double_limits::max()},
-              const Eigen::Vector2d& min_pos = {double_limits::lowest(),
-                                                double_limits::lowest()},
-              const int search_num = 10, const double max_branch_length = 300.0,
-              const double margin = 120.0);
+  base::planner_type planner() override;
 
 private:
-  using point_t = Eigen::Vector2d;
-  using box_t   = boost::geometry::model::box<point_t>;
-  using line_t  = boost::geometry::model::segment<point_t>;
-  using tree_t =
-      boost::geometry::index::rtree<std::shared_ptr<node>, boost::geometry::index::rstar<20>>;
-  // objectと，それを近似したboxで表現
-  using obstacles_tree_t = boost::geometry::index::rtree<std::pair<box_t, object>,
-                                                         boost::geometry::index::rstar<20>>;
-
   const model::world& world_;
-  // サンプル取得時用の乱数生成器(処理速度が優れているため，boostのものを使用)
-  mutable boost::random::mt19937 mt_;
 
-  // フィールド
-  box_t game_area_;
-  // 敵のペナルティエリア
-  box_t enemy_penalty_area_;
-  // 自分のペナルティエリア
-  box_t my_penalty_area_;
-  // 障害物(一定の半径を持つ円)
-  obstacles_tree_t obstacles_;
-  // 障害物(一定の太さを持つ線分)
-  std::vector<line> lines_;
-  // あるループで生成された最適なルート木，次ループで優先して探索
-  std::queue<Eigen::Vector2d> priority_points_;
+  // 探索を行う回数
+  int node_count_;
 
-  /// @brief  フィールド情報を更新する
-  void update_field();
-
-  /// @brief  障害物(一定の半径を持つ円)が存在するか
-  /// @param  geometry 図形
-  /// @param  margin  避けるときのマージン
-  template <class Geometry>
-  auto is_obstructed(const Geometry& geometry, const double margin) const
-      -> decltype(boost::geometry::distance(point_t(), geometry), bool()) {
-    // 図形を包括するエリア
-    auto area = boost::geometry::return_envelope<box_t>(geometry);
-    // マージン分拡大
-    area.min_corner() -= margin * Eigen::Vector2d::Ones();
-    area.max_corner() += margin * Eigen::Vector2d::Ones();
-
-    // 先に範囲を限定する
-    const auto itr = obstacles_.qbegin(boost::geometry::index::intersects(area));
-
-    return std::any_of(itr, obstacles_.qend(), [this, margin, &geometry](const auto& a) {
-      const auto& obj = std::get<1>(a);
-      // 詳しく調べる
-      return boost::geometry::distance(obj.position, geometry) < margin + obj.r;
-    });
-  }
-
-  /// @brief  障害物(一定の太さを持つ線分)が存在するか
-  /// @param  geometry 図形
-  /// @param  margin  避けるときのマージン
-  template <class Geometry>
-  auto is_lined(const Geometry& geometry, const double margin) const
-      -> decltype(boost::geometry::distance(geometry, line_t()), bool()) {
-    return std::any_of(lines_.begin(), lines_.end(), [this, margin, &geometry](const auto& a) {
-      return boost::geometry::distance(geometry, a.center_line) < margin + a.r;
-    });
-  }
-
-  /// @brief  ペナルティエリア内か
-  /// @param  geometry 図形
-  /// @param  margin  避けるときのマージン
-  template <class Geometry>
-  auto in_penalty(const Geometry& geometry) const
-      -> decltype(boost::geometry::distance(geometry, box_t()), bool()) {
-    constexpr double margin = 150.0;
-    return boost::geometry::distance(geometry, my_penalty_area_) < margin ||
-           boost::geometry::distance(geometry, enemy_penalty_area_) < margin;
-  }
-
-  /// @brief  障害物から離れる必要がある時，移動先を求める
-  /// @param  start   初期位置
-  /// @param  goal    目標位置
-  /// @param  margin  障害物までのマージン
-  /// @param  d       初期位置から移動先までの距離
-  std::optional<Eigen::Vector2d> exit_position(const Eigen::Vector2d& start,
-                                               const Eigen::Vector2d& goal, double margin,
-                                               double d) const;
-
-  /// @brief  あるエリアの範囲内で新規のノードを作成する
-  /// @param  goal               最終目的地
-  /// @param  margin  避けるときのマージン
-  /// @param  max_branch_length  ノード間長さの最大値
-  ///  @param area               有効なエリア
-  /// @param  tree               探索木
-  std::shared_ptr<node> make_node(const Eigen::Vector2d& goal, double margin,
-                                  double max_branch_length, const box_t& area,
-                                  const tree_t& tree);
+  // 伸ばす枝の最大距離
+  double max_branch_length_;
 };
-} // namespace planner
-} // namespace ai_server
+} // namespace ai_server::planner
 
 #endif // AI_SERVER_PLANNER_RRT_STAR_H

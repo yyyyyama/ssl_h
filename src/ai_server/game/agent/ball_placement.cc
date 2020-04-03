@@ -208,27 +208,28 @@ std::vector<std::shared_ptr<action::base>> ball_placement::execute() {
       // 待機する
       std::unique_ptr<planner::rrt_star> rrt = std::make_unique<planner::rrt_star>(world_);
       {
-        const planner::position_t robot_pos3{robot_pos.x(), robot_pos.y(), 0.0};
-        const planner::position_t target_pos3{target_pos.x(), target_pos.y(), theta};
-        std::vector<planner::rrt_star::object> objs;
+        planner::obstacle_list obstacles;
         for (const auto& oid : our_ids) {
           if (oid != id && our_robots.count(oid))
-            objs.emplace_back(util::math::position(our_robots.at(oid)), 200.0);
+            obstacles.add(
+                model::obstacle::point{util::math::position(our_robots.at(oid)), 200.0});
         }
         for (const auto& eid : ene_ids) {
           if (ene_robots.count(eid))
-            objs.emplace_back(util::math::position(ene_robots.at(eid)), 200.0);
+            obstacles.add(
+                model::obstacle::point{util::math::position(ene_robots.at(eid)), 200.0});
         }
-        rrt->set_obstacles(objs);
-        if (!is_receiver) rrt->set_lines(abp_target_, ball_pos, 500.0);
-        rrt->search(robot_pos3, target_pos3,
-                    Eigen::Vector2d(std::numeric_limits<double>::max(),
-                                    std::numeric_limits<double>::max()),
-                    Eigen::Vector2d(std::numeric_limits<double>::lowest(),
-                                    std::numeric_limits<double>::lowest()),
-                    10, 50.0, 0.0);
+
+        if (!is_receiver) {
+          obstacles.add(model::obstacle::segment{{abp_target_, ball_pos}, 500.0});
+        }
+
+        rrt->set_margin(0.0);
+        rrt->set_node_count(10);
+        rrt->set_max_branch_length(50.0);
       }
       move_[id]->set_path_planner(std::move(rrt));
+      // TODO: actionに障害物リストを渡す
       move_[id]->move_to(target_pos, theta);
       baseaction.push_back(move_[id]);
       count++;

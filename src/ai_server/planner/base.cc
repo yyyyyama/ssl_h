@@ -1,19 +1,26 @@
+#include <limits>
 #include "base.h"
 
-namespace ai_server {
-namespace planner {
+namespace ai_server::planner {
 
-base::base() {}
+using double_limits = std::numeric_limits<double>;
+
+base::base()
+    : max_pos_(double_limits::max(), double_limits::max()),
+      min_pos_(double_limits::lowest(), double_limits::lowest()),
+      margin_(120.0) {}
 
 base::~base() {}
 
-position_t base::target() {
-  return target_;
+void base::set_max_pos(const Eigen::Vector2d& max_p) {
+  max_pos_ = max_p;
 }
 
-double base::trajectory_length() {
-  return trajectory_length_;
+void base::set_min_pos(const Eigen::Vector2d& min_p) {
+  min_pos_ = min_p;
 }
 
-} // namespace planner
-} // namespace ai_server
+void base::set_margin(double m) {
+  margin_ = m;
+}
+} // namespace ai_server::planner
