@@ -3,6 +3,7 @@
 #include <boost/math/constants/constants.hpp>
 
 #include "ai_server/game/action/move.h"
+#include "ai_server/model/obstacle/field.h"
 #include "ai_server/planner/rrt_star.h"
 #include "ai_server/util/math/angle.h"
 #include "ai_server/util/math/to_vector.h"
@@ -83,6 +84,8 @@ std::vector<std::shared_ptr<action::base>> stopgame::execute() {
       common_obstacles.add(model::obstacle::point{util::math::position(ene.second), 300.0});
     }
     common_obstacles.add(model::obstacle::point{ball_pos, margin});
+    common_obstacles.add(model::obstacle::enemy_penalty_area(world_.field(), 150.0));
+    common_obstacles.add(model::obstacle::our_penalty_area(world_.field(), 150.0));
   }
   for (auto id : visible_ids) {
     const Eigen::Vector2d robot_pos = util::math::position(our_robots.at(id));

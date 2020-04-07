@@ -1,6 +1,7 @@
 #include <cmath>
 #include <limits>
 #include <random>
+#include <boost/geometry/algorithms/centroid.hpp>
 #include <boost/geometry/algorithms/intersection.hpp>
 #include "ai_server/planner/detail/collision.h"
 #include "ai_server/util/math/geometry.h"
@@ -109,12 +110,9 @@ rrt_star::result_type rrt_star::execute(const position_t& start, const position_
     tree.query(boost::geometry::index::within(around) &&
                    boost::geometry::index::satisfies(
                        [this, &obstacles, &np = new_node->position, r](const auto& a) {
-                         if ((a->position - np).norm() < r) {
-                           const line_t line{a->position, np};
-                           return !detail::is_collided(line, obstacles, margin_) &&
-                                  !in_penalty(line);
-                         }
-                         return false;
+                         return (a->position - np).norm() < r &&
+                                !detail::is_collided(line_t{a->position, np}, obstacles,
+                                                     margin_);
                        }),
                std::back_inserter(list));
 
@@ -167,10 +165,8 @@ rrt_star::result_type rrt_star::execute(const position_t& start, const position_
       // それぞれのノード間の距離を積分
       trajectory_length += (p - n.lock()->parent.lock()->position).norm();
 
-      const line_t line{start_pos, p};
-
       // スタート地点とノード間に障害物が無くなったとき
-      if (!detail::is_collided(line, obstacles, margin_) && !in_penalty(line)) {
+      if (!detail::is_collided(line_t{start_pos, p}, obstacles, margin_)) {
         // スタート地点とノード間の距離を加算
         trajectory_length += (p - start_pos).norm();
 
@@ -191,16 +187,8 @@ void rrt_star::update_field() {
 
   const auto field = world_.field();
 
-  const double p_length     = field.penalty_length();
-  const double p_half_width = field.penalty_width() / 2.0;
-
   game_area_ = {{field.x_min() - f_margin, field.y_min() - f_margin},
                 {field.x_max() + f_margin, field.y_max() + f_margin}};
-
-  my_penalty_area_ = {{field.x_min(), -p_half_width}, {field.x_min() + p_length, p_half_width}};
-
-  enemy_penalty_area_ = {{field.x_max() - p_length, -p_half_width},
-                         {field.x_max(), p_half_width}};
 }
 
 std::optional<Eigen::Vector2d> rrt_star::exit_position(
@@ -210,8 +198,8 @@ std::optional<Eigen::Vector2d> rrt_star::exit_position(
 
   // 衝突する障害物がない
   if (collided_itr == obstacles.qend()) {
-    // field外かペナルティエリア内のとき
-    if (in_penalty(start) || !boost::geometry::within(start, game_area_)) {
+    // field外のとき
+    if (!boost::geometry::within(start, game_area_)) {
       return Eigen::Vector2d::Zero();
     }
 
@@ -294,6 +282,18 @@ std::optional<Eigen::Vector2d> rrt_star::exit_position(
       return (a - goal).norm() < (b - goal).norm();
     });
   }
+  // boxのとき
+  else if (const auto box = std::get_if<model::obstacle::box>(&obstacle)) {
+    // 近似Boxがフィールドの端に触れる
+    if (!boost::geometry::within(std::get<0>(nearest), game_area_)) {
+      // フィールドの中心へ
+      return boost::geometry::return_centroid<point_t>(game_area_);
+    }
+    // 障害物の中心点
+    const auto center = boost::geometry::return_centroid<point_t>(box->geometry);
+    // boxの中心から離れる
+    return start + d * (start - center).normalized();
+  }
 
   // エラー
   return std::nullopt;
@@ -348,7 +348,7 @@ std::shared_ptr<rrt_star::node> rrt_star::make_node(const Eigen::Vector2d& goal,
       // 最も近い点から一定距離を置いて点を打ち、コースに障害物がないことを確認
       const auto new_p = to_new_p((*nearest_node)->position, sample);
 
-      if (!detail::is_collided(new_p, obstacles, margin) && !in_penalty(new_p) &&
+      if (!detail::is_collided(new_p, obstacles, margin) &&
           boost::geometry::within(new_p, area)) {
         return std::make_shared<node>(
             new_p, (*nearest_node)->cost + (new_p - (*nearest_node)->position).norm(),

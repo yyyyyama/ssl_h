@@ -81,27 +81,12 @@ private:
 
   // フィールド
   detail::envelope_type game_area_;
-  // 敵のペナルティエリア
-  box_t enemy_penalty_area_;
-  // 自分のペナルティエリア
-  box_t my_penalty_area_;
 
   // あるループで生成された最適なルート木，次ループで優先して探索
   std::queue<Eigen::Vector2d> priority_points_;
 
   /// @brief  フィールド情報を更新する
   void update_field();
-
-  /// @brief  ペナルティエリア内か
-  /// @param  geometry 図形
-  /// @param  margin  避けるときのマージン
-  template <class Geometry>
-  auto in_penalty(const Geometry& geometry) const
-      -> decltype(boost::geometry::distance(geometry, box_t()), bool()) {
-    constexpr double margin = 150.0;
-    return boost::geometry::distance(geometry, my_penalty_area_) < margin ||
-           boost::geometry::distance(geometry, enemy_penalty_area_) < margin;
-  }
 
   /// @brief  障害物から離れる必要がある時，移動先を求める
   /// @param  start   初期位置

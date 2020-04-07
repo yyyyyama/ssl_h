@@ -8,6 +8,7 @@
 #include "ai_server/game/action/move.h"
 #include "ai_server/game/action/no_operation.h"
 #include "ai_server/game/action/vec.h"
+#include "ai_server/model/obstacle/field.h"
 #include "ai_server/planner/rrt_star.h"
 #include "ai_server/util/math/angle.h"
 #include "ai_server/util/math/to_vector.h"
@@ -209,6 +210,9 @@ std::vector<std::shared_ptr<action::base>> ball_placement::execute() {
       std::unique_ptr<planner::rrt_star> rrt = std::make_unique<planner::rrt_star>(world_);
       {
         planner::obstacle_list obstacles;
+        obstacles.add(model::obstacle::enemy_penalty_area(wf, 150.0));
+        obstacles.add(model::obstacle::our_penalty_area(wf, 150.0));
+
         for (const auto& oid : our_ids) {
           if (oid != id && our_robots.count(oid))
             obstacles.add(

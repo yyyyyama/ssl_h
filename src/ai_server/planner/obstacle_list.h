@@ -10,6 +10,7 @@
 #include <boost/geometry/index/rtree.hpp>
 #include <Eigen/Core>
 
+#include "ai_server/model/obstacle/box.h"
 #include "ai_server/model/obstacle/point.h"
 #include "ai_server/model/obstacle/segment.h"
 #include "detail/geometry_helper.h"
@@ -18,7 +19,8 @@
 namespace ai_server::planner {
 class obstacle_list {
 public:
-  using tree_type    = detail::tree_type<model::obstacle::point, model::obstacle::segment>;
+  using tree_type =
+      detail::tree_type<model::obstacle::point, model::obstacle::segment, model::obstacle::box>;
   using element_type = typename tree_type::value_type;
   // std::variant<ObstacleTypes...>
   using obstacle_type = typename element_type::second_type;
