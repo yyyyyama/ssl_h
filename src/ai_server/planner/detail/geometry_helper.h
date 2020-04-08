@@ -1,6 +1,7 @@
 #ifndef AI_SERVER_PLANNER_DETAIL_GEOMETRY_HELPER_H
 #define AI_SERVER_PLANNER_DETAIL_GEOMETRY_HELPER_H
 
+#include <boost/geometry/algorithms/buffer.hpp>
 #include <boost/geometry/algorithms/envelope.hpp>
 #include <boost/geometry/geometries/box.hpp>
 #include <Eigen/Core>
@@ -25,11 +26,9 @@ inline auto to_envelope(const Geometry& g) {
 template <class Geometry>
 inline auto to_envelope(const Geometry& g, double margin) {
   // 図形を包括するエリア
-  auto env = boost::geometry::return_envelope<envelope_type>(g);
-  // マージン分拡大
-  env.min_corner() -= margin * Eigen::Vector2d::Ones();
-  env.max_corner() += margin * Eigen::Vector2d::Ones();
-  return env;
+  const auto env = boost::geometry::return_envelope<envelope_type>(g);
+  // マージン分拡大して返す
+  return boost::geometry::return_buffer<envelope_type>(env, margin);
 }
 } // namespace ai_server::planner::detail
 
