@@ -3,8 +3,7 @@
 
 namespace ai_server::planner {
 
-rrt_star::rrt_star(const model::world& world)
-    : world_(world), node_count_(10), max_branch_length_(300.0) {}
+rrt_star::rrt_star() : node_count_(10), max_branch_length_(300.0) {}
 
 void rrt_star::set_node_count(int count) {
   node_count_ = count;
@@ -16,7 +15,7 @@ void rrt_star::set_max_branch_length(double length) {
 
 base::planner_type rrt_star::planner() {
   return [this](const position_t& start, const position_t& goal, const obstacle_list& obs) {
-    impl::rrt_star rrt{world_};
+    impl::rrt_star rrt{};
     rrt.set_max_pos(max_pos_);
     rrt.set_min_pos(min_pos_);
     rrt.set_node_count(node_count_);

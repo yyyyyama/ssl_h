@@ -90,7 +90,8 @@ std::vector<std::shared_ptr<action::base>> stopgame::execute() {
   for (auto id : visible_ids) {
     const Eigen::Vector2d robot_pos = util::math::position(our_robots.at(id));
     const double theta = std::atan2(ball_pos.y() - robot_pos.y(), ball_pos.x() - robot_pos.x());
-    std::unique_ptr<planner::rrt_star> rrt = std::make_unique<planner::rrt_star>(world_);
+    std::unique_ptr<planner::rrt_star> rrt = std::make_unique<planner::rrt_star>();
+    rrt->set_area(world_.field(), 200.0);
     {
       auto obstacles = common_obstacles;
       for (const auto& our : our_robots) {

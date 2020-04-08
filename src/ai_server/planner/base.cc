@@ -19,4 +19,8 @@ void base::set_min_pos(const Eigen::Vector2d& min_p) {
   min_pos_ = min_p;
 }
 
+void base::set_area(const model::field& field, double padding) {
+  max_pos_ = {field.x_min() - padding, field.y_min() - padding};
+  max_pos_ = {field.x_max() + padding, field.y_max() + padding};
+}
 } // namespace ai_server::planner

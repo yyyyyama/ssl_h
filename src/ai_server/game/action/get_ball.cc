@@ -124,7 +124,8 @@ model::command get_ball::execute() {
       const Eigen::Vector2d tar = (ball_pos - robot_pos).norm() * vel.normalized() + robot_pos;
 
       // 障害物設定
-      planner::rrt_star rrt(world_);
+      planner::rrt_star rrt{};
+      rrt.set_area(world_.field(), 200.0);
       const planner::position_t robot_p{robot_pos.x(), robot_pos.y(), robot.theta()};
       const planner::position_t target_p{tar.x(), tar.y(), theta};
       planner::obstacle_list obstacles;
@@ -168,7 +169,8 @@ model::command get_ball::execute() {
       const Eigen::Vector2d tar = (pos - robot_pos).norm() * vel.normalized() + robot_pos;
 
       // 障害物設定
-      planner::rrt_star rrt(world_);
+      planner::rrt_star rrt{};
+      rrt.set_area(world_.field(), 200.0);
       const planner::position_t robot_p{robot_pos.x(), robot_pos.y(), robot.theta()};
       const planner::position_t target_p{tar.x(), tar.y(), theta};
 

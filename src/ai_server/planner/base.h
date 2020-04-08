@@ -4,6 +4,7 @@
 #include <functional>
 #include <Eigen/Core>
 #include "ai_server/model/command.h"
+#include "ai_server/model/field.h"
 #include "obstacle_list.h"
 
 namespace ai_server::planner {
@@ -28,6 +29,11 @@ public:
   /// @brief 移動可能領域設定する
   /// @param max_p 移動可能領域の最小座標
   void set_min_pos(const Eigen::Vector2d& min_p);
+
+  /// @brief フィールドを基にして移動可能領域を設定する
+  /// @param max_p フィールド
+  /// @param max_p フィールドを広げる量
+  void set_area(const model::field& field, double padding);
 
   /// @brief 経路探索を行う関数オブジェクトを生成する
   virtual planner_type planner() = 0;

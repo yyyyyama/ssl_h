@@ -26,9 +26,8 @@ namespace ai_server::planner::impl {
 
 using double_limits = std::numeric_limits<double>;
 
-rrt_star::rrt_star(const model::world& world)
-    : world_(world),
-      node_count_(10),
+rrt_star::rrt_star()
+    : node_count_(10),
       max_branch_length_(300.0),
       area_({double_limits::lowest(), double_limits::lowest()},
             {double_limits::max(), double_limits::max()}) {
@@ -54,9 +53,6 @@ void rrt_star::set_max_branch_length(double length) {
 
 rrt_star::result_type rrt_star::execute(const position_t& start, const position_t& goal,
                                         const obstacle_list& obs) {
-  // フィールド情報の更新
-  update_field();
-
   // 障害物取得
   const auto obstacles = obs.to_tree();
 
@@ -76,9 +72,6 @@ rrt_star::result_type rrt_star::execute(const position_t& start, const position_
 
   // === rrt star ===
 
-  // 有効なエリア
-  box_t area;
-  boost::geometry::intersection(game_area_, area_, area);
   // 探索木(nodeの集まり)
   tree_t tree;
 
@@ -90,7 +83,7 @@ rrt_star::result_type rrt_star::execute(const position_t& start, const position_
 
   for (int c = 0; c < node_count_; ++c) {
     // 新しいノード
-    const auto new_node = make_node(goal_pos, max_branch_length_, area, obstacles, tree);
+    const auto new_node = make_node(goal_pos, max_branch_length_, obstacles, tree);
 
     // 近傍点リストを作る円の半径
     const double r = r_a * std::sqrt(std::log10(c + 1) / (c + 1));
@@ -174,16 +167,6 @@ rrt_star::result_type rrt_star::execute(const position_t& start, const position_
   return std::make_pair(position_t{p.x(), p.y(), goal.theta}, trajectory_length);
 }
 
-void rrt_star::update_field() {
-  // フォールドのマージン
-  constexpr double f_margin = 200.0;
-
-  const auto field = world_.field();
-
-  game_area_ = {{field.x_min() - f_margin, field.y_min() - f_margin},
-                {field.x_max() + f_margin, field.y_max() + f_margin}};
-}
-
 std::optional<Eigen::Vector2d> rrt_star::exit_position(
     const Eigen::Vector2d& start, const Eigen::Vector2d& goal, double d,
     const obstacle_list::tree_type& obstacles) const {
@@ -192,7 +175,7 @@ std::optional<Eigen::Vector2d> rrt_star::exit_position(
   // 衝突する障害物がない
   if (collided_itr == obstacles.qend()) {
     // field外のとき
-    if (!boost::geometry::within(start, game_area_)) {
+    if (!boost::geometry::within(start, area_)) {
       return Eigen::Vector2d::Zero();
     }
 
@@ -278,9 +261,9 @@ std::optional<Eigen::Vector2d> rrt_star::exit_position(
   // boxのとき
   else if (const auto box = std::get_if<model::obstacle::box>(&obstacle)) {
     // 近似Boxがフィールドの端に触れる
-    if (!boost::geometry::within(std::get<0>(nearest), game_area_)) {
+    if (!boost::geometry::within(std::get<0>(nearest), area_)) {
       // フィールドの中心へ
-      return boost::geometry::return_centroid<point_t>(game_area_);
+      return boost::geometry::return_centroid<point_t>(area_);
     }
     // 障害物の中心点
     const auto center = boost::geometry::return_centroid<point_t>(box->geometry);
@@ -293,15 +276,15 @@ std::optional<Eigen::Vector2d> rrt_star::exit_position(
 }
 
 std::shared_ptr<rrt_star::node> rrt_star::make_node(const Eigen::Vector2d& goal,
-                                                    double max_branch_length, const box_t& area,
+                                                    double max_branch_length,
                                                     const obstacle_list::tree_type& obstacles,
                                                     const tree_t& tree) {
   // ランダム点の分布
   constexpr double rand_margin = 1000.0;
-  const boost::random::uniform_real_distribution<> rand_x{area.min_corner().x() - rand_margin,
-                                                          area.max_corner().x() + rand_margin};
-  const boost::random::uniform_real_distribution<> rand_y{area.min_corner().y() - rand_margin,
-                                                          area.max_corner().y() + rand_margin};
+  const boost::random::uniform_real_distribution<> rand_x{area_.min_corner().x() - rand_margin,
+                                                          area_.max_corner().x() + rand_margin};
+  const boost::random::uniform_real_distribution<> rand_y{area_.min_corner().y() - rand_margin,
+                                                          area_.max_corner().y() + rand_margin};
 
   // ある位置から一定距離をおいて新たな位置を作る
   auto to_new_p = [max_branch_length](const Eigen::Vector2d& p,
@@ -341,7 +324,7 @@ std::shared_ptr<rrt_star::node> rrt_star::make_node(const Eigen::Vector2d& goal,
       // 最も近い点から一定距離を置いて点を打ち、コースに障害物がないことを確認
       const auto new_p = to_new_p((*nearest_node)->position, sample);
 
-      if (!detail::is_collided(new_p, obstacles) && boost::geometry::within(new_p, area)) {
+      if (!detail::is_collided(new_p, obstacles) && boost::geometry::within(new_p, area_)) {
         return std::make_shared<node>(
             new_p, (*nearest_node)->cost + (new_p - (*nearest_node)->position).norm(),
             *nearest_node);

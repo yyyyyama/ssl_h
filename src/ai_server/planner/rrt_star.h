@@ -1,13 +1,12 @@
 #ifndef AI_SERVER_PLANNER_RRT_STAR_H
 #define AI_SERVER_PLANNER_RRT_STAR_H
 
-#include "ai_server/model/world.h"
 #include "base.h"
 
 namespace ai_server::planner {
 class rrt_star : public base {
 public:
-  rrt_star(const model::world& world);
+  rrt_star();
 
   /// @brief ノードを作る回数を設定する
   /// @param count 設定値．
@@ -20,8 +19,6 @@ public:
   base::planner_type planner() override;
 
 private:
-  const model::world& world_;
-
   // 探索を行う回数
   int node_count_;
 

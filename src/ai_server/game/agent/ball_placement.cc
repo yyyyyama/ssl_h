@@ -207,7 +207,8 @@ std::vector<std::shared_ptr<action::base>> ball_placement::execute() {
               : base_point + wait_diff * (count % 2 == 0 ? 1.0 : -1.0) *
                                  Eigen::Vector2d(0, count / 2 + count % 2);
       // 待機する
-      std::unique_ptr<planner::rrt_star> rrt = std::make_unique<planner::rrt_star>(world_);
+      std::unique_ptr<planner::rrt_star> rrt = std::make_unique<planner::rrt_star>();
+      rrt->set_area(wf, 200.0);
       {
         planner::obstacle_list obstacles;
         obstacles.add(model::obstacle::enemy_penalty_area(wf, 150.0));

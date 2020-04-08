@@ -11,7 +11,6 @@
 #include <Eigen/Core>
 
 #include "ai_server/model/command.h"
-#include "ai_server/model/world.h"
 #include "ai_server/util/math/geometry_traits.h"
 #include "ai_server/planner/obstacle_list.h"
 
@@ -31,7 +30,7 @@ public:
 
   using result_type = std::pair<position_t, double>;
 
-  rrt_star(const model::world& world);
+  rrt_star();
 
   /// @brief 移動可能領域を設定する
   /// @param min_p 移動可能領域の最大座標
@@ -59,7 +58,6 @@ private:
   using tree_t =
       boost::geometry::index::rtree<std::shared_ptr<node>, boost::geometry::index::rstar<20>>;
 
-  const model::world& world_;
   // サンプル取得時用の乱数生成器(処理速度が優れているため，boostのものを使用)
   mutable boost::random::mt19937 mt_;
 
@@ -72,14 +70,8 @@ private:
   // 移動可能領域
   detail::envelope_type area_;
 
-  // フィールド
-  detail::envelope_type game_area_;
-
   // あるループで生成された最適なルート木，次ループで優先して探索
   std::queue<Eigen::Vector2d> priority_points_;
-
-  /// @brief  フィールド情報を更新する
-  void update_field();
 
   /// @brief  障害物から離れる必要がある時，移動先を求める
   /// @param  start   初期位置
@@ -93,11 +85,10 @@ private:
   /// @brief  あるエリアの範囲内で新規のノードを作成する
   /// @param  goal               最終目的地
   /// @param  max_branch_length  ノード間長さの最大値
-  /// @param  area               有効なエリア
   /// @param  obstacles          障害物
   /// @param  tree               探索木
   std::shared_ptr<node> make_node(const Eigen::Vector2d& goal, double max_branch_length,
-                                  const box_t& area, const obstacle_list::tree_type& obstacles,
+                                  const obstacle_list::tree_type& obstacles,
                                   const tree_t& tree);
 };
 } // namespace ai_server::planner::impl
