@@ -12,6 +12,13 @@ namespace ai_server::planner::detail {
 // 障害物を包括するbox
 using envelope_type = boost::geometry::model::box<Eigen::Vector2d>;
 
+/// @brief ジオメトリに対する包括領域を返す
+/// @param g ジオメトリ
+template <class Geometry>
+inline auto to_envelope(const Geometry& g) {
+  return boost::geometry::return_envelope<envelope_type>(g);
+}
+
 /// @brief ジオメトリに対してマージンを持った包括領域を返す
 /// @param g ジオメトリ
 /// @param margin マージン

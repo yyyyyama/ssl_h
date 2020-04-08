@@ -228,7 +228,6 @@ std::vector<std::shared_ptr<action::base>> ball_placement::execute() {
           obstacles.add(model::obstacle::segment{{abp_target_, ball_pos}, 500.0});
         }
 
-        rrt->set_margin(0.0);
         rrt->set_node_count(10);
         rrt->set_max_branch_length(50.0);
       }

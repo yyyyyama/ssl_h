@@ -29,7 +29,6 @@ using double_limits = std::numeric_limits<double>;
 rrt_star::rrt_star(const model::world& world)
     : world_(world),
       node_count_(10),
-      margin_(120.0),
       max_branch_length_(300.0),
       area_({double_limits::lowest(), double_limits::lowest()},
             {double_limits::max(), double_limits::max()}) {
@@ -43,10 +42,6 @@ void rrt_star::set_max_pos(const Eigen::Vector2d& max_p) {
 
 void rrt_star::set_min_pos(const Eigen::Vector2d& min_p) {
   area_.min_corner() = min_p;
-}
-
-void rrt_star::set_margin(double m) {
-  margin_ = m;
 }
 
 void rrt_star::set_node_count(int count) {
@@ -70,7 +65,7 @@ rrt_star::result_type rrt_star::execute(const position_t& start, const position_
   const auto goal_pos  = util::math::position(goal);
 
   // 障害物の圏内から脱出する必要があるとき
-  if (auto p = exit_position(start_pos, goal_pos, margin_, max_branch_length_, obstacles)) {
+  if (auto p = exit_position(start_pos, goal_pos, max_branch_length_, obstacles)) {
     return std::make_pair(position_t{p->x(), p->y(), goal.theta}, (*p - start_pos).norm());
   }
 
@@ -95,8 +90,7 @@ rrt_star::result_type rrt_star::execute(const position_t& start, const position_
 
   for (int c = 0; c < node_count_; ++c) {
     // 新しいノード
-    const auto new_node =
-        make_node(goal_pos, margin_, max_branch_length_, area, obstacles, tree);
+    const auto new_node = make_node(goal_pos, max_branch_length_, area, obstacles, tree);
 
     // 近傍点リストを作る円の半径
     const double r = r_a * std::sqrt(std::log10(c + 1) / (c + 1));
@@ -109,10 +103,9 @@ rrt_star::result_type rrt_star::execute(const position_t& start, const position_
     // 半径と障害物でフィルタリング
     tree.query(boost::geometry::index::within(around) &&
                    boost::geometry::index::satisfies(
-                       [this, &obstacles, &np = new_node->position, r](const auto& a) {
+                       [&obstacles, &np = new_node->position, r](const auto& a) {
                          return (a->position - np).norm() < r &&
-                                !detail::is_collided(line_t{a->position, np}, obstacles,
-                                                     margin_);
+                                !detail::is_collided(line_t{a->position, np}, obstacles);
                        }),
                std::back_inserter(list));
 
@@ -166,7 +159,7 @@ rrt_star::result_type rrt_star::execute(const position_t& start, const position_
       trajectory_length += (p - n.lock()->parent.lock()->position).norm();
 
       // スタート地点とノード間に障害物が無くなったとき
-      if (!detail::is_collided(line_t{start_pos, p}, obstacles, margin_)) {
+      if (!detail::is_collided(line_t{start_pos, p}, obstacles)) {
         // スタート地点とノード間の距離を加算
         trajectory_length += (p - start_pos).norm();
 
@@ -192,9 +185,9 @@ void rrt_star::update_field() {
 }
 
 std::optional<Eigen::Vector2d> rrt_star::exit_position(
-    const Eigen::Vector2d& start, const Eigen::Vector2d& goal, double margin, double d,
+    const Eigen::Vector2d& start, const Eigen::Vector2d& goal, double d,
     const obstacle_list::tree_type& obstacles) const {
-  const auto collided_itr = detail::extract_collisions(obstacles, start, margin);
+  const auto collided_itr = detail::extract_collisions(obstacles, start);
 
   // 衝突する障害物がない
   if (collided_itr == obstacles.qend()) {
@@ -299,7 +292,7 @@ std::optional<Eigen::Vector2d> rrt_star::exit_position(
   return std::nullopt;
 }
 
-std::shared_ptr<rrt_star::node> rrt_star::make_node(const Eigen::Vector2d& goal, double margin,
+std::shared_ptr<rrt_star::node> rrt_star::make_node(const Eigen::Vector2d& goal,
                                                     double max_branch_length, const box_t& area,
                                                     const obstacle_list::tree_type& obstacles,
                                                     const tree_t& tree) {
@@ -348,8 +341,7 @@ std::shared_ptr<rrt_star::node> rrt_star::make_node(const Eigen::Vector2d& goal,
       // 最も近い点から一定距離を置いて点を打ち、コースに障害物がないことを確認
       const auto new_p = to_new_p((*nearest_node)->position, sample);
 
-      if (!detail::is_collided(new_p, obstacles, margin) &&
-          boost::geometry::within(new_p, area)) {
+      if (!detail::is_collided(new_p, obstacles) && boost::geometry::within(new_p, area)) {
         return std::make_shared<node>(
             new_p, (*nearest_node)->cost + (new_p - (*nearest_node)->position).norm(),
             *nearest_node);

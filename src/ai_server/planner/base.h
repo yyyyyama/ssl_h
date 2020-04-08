@@ -29,10 +29,6 @@ public:
   /// @param max_p 移動可能領域の最小座標
   void set_min_pos(const Eigen::Vector2d& min_p);
 
-  /// @brief マージンの設定
-  /// @param m マージン
-  void set_margin(double m);
-
   /// @brief 経路探索を行う関数オブジェクトを生成する
   virtual planner_type planner() = 0;
 
@@ -40,9 +36,6 @@ protected:
   // 移動可能領域
   Eigen::Vector2d max_pos_;
   Eigen::Vector2d min_pos_;
-
-  // 障害物に対するマージン
-  double margin_;
 };
 } // namespace ai_server::planner
 

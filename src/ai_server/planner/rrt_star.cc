@@ -19,7 +19,6 @@ base::planner_type rrt_star::planner() {
     impl::rrt_star rrt{world_};
     rrt.set_max_pos(max_pos_);
     rrt.set_min_pos(min_pos_);
-    rrt.set_margin(margin_);
     rrt.set_node_count(node_count_);
     rrt.set_max_branch_length(max_branch_length_);
     return rrt.execute(start, goal, obs);

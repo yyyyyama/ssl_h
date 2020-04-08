@@ -41,10 +41,6 @@ public:
   /// @param max_p 移動可能領域の最小座標
   void set_min_pos(const Eigen::Vector2d& min_p);
 
-  /// @brief マージンの設定
-  /// @param m マージン
-  void set_margin(double m);
-
   /// @brief ノードを作る回数を設定する
   /// @param count 設定値．
   void set_node_count(int count);
@@ -70,9 +66,6 @@ private:
   // 探索を行う回数
   int node_count_;
 
-  // 障害物に対するマージン
-  double margin_;
-
   // 伸ばす枝の最大距離
   double max_branch_length_;
 
@@ -91,24 +84,20 @@ private:
   /// @brief  障害物から離れる必要がある時，移動先を求める
   /// @param  start   初期位置
   /// @param  goal    目標位置
-  /// @param  margin  障害物までのマージン
   /// @param  d       初期位置から移動先までの距離
   //  @param  obstacles 障害物
   std::optional<Eigen::Vector2d> exit_position(const Eigen::Vector2d& start,
-                                               const Eigen::Vector2d& goal, double margin,
-                                               double d,
+                                               const Eigen::Vector2d& goal, double d,
                                                const obstacle_list::tree_type& obstacles) const;
 
   /// @brief  あるエリアの範囲内で新規のノードを作成する
   /// @param  goal               最終目的地
-  /// @param  margin  避けるときのマージン
   /// @param  max_branch_length  ノード間長さの最大値
   /// @param  area               有効なエリア
   /// @param  obstacles          障害物
   /// @param  tree               探索木
-  std::shared_ptr<node> make_node(const Eigen::Vector2d& goal, double margin,
-                                  double max_branch_length, const box_t& area,
-                                  const obstacle_list::tree_type& obstacles,
+  std::shared_ptr<node> make_node(const Eigen::Vector2d& goal, double max_branch_length,
+                                  const box_t& area, const obstacle_list::tree_type& obstacles,
                                   const tree_t& tree);
 };
 } // namespace ai_server::planner::impl

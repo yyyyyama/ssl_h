@@ -97,7 +97,6 @@ std::vector<std::shared_ptr<action::base>> stopgame::execute() {
         if (our.first != id)
           obstacles.add(model::obstacle::point{util::math::position(our.second), 300.0});
       }
-      rrt->set_margin(0.0);
       rrt->set_node_count(10);
       rrt->set_max_branch_length(50.0);
     }
