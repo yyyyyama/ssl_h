@@ -5,6 +5,7 @@
 #include <boost/geometry/geometries/segment.hpp>
 #include <boost/math/constants/constants.hpp>
 
+#include "ai_server/model/obstacle/field.h"
 #include "ai_server/planner/rrt_star.h"
 #include "ai_server/util/math/angle.h"
 #include "ai_server/util/math/geometry.h"
@@ -129,6 +130,8 @@ model::command get_ball::execute() {
       const planner::position_t robot_p{robot_pos.x(), robot_pos.y(), robot.theta()};
       const planner::position_t target_p{tar.x(), tar.y(), theta};
       planner::obstacle_list obstacles;
+      obstacles.add(model::obstacle::enemy_penalty_area(world_.field(), 150.0));
+      obstacles.add(model::obstacle::our_penalty_area(world_.field(), 150.0));
       for (const auto& r : enemy_robots) {
         obstacles.add(model::obstacle::point{util::math::position(r.second), obs_robot_rad});
       }
@@ -175,6 +178,8 @@ model::command get_ball::execute() {
       const planner::position_t target_p{tar.x(), tar.y(), theta};
 
       planner::obstacle_list obstacles;
+      obstacles.add(model::obstacle::enemy_penalty_area(world_.field(), 150.0));
+      obstacles.add(model::obstacle::our_penalty_area(world_.field(), 150.0));
       for (const auto& r : our_robots) {
         if (r.first != id_)
           obstacles.add(model::obstacle::point{util::math::position(r.second), obs_robot_rad});
