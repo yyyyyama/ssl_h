@@ -43,11 +43,7 @@ std::vector<unsigned int> defense::marking_ids() const {
 std::vector<std::shared_ptr<action::base>> defense::execute() {
   using boost::math::constants::pi;
 
-  //壁用のアクション
-  std::vector<std::shared_ptr<action::base>> wall;
-  for (auto it : wall_ids_) {
-    wall.emplace_back(std::make_shared<action::guard>(world_, is_yellow_, it));
-  }
+  std::vector<std::shared_ptr<action::base>> baseaction;
   //ボールの座標
   const Eigen::Vector2d ball_vel = util::math::velocity(world_.ball());
   // visionから取得した今のボールの位置
@@ -134,7 +130,7 @@ std::vector<std::shared_ptr<action::base>> defense::execute() {
                                       pi<double>() / 12;
       guard->move_on(shift_flag);
       guard->move_to(pos.x(), pos.y());
-      wall.push_back(guard);
+      baseaction.push_back(guard);
     }
   }
   //ここからキーパーの処理
@@ -151,12 +147,12 @@ std::vector<std::shared_ptr<action::base>> defense::execute() {
 
     if (get_flag) {
       keeper_get_->set_chip(true);
-      wall.push_back(keeper_get_); //配列を返すためにキーパーを統合する
+      baseaction.push_back(keeper_get_); //配列を返すためにキーパーを統合する
     } else {
-      wall.push_back(keeper_); //配列を返すためにキーパーを統合する
+      baseaction.push_back(keeper_); //配列を返すためにキーパーを統合する
     }
   }
-  return wall;
+  return baseaction;
 }
 } // namespace agent
 } // namespace game
