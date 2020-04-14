@@ -261,6 +261,14 @@ private:
       }
     }
 
+    // ロボットを全て停止させる
+    {
+      std::unique_lock lock{mutex_};
+      for (const auto& id : active_robots_) {
+        driver_.update_command(model::command{id});
+      }
+    }
+
     l_.info("game stopped!");
   }
 
