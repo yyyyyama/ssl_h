@@ -81,4 +81,19 @@ BOOST_AUTO_TEST_CASE(test04) {
   BOOST_TEST(std::get<1>(ref.ball_placement_position()) == 4.56);
 }
 
+BOOST_AUTO_TEST_CASE(bot_substitution) {
+  ai_server::model::refbox ref{};
+
+  // bot_substitution getter and initialization check
+  BOOST_TEST(!ref.bot_substitution_by_team().has_value());
+
+  // bot_substitution setter check
+  ref.set_bot_substitution_by_team(ai_server::model::team_color::yellow);
+  BOOST_TEST((ref.bot_substitution_by_team() == ai_server::model::team_color::yellow));
+  ref.set_bot_substitution_by_team(ai_server::model::team_color::blue);
+  BOOST_TEST((ref.bot_substitution_by_team() == ai_server::model::team_color::blue));
+  ref.set_bot_substitution_by_team(std::nullopt);
+  BOOST_TEST(!ref.bot_substitution_by_team().has_value());
+}
+
 BOOST_AUTO_TEST_SUITE_END()

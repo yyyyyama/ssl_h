@@ -44,6 +44,27 @@ void refbox::update(const ssl_protos::refbox::Referee& referee) {
     const auto p   = std::make_tuple(static_cast<double>(dp.x()), static_cast<double>(dp.y()));
     refbox_.set_ball_placement_position(util::math::transform(affine_, p));
   }
+
+  const auto& events = referee.game_events();
+  const auto result  = std::find_if(events.cbegin(), events.cend(),
+                                   [](const auto& e) { return e.has_bot_substitution(); });
+
+  if (result != events.end()) {
+    const auto& bs = result->bot_substitution();
+    switch (bs.by_team()) {
+      case ssl_protos::refbox::YELLOW:
+        refbox_.set_bot_substitution_by_team(team_color::yellow);
+        break;
+      case ssl_protos::refbox::BLUE:
+        refbox_.set_bot_substitution_by_team(team_color::blue);
+        break;
+      case ssl_protos::refbox::UNKNOWN:
+        refbox_.set_bot_substitution_by_team(std::nullopt);
+        break;
+    }
+  } else {
+    refbox_.set_bot_substitution_by_team(std::nullopt);
+  }
 }
 
 void refbox::set_transformation_matrix(const Eigen::Affine3d& matrix) {

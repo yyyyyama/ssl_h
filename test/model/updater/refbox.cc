@@ -173,4 +173,137 @@ BOOST_AUTO_TEST_CASE(abp) {
   }
 }
 
+BOOST_AUTO_TEST_CASE(bot_substitution) {
+  ssl_protos::refbox::Referee referee{};
+  {
+    referee.set_packet_timestamp(1513688793680551);
+    referee.set_stage(ssl_protos::refbox::Referee::Stage::Referee_Stage_NORMAL_FIRST_HALF_PRE);
+    referee.set_command(ssl_protos::refbox::Referee::Command::Referee_Command_HALT);
+    referee.set_command_counter(3);
+    referee.set_command_timestamp(4);
+
+    auto blue = referee.mutable_blue();
+    blue->set_name("blue");
+    blue->set_score(10);
+    blue->set_goalkeeper(11);
+    blue->set_red_cards(12);
+    blue->set_yellow_cards(13);
+    blue->set_timeouts(15);
+    blue->set_timeout_time(16);
+
+    auto yellow = referee.mutable_yellow();
+    yellow->set_name("yellow");
+    yellow->set_score(21);
+    yellow->set_goalkeeper(22);
+    yellow->set_red_cards(23);
+    yellow->set_yellow_cards(24);
+    yellow->set_timeouts(28);
+    yellow->set_timeout_time(29);
+  }
+
+  ai_server::model::updater::refbox ru{};
+
+  // GameEvent なしのときは std::nullopt
+  {
+    referee.clear_game_events();
+    ru.update(referee);
+
+    const auto r = ru.value();
+    BOOST_TEST(!r.bot_substitution_by_team().has_value());
+  }
+
+  // game_events に YELLOW の BotSubstitution イベントだけがあったとき
+  {
+    referee.clear_game_events();
+
+    auto e = referee.add_game_events()->mutable_bot_substitution();
+    e->set_by_team(ssl_protos::refbox::YELLOW);
+
+    ru.update(referee);
+
+    const auto r = ru.value();
+    BOOST_TEST((r.bot_substitution_by_team() == ai_server::model::team_color::yellow));
+  }
+
+  // game_events に BLUE の BotSubstitution イベントだけがあったとき
+  {
+    referee.clear_game_events();
+
+    auto e = referee.add_game_events()->mutable_bot_substitution();
+    e->set_by_team(ssl_protos::refbox::BLUE);
+
+    ru.update(referee);
+
+    const auto r = ru.value();
+    BOOST_TEST((r.bot_substitution_by_team() == ai_server::model::team_color::blue));
+  }
+
+  // game_events に BotSubstitution 以外のイベントだけがあったとき
+  {
+    referee.clear_game_events();
+
+    auto e = referee.add_game_events()->mutable_prepared();
+    e->set_time_taken(1.23);
+
+    ru.update(referee);
+
+    const auto r = ru.value();
+    BOOST_TEST(!r.bot_substitution_by_team().has_value());
+  }
+
+  // game_events に複数のイベントが含まれているとき (1)
+  {
+    referee.clear_game_events();
+
+    auto e1 = referee.add_game_events()->mutable_prepared();
+    e1->set_time_taken(1.23);
+
+    auto e2 = referee.add_game_events()->mutable_no_progress_in_game();
+    e2->set_time(4.56);
+
+    auto e3 = referee.add_game_events()->mutable_bot_substitution();
+    e3->set_by_team(ssl_protos::refbox::BLUE);
+
+    ru.update(referee);
+
+    const auto r = ru.value();
+    BOOST_TEST((r.bot_substitution_by_team() == ai_server::model::team_color::blue));
+  }
+
+  // game_events に複数のイベントが含まれているとき (2)
+  {
+    referee.clear_game_events();
+
+    auto e1 = referee.add_game_events()->mutable_prepared();
+    e1->set_time_taken(1.23);
+
+    auto e2 = referee.add_game_events()->mutable_no_progress_in_game();
+    e2->set_time(4.56);
+
+    ru.update(referee);
+
+    const auto r = ru.value();
+    BOOST_TEST(!r.bot_substitution_by_team().has_value());
+  }
+
+  // game_events に複数のイベントが含まれているとき (3)
+  {
+    referee.clear_game_events();
+
+    auto e1 = referee.add_game_events()->mutable_prepared();
+    e1->set_time_taken(1.23);
+
+    auto e2 = referee.add_game_events()->mutable_bot_substitution();
+    e2->set_by_team(ssl_protos::refbox::YELLOW);
+
+    auto e3 = referee.add_game_events()->mutable_no_progress_in_game();
+    e3->set_time(4.56);
+
+    ru.update(referee);
+
+    const auto r = ru.value();
+    BOOST_TEST((r.bot_substitution_by_team() == ai_server::model::team_color::yellow));
+  }
+}
+
 BOOST_AUTO_TEST_SUITE_END()

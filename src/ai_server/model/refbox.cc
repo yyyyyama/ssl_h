@@ -37,6 +37,10 @@ std::tuple<double, double> refbox::ball_placement_position() const {
   return ball_placement_position_;
 }
 
+std::optional<model::team_color> refbox::bot_substitution_by_team() const {
+  return bot_substitution_by_team_;
+}
+
 void refbox::set_packet_timestamp(util::time_point_type value) {
   packet_timestamp_ = value;
 }
@@ -63,6 +67,10 @@ void refbox::set_team_blue(const team_info& value) {
 
 void refbox::set_ball_placement_position(std::tuple<double, double> value) {
   ball_placement_position_ = std::move(value);
+}
+
+void refbox::set_bot_substitution_by_team(std::optional<model::team_color> value) {
+  bot_substitution_by_team_ = value;
 }
 
 } // namespace model

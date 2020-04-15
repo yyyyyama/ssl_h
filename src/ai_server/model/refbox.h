@@ -5,6 +5,7 @@
 
 #include "ai_server/util/time.h"
 #include "team_info.h"
+#include "team_color.h"
 
 #include "ssl-protos/refbox/referee.pb.h"
 
@@ -57,6 +58,7 @@ public:
   team_info team_yellow() const;
   team_info team_blue() const;
   std::tuple<double, double> ball_placement_position() const;
+  std::optional<model::team_color> bot_substitution_by_team() const;
   void set_packet_timestamp(util::time_point_type value);
   void set_stage_time_left(int value);
   void set_stage(stage_name value);
@@ -64,6 +66,7 @@ public:
   void set_team_yellow(const team_info& value);
   void set_team_blue(const team_info& value);
   void set_ball_placement_position(std::tuple<double, double> value);
+  void set_bot_substitution_by_team(std::optional<model::team_color> value);
 
 private:
   util::time_point_type packet_timestamp_;
@@ -73,6 +76,7 @@ private:
   team_info team_yellow_;
   team_info team_blue_;
   std::tuple<double, double> ball_placement_position_;
+  std::optional<model::team_color> bot_substitution_by_team_;
 };
 } // namespace model
 } // namespace ai_server
