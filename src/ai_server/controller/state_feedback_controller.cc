@@ -141,29 +141,39 @@ void state_feedback_controller::calculate_output(const model::field& field,
       constexpr double margin = 400.0;
       // フィールド基準のロボット座標
       const Eigen::Vector2d robot_pos = estimated_robot_.col(0).topRows(2);
+      // 移動可能範囲
+      const Eigen::Vector2d max_p{field.x_max() + margin, field.y_max() + margin};
+      const Eigen::Vector2d min_p{field.x_min() - margin, field.y_min() - margin};
+      // ロボット基準に変換
+      const Eigen::Vector2d to_max = max_p - robot_pos;
+      const Eigen::Vector2d to_min = min_p - robot_pos;
+
+      // 制限速度を求める
+      auto limited_speed = [acc](double distance) {
+        return std::sqrt(2.0 * acc * std::max(distance, 0.0));
+      };
 
       // 制限速度計算
-      const double posi_limit_vx =
-          std::sqrt(2.0 * acc * (field.x_max() + margin - robot_pos.x()));
-      const double nega_limit_vx =
-          -std::sqrt(2.0 * acc * (field.x_min() - margin - robot_pos.x()));
-      const double posi_limit_vy =
-          std::sqrt(2.0 * acc * (field.y_max() + margin - robot_pos.y()));
-      const double nega_limit_vy =
-          -std::sqrt(2.0 * acc * (field.y_min() - margin - robot_pos.y()));
+      const double vx_max = limited_speed(to_max.x());
+      const double vx_min = -limited_speed(-to_min.x());
+      const double vy_max = limited_speed(to_max.y());
+      const double vy_min = -limited_speed(-to_min.y());
 
-      Eigen::Vector3d vel;
-      {
-        vel.x() = std::clamp(org_vel.x(), nega_limit_vx, posi_limit_vx);
-        vel.y() = std::clamp(org_vel.y(), nega_limit_vy, posi_limit_vy);
-        if (vel.x() / org_vel.x() < vel.y() / org_vel.y()) {
-          vel.y() = org_vel.y() * (vel.x() / org_vel.x());
-        } else {
-          vel.x() = org_vel.x() * (vel.y() / org_vel.y());
-        }
-      }
-      vel.z() = org_vel.z();
-      u_[0]   = convert(vel, estimated_robot_(2, 0));
+      // beforeを基準とした，afterの比率を計算する．
+      auto calc_ratio = [](double before, double after) {
+        // 比率の最大値である1.0を返す.
+        if (before == 0.0) return 1.0;
+        return after / before;
+      };
+
+      // 速度制限の比率
+      const double ratio =
+          std::min(calc_ratio(org_vel.x(), std::clamp(org_vel.x(), vx_min, vx_max)),
+                   calc_ratio(org_vel.y(), std::clamp(org_vel.y(), vy_min, vy_max)));
+
+      Eigen::Vector3d vel = ratio * org_vel;
+      vel.z()             = org_vel.z();
+      u_[0]               = convert(vel, estimated_robot_(2, 0));
     }
   }
 
