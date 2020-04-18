@@ -35,8 +35,8 @@ std::optional<model::ball> ball::update(std::optional<model::ball> ball,
   Eigen::Matrix<double, 2, 1> h;
 
   // 前回呼び出しからの経過時刻[s]
-  auto passed_time = std::chrono::duration<double>(time - prev_time_).count();
-  prev_time_       = time;
+  const auto passed_time = std::chrono::duration<double>(time - prev_time_).count();
+  prev_time_             = time;
 
   auto h1 = [](double fric) { return -2 * lambda_observer_ - (fric + air_registance_); };
 
@@ -44,17 +44,17 @@ std::optional<model::ball> ball::update(std::optional<model::ball> ball,
     return std::pow(lambda_observer_, 2) - h1(fric) * (fric + air_registance_);
   };
 
-  auto theta = std::atan2(ball_.vx(), ball_.vy());
+  const auto theta = std::atan2(ball_.vy(), ball_.vx());
 
   // x軸方向について状態推定
-  auto cos_theta = std::cos(theta);
+  const auto cos_theta = std::cos(theta);
 
   // μmg < μvの場合、摩擦力fは飽和してμmgに制限される
   //  -> オブザーバゲイン(正確には摩擦係数)を速度に応じて調整することで対応
   //     μmg < μv ... (μmg / v)を新たにμ'とすればμ'vはμmgに制限される
   if (std::abs(friction_ * cos_theta) < std::abs(fric_coef_ * ball_.vx())) {
     // 摩擦が飽和している領域。速度に応じて摩擦係数を調整することで対処
-    auto fric_coef_tuned = std::abs(friction_ * cos_theta / ball_.vx());
+    const auto fric_coef_tuned = std::abs(friction_ * cos_theta / ball_.vx());
 
     A << 0, 1,                                   // a11  a12
         0, -(fric_coef_tuned + air_registance_); // a21  a22
@@ -77,11 +77,11 @@ std::optional<model::ball> ball::update(std::optional<model::ball> ball,
   ball_.set_vx(x_hat_[0](1));
 
   // y軸方向についても同様に状態推定
-  auto sin_theta = std::sin(theta);
+  const auto sin_theta = std::sin(theta);
 
   if (std::abs(friction_ * sin_theta) < std::abs(fric_coef_ * ball_.vy())) {
     // 摩擦力が飽和している領域
-    auto fric_coef_tuned = std::abs(friction_ * sin_theta / ball_.vy());
+    const auto fric_coef_tuned = std::abs(friction_ * sin_theta / ball_.vy());
 
     A << 0, 1,                                   // a11  a12
         0, -(fric_coef_tuned + air_registance_); // a21  a22
