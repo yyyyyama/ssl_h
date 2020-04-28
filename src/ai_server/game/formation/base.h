@@ -24,6 +24,14 @@ public:
   virtual std::vector<std::shared_ptr<agent::base>> execute() = 0;
 
 protected:
+  const model::world& world() const {
+    return world_;
+  }
+
+  model::team_color team_color() const {
+    return static_cast<model::team_color>(is_yellow_);
+  }
+
   const model::world& world_;
   bool is_yellow_;
   const model::refbox& refcommand_;

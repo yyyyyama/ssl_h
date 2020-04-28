@@ -31,6 +31,14 @@ protected:
     return std::make_shared<T>(world_, is_yellow_, id, std::forward<Args>(args)...);
   }
 
+  const model::world& world() const {
+    return world_;
+  }
+
+  model::team_color team_color() const {
+    return static_cast<model::team_color>(is_yellow_);
+  }
+
   const model::world& world_;
   bool is_yellow_;
 };
