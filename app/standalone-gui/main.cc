@@ -35,6 +35,7 @@
 #include "ai_server/sender/grsim.h"
 #include "ai_server/sender/kiks.h"
 #include "ai_server/util/math/affine.h"
+#include "ai_server/util/thread.h"
 #include "ai_server/util/time.h"
 
 using namespace std::chrono_literals;
@@ -110,6 +111,7 @@ public:
         l_.error("unknown exception at driver_thread");
       }
     });
+    util::set_thread_name(driver_thread_, "driver_thread");
 
     for (auto id : active_robots_) {
       constexpr auto cycle_count = std::chrono::duration<double>(cycle).count();
@@ -131,6 +133,7 @@ public:
     if (!game_thread_.joinable()) {
       running_     = true;
       game_thread_ = std::thread([this] { main_loop(); });
+      util::set_thread_name(game_thread_, "game_thread");
     }
   }
 
@@ -649,6 +652,7 @@ auto main(int argc, char** argv) -> int {
         l.error(fmt::format("exception at io_thread: {}", e.what()));
       }
     }};
+    util::set_thread_name(io_thread, "io_thread");
 
     // Senderの設定
     std::shared_ptr<sender::base> sender{};
