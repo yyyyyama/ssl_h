@@ -14,7 +14,7 @@ constexpr double ball::quant_limit_x_;
 constexpr double ball::quant_limit_y_;
 constexpr double ball::lambda_observer_;
 
-ball::ball(const model::ball& ball, util::time_point_type time)
+ball::ball(const model::ball& ball, std::chrono::system_clock::time_point time)
     : ball_(ball), prev_time_(time) {
   x_hat_[0] = {std::floor(ball.x() / quant_limit_x_) * quant_limit_x_, 0};
   x_hat_[1] = {std::floor(ball.y() / quant_limit_y_) * quant_limit_y_, 0};
@@ -23,7 +23,7 @@ ball::ball(const model::ball& ball, util::time_point_type time)
 }
 
 std::optional<model::ball> ball::update(std::optional<model::ball> ball,
-                                        util::time_point_type time) {
+                                        std::chrono::system_clock::time_point time) {
   // 対象がロストしたらロストさせる
   // TODO: 任意フレーム補間させる...？
   if (!ball.has_value()) {

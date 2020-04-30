@@ -54,7 +54,7 @@ std::vector<std::shared_ptr<action::base>> penalty_kick::execute() {
   const Eigen::Vector2d keeper_pos = util::math::position(keeper);
   const auto ball                  = world_.ball();
   const auto field                 = world_.field();
-  const auto point                 = util::clock_type::now();
+  const auto point                 = std::chrono::steady_clock::now();
 
   using boost::math::constants::pi;
 

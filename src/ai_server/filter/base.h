@@ -5,8 +5,6 @@
 #include <functional>
 #include <optional>
 
-#include "ai_server/util/time.h"
-
 namespace ai_server {
 namespace filter {
 
@@ -33,7 +31,8 @@ public:
   /// filterの状態を更新するためのメンバ関数.
   /// updater::worldでは, Visionから新しい値を受け取ったときに呼び出される.
   /// 対象がロストしたときは引数にnulloptが渡される
-  virtual std::optional<T> update(std::optional<T> value, util::time_point_type time) = 0;
+  virtual std::optional<T> update(std::optional<T> value,
+                                  std::chrono::system_clock::time_point time) = 0;
 };
 
 template <class T>
@@ -48,7 +47,8 @@ public:
 
   virtual ~base() = default;
 
-  virtual void set_raw_value(std::optional<T> value, util::time_point_type time) = 0;
+  virtual void set_raw_value(std::optional<T> value,
+                             std::chrono::system_clock::time_point time) = 0;
 
 protected:
   /// @brief                  対象の値を更新する

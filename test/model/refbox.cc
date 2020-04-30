@@ -59,7 +59,7 @@ BOOST_AUTO_TEST_CASE(test04) {
   ai_server::model::refbox ref{};
 
   constexpr auto dummy_time =
-      ai_server::util::time_point_type{std::chrono::microseconds{1513688793680551}};
+      std::chrono::system_clock::time_point{std::chrono::microseconds{1513688793680551}};
   ref.set_packet_timestamp(dummy_time);
   BOOST_TEST(ref.packet_timestamp().time_since_epoch().count() ==
              dummy_time.time_since_epoch().count());

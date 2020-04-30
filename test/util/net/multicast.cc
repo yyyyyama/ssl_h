@@ -18,7 +18,7 @@ using namespace std::string_literals;
 using namespace ai_server::util::net::multicast;
 
 using promise_type = std::promise<std::tuple<receiver::buffer_t, std::size_t, std::uint64_t,
-                                             ai_server::util::time_point_type>>;
+                                             std::chrono::system_clock::time_point>>;
 
 inline std::thread run_io_context_in_new_thread(boost::asio::io_context& ctx) {
   return std::thread{

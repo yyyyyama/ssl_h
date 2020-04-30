@@ -96,7 +96,7 @@ void robot::clear_estimator() {
   estimator_ = nullptr;
 }
 
-std::optional<robot> robot::state_after(util::duration_type t) const {
+std::optional<robot> robot::state_after(std::chrono::system_clock::duration t) const {
   if (estimator_) {
     return estimator_(*this, t);
   } else {

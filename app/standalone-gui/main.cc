@@ -51,7 +51,8 @@ namespace sender     = ai_server::sender;
 namespace util       = ai_server::util;
 
 // 60fpsの時にn framesにかかる時間を表現する型
-using fps60_type = std::chrono::duration<util::time_point_type::rep, std::ratio<1, 60>>;
+using fps60_type =
+    std::chrono::duration<std::chrono::steady_clock::time_point::rep, std::ratio<1, 60>>;
 
 // 攻撃方向
 enum class dir { right, left };
@@ -81,7 +82,8 @@ static constexpr char grsim_address[]     = "127.0.0.1";
 static constexpr short grsim_command_port = 20011;
 
 // 制御周期の設定
-static constexpr auto cycle = std::chrono::duration_cast<util::duration_type>(fps60_type{1});
+static constexpr auto cycle =
+    std::chrono::duration_cast<std::chrono::steady_clock::duration>(fps60_type{1});
 
 // stopgame時の速度制限
 static constexpr double velocity_limit_at_stopgame = 800.0;
@@ -213,7 +215,7 @@ private:
     model::refbox refbox{};
     std::unique_ptr<game::formation::base> formation{};
 
-    ai_server::util::time_point_type prev_time{};
+    std::chrono::steady_clock::time_point prev_time{};
 
     for (;;) {
       try {
@@ -223,7 +225,7 @@ private:
           break; // その間に stop() されたらループを抜ける
         }
 
-        const auto current_time = util::clock_type::now();
+        const auto current_time = std::chrono::steady_clock::now();
 
         const auto prev_cmd = refbox.command();
 
@@ -557,7 +559,7 @@ struct status_tree::handler<T, std::void_t<decltype(std::declval<T>().total_mess
 
   void update(const T& receiver) const {
     const auto lu = receiver.last_updated();
-    const auto tt = util::clock_type::to_time_t(lu);
+    const auto tt = std::chrono::system_clock::to_time_t(lu);
     const auto e  = lu.time_since_epoch();
     const auto ms = (e - std::chrono::duration_cast<std::chrono::seconds>(e)) / 1ms;
 
@@ -597,7 +599,7 @@ auto main(int argc, char** argv) -> int {
       // ボールの状態オブザーバを使うか
       if (use_ball_observer) {
         updater_world.ball_updater().set_filter<filter::state_observer::ball>(
-            model::ball{}, util::clock_type::now());
+            model::ball{}, std::chrono::system_clock::now());
       }
       l.info("state observer (ball): "s + (use_ball_observer ? "enabled"s : "disabled"s));
     }

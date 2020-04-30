@@ -73,10 +73,11 @@ BOOST_AUTO_TEST_CASE(normal) {
   {
     const auto r = ru.value();
 
-    BOOST_TEST(r.packet_timestamp().time_since_epoch().count() ==
-               ai_server::util::time_point_type{std::chrono::microseconds{1513688793680551}}
-                   .time_since_epoch()
-                   .count());
+    BOOST_TEST(
+        r.packet_timestamp().time_since_epoch().count() ==
+        std::chrono::system_clock::time_point{std::chrono::microseconds{1513688793680551}}
+            .time_since_epoch()
+            .count());
     // 送られてこなかったらmax()
     BOOST_TEST(r.stage_time_left() ==
                std::numeric_limits<decltype(r.stage_time_left())>::max());

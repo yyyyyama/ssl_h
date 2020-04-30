@@ -6,15 +6,6 @@
 namespace ai_server {
 namespace util {
 
-/// プロジェクト内で用いるclock
-using clock_type = std::chrono::high_resolution_clock;
-
-/// プロジェクト内で用いる時間を表現する型
-using duration_type = typename clock_type::duration;
-
-/// プロジェクト内で用いる時刻を表現する型
-using time_point_type = typename clock_type::time_point;
-
 /// @brief        浮動小数点数で表現された時間[s]をstd::chrono::durationに変換する
 /// @param time   変換する時間
 /// @return       変換された時間

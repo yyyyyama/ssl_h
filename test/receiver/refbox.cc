@@ -106,7 +106,7 @@ BOOST_AUTO_TEST_CASE(send_and_receive, *boost::unit_test::timeout(30)) {
   BOOST_TEST(r.total_messages() == 0);
   BOOST_TEST(r.messages_per_second() == 0);
   BOOST_TEST(r.parse_error() == 0);
-  BOOST_TEST((r.last_updated() == ai_server::util::time_point_type{}));
+  BOOST_TEST((r.last_updated() == std::chrono::system_clock::time_point{}));
 
   // 送信クラスの初期化
   // multicast_addr = 224.5.23.1, port = 10088

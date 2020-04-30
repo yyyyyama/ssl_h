@@ -42,14 +42,14 @@ std::uint64_t vision::parse_error() const {
   return parse_error_;
 }
 
-util::time_point_type vision::last_updated() const {
+std::chrono::system_clock::time_point vision::last_updated() const {
   std::shared_lock lock{mutex_};
   return last_updated_;
 }
 
 void vision::handle_receive(const util::net::multicast::receiver::buffer_t& buffer,
                             std::size_t size, std::uint64_t total_messages,
-                            util::time_point_type time) {
+                            std::chrono::system_clock::time_point time) {
   ssl_protos::vision::Packet packet;
 
   // パケットをパース
@@ -92,9 +92,9 @@ void vision::handle_error(const boost::system::error_code& ec) {
 }
 
 void vision::adjust_detection_timestamps(ssl_protos::vision::Frame& detection,
-                                         util::time_point_type time) {
-  constexpr auto den = util::duration_type::period::den;
-  constexpr auto num = util::duration_type::period::num;
+                                         std::chrono::system_clock::time_point time) {
+  constexpr auto den = std::chrono::system_clock::duration::period::den;
+  constexpr auto num = std::chrono::system_clock::duration::period::num;
 
   // time を Vision で使われる形式 (double で単位が秒) に変換
   const auto te = time.time_since_epoch();

@@ -64,7 +64,7 @@ void receiver::receive_data(boost::asio::yield_context yield,
     if (ec) {
       call_error_callback(ec);
     } else {
-      auto time = util::clock_type::now();
+      auto time = std::chrono::system_clock::now();
       call_receive_callback(data, recieved, ++total_messages_, time);
     }
   }

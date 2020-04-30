@@ -29,7 +29,7 @@ private:
   static constexpr double lambda_observer_ = -9; // ボールの状態オブザーバの極
 
   model::ball ball_;
-  util::time_point_type prev_time_;                  // 前回呼び出された時刻
+  std::chrono::system_clock::time_point prev_time_;  // 前回呼び出された時刻
   std::array<Eigen::Matrix<double, 2, 1>, 2> x_hat_; // 状態変数行列 [位置, 速度]T
 
 public:
@@ -38,7 +38,7 @@ public:
   /// @brief コンストラクタ
   /// @param ball ボールの初期位置
   /// @param time インスタンス生成時の時刻
-  explicit ball(const model::ball& ball, util::time_point_type time);
+  explicit ball(const model::ball& ball, std::chrono::system_clock::time_point time);
   ball(const ball&) = default;
 
   /// @brief	状態オブザーバの状態を更新する
@@ -46,7 +46,7 @@ public:
   /// @param time Visionがフレームをキャプチャした時刻
   /// @return 状態推定後のボール情報
   std::optional<model::ball> update(std::optional<model::ball> ball,
-                                    util::time_point_type time) override;
+                                    std::chrono::system_clock::time_point time) override;
 
   virtual ~ball() = default;
 };

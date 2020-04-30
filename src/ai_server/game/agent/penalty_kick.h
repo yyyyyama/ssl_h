@@ -41,7 +41,7 @@ private:
   //敵キーパーの動きを監視して蹴るタイミングを変える
   unsigned int keeper_id_;
 
-  util::time_point_type change_command_time_; // PKの経過時間
+  std::chrono::steady_clock::time_point change_command_time_; // PKの経過時間
 };
 } // namespace agent
 } // namespace game

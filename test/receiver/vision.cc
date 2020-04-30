@@ -15,7 +15,6 @@
 #include "ai_server/logger/sink/ostream.h"
 #include "ai_server/receiver/vision.h"
 #include "ai_server/util/net/multicast/sender.h"
-#include "ai_server/util/time.h"
 
 using namespace std::chrono_literals;
 using namespace std::string_literals;
@@ -83,7 +82,7 @@ BOOST_AUTO_TEST_CASE(send_and_receive, *boost::unit_test::timeout(30)) {
   BOOST_TEST(v.total_messages() == 0);
   BOOST_TEST(v.messages_per_second() == 0);
   BOOST_TEST(v.parse_error() == 0);
-  BOOST_TEST((v.last_updated() == ai_server::util::time_point_type{}));
+  BOOST_TEST((v.last_updated() == std::chrono::system_clock::time_point{}));
 
   // 送信クラスの初期化
   // multicast_addr = 224.5.23.3, port = 10008
@@ -132,11 +131,11 @@ BOOST_AUTO_TEST_CASE(send_and_receive, *boost::unit_test::timeout(30)) {
 BOOST_AUTO_TEST_CASE(timestamp_adjustment,
                      *boost::unit_test::timeout(30) * boost::unit_test::tolerance(0.001)) {
   auto current_time = [] {
-    constexpr auto den = ai_server::util::duration_type::period::den;
-    constexpr auto num = ai_server::util::duration_type::period::num;
+    constexpr auto den = std::chrono::system_clock::duration::period::den;
+    constexpr auto num = std::chrono::system_clock::duration::period::num;
 
     // time を Vision で使われる形式 (double で単位が秒) に変換
-    const auto time = ai_server::util::clock_type::now();
+    const auto time = std::chrono::system_clock::now();
     const auto te   = time.time_since_epoch();
     return static_cast<double>(te.count() * num) / den;
   };

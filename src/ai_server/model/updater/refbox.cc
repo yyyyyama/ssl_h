@@ -1,7 +1,7 @@
+#include <chrono>
 #include <limits>
 #include <tuple>
 
-#include "ai_server/util/time.h"
 #include "ai_server/util/math/affine.h"
 #include "refbox.h"
 #include "ssl-protos/refbox/referee.pb.h"
@@ -15,8 +15,8 @@ refbox::refbox() : refbox_{}, affine_{Eigen::Translation3d{.0, .0, .0}} {}
 void refbox::update(const ssl_protos::refbox::Referee& referee) {
   std::unique_lock<std::shared_timed_mutex> lock(mutex_);
 
-  refbox_.set_packet_timestamp(
-      util::time_point_type{std::chrono::microseconds{referee.packet_timestamp()}});
+  refbox_.set_packet_timestamp(std::chrono::system_clock::time_point{
+      std::chrono::microseconds{referee.packet_timestamp()}});
   refbox_.set_stage_time_left(
       referee.has_stage_time_left()
           ? referee.stage_time_left()

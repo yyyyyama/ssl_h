@@ -12,7 +12,6 @@
 #include "ai_server/game/action/receive.h"
 #include "ai_server/game/agent/base.h"
 #include "ai_server/model/world.h"
-#include "ai_server/util/time.h"
 
 namespace ai_server {
 namespace game {
@@ -49,7 +48,7 @@ private:
   std::vector<unsigned int> visible_ids_;
 
   // ロボットが消えた時点
-  std::unordered_map<unsigned int, util::time_point_type> lost_point_;
+  std::unordered_map<unsigned int, std::chrono::steady_clock::time_point> lost_point_;
   // ロボットの座標
   std::map<unsigned int, Eigen::Vector2d> robot_pos_;
   // ロボットの速度
@@ -57,7 +56,7 @@ private:
   // ロボットが消えたとするか?
   std::map<unsigned int, bool> is_lost_;
   // これ以上消えていたらlostとみなす
-  util::duration_type lost_count_;
+  std::chrono::steady_clock::duration lost_count_;
   // target of abp
   Eigen::Vector2d abp_target_;
   // 自チームのplacementか?

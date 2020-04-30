@@ -133,7 +133,7 @@ model::command autonomous_ball_place::execute() {
 
     // ボールから離れる
     case running_state::leave: {
-      const auto now = util::clock_type::now();
+      const auto now = std::chrono::steady_clock::now();
       if (wait_flag_) {
         begin_     = now;
         wait_flag_ = false;
@@ -171,7 +171,7 @@ model::command autonomous_ball_place::execute() {
 
     // 待機
     case running_state::wait: {
-      const auto now = util::clock_type::now();
+      const auto now = std::chrono::steady_clock::now();
       command.set_velocity({0.0, 0.0, 0.0});
       command.set_dribble(0);
       if (wait_flag_) {

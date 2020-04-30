@@ -11,7 +11,7 @@ namespace filter {
 
 template <>
 std::optional<model::robot> va_calculator<model::robot>::va_calculator::update(
-    std::optional<model::robot> value, util::time_point_type time) {
+    std::optional<model::robot> value, std::chrono::system_clock::time_point time) {
   // 対象がロストしたらロストさせる
   if (!value.has_value()) {
     // 再び見えるようになった時に変な値が計算されないように prev_time_ を初期化する

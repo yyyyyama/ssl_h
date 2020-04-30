@@ -3,7 +3,6 @@
 
 #include <Eigen/Dense>
 
-#include "ai_server/util/time.h"
 #include "base.h"
 
 namespace ai_server {

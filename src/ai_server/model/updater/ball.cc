@@ -27,7 +27,8 @@ void ball::update(const ssl_protos::vision::Frame& detection) {
   // カメラID
   const auto& camera_id = detection.camera_id();
   // キャプチャされた時間
-  const auto captured_time = util::time_point_type{util::to_duration(detection.t_capture())};
+  const auto captured_time =
+      std::chrono::system_clock::time_point{util::to_duration(detection.t_capture())};
 
   // 検出されたボールの中から, 最もconfidenceの高い値を選択候補に登録する
   // FIXME:

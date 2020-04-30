@@ -26,7 +26,7 @@ BOOST_AUTO_TEST_CASE(rest, *boost::unit_test::tolerance(0.1)) {
   };
 
   // 初期時刻
-  auto t = ai_server::util::time_point_type{};
+  auto t = std::chrono::system_clock::time_point{};
 
   filter::state_observer::ball obs{{}, t};
 
@@ -46,7 +46,7 @@ BOOST_AUTO_TEST_CASE(rest, *boost::unit_test::tolerance(0.1)) {
 }
 
 BOOST_AUTO_TEST_CASE(null) {
-  auto t = ai_server::util::time_point_type{};
+  auto t = std::chrono::system_clock::time_point{};
   filter::state_observer::ball obs{{}, t};
 
   // nullopt で更新したときの結果はnullopt

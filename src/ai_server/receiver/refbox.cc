@@ -42,14 +42,14 @@ std::uint64_t refbox::parse_error() const {
   return parse_error_;
 }
 
-util::time_point_type refbox::last_updated() const {
+std::chrono::system_clock::time_point refbox::last_updated() const {
   std::shared_lock lock{mutex_};
   return last_updated_;
 }
 
 void refbox::handle_receive(const util::net::multicast::receiver::buffer_t& buffer,
                             std::size_t size, std::uint64_t total_messages,
-                            util::time_point_type time) {
+                            std::chrono::system_clock::time_point time) {
   ssl_protos::refbox::Referee packet;
 
   if (packet.ParseFromArray(buffer.data(), size)) {

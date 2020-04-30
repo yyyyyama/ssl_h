@@ -13,8 +13,10 @@ namespace filter = ai_server::filter;
 namespace model  = ai_server::model;
 namespace util   = ai_server::util;
 
-// tをhigh_resolution_clockの型に変換する関数 (長すぎ)
-auto dc = [](auto t) { return std::chrono::duration_cast<util::duration_type>(t); };
+// tをsystem_clock::durationに変換する関数 (長すぎ)
+auto dc = [](auto t) {
+  return std::chrono::duration_cast<std::chrono::system_clock::duration>(t);
+};
 
 BOOST_AUTO_TEST_SUITE(updater_ball)
 
@@ -167,12 +169,12 @@ struct mock_filter1 : public filter::base<model::ball, filter::timing::same> {
 
   // 最後にupdateの引数に与えられた値
   std::optional<model::ball> v;
-  util::time_point_type t;
+  std::chrono::system_clock::time_point t;
 
   mock_filter1(int a1, int a2) : arg1(a1), arg2(a2) {}
 
   std::optional<model::ball> update(std::optional<model::ball> value,
-                                    util::time_point_type time) override {
+                                    std::chrono::system_clock::time_point time) override {
     v = value;
     t = time;
 
@@ -296,7 +298,7 @@ BOOST_AUTO_TEST_CASE(filter_same) {
 
 struct mock_filter2 : public filter::base<model::ball, filter::timing::same> {
   std::optional<model::ball> update(std::optional<model::ball> value,
-                                    util::time_point_type) override {
+                                    std::chrono::system_clock::time_point) override {
     // 引数に値が渡された時にnullopt, そうでない時に値を返すFilter
     if (value.has_value()) {
       return std::nullopt;
@@ -363,11 +365,12 @@ struct mock_filter3 : public filter::base<model::ball, filter::timing::manual> {
 
   // set_raw_value で渡された値
   std::optional<model::ball> value;
-  util::time_point_type time;
+  std::chrono::system_clock::time_point time;
 
   mock_filter3(own_type::writer_func_type wf, int a1, int a2) : base(wf), arg1(a1), arg2(a2) {}
 
-  void set_raw_value(std::optional<model::ball> v, util::time_point_type t) override {
+  void set_raw_value(std::optional<model::ball> v,
+                     std::chrono::system_clock::time_point t) override {
     value = v;
     time  = t;
   }

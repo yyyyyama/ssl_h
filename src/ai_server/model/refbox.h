@@ -1,9 +1,9 @@
 #ifndef AI_SERVER_MODEL_REFBOX_H
 #define AI_SERVER_MODEL_REFBOX_H
 
+#include <chrono>
 #include <tuple>
 
-#include "ai_server/util/time.h"
 #include "team_info.h"
 #include "team_color.h"
 
@@ -51,7 +51,7 @@ public:
     ball_placement_blue    = ssl_protos::refbox::Referee_Command_BALL_PLACEMENT_BLUE,
   };
   refbox();
-  util::time_point_type packet_timestamp() const;
+  std::chrono::system_clock::time_point packet_timestamp() const;
   int stage_time_left() const;
   stage_name stage() const;
   game_command command() const;
@@ -59,7 +59,7 @@ public:
   team_info team_blue() const;
   std::tuple<double, double> ball_placement_position() const;
   std::optional<model::team_color> bot_substitution_by_team() const;
-  void set_packet_timestamp(util::time_point_type value);
+  void set_packet_timestamp(std::chrono::system_clock::time_point value);
   void set_stage_time_left(int value);
   void set_stage(stage_name value);
   void set_command(game_command value);
@@ -69,7 +69,7 @@ public:
   void set_bot_substitution_by_team(std::optional<model::team_color> value);
 
 private:
-  util::time_point_type packet_timestamp_;
+  std::chrono::system_clock::time_point packet_timestamp_;
   int stage_time_left_;
   stage_name stage_;
   game_command command_;

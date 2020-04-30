@@ -9,7 +9,7 @@ refbox::refbox() : team_yellow_("yellow"), team_blue_("blue"), ball_placement_po
   command_         = refbox::game_command::halt;
 }
 
-util::time_point_type refbox::packet_timestamp() const {
+std::chrono::system_clock::time_point refbox::packet_timestamp() const {
   return packet_timestamp_;
 }
 
@@ -41,7 +41,7 @@ std::optional<model::team_color> refbox::bot_substitution_by_team() const {
   return bot_substitution_by_team_;
 }
 
-void refbox::set_packet_timestamp(util::time_point_type value) {
+void refbox::set_packet_timestamp(std::chrono::system_clock::time_point value) {
   packet_timestamp_ = value;
 }
 

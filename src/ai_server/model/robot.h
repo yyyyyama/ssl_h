@@ -1,9 +1,9 @@
 #ifndef AI_SERVER_MODEL_ROBOT_H
 #define AI_SERVER_MODEL_ROBOT_H
 
+#include <chrono>
 #include <functional>
 #include <optional>
-#include "ai_server/util/time.h"
 
 namespace ai_server {
 namespace model {
@@ -17,7 +17,7 @@ public:
           // 推定関数が呼ばれたときのオブジェクト
           const robot&,
           // 指定したい時刻とのオフセット
-          util::duration_type)>;
+          std::chrono::system_clock::duration)>;
 
 private:
   unsigned int id_;
@@ -68,7 +68,7 @@ public:
   void clear_estimator();
 
   /// t 経過したときの状態を推定する
-  std::optional<robot> state_after(util::duration_type t) const;
+  std::optional<robot> state_after(std::chrono::system_clock::duration t) const;
 };
 } // namespace model
 } // namespace ai_server

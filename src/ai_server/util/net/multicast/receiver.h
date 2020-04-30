@@ -2,6 +2,7 @@
 #define AI_SERVER_UTIL_NET_MULTICAST_RECEIVER_H
 
 #include <array>
+#include <chrono>
 #include <cstdint>
 #include <functional>
 #include <string>
@@ -9,8 +10,6 @@
 #define BOOST_COROUTINES_NO_DEPRECATION_WARNING
 #include <boost/asio.hpp>
 #include <boost/asio/spawn.hpp>
-
-#include "ai_server/util/time.h"
 
 namespace ai_server {
 namespace util {
@@ -29,10 +28,10 @@ public:
 
   // データ受信時のコールバック関数の型
   using receive_callback_type =
-      std::function<void(const buffer_t&,      // 受信バッファ
-                         std::size_t,          // データサイズ
-                         std::uint64_t,        // 受信したメッセージの総数
-                         util::time_point_type // メッセージを受信した時刻
+      std::function<void(const buffer_t&, // 受信バッファ
+                         std::size_t,     // データサイズ
+                         std::uint64_t,   // 受信したメッセージの総数
+                         std::chrono::system_clock::time_point // メッセージを受信した時刻
                          )>;
   // 受信状況更新時のコールバック関数の型
   using status_callback_type = std::function<void(std::uint64_t // 1秒間に受信したメッセージの数
@@ -83,7 +82,8 @@ private:
   void count_messages_per_second(boost::asio::yield_context yield);
 
   inline void call_receive_callback(const buffer_t& buffer, std::size_t length,
-                                    std::uint64_t total_messages, util::time_point_type time) {
+                                    std::uint64_t total_messages,
+                                    std::chrono::system_clock::time_point time) {
     if (receive_callback_) receive_callback_(buffer, length, total_messages, time);
   }
 

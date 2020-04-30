@@ -46,7 +46,7 @@ ball_placement::ball_placement(const model::world& world, bool is_yellow,
     robot_vel_[id] = our_robots.count(id)
                          ? Eigen::Vector2d(our_robots.at(id).vx(), our_robots.at(id).vy())
                          : Eigen::Vector2d(0, 0);
-    lost_point_[id] = util::clock_type::now();
+    lost_point_[id] = std::chrono::steady_clock::now();
     is_lost_[id]    = false;
   }
   auto tmp_ids = ids;
@@ -101,12 +101,12 @@ std::vector<std::shared_ptr<action::base>> ball_placement::execute() {
     if (our_robots.count(id)) {
       robot_pos_[id]  = Eigen::Vector2d(our_robots.at(id).x(), our_robots.at(id).y());
       robot_vel_[id]  = Eigen::Vector2d(our_robots.at(id).vx(), our_robots.at(id).vy());
-      lost_point_[id] = util::clock_type::now();
+      lost_point_[id] = std::chrono::steady_clock::now();
     } else {
-      std::chrono::duration<double> time = util::clock_type::now() - lost_point_[id];
+      std::chrono::duration<double> time = std::chrono::steady_clock::now() - lost_point_[id];
       robot_pos_[id]                     = robot_pos_[id] + robot_vel_[id] * time.count();
     }
-    is_lost_[id] = (util::clock_type::now() - lost_point_[id]) > lost_count_;
+    is_lost_[id] = (std::chrono::steady_clock::now() - lost_point_[id]) > lost_count_;
     auto new_end = std::remove_if(visible_ids_.begin(), visible_ids_.end(),
                                   [&id](unsigned int i) { return i == id; });
     visible_ids_.erase(new_end, visible_ids_.end());

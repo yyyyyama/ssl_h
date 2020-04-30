@@ -15,7 +15,6 @@
 #include "ai_server/model/team_color.h"
 #include "ai_server/model/updater/world.h"
 #include "ai_server/sender/base.h"
-#include "ai_server/util/time.h"
 
 namespace ai_server {
 
@@ -33,7 +32,7 @@ public:
   /// @param cycle            制御周期
   /// @param world            updater::worldの参照
   /// @param color            チームカラー
-  driver(boost::asio::io_context& io_context, util::duration_type cycle,
+  driver(boost::asio::io_context& io_context, std::chrono::steady_clock::duration cycle,
          const model::updater::world& world, model::team_color color);
 
   /// @brief                  現在設定されているチームカラーを取得する
@@ -83,9 +82,9 @@ private:
   mutable std::mutex mutex_;
 
   /// 制御部の処理を一定の周期で回すためのタイマ
-  boost::asio::basic_waitable_timer<util::clock_type> timer_;
+  boost::asio::steady_timer timer_;
   /// 制御周期
-  util::duration_type cycle_;
+  std::chrono::steady_clock::duration cycle_;
 
   /// updater::worldの参照
   const model::updater::world& world_;

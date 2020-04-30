@@ -11,7 +11,7 @@ namespace filter {
 template <class T>
 class va_calculator : public base<T, timing::same> {
   using value_type      = T;
-  using time_point_type = util::time_point_type;
+  using time_point_type = std::chrono::system_clock::time_point;
 
 public:
   va_calculator();

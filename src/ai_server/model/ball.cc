@@ -74,7 +74,7 @@ void ball::clear_estimator() {
   estimator_ = nullptr;
 }
 
-std::optional<ball> ball::state_after(util::duration_type t) const {
+std::optional<ball> ball::state_after(std::chrono::system_clock::duration t) const {
   if (estimator_) {
     return estimator_(*this, t);
   } else {

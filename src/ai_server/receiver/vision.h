@@ -1,6 +1,7 @@
 #ifndef AI_SERVER_RECEIVER_VISION_H
 #define AI_SERVER_RECEIVER_VISION_H
 
+#include <chrono>
 #include <cstdint>
 #include <string>
 #include <shared_mutex>
@@ -11,7 +12,6 @@
 
 #include "ai_server/logger/logger.h"
 #include "ai_server/util/net/multicast/receiver.h"
-#include "ai_server/util/time.h"
 
 // 前方宣言
 namespace ssl_protos {
@@ -65,13 +65,13 @@ public:
   std::uint64_t parse_error() const;
 
   /// @brief 最後にメッセージを受信した日時を取得する
-  util::time_point_type last_updated() const;
+  std::chrono::system_clock::time_point last_updated() const;
 
 private:
   /// @brief receiver_ が新しいメッセージを受信したときに呼ばれる関数
   void handle_receive(const util::net::multicast::receiver::buffer_t& buffer,
                       std::size_t length, std::uint64_t total_messages,
-                      util::time_point_type time);
+                      std::chrono::system_clock::time_point time);
 
   /// @brief receiver_ で受信状況が更新されたときに呼ばれる関数
   void handle_status_updated(std::uint64_t messages_per_second);
@@ -81,7 +81,7 @@ private:
 
   /// @brief t_capture, t_sent を ai-server 基準の値に修正する
   void adjust_detection_timestamps(ssl_protos::vision::Frame& detection,
-                                   util::time_point_type time);
+                                   std::chrono::system_clock::time_point time);
 
   /// 受信した総メッセージ数
   std::uint64_t total_messages_;
@@ -90,7 +90,7 @@ private:
   /// 受信したメッセージのパースに失敗した数
   std::uint64_t parse_error_;
   /// 最後にメッセージを受信した日時
-  util::time_point_type last_updated_;
+  std::chrono::system_clock::time_point last_updated_;
 
   // <カメラ ID, <受信したフレーム数, 時差 + 送受信の時間の平均>
   std::unordered_map<std::uint32_t, std::tuple<std::uint64_t, double>> time_diff_map_;

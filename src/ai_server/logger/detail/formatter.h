@@ -10,7 +10,6 @@
 #include <fmt/format.h>
 
 #include "ai_server/logger/log_item.h"
-#include "ai_server/util/time.h"
 #include "formatter.h"
 
 namespace ai_server::logger::detail {

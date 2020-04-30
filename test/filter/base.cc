@@ -22,7 +22,7 @@ public:
 
   // filterの更新処理
   std::optional<std::string> update(std::optional<std::string> value,
-                                    ai_server::util::time_point_type) override {
+                                    std::chrono::system_clock::time_point) override {
     // 何らかの処理を行い, 結果を返す
     if (value.has_value()) {
       return *value + suffix_;
@@ -33,7 +33,7 @@ public:
 };
 
 BOOST_AUTO_TEST_CASE(same) {
-  ai_server::util::time_point_type t{};
+  std::chrono::system_clock::time_point t{};
 
   test_filter1 f{"er"};
 
@@ -60,7 +60,7 @@ public:
 
   // 観測値を受け取るメンバ関数
   void set_raw_value(std::optional<std::string> value,
-                     ai_server::util::time_point_type) override {
+                     std::chrono::system_clock::time_point) override {
     value_ = std::move(value);
   }
 
