@@ -1,8 +1,6 @@
 #include <algorithm>
 #include <cmath>
 #include <cfloat>
-#include <stdlib.h>
-#include <time.h>
 #include <boost/math/constants/constants.hpp>
 
 #include "ai_server/game/action/move.h"
