@@ -10,6 +10,11 @@ foreach(TEST_SOURCE_FILE ${SOURCES})
   target_link_libraries(${TEST_EXECUTABLE_NAME}
     ai-server-lib
     Boost::unit_test_framework
+
+    # radio::connention::serial のテストで使う openpty に必要
+    # TODO: 特定のテストで必要なライブラリを指定できるようにして serial のテストのみにリンクさせる
+    # TODO: Linux 環境以外に対応する...？
+    util
   )
   add_test(${TEST_MODULE_NAME} ${EXECUTABLE_OUTPUT_PATH}/${TEST_EXECUTABLE_NAME})
 endforeach()
