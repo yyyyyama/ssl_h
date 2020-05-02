@@ -1,44 +1,52 @@
 # nnabla の Python 検出が微妙なので、先にこっちで見つけておく
 # https://cmake.org/cmake/help/v3.16/module/FindPython3.html
 find_package(Python3 COMPONENTS Interpreter REQUIRED)
+set(PYTHON_COMMAND_NAME  "${Python3_EXECUTABLE}" CACHE STRING "Python3 executable path")
 
-# ExternalProject で nnabla をビルドする
-# https://cmake.org/cmake/help/v3.16/module/ExternalProject.html
-include(ExternalProject)
-ExternalProject_Add(nnabla-ext
+# C++ のユーティリティをビルドする
+set(BUILD_CPP_UTILS ON CACHE BOOL "Build C++ API and utilities")
+
+# Python インターフェースはビルドしない
+set(BUILD_PYTHON_PACKAGE OFF CACHE BOOL "Build python package")
+
+# git apply を使いたい
+find_package(Git REQUIRED)
+
+# FetchContent で nnabla のソースコードをダウンロード & プロジェクトへの追加をする
+# https://cmake.org/cmake/help/v3.13/module/FetchContent.html
+include(FetchContent)
+FetchContent_Declare(nnabla
   GIT_REPOSITORY https://github.com/sony/nnabla.git
-  GIT_TAG        v1.4.0
-  STEP_TARGETS   build
-  CMAKE_CACHE_ARGS
-    -DCMAKE_INSTALL_PREFIX:PATH=${CMAKE_CURRENT_BINARY_DIR}/nnabla
-    -DPYTHON_COMMAND_NAME:STRING=${Python3_EXECUTABLE}
-    -DBUILD_CPP_UTILS:BOOL=ON
-    -DBUILD_PYTHON_PACKAGE:BOOL=OFF
-  BUILD_BYPRODUCTS
-    ${CMAKE_CURRENT_BINARY_DIR}/nnabla/lib/libnbla_cli.so
-    ${CMAKE_CURRENT_BINARY_DIR}/nnabla/lib/libnnabla.so
-    ${CMAKE_CURRENT_BINARY_DIR}/nnabla/lib/libnnabla_utils.so
-)
+  GIT_TAG        v1.7.0
 
-# ビルドした nnabla を扱いやすくするための宣言
-add_library(nnabla INTERFACE)
-add_library(nnabla::nnabla ALIAS nnabla)
-target_link_libraries(nnabla
-  INTERFACE ${CMAKE_CURRENT_BINARY_DIR}/nnabla/lib/libnnabla.so
+  # nnabla の CMakeLists.txt 内では CMAKE_SOURCE_DIR などが使われていて
+  # add_subdirectory/FetchContent_MakeAvailable したときに問題となるためパッチを当てる
+  PATCH_COMMAND  ${GIT_EXECUTABLE} apply ${CMAKE_CURRENT_SOURCE_DIR}/use-correct-variables.patch
 )
-target_include_directories(nnabla SYSTEM
-  INTERFACE ${CMAKE_CURRENT_BINARY_DIR}/nnabla/include
-)
-add_dependencies(nnabla nnabla-ext)
+FetchContent_GetProperties(nnabla)
+if(NOT nnabla_POPULATED)
+  FetchContent_Populate(nnabla)
+  add_subdirectory(${nnabla_SOURCE_DIR} ${nnabla_BINARY_DIR})
+endif()
 
-add_library(nnabla_utils INTERFACE)
-add_library(nnabla::nnabla_utils ALIAS nnabla_utils)
-target_link_libraries(nnabla_utils
-  INTERFACE ${CMAKE_CURRENT_BINARY_DIR}/nnabla/lib/libnnabla_utils.so nnabla
-)
+# nnabla 側で宣言されたターゲット nnabla, nnabla_utils, nbla_cli に
+# 追加の依存関係と include パスの指定をして使いやすくする
+add_library(nnabla_interface INTERFACE)
+target_link_libraries(nnabla_interface INTERFACE nnabla)
+target_include_directories(nnabla_interface INTERFACE "${nnabla_SOURCE_DIR}/include")
+add_library(nnabla::nnabla ALIAS nnabla_interface)
 
-add_library(nbla_cli INTERFACE)
-add_library(nnabla::nbla_cli ALIAS nbla_cli)
-target_link_libraries(nbla_cli
-  INTERFACE ${CMAKE_CURRENT_BINARY_DIR}/nnabla/lib/libnbla_cli.so nnabla nnabla_utils
+add_library(nnabla_utils_interface INTERFACE)
+target_link_libraries(nnabla_utils_interface INTERFACE
+  nnabla::nnabla
+  nnabla_utils
 )
+add_library(nnabla::nnabla_utils ALIAS nnabla_utils_interface)
+
+add_library(nbla_cli_interface INTERFACE)
+target_link_libraries(nbla_cli_interface INTERFACE
+  nnabla::nnabla
+  nnabla::nnabla_utils
+  nbla_cli
+)
+add_library(nnabla::nbla_cli ALIAS nbla_cli_interface)
