@@ -4,9 +4,11 @@
 #include <memory>
 #include <vector>
 #include <chrono>
+#include <Eigen/Dense>
 
 #include "base.h"
 #include "ai_server/model/refbox.h"
+#include "ai_server/game/agent/ball_placement.h"
 #include "ai_server/game/agent/defense.h"
 #include "ai_server/game/agent/halt.h"
 #include "ai_server/game/agent/kick_off.h"
@@ -37,7 +39,9 @@ public:
     shootout_attack,
     shootout_attack_start,
     shootout_defense,
-    shootout_defense_start
+    shootout_defense_start,
+    ball_placement,
+    ball_placement_enemy
   };
 
   first_formation(const model::world& world, const model::refbox& refcommand, bool is_yellow,
@@ -85,6 +89,8 @@ private:
 
   void reset_agent();
   void role_reset(const std::vector<unsigned int>& visible_robots);
+  Eigen::Vector2d abp_target() const;
+  Eigen::Vector2d prev_abp_target_;
 
   model::refbox::game_command previous_refcommand_;
   command previous_command_;
@@ -101,6 +107,7 @@ private:
   std::shared_ptr<agent::kick_off> kickoff_;
   std::shared_ptr<agent::kick_off_waiter> kickoff_waiter_;
   std::shared_ptr<agent::stopgame> stop_;
+  std::shared_ptr<agent::ball_placement> ball_placement_;
   std::shared_ptr<agent::regular> regular_;
   std::shared_ptr<agent::setplay> setplay_;
   std::shared_ptr<agent::penalty_kick> shoot_out_;
@@ -115,6 +122,7 @@ private:
   std::shared_ptr<agent::kick_off_waiter> kickoff_waiter(
       agent::kick_off_waiter::kickoff_mode mode, bool attack);
   std::shared_ptr<agent::stopgame> stop();
+  std::shared_ptr<agent::ball_placement> ball_placement(bool is_ally);
   std::shared_ptr<agent::regular> regular(bool chase_flag);
   std::shared_ptr<agent::setplay> setplay();
   std::shared_ptr<agent::penalty_kick> shootout(bool start_flag, unsigned int enemy_keeper);

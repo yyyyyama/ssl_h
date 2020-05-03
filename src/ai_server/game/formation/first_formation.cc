@@ -81,6 +81,32 @@ std::vector<std::shared_ptr<agent::base>> first_formation::execute() {
       }
       break;
 
+    case command::ball_placement:
+      if (is_command_changed() || prev_abp_target_ != abp_target()) {
+        //コマンドが変わったタイミングでフラグを初期化しておく
+        // palcementのtargetが変わったら初期化し直す
+        kicked_flag_     = false;
+        initialize_flag_ = false;
+        regular_flag_    = true;
+        prev_abp_target_ = abp_target();
+        reset_agent();
+        ball_placement_ = std::make_shared<agent::ball_placement>(world_, is_yellow_, ids_,
+                                                                  abp_target(), true);
+      }
+      exe.emplace_back(ball_placement_);
+      break;
+
+    case command::ball_placement_enemy:
+      if (is_command_changed()) { //コマンドが変わったタイミングでフラグを初期化しておく
+        kicked_flag_     = false;
+        initialize_flag_ = false;
+        regular_flag_    = true;
+        prev_abp_target_ = abp_target();
+        reset_agent();
+      }
+      exe.emplace_back(ball_placement(false));
+      break;
+
     case command::kickoff_attack_start:
       if (is_command_changed()) { //コマンドが切り替わった時だけ初期化
         regular_flag_        = true;
@@ -390,8 +416,14 @@ void first_formation::reset_agent() {
   kickoff_.reset();
   kickoff_waiter_.reset();
   stop_.reset();
+  ball_placement_.reset();
   regular_.reset();
   setplay_.reset();
+}
+
+Eigen::Vector2d first_formation::abp_target() const {
+  return Eigen::Vector2d(std::get<0>(refcommand_.ball_placement_position()),
+                         std::get<1>(refcommand_.ball_placement_position()));
 }
 
 ///////////////////////////////////////////////////////
@@ -492,6 +524,18 @@ std::shared_ptr<agent::halt> first_formation::halt() {
     halt_ = std::make_shared<agent::halt>(world_, is_yellow_, ids_);
   }
   return halt_;
+}
+
+//引数で敵味方どちらのabpか指定
+std::shared_ptr<agent::ball_placement> first_formation::ball_placement(bool is_ally) {
+  // agentが空のとき,コマンドが変わったとき,見えるロボットが変わったとき,targetが変わったときに初期化する
+  if (!ball_placement_ || is_command_changed() || initialize_flag_ ||
+      prev_abp_target_ != abp_target()) {
+    ball_placement_  = std::make_shared<agent::ball_placement>(world_, is_yellow_, ids_,
+                                                              abp_target(), is_ally);
+    prev_abp_target_ = abp_target();
+  }
+  return ball_placement_;
 }
 
 std::shared_ptr<agent::stopgame> first_formation::stop() {
@@ -742,9 +786,19 @@ first_formation::command first_formation::convert_command(model::refbox::game_co
       else
         return command::setplay_defense;
 
-    case cmd::stop:
-    case cmd::ball_placement_blue:
     case cmd::ball_placement_yellow:
+      if (is_yellow_)
+        return command::ball_placement;
+      else
+        return command::ball_placement_enemy;
+
+    case cmd::ball_placement_blue:
+      if (!is_yellow_)
+        return command::ball_placement;
+      else
+        return command::ball_placement_enemy;
+
+    case cmd::stop:
     case cmd::goal_blue:
     case cmd::goal_yellow:
       return command::stop;
