@@ -3,10 +3,9 @@
 
 #include "ai_server/game/agent/defense.h"
 #include "ai_server/model/command.h"
+#include "ai_server/util/math/angle.h"
 #include "ai_server/util/math/geometry.h"
 #include "ai_server/util/math/to_vector.h"
-#include "ai_server/util/math.h"
-#include "ai_server/util/math/angle.h"
 
 namespace ai_server {
 namespace game {

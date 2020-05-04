@@ -7,7 +7,7 @@
 #include "ai_server/game/action/move.h"
 #include "ai_server/game/action/no_operation.h"
 #include "ai_server/model/command.h"
-#include "ai_server/util/math.h"
+#include "ai_server/util/math/angle.h"
 #include "ai_server/util/math/to_vector.h"
 
 #include "setplay.h"

@@ -3,7 +3,7 @@
 #include <variant>
 
 #include "ai_server/sender/kiks.h"
-#include "ai_server/util/math.h"
+#include "ai_server/util/math/angle.h"
 
 namespace ai_server {
 namespace sender {

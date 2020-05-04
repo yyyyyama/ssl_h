@@ -2,7 +2,7 @@
 #include <boost/math/constants/constants.hpp>
 #include <cmath>
 
-#include "ai_server/util/math.h"
+#include "ai_server/util/math/angle.h"
 #include "state_feedback_controller.h"
 
 namespace ai_server {

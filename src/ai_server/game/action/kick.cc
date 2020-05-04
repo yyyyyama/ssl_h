@@ -1,6 +1,6 @@
 #include <boost/math/constants/constants.hpp>
 #include <cmath>
-#include "ai_server/util/math.h"
+#include "ai_server/util/math/angle.h"
 #include "ai_server/util/math/to_vector.h"
 #include "kick.h"
 

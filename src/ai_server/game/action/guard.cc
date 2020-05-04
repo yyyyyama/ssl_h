@@ -2,7 +2,7 @@
 #include <cmath>
 
 #include "ai_server/game/action/guard.h"
-#include "ai_server/util/math.h"
+#include "ai_server/util/math/angle.h"
 #include "ai_server/util/math/to_vector.h"
 
 #include <boost/math/constants/constants.hpp>

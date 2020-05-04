@@ -2,7 +2,7 @@
 #include <boost/algorithm/clamp.hpp>
 #include <cmath>
 
-#include "ai_server/util/math.h"
+#include "ai_server/util/math/angle.h"
 #include "pid_controller.h"
 
 namespace ai_server {

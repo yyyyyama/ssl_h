@@ -6,7 +6,7 @@
 #include <boost/assign/list_of.hpp>
 
 #include "ai_server/game/action/marking.h"
-#include "ai_server/util/math.h"
+#include "ai_server/util/math/angle.h"
 #include "ai_server/util/math/geometry.h"
 
 namespace ai_server {

@@ -1,6 +1,6 @@
 #include <cmath>
 #include "ai_server/game/action/chase_ball.h"
-#include "ai_server/util/math.h"
+#include "ai_server/util/math/angle.h"
 
 namespace ai_server {
 namespace game {
