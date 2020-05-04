@@ -103,7 +103,7 @@ BOOST_AUTO_TEST_CASE(send_command) {
 
     const auto& pcc = pc.robot_commands();
     BOOST_TEST(pcc.size() == 1);
-    BOOST_TEST(pcc.at(0).id() == 123);
+    BOOST_TEST(pcc[0].id() == 123);
   }
 
   rc.last_value.reset();
@@ -123,7 +123,7 @@ BOOST_AUTO_TEST_CASE(send_command) {
 
     const auto& pcc = pc.robot_commands();
     BOOST_TEST(pcc.size() == 1);
-    BOOST_TEST(pcc.at(0).id() == 456);
+    BOOST_TEST(pcc[0].id() == 456);
   }
 }
 
@@ -177,11 +177,11 @@ BOOST_AUTO_TEST_CASE(replacement_robot) {
 
     const auto& r = pr.robots();
     BOOST_TEST(r.size() == 1);
-    BOOST_TEST(r.at(0).id() == 123);
-    BOOST_TEST(r.at(0).x() == 0.456);
-    BOOST_TEST(r.at(0).y() == 0.789);
-    BOOST_TEST(r.at(0).dir() == 90); // grSim は角度を deg で扱う
-    BOOST_TEST(r.at(0).yellowteam());
+    BOOST_TEST(r[0].id() == 123);
+    BOOST_TEST(r[0].x() == 0.456);
+    BOOST_TEST(r[0].y() == 0.789);
+    BOOST_TEST(r[0].dir() == 90); // grSim は角度を deg で扱う
+    BOOST_TEST(r[0].yellowteam());
   }
 
   rc.last_value.reset();
@@ -200,11 +200,11 @@ BOOST_AUTO_TEST_CASE(replacement_robot) {
 
     const auto& r = pr.robots();
     BOOST_TEST(r.size() == 1);
-    BOOST_TEST(r.at(0).id() == 456);
-    BOOST_TEST(r.at(0).x() == 0.078);
-    BOOST_TEST(r.at(0).y() == 0.09);
-    BOOST_TEST(r.at(0).dir() == 180);
-    BOOST_TEST(!r.at(0).yellowteam());
+    BOOST_TEST(r[0].id() == 456);
+    BOOST_TEST(r[0].x() == 0.078);
+    BOOST_TEST(r[0].y() == 0.09);
+    BOOST_TEST(r[0].dir() == 180);
+    BOOST_TEST(!r[0].yellowteam());
   }
 }
 
