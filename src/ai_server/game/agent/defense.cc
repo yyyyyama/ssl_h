@@ -1,6 +1,7 @@
 #include <cmath>
 #include <map>
 
+#include "ai_server/game/action/move.h"
 #include "ai_server/game/agent/defense.h"
 #include "ai_server/model/command.h"
 #include "ai_server/util/math/angle.h"
@@ -99,14 +100,14 @@ std::vector<std::shared_ptr<action::base>> defense::execute() {
       const auto itr = std::min_element(
           active_walls.cbegin(), active_walls.cend(),
           [&target_it, &ally_robots, &goal](const auto& a, const auto& b) {
-            return util::math::wrap_to_pi(
+            return std::abs(util::math::wrap_to_pi(
                        std::atan2(ally_robots.at(a).y() - goal.y(),
                                   ally_robots.at(a).x() - goal.x()) -
-                       std::atan2(target_it.y() - goal.y(), target_it.x() - goal.x())) <
-                   util::math::wrap_to_pi(
+                       std::atan2(target_it.y() - goal.y(), target_it.x() - goal.x()))) <
+                   std::abs(util::math::wrap_to_pi(
                        std::atan2(ally_robots.at(b).y() - goal.y(),
                                   ally_robots.at(b).x() - goal.x()) -
-                       std::atan2(target_it.y() - goal.y(), target_it.x() - goal.x()));
+                       std::atan2(target_it.y() - goal.y(), target_it.x() - goal.x())));
           });
       if (itr == active_walls.end()) {
         break;
@@ -130,6 +131,34 @@ std::vector<std::shared_ptr<action::base>> defense::execute() {
       guard->move_on(shift_flag);
       guard->move_to(pos.x(), pos.y());
       baseaction.push_back(guard);
+    }
+
+    if (!active_walls.empty()) {
+      const auto wf = world_.field();
+      std::vector<Eigen::Vector2d> pos_candidates{
+          {wf.x_min() + wf.penalty_length() + 1000.0, 300.0},
+          {wf.x_min() + wf.penalty_length() + 1000.0, -300.0},
+          {wf.x_min() + wf.penalty_length() + 1000.0, 600.0},
+          {wf.x_min() + wf.penalty_length() + 1000.0, -600.0},
+          {wf.x_min() + wf.penalty_length() + 1000.0, 900.0},
+          {wf.x_min() + wf.penalty_length() + 1000.0, -900.0},
+          {wf.x_min() + wf.penalty_length() + 1000.0, 1200.0},
+          {wf.x_min() + wf.penalty_length() + 1000.0, -1200.0},
+          {wf.x_min() + wf.penalty_length() + 1000.0, 1500.0},
+          {wf.x_min() + wf.penalty_length() + 1000.0, -1500.0},
+          {wf.x_min() + wf.penalty_length() + 1000.0, 1800.0}};
+      for (const auto id : active_walls) {
+        const auto itr =
+            std::min_element(pos_candidates.cbegin(), pos_candidates.cend(),
+                             [robot_pos = util::math::position(ally_robots.at(id))](
+                                 const auto& a, const auto& b) {
+                               return (robot_pos - a).norm() < (robot_pos - b).norm();
+                             });
+        auto move = std::make_shared<action::move>(world_, is_yellow_, id);
+        move->move_to(*itr, 0.0);
+        baseaction.push_back(move);
+        pos_candidates.erase(itr);
+      }
     }
   }
   //ここからキーパーの処理
