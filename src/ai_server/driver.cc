@@ -39,10 +39,10 @@ void driver::set_stable(const bool stable) {
   for (auto&& meta : robots_metadata_) std::get<1>(meta.second)->set_stable(stable);
 }
 
-void driver::register_robot(unsigned int id, controller_type controller, sender_type sender) {
+void driver::register_robot(unsigned int id, controller_type controller, radio_type radio) {
   std::lock_guard<std::mutex> lock(mutex_);
   robots_metadata_.emplace(
-      id, std::forward_as_tuple(model::command{id}, std::move(controller), std::move(sender)));
+      id, std::forward_as_tuple(model::command{id}, std::move(controller), std::move(radio)));
 }
 
 void driver::unregister_robot(unsigned int id) {
@@ -90,7 +90,7 @@ void driver::main_loop(const boost::system::error_code& error) {
 }
 
 void driver::process(const model::world& world, metadata_type& metadata) {
-  auto& [command, controller, sender] = metadata;
+  auto& [command, controller, radio] = metadata;
 
   const auto id = command.id();
   const auto robots =
@@ -112,8 +112,8 @@ void driver::process(const model::world& world, metadata_type& metadata) {
     auto actual_command = command;
     actual_command.set_velocity(velocity);
 
-    // Senderで送信
-    sender->send_command(actual_command, team_color_);
+    // 命令の送信
+    radio->send(team_color_, actual_command);
 
     // 登録された関数があればそれを呼び出す
     command_updated_(actual_command);

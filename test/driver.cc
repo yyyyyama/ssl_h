@@ -11,14 +11,14 @@
 #include "ai_server/driver.h"
 #include "ai_server/model/team_color.h"
 #include "ai_server/model/updater/world.h"
-#include "ai_server/sender/base.h"
+#include "ai_server/radio/base/base.h"
 
 #include "ssl-protos/vision/wrapperpacket.pb.h"
 
 using namespace std::chrono_literals;
 namespace controller = ai_server::controller;
 namespace model      = ai_server::model;
-namespace sender     = ai_server::sender;
+namespace radio      = ai_server::radio;
 
 BOOST_TEST_DONT_PRINT_LOG_VALUE(model::team_color)
 
@@ -107,11 +107,11 @@ protected:
   }
 };
 
-struct mock_sender : public sender::base {
+struct mock_radio : public radio::base::command {
   std::vector<model::command> commands_;
   model::team_color color_;
 
-  void send_command(const model::command& command, model::team_color color) {
+  void send(model::team_color color, const model::command& command) {
     commands_.push_back(command);
     color_ = color;
   }
@@ -179,13 +179,13 @@ BOOST_AUTO_TEST_CASE(main_loop) {
   ai_server::driver d{io_service, 100us, wu, model::team_color::blue};
 
   auto c1_ptr = std::make_unique<mock_controller>();
-  auto s1_ptr = std::make_unique<mock_sender>();
+  auto s1_ptr = std::make_unique<mock_radio>();
   auto& c1    = *c1_ptr;
   auto& s1    = *s1_ptr;
   d.register_robot(1, std::move(c1_ptr), std::move(s1_ptr));
 
   auto c2_ptr = std::make_unique<mock_controller>();
-  auto s2_ptr = std::make_unique<mock_sender>();
+  auto s2_ptr = std::make_unique<mock_radio>();
   auto& c2    = *c2_ptr;
   auto& s2    = *s2_ptr;
   d.register_robot(2, std::move(c2_ptr), std::move(s2_ptr));
@@ -360,7 +360,7 @@ BOOST_AUTO_TEST_CASE(main_loop2) {
   ai_server::driver d{ctx, 100us, wu, model::team_color::blue};
 
   auto c1_ptr = std::make_unique<mock_controller>();
-  auto s1_ptr = std::make_unique<mock_sender>();
+  auto s1_ptr = std::make_unique<mock_radio>();
   auto& c1    = *c1_ptr;
   auto& s1    = *s1_ptr;
   d.register_robot(1, std::move(c1_ptr), std::move(s1_ptr));

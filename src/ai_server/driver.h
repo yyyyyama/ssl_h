@@ -14,17 +14,17 @@
 #include "ai_server/model/command.h"
 #include "ai_server/model/team_color.h"
 #include "ai_server/model/updater/world.h"
-#include "ai_server/sender/base.h"
+#include "ai_server/radio/base/base.h"
 
 namespace ai_server {
 
 class driver {
   /// Controllerのポインタの型
   using controller_type = std::unique_ptr<controller::base>;
-  /// Senderのポインタの型
-  using sender_type = std::shared_ptr<sender::base>;
+  /// Radioのポインタの型
+  using radio_type = std::shared_ptr<radio::base::command>;
   /// Driverで行う処理で必要となる各ロボットの情報の型
-  using metadata_type = std::tuple<model::command, controller_type, sender_type>;
+  using metadata_type = std::tuple<model::command, controller_type, radio_type>;
   /// Commandが更新された(Controllerを通された)ときに発火するシグナルの型
   using updated_signal_type = boost::signals2::signal<void(const model::command&)>;
 
@@ -45,8 +45,8 @@ public:
   /// @brief                  Driverにロボットを登録する
   /// @param id               ロボットのID
   /// @param controller       Controller
-  /// @param sender           Sender
-  void register_robot(unsigned int id, controller_type controller, sender_type sender);
+  /// @param radio            命令の送信に使う Radio のオブジェクト
+  void register_robot(unsigned int id, controller_type controller, radio_type radio);
 
   /// @brief                  Driverに登録されたロボットを解除する
   /// @param id               ロボットのID

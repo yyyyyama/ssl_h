@@ -30,10 +30,12 @@
 #include "ai_server/model/world.h"
 #include "ai_server/model/updater/refbox.h"
 #include "ai_server/model/updater/world.h"
+#include "ai_server/radio/connection/serial.h"
+#include "ai_server/radio/connection/udp.h"
+#include "ai_server/radio/grsim.h"
+#include "ai_server/radio/kiks.h"
 #include "ai_server/receiver/refbox.h"
 #include "ai_server/receiver/vision.h"
-#include "ai_server/sender/grsim.h"
-#include "ai_server/sender/kiks.h"
 #include "ai_server/util/math/affine.h"
 #include "ai_server/util/thread.h"
 #include "ai_server/util/time.h"
@@ -46,8 +48,8 @@ namespace filter     = ai_server::filter;
 namespace game       = ai_server::game;
 namespace logger     = ai_server::logger;
 namespace model      = ai_server::model;
+namespace radio      = ai_server::radio;
 namespace receiver   = ai_server::receiver;
-namespace sender     = ai_server::sender;
 namespace util       = ai_server::util;
 
 // 60fpsの時にn framesにかかる時間を表現する型
@@ -75,7 +77,7 @@ static constexpr short global_refbox_port     = 10003;
 static constexpr char local_refbox_address[]  = "224.5.23.12";
 static constexpr short local_refbox_port      = 10012;
 
-// Senderの設定
+// Radioの設定
 static constexpr bool is_grsim            = false;
 static constexpr char xbee_path[]         = "/dev/ttyUSB0";
 static constexpr char grsim_address[]     = "127.0.0.1";
@@ -93,7 +95,8 @@ static constexpr double velocity_limit_at_stopgame = 800.0;
 class game_runner {
 public:
   game_runner(model::updater::world& world, model::updater::refbox& refbox1,
-              model::updater::refbox& refbox2, std::shared_ptr<sender::base>& sender)
+              model::updater::refbox& refbox2, ai_server::driver& driver,
+              std::shared_ptr<radio::base::command> radio)
       : running_{false},
         is_global_refbox_{true},
         need_reset_{false},
@@ -102,23 +105,14 @@ public:
         updater_refbox1_{refbox1},
         updater_refbox2_{refbox2},
         active_robots_{0u, 1u, 2u, 3u, 4u, 5u, 6u, 7u},
-        sender_{sender},
-        driver_{driver_io_, cycle, updater_world_, team_color_} {
-    driver_thread_ = std::thread([this] {
-      try {
-        driver_io_.run();
-      } catch (const std::exception& e) {
-        l_.error(fmt::format("exception at driver_thread\n\t{}", e.what()));
-      } catch (...) {
-        l_.error("unknown exception at driver_thread");
-      }
-    });
-    util::set_thread_name(driver_thread_, "driver_thread");
+        driver_{driver},
+        radio_{radio} {
+    driver_.set_team_color(team_color_);
 
     for (auto id : active_robots_) {
       constexpr auto cycle_count = std::chrono::duration<double>(cycle).count();
       auto controller = std::make_unique<controller::state_feedback_controller>(cycle_count);
-      driver_.register_robot(id, std::move(controller), sender_);
+      driver_.register_robot(id, std::move(controller), radio_);
     }
   }
 
@@ -126,8 +120,6 @@ public:
     running_ = false;
     cv_.notify_all();
     if (game_thread_.joinable()) game_thread_.join();
-    driver_io_.stop();
-    if (driver_thread_.joinable()) driver_thread_.join();
   }
 
   void start() {
@@ -158,7 +150,7 @@ public:
       if (!driver_.registered(id)) {
         constexpr auto cycle_count = std::chrono::duration<double>(cycle).count();
         auto controller = std::make_unique<controller::state_feedback_controller>(cycle_count);
-        driver_.register_robot(id, std::move(controller), sender_);
+        driver_.register_robot(id, std::move(controller), radio_);
         changed = true;
       }
     }
@@ -291,13 +283,11 @@ private:
   model::updater::refbox& updater_refbox2_;
   std::vector<unsigned int> active_robots_;
 
-  std::shared_ptr<sender::base> sender_;
+  ai_server::driver& driver_;
 
-  boost::asio::io_context driver_io_;
-  ai_server::driver driver_;
+  std::shared_ptr<radio::base::command> radio_;
 
   std::thread game_thread_;
-  std::thread driver_thread_;
 
   logger::logger_for<game_runner> l_;
 };
@@ -573,16 +563,48 @@ struct status_tree::handler<T, std::void_t<decltype(std::declval<T>().total_mess
   Gtk::TreeRow r1, r2, r3, r4;
 };
 
+template <template <class> class T, class C>
+struct status_tree::handler<T<C>, std::void_t<decltype(std::declval<T<C>>().connection()),
+                                              decltype(std::declval<C>().total_messages()),
+                                              decltype(std::declval<C>().messages_per_second()),
+                                              decltype(std::declval<C>().total_errors()),
+                                              decltype(std::declval<C>().last_sent())>> {
+  static constexpr auto category_name = "Radio";
+
+  template <class F>
+  handler(const status_tree::model& m, F add_row)
+      : model{m}, r1{add_row()}, r2{add_row()}, r3{add_row()}, r4{add_row()} {
+    r1[model.name] = "Total sent messages";
+    r2[model.name] = "Messages per second";
+    r3[model.name] = "Total errors";
+    r4[model.name] = "Last sent time";
+  }
+
+  void update(const T<C>& radio) const {
+    const auto& c = radio.connection();
+    const auto lu = c.last_sent();
+    const auto tt = std::chrono::system_clock::to_time_t(lu);
+    const auto e  = lu.time_since_epoch();
+    const auto ms = (e - std::chrono::duration_cast<std::chrono::seconds>(e)) / 1ms;
+
+    r1[model.value] = fmt::format("{}", c.total_messages());
+    r2[model.value] = fmt::format("{}", c.messages_per_second());
+    r3[model.value] = fmt::format("{}", c.total_errors());
+    r4[model.value] = fmt::format("{:%T}.{:03d}", *std::localtime(&tt), ms);
+  }
+
+  const status_tree::model& model;
+  Gtk::TreeRow r1, r2, r3, r4;
+};
+
 auto main(int argc, char** argv) -> int {
   logger::sink::ostream sink(std::cout, "{elapsed} {level:<5} {zone}: {message}");
   logger::logger l{"main()"};
 
   l.info("(⋈◍＞◡＜◍)。✧♡");
 
-  boost::asio::io_context receiver_io{};
-
-  // Receiver, Driverなどを回すスレッド
-  std::thread io_thread{};
+  boost::asio::io_context receiver_io{1}, driver_io{1};
+  std::thread io_thread{}, driver_thread{};
 
   try {
     // WorldModelの設定
@@ -656,19 +678,36 @@ auto main(int argc, char** argv) -> int {
     }};
     util::set_thread_name(io_thread, "io_thread");
 
-    // Senderの設定
-    std::shared_ptr<sender::base> sender{};
-    if (is_grsim) {
-      sender = std::make_shared<sender::grsim>(receiver_io, grsim_address, grsim_command_port);
-      l.info(fmt::format("sender: grSim ({}:{})", grsim_address, grsim_command_port));
-    } else {
-      sender = std::make_shared<sender::kiks>(receiver_io, xbee_path);
-      l.info(fmt::format("sender: kiks ({})", xbee_path));
-    }
+    // Radioの設定
+    auto radio = [&] {
+      if constexpr (is_grsim) {
+        auto con = std::make_unique<radio::connection::udp>(
+            driver_io, boost::asio::ip::udp::endpoint{
+                           boost::asio::ip::make_address(grsim_address), grsim_command_port});
+        l.info(fmt::format("radio: grSim ({}:{})", grsim_address, grsim_command_port));
+        return std::make_shared<radio::grsim<radio::connection::udp>>(std::move(con));
+      } else {
+        auto con = std::make_unique<radio::connection::serial>(
+            driver_io, xbee_path, radio::connection::serial::baud_rate(57600));
+        l.info(fmt::format("radio: kiks ({})", xbee_path));
+        return std::make_shared<radio::kiks<radio::connection::serial>>(std::move(con));
+      }
+    }();
+
+    // driver による命令の送信を別スレッドで開始
+    ai_server::driver driver{driver_io, cycle, updater_world, model::team_color::yellow};
+    driver_thread = std::thread{[&driver_io, &l] {
+      try {
+        driver_io.run();
+      } catch (std::exception& e) {
+        l.error(fmt::format("exception at driver_thread: {}", e.what()));
+      }
+    }};
+    util::set_thread_name(driver_thread, "driver_thread");
 
     auto app = Gtk::Application::create(argc, argv);
 
-    game_runner runner{updater_world, updater_refbox1_, updater_refbox2_, sender};
+    game_runner runner{updater_world, updater_refbox1_, updater_refbox2_, driver, radio};
     game_panel gp{updater_world, runner};
 
     Glib::signal_timeout().connect(
@@ -691,6 +730,7 @@ auto main(int argc, char** argv) -> int {
     tree.add("Vision", vision);
     tree.add("Global RefBox", refbox1);
     tree.add("Local RefBox", refbox2);
+    tree.add(is_grsim ? "grSim" : "KIKS", *radio);
     tree.expand_all();
 
     auto win = Gtk::Window{};
@@ -709,16 +749,22 @@ auto main(int argc, char** argv) -> int {
     app->run(win);
 
     receiver_io.stop();
+    driver_io.stop();
     io_thread.join();
+    driver_thread.join();
   } catch (std::exception& e) {
     l.error(e.what());
     receiver_io.stop();
+    driver_io.stop();
     io_thread.join();
+    driver_thread.join();
     std::quick_exit(-1);
   } catch (...) {
     l.error("unknown error occurred");
     receiver_io.stop();
+    driver_io.stop();
     io_thread.join();
+    driver_thread.join();
     std::quick_exit(-1);
   }
 }
