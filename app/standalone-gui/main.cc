@@ -23,7 +23,9 @@
 #include "ai_server/driver.h"
 #include "ai_server/filter/state_observer/ball.h"
 #include "ai_server/filter/va_calculator.h"
+#include "ai_server/game/context.h"
 #include "ai_server/game/formation/first_formation.h"
+#include "ai_server/game/nnabla.h"
 #include "ai_server/logger/logger.h"
 #include "ai_server/logger/sink/ostream.h"
 #include "ai_server/model/team_color.h"
@@ -203,7 +205,12 @@ private:
   void main_loop() {
     l_.info("game started!");
 
-    model::world world{};
+    game::context ctx{};
+    // TODO: パラメータを外から渡せるようにする
+    ctx.nnabla = std::make_unique<game::nnabla>(
+        std::vector{"cpu"s}, "0"s,
+        std::unordered_map<std::string, game::nnabla::nnp_file_type>{});
+
     model::refbox refbox{};
     std::unique_ptr<game::formation::base> formation{};
 
@@ -221,8 +228,9 @@ private:
 
         const auto prev_cmd = refbox.command();
 
-        world  = updater_world_.value();
-        refbox = (is_global_refbox_ ? updater_refbox1_ : updater_refbox2_).value();
+        ctx.team_color = team_color_;
+        ctx.world      = updater_world_.value();
+        refbox         = (is_global_refbox_ ? updater_refbox1_ : updater_refbox2_).value();
 
         const auto current_cmd = refbox.command();
 
@@ -235,8 +243,8 @@ private:
         }
 
         if (!formation || need_reset_) {
-          formation = std::make_unique<game::formation::first_formation>(
-              world, refbox, static_cast<bool>(team_color_), active_robots_);
+          formation =
+              std::make_unique<game::formation::first_formation>(ctx, refbox, active_robots_);
           need_reset_ = false;
           l_.info("formation resetted");
         }

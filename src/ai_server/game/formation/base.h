@@ -5,6 +5,7 @@
 #include <vector>
 
 #include "ai_server/game/agent/base.h"
+#include "ai_server/game/context.h"
 #include "ai_server/model/world.h"
 #include "ai_server/model/refbox.h"
 
@@ -14,9 +15,7 @@ namespace formation {
 
 class base {
 public:
-  /// @param world            WorldModelの参照
-  /// @param is_yellow        チームカラーは黄色か
-  base(const model::world& world, bool is_yellow, const model::refbox& refcommand);
+  base(context& ctx, const model::refbox& refcommand);
 
   virtual ~base() = default;
 
@@ -24,16 +23,26 @@ public:
   virtual std::vector<std::shared_ptr<agent::base>> execute() = 0;
 
 protected:
+  /// @brief                  Agentを初期化するためのヘルパ関数
+  /// @param args             Agentのコンストラクタに渡す引数
+  template <class T, class... Args>
+  std::shared_ptr<T> make_agent(Args&&... args) {
+    return std::make_shared<T>(ctx_.world, ctx_.team_color == model::team_color::yellow,
+                               std::forward<Args>(args)...);
+  }
+
   const model::world& world() const {
-    return world_;
+    return ctx_.world;
   }
 
   model::team_color team_color() const {
-    return static_cast<model::team_color>(is_yellow_);
+    return ctx_.team_color;
   }
 
-  const model::world& world_;
-  bool is_yellow_;
+private:
+  context& ctx_;
+
+protected:
   const model::refbox& refcommand_;
 };
 

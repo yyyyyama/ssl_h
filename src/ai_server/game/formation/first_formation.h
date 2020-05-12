@@ -44,7 +44,7 @@ public:
     ball_placement_enemy
   };
 
-  first_formation(const model::world& world, const model::refbox& refcommand, bool is_yellow,
+  first_formation(context& ctx, const model::refbox& refcommand,
                   const std::vector<unsigned int>& ids);
 
   std::vector<std::shared_ptr<agent::base>> execute() override;
