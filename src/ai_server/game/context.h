@@ -18,7 +18,7 @@ struct context {
   // game::context を利用する全ての箇所で NNabla のヘッダを include するのを防ぐため
   // また移行段階で nullptr を許容するため std::unique_ptr で扱う
   // この値に対する操作をする場合は "ai_server/game/nnabla.h" も include する
-  std::unique_ptr<nnabla> nnabla;
+  std::unique_ptr<game::nnabla> nnabla;
 };
 
 } // namespace ai_server::game
