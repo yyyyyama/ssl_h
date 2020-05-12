@@ -20,9 +20,8 @@ public:
   // normal : 通常のモード, no_mark : 敵のマークをしない
   enum mark_option { normal, no_mark };
 
-  regular(const model::world& world, bool is_yellow, const std::vector<unsigned int>& ids);
-  regular(const model::world& world, bool is_yellow, const std::vector<unsigned int>& ids,
-          unsigned int default_chaser);
+  regular(context& ctx, const std::vector<unsigned int>& ids);
+  regular(context& ctx, const std::vector<unsigned int>& ids, unsigned int default_chaser);
   bool has_chaser() const;
   unsigned int chaser_id() const;
   void customize_marking(mark_option option);

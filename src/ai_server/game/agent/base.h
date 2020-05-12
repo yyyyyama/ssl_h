@@ -5,6 +5,7 @@
 #include <vector>
 
 #include "ai_server/game/action/base.h"
+#include "ai_server/game/context.h"
 #include "ai_server/model/world.h"
 
 namespace ai_server {
@@ -15,7 +16,7 @@ class base {
 public:
   /// @param world            WorldModelの参照
   /// @param is_yellow        チームカラーは黄色か
-  base(const model::world& world, bool is_yellow);
+  base(context& ctx);
 
   virtual ~base() = default;
 
@@ -28,19 +29,19 @@ protected:
   /// @param args             Actionのコンストラクタに渡すその他の引数
   template <class T, class... Args>
   std::shared_ptr<T> make_action(unsigned int id, Args&&... args) {
-    return std::make_shared<T>(world_, is_yellow_, id, std::forward<Args>(args)...);
+    return std::make_shared<T>(ctx_, id, std::forward<Args>(args)...);
   }
 
   const model::world& world() const {
-    return world_;
+    return ctx_.world;
   }
 
   model::team_color team_color() const {
-    return static_cast<model::team_color>(is_yellow_);
+    return ctx_.team_color;
   }
 
-  const model::world& world_;
-  bool is_yellow_;
+private:
+  context& ctx_;
 };
 
 } // namespace agent

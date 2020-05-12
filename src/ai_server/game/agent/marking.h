@@ -20,8 +20,7 @@ private:
   std::vector<unsigned int> enemy_ids_;
 
 public:
-  marking(const model::world& world, bool is_yellow, const std::vector<unsigned int>& ids,
-          bool setplay_flag);
+  marking(context& ctx, const std::vector<unsigned int>& ids, bool setplay_flag);
   std::vector<std::shared_ptr<action::base>> execute() override;
   bool setplay_flag_;
   void set_setplay_flag(bool setplay_flag);

@@ -22,9 +22,8 @@ namespace ai_server {
 namespace game {
 namespace action {
 
-get_ball::get_ball(const model::world& world, bool is_yellow, unsigned int id,
-                   const Eigen::Vector2d& target)
-    : base(world, is_yellow, id),
+get_ball::get_ball(context& ctx, unsigned int id, const Eigen::Vector2d& target)
+    : base(ctx, id),
       state_(running_state::move),
       target_(target),
       kick_margin_(200),
@@ -32,8 +31,8 @@ get_ball::get_ball(const model::world& world, bool is_yellow, unsigned int id,
       manual_kick_flag_(true),
       allow_(10) {}
 
-get_ball::get_ball(const model::world& world, bool is_yellow, unsigned int id)
-    : get_ball(world, is_yellow, id, Eigen::Vector2d(world.field().x_max(), 0.0)) {}
+get_ball::get_ball(context& ctx, unsigned int id)
+    : get_ball(ctx, id, Eigen::Vector2d(ctx.world.field().x_max(), 0.0)) {}
 
 get_ball::running_state get_ball::state() const {
   return state_;
@@ -73,13 +72,13 @@ void get_ball::set_chip(bool chip) {
 
 model::command get_ball::execute() {
   model::command command{id_};
-  const auto our_robots   = is_yellow_ ? world_.robots_yellow() : world_.robots_blue();
-  const auto enemy_robots = is_yellow_ ? world_.robots_blue() : world_.robots_yellow();
+  const auto our_robots   = model::our_robots(world(), team_color());
+  const auto enemy_robots = model::enemy_robots(world(), team_color());
   if (!our_robots.count(id_)) return command;
   const auto& robot               = our_robots.at(id_);
   const Eigen::Vector2d robot_pos = util::math::position(robot);
-  const Eigen::Vector2d ball_pos  = util::math::position(world_.ball());
-  const Eigen::Vector2d ball_vel  = util::math::velocity(world_.ball());
+  const Eigen::Vector2d ball_pos  = util::math::position(world().ball());
+  const Eigen::Vector2d ball_vel  = util::math::velocity(world().ball());
 
   if ((ball_pos - target_).norm() < allow_) {
     state_ = running_state::finished;
@@ -126,12 +125,12 @@ model::command get_ball::execute() {
 
       // 障害物設定
       planner::rrt_star rrt{};
-      rrt.set_area(world_.field(), 200.0);
+      rrt.set_area(world().field(), 200.0);
       const planner::position_t robot_p{robot_pos.x(), robot_pos.y(), robot.theta()};
       const planner::position_t target_p{tar.x(), tar.y(), theta};
       planner::obstacle_list obstacles;
-      obstacles.add(model::obstacle::enemy_penalty_area(world_.field(), 150.0));
-      obstacles.add(model::obstacle::our_penalty_area(world_.field(), 150.0));
+      obstacles.add(model::obstacle::enemy_penalty_area(world().field(), 150.0));
+      obstacles.add(model::obstacle::our_penalty_area(world().field(), 150.0));
       for (const auto& r : enemy_robots) {
         obstacles.add(model::obstacle::point{util::math::position(r.second), obs_robot_rad});
       }
@@ -173,13 +172,13 @@ model::command get_ball::execute() {
 
       // 障害物設定
       planner::rrt_star rrt{};
-      rrt.set_area(world_.field(), 200.0);
+      rrt.set_area(world().field(), 200.0);
       const planner::position_t robot_p{robot_pos.x(), robot_pos.y(), robot.theta()};
       const planner::position_t target_p{tar.x(), tar.y(), theta};
 
       planner::obstacle_list obstacles;
-      obstacles.add(model::obstacle::enemy_penalty_area(world_.field(), 150.0));
-      obstacles.add(model::obstacle::our_penalty_area(world_.field(), 150.0));
+      obstacles.add(model::obstacle::enemy_penalty_area(world().field(), 150.0));
+      obstacles.add(model::obstacle::our_penalty_area(world().field(), 150.0));
       for (const auto& r : our_robots) {
         if (r.first != id_)
           obstacles.add(model::obstacle::point{util::math::position(r.second), obs_robot_rad});

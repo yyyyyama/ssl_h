@@ -14,7 +14,7 @@ namespace game {
 namespace action {
 class rush : public base {
 public:
-  rush(const model::world& world, bool is_yellow, unsigned int id);
+  rush(context& ctx, unsigned int id);
   void set_kick_type(const model::command::kick_flag_t& kick_type);
   model::command execute() override;
   bool finished() const override;

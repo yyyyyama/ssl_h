@@ -29,8 +29,7 @@ public:
     //評価点数
     unsigned int score;
   };
-  defense(const model::world& world, bool is_yellow, unsigned int keeper_id,
-          const std::vector<unsigned int>& wall_ids,
+  defense(context& ctx, unsigned int keeper_id, const std::vector<unsigned int>& wall_ids,
           const std::vector<unsigned int>& marking_ids);
   enum class defense_mode {
     normal_mode,       //通常のディフェンス状態

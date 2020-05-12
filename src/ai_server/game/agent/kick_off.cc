@@ -7,9 +7,9 @@ namespace ai_server {
 namespace game {
 namespace agent {
 
-kick_off::kick_off(const model::world& world, bool is_yellow, unsigned int kicker_id,
+kick_off::kick_off(context& ctx, unsigned int kicker_id,
                    const std::vector<unsigned int>& waiter)
-    : base(world, is_yellow),
+    : base(ctx),
       kicker_id_(kicker_id),
       waiter_(waiter),
       start_flag_(false),
@@ -17,21 +17,21 @@ kick_off::kick_off(const model::world& world, bool is_yellow, unsigned int kicke
       move_finished_(false),
       kick_finished_(false),
       receive_finished_(false),
-      move_(std::make_shared<action::move>(world_, is_yellow_, kicker_id_)),
-      kick_(std::make_shared<action::kick>(world_, is_yellow_, kicker_id_)),
-      get_ball_(std::make_shared<action::get_ball>(world_, is_yellow_, kicker_id_)) {}
+      move_(make_action<action::move>(kicker_id_)),
+      kick_(make_action<action::kick>(kicker_id_)),
+      get_ball_(make_action<action::get_ball>(kicker_id_)) {}
 
-kick_off::kick_off(const model::world& world, bool is_yellow, unsigned int kicker_id)
-    : base(world, is_yellow),
+kick_off::kick_off(context& ctx, unsigned int kicker_id)
+    : base(ctx),
       kicker_id_(kicker_id),
       start_flag_(false),
       evacuate_finished_(false),
       move_finished_(false),
       kick_finished_(false),
       receive_finished_(true),
-      move_(std::make_shared<action::move>(world_, is_yellow_, kicker_id_)),
-      kick_(std::make_shared<action::kick>(world_, is_yellow_, kicker_id_)),
-      get_ball_(std::make_shared<action::get_ball>(world_, is_yellow_, kicker_id_)) {}
+      move_(make_action<action::move>(kicker_id_)),
+      kick_(make_action<action::kick>(kicker_id_)),
+      get_ball_(make_action<action::get_ball>(kicker_id_)) {}
 
 void kick_off::set_start_flag(bool start_flag) {
   start_flag_ = start_flag;
@@ -47,10 +47,10 @@ bool kick_off::finished() const {
 
 std::vector<std::shared_ptr<action::base>> kick_off::execute() {
   std::vector<std::shared_ptr<action::base>> actions;
-  const auto ball = world_.ball();
+  const auto ball = world().ball();
 
   //見えないときの処理
-  const auto our_robots = is_yellow_ ? world_.robots_yellow() : world_.robots_blue();
+  const auto our_robots = model::our_robots(world(), team_color());
   if (!our_robots.count(kicker_id_)) {
     return actions;
   }
@@ -64,7 +64,7 @@ std::vector<std::shared_ptr<action::base>> kick_off::execute() {
 
   if (kick_finished_) {
     //ボールを蹴り終わった時
-    auto no_op = std::make_shared<action::no_operation>(world_, is_yellow_, kicker_id_);
+    auto no_op = make_action<action::no_operation>(kicker_id_);
     actions.push_back(no_op);
 
     if (!visible_waiter.empty() || std::hypot(ball.vx(), ball.vy()) < 100.0) {
@@ -100,7 +100,7 @@ std::vector<std::shared_ptr<action::base>> kick_off::execute() {
         kick_to_y = our_robots.at(receiver_id_).y();
       } else {
         //待機ロボットがいないなら適当に放り投げる
-        kick_to_x = world_.field().x_max();
+        kick_to_x = world().field().x_max();
         kick_to_y = 0.0;
         kick_type = std::make_tuple(model::command::kick_type_t::backspin, 120.0);
       }
@@ -111,9 +111,9 @@ std::vector<std::shared_ptr<action::base>> kick_off::execute() {
       actions.push_back(kick_);
     } else {
       // StartGameが指定されていない、または所定の位置に移動していない時
-      const auto this_robot_team = is_yellow_ ? world_.robots_yellow() : world_.robots_blue();
+      const auto this_robot_team = model::our_robots(world(), team_color());
       const auto& this_robot     = this_robot_team.at(kicker_id_);
-      ball_goal_theta_         = std::atan2(0.0 - ball.y(), world_.field().x_max() - ball.x());
+      ball_goal_theta_         = std::atan2(0.0 - ball.y(), world().field().x_max() - ball.x());
       theta_min_               = std::asin(1); //移動中にロボットがボールに近づけないようにするための値
       const double hypot_allow = std::hypot(
           10, 10); //ボールとの衝突回避に用いられる、指定位置と実際の位置のズレの許容値
@@ -169,24 +169,24 @@ std::vector<std::shared_ptr<action::base>> kick_off::execute() {
       std::vector<unsigned int> move_y;
 
       for (auto it : visible_waiter) {
-        auto move = std::make_shared<action::move>(world_, is_yellow_, it);
+        auto move = make_action<action::move>(it);
         const auto a =
             std::hypot((x_line - our_robots.at(it).x()),
-                       (world_.field().y_min() + interval * count_a - our_robots.at(it).y()));
+                       (world().field().y_min() + interval * count_a - our_robots.at(it).y()));
         const auto b =
             std::hypot((x_line - our_robots.at(it).x()),
-                       (world_.field().y_max() - interval * count_b - our_robots.at(it).y()));
+                       (world().field().y_max() - interval * count_b - our_robots.at(it).y()));
         if (a < b) {
-          y = world_.field().y_min() + interval * count_a - 200;
+          y = world().field().y_min() + interval * count_a - 200;
           count_a++;
         } else {
-          y = world_.field().y_max() - interval * count_b;
+          y = world().field().y_max() - interval * count_b;
           count_b++;
         }
 
         // 重なるときは移動しない
         if (std::find_if(move_y.cbegin(), move_y.cend(), [&](const auto m) {
-              return std::abs(m - (world_.field().y_min() + interval * count_a)) < 500.0;
+              return std::abs(m - (world().field().y_min() + interval * count_a)) < 500.0;
             }) != move_y.cend()) {
           continue;
         }
@@ -200,11 +200,11 @@ std::vector<std::shared_ptr<action::base>> kick_off::execute() {
       for (auto tmp : visible_waiter) {
         if (tmp != receiver_id_) {
           //レシーバー以外は何もしない
-          auto no_op = std::make_shared<action::no_operation>(world_, is_yellow_, tmp);
+          auto no_op = make_action<action::no_operation>(tmp);
           actions.push_back(no_op);
         } else {
           //レシーバーだけはreceive actionをする
-          receive_ = std::make_shared<action::receive>(world_, is_yellow_, tmp);
+          receive_ = make_action<action::receive>(tmp);
           receive_->set_passer(kicker_id_);
           receive_->set_dribble(9);
           receive_->set_kick_type(std::make_tuple(model::command::kick_type_t::none, 0.0));

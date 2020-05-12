@@ -13,7 +13,7 @@ void chase_ball::set_target(double x, double y) {
 
 model::command chase_ball::execute() {
   model::command command(id_);
-  const auto fri_robots = is_yellow_ ? world_.robots_yellow() : world_.robots_blue();
+  const auto fri_robots = model::our_robots(world(), team_color());
   const auto& robot     = fri_robots.at(id_);
 
   using boost::math::constants::half_pi;
@@ -37,11 +37,11 @@ model::command chase_ball::execute() {
   double wrap_omega      = 0;
 
   // ボールデータ
-  const double ball_x = world_.ball().x();
-  const double ball_y = world_.ball().y();
+  const double ball_x = world().ball().x();
+  const double ball_y = world().ball().y();
 
-  double ball_vx = world_.ball().vx();
-  double ball_vy = world_.ball().vy();
+  double ball_vx = world().ball().vx();
+  double ball_vy = world().ball().vy();
 
   //ボールの速度が一定値を超えたときの制限
   if (std::hypot(ball_vx, ball_vy) > 4000) {

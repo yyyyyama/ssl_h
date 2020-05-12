@@ -13,7 +13,7 @@ namespace game {
 namespace action {
 class turn_kick : public base {
 public:
-  turn_kick(const model::world& world, bool is_yellow, unsigned int id);
+  turn_kick(context& ctx, unsigned int id);
   model::command execute() override;
   bool finished() const override;
 

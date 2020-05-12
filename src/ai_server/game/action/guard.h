@@ -11,7 +11,7 @@ namespace game {
 namespace action {
 class guard : public base {
 public:
-  guard(const model::world& world, bool is_yellow, unsigned int id);
+  guard(context& ctx, unsigned int id);
   void move_to(double x, double y);
   void move_on(bool shift_flag);
   void set_kick_type(const model::command::kick_flag_t& kick_type);

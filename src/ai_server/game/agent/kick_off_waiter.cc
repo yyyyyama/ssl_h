@@ -7,13 +7,12 @@ namespace ai_server {
 namespace game {
 namespace agent {
 
-kick_off_waiter::kick_off_waiter(const model::world& world, bool is_yellow,
-                                 const std::vector<unsigned int>& ids)
-    : base(world, is_yellow), ids_(ids), mode_(kickoff_mode::attack) {}
+kick_off_waiter::kick_off_waiter(context& ctx, const std::vector<unsigned int>& ids)
+    : base(ctx), ids_(ids), mode_(kickoff_mode::attack) {}
 
 std::vector<std::shared_ptr<action::base>> kick_off_waiter::execute() {
   std::vector<std::shared_ptr<action::base>> exe;
-  const auto robots = is_yellow_ ? world_.robots_yellow() : world_.robots_blue();
+  const auto robots = model::our_robots(world(), team_color());
 
   //視認可能なロボットをids_から抽出する
   std::vector<unsigned int> visible_robots;
@@ -30,16 +29,16 @@ std::vector<std::shared_ptr<action::base>> kick_off_waiter::execute() {
     double x_line   = -200.0; // xは-200固定
 
     for (auto it = tmp_ids.begin(); it != tmp_ids.end(); it++) {
-      auto move = std::make_shared<action::move>(world_, is_yellow_, *it);
+      auto move = make_action<action::move>(*it);
       auto a    = std::hypot((x_line - robots.at(*it).x()),
-                          (world_.field().y_min() + interval * count_a - robots.at(*it).y()));
+                          (world().field().y_min() + interval * count_a - robots.at(*it).y()));
       auto b    = std::hypot((x_line - robots.at(*it).x()),
-                          (world_.field().y_max() - interval * count_b - robots.at(*it).y()));
+                          (world().field().y_max() - interval * count_b - robots.at(*it).y()));
       if (a < b) {
-        move->move_to(x_line, world_.field().y_min() + interval * count_a, 0);
+        move->move_to(x_line, world().field().y_min() + interval * count_a, 0);
         count_a++;
       } else {
-        move->move_to(x_line, world_.field().y_max() - interval * count_b, 0);
+        move->move_to(x_line, world().field().y_max() - interval * count_b, 0);
         count_b++;
       }
       exe.push_back(move);
@@ -47,8 +46,8 @@ std::vector<std::shared_ptr<action::base>> kick_off_waiter::execute() {
 
     //守備側
   } else {
-    const auto enemies = !is_yellow_ ? world_.robots_yellow() : world_.robots_blue();
-    const auto ball    = world_.ball();
+    const auto enemies = model::enemy_robots(world(), team_color());
+    const auto ball    = world().ball();
     std::vector<unsigned int> enemies_id;
     for (auto& enemy : enemies) {
       enemies_id.push_back(enemy.first);
@@ -83,7 +82,7 @@ std::vector<std::shared_ptr<action::base>> kick_off_waiter::execute() {
                  std::hypot(robots.at(b).x() - x, robots.at(b).y() - y);
         });
     if (it != tmp_ids.end()) {
-      auto move = std::make_shared<action::move>(world_, is_yellow_, *it);
+      auto move = make_action<action::move>(*it);
       tmp_ids.erase(it);
       move->move_to(x, y, theta);
       exe.push_back(move);
@@ -114,8 +113,8 @@ std::vector<std::shared_ptr<action::base>> kick_off_waiter::execute() {
                    std::hypot(robots.at(b).x() - x, robots.at(b).y() - y);
           });
       if (it != tmp_ids.end()) {
-        auto move = std::make_shared<action::move>(world_, is_yellow_, *it);
-        move      = std::make_shared<action::move>(world_, is_yellow_, *it);
+        auto move = make_action<action::move>(*it);
+        move      = make_action<action::move>(*it);
         move->move_to(x, y, theta);
         exe.push_back(move);
         tmp_ids.erase(it);

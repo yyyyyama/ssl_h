@@ -10,8 +10,8 @@ namespace ai_server {
 namespace game {
 namespace action {
 
-move::move(const model::world& world, bool is_yellow, unsigned int id)
-    : base(world, is_yellow, id),
+move::move(context& ctx, unsigned int id)
+    : base(ctx, id),
       target_(0.0, 0.0, 0.0),
       margin_{10.0, pi<double>() / 180.0},
       finished_(false) {}
@@ -46,7 +46,7 @@ Eigen::Vector3d move::target() const {
 }
 
 model::command move::execute() {
-  const auto our_robot_team = is_yellow_ ? world_.robots_yellow() : world_.robots_blue();
+  const auto our_robot_team = model::our_robots(world(), team_color());
   const auto robot_p        = util::math::position3d(our_robot_team.at(id_));
   model::command command(id_);
 

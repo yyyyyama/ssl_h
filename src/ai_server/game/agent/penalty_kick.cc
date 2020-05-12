@@ -6,15 +6,15 @@ namespace ai_server {
 namespace game {
 namespace agent {
 
-penalty_kick::penalty_kick(const model::world& world, bool is_yellow, unsigned int kicker_id,
+penalty_kick::penalty_kick(context& ctx, unsigned int kicker_id,
                            const std::vector<unsigned int>& ids, unsigned int enemy_keeper)
-    : base(world, is_yellow),
+    : base(ctx),
       state_(attack_state::wait),
       mode_(penalty_kick::penalty_mode::defense),
       start_flag_(false),
       ids_(ids),
-      turn_kick_(std::make_shared<action::turn_kick>(world, is_yellow_, kicker_id)),
-      kicker_move_(std::make_shared<action::move>(world, is_yellow_, kicker_id)),
+      turn_kick_(make_action<action::turn_kick>(kicker_id)),
+      kicker_move_(make_action<action::move>(kicker_id)),
       kicker_id_(kicker_id),
       keeper_id_(enemy_keeper),
       change_command_time_(std::chrono::seconds(0)) {}
@@ -44,16 +44,16 @@ std::vector<std::shared_ptr<action::base>> penalty_kick::execute() {
   //      キッカーの処理
   /////////////////////////////
   std::vector<std::shared_ptr<action::base>> exe;
-  const auto our_robots = is_yellow_ ? world_.robots_yellow() : world_.robots_blue();
+  const auto our_robots = model::our_robots(world(), team_color());
   std::vector<unsigned int> visible_ids;
   std::copy_if(
       ids_.cbegin(), ids_.cend(), std::back_inserter(visible_ids),
       [&our_robots, this](auto id) { return id != kicker_id_ && our_robots.count(id); });
-  const auto enemy_robots = !is_yellow_ ? world_.robots_yellow() : world_.robots_blue();
-  const auto& keeper      = enemy_robots.at(keeper_id_);
+  const auto enemy_robots          = model::enemy_robots(world(), team_color());
+  const auto& keeper               = enemy_robots.at(keeper_id_);
   const Eigen::Vector2d keeper_pos = util::math::position(keeper);
-  const auto ball                  = world_.ball();
-  const auto field                 = world_.field();
+  const auto ball                  = world().ball();
+  const auto field                 = world().field();
   const auto point                 = std::chrono::steady_clock::now();
 
   using boost::math::constants::pi;
@@ -120,7 +120,7 @@ std::vector<std::shared_ptr<action::base>> penalty_kick::execute() {
     const double x = line + interval * (count / 2);
     const double y =
         (count % 2 == 1) ? field.y_min() + 500.0 : field.y_max() - 500.0; //順番に左右に分ける
-    const auto move = std::make_shared<action::move>(world_, is_yellow_, id);
+    const auto move = make_action<action::move>(id);
     move->move_to(x, y, 0);
     exe.push_back(move);
     count++;

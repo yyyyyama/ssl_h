@@ -20,8 +20,7 @@ public:
   // shoot:シュートする
   enum class state { finished, setup, pass, receive, shoot };
   enum class pos { near, mid, far };
-  setplay(const model::world& world, bool is_yellow, unsigned int kicker_id,
-          const std::vector<unsigned int>& receiver_id);
+  setplay(context& ctx, unsigned int kicker_id, const std::vector<unsigned int>& receiver_id);
 
   std::vector<unsigned int> free_robots() const;
 

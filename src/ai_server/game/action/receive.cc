@@ -10,8 +10,8 @@ using boost::math::constants::pi;
 namespace ai_server {
 namespace game {
 namespace action {
-receive::receive(const model::world& world, bool is_yellow, unsigned int id)
-    : base(world, is_yellow, id),
+receive::receive(context& ctx, unsigned int id)
+    : base(ctx, id),
       dribble_(0),
       passer_id_(0),
       flag_(false),
@@ -46,13 +46,13 @@ model::command receive::execute() {
   constexpr int kick_power = 50;
   //それぞれ自機を生成
   model::command command(id_);
-  const auto our_robots = is_yellow_ ? world_.robots_yellow() : world_.robots_blue();
+  const auto our_robots = model::our_robots(world(), team_color());
   if (!our_robots.count(id_)) return command;
   const auto& robot               = our_robots.at(id_);
   const Eigen::Vector2d robot_vel = util::math::velocity(robot);
   const Eigen::Vector2d robot_pos = util::math::position(robot);
-  const Eigen::Vector2d ball_vel  = util::math::velocity(world_.ball());
-  const Eigen::Vector2d ball_pos  = util::math::position(world_.ball());
+  const Eigen::Vector2d ball_vel  = util::math::velocity(world().ball());
+  const Eigen::Vector2d ball_pos  = util::math::position(world().ball());
   double theta =
       shoot_flag_ ? std::atan2(shoot_pos_.y() - robot_pos.y(), shoot_pos_.x() - robot_pos.x())
                   : std::atan2(ball_vel.y(), ball_vel.x()) + pi<double>();

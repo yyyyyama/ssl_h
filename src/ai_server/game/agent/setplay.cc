@@ -16,18 +16,18 @@ namespace ai_server {
 namespace game {
 namespace agent {
 
-setplay::setplay(const model::world& world, bool is_yellow, unsigned int kicker_id,
+setplay::setplay(context& ctx, unsigned int kicker_id,
                  const std::vector<unsigned int>& receiver_ids)
-    : base(world, is_yellow), kicker_id_(kicker_id), receiver_ids_(receiver_ids) {
+    : base(ctx), kicker_id_(kicker_id), receiver_ids_(receiver_ids) {
   kick_                            = make_action<action::kick>(kicker_id_);
   shooter_id_                      = 0;
   shooter_num_                     = 0;
   receive_                         = make_action<action::receive>(kicker_id_);
-  shoot_pos                        = {world_.field().x_max(), 0};
-  const auto our_robots            = is_yellow_ ? world_.robots_yellow() : world_.robots_blue();
+  shoot_pos                        = {world().field().x_max(), 0};
+  const auto our_robots            = model::our_robots(world(), team_color());
   const Eigen::Vector2d kicker_pos = util::math::position(our_robots.at(kicker_id_));
 
-  const auto& ball = world_.ball();
+  const auto& ball = world().ball();
   ballysign        = (ball.y() > 0 || std::abs(ball.y()) < 250) ? 1.0 : -1.0;
   // 乱数代わり
   mode_ = static_cast<int>(kicker_pos.x()) % 4;
@@ -47,8 +47,8 @@ void setplay::set_direct(bool is_direct) {
 
 std::vector<std::shared_ptr<action::base>> setplay::execute() {
   free_robots_.clear();
-  const auto our_robots   = is_yellow_ ? world_.robots_yellow() : world_.robots_blue();
-  const auto enemy_robots = is_yellow_ ? world_.robots_blue() : world_.robots_yellow();
+  const auto our_robots   = model::our_robots(world(), team_color());
+  const auto enemy_robots = model::enemy_robots(world(), team_color());
   std::vector<std::shared_ptr<action::base>> baseaction;
 
   // kicker_idが見えない
@@ -64,10 +64,10 @@ std::vector<std::shared_ptr<action::base>> setplay::execute() {
 
   const Eigen::Vector2d kicker_pos = util::math::position(our_robots.at(kicker_id_));
   const auto& kicker               = our_robots.at(kicker_id_);
-  const auto& ball                 = world_.ball();
+  const auto& ball                 = world().ball();
   const Eigen::Vector2d ball_pos   = util::math::position(ball);
   const Eigen::Vector2d ball_vel   = util::math::velocity(ball);
-  double enemygoal_x               = world_.field().x_max();
+  double enemygoal_x               = world().field().x_max();
 
   // パス以降の処理でボールの軌道が大きく変わったら的に取られたと判定し、agent終了
   if (state_ >= state::receive) {
@@ -449,7 +449,7 @@ bool setplay::finished() {
 // レシーバを選ぶ関数{{{
 int setplay::chose_location(std::vector<Eigen::Vector2d> targets,
                             model::world::robots_list enemy_robots, int dist) {
-  const auto& ball = world_.ball();
+  const auto& ball = world().ball();
   int result       = 0;
   double max_dist  = 0;
   int cnt          = 0;

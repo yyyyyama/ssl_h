@@ -13,8 +13,8 @@ namespace ai_server {
 namespace game {
 namespace action {
 
-guard::guard(const model::world& world, bool is_yellow, unsigned int id)
-    : base(world, is_yellow, id),
+guard::guard(context& ctx, unsigned int id)
+    : base(ctx, id),
       target_{0.0, 0.0},
       shift_flag_(false),
       magnification_(5.0),
@@ -57,14 +57,14 @@ model::command guard::execute() {
 
   command.set_dribble(dribble_);
 
-  const auto robots = is_yellow_ ? world_.robots_yellow() : world_.robots_blue();
+  const auto robots = model::our_robots(world(), team_color());
   if (!robots.count(id_) || halt_flag_) {
     command.set_velocity({0.0, 0.0, 0.0});
     return command;
   }
 
   //座標の取得
-  const Eigen::Vector2d goal(world_.field().x_min(), 0.0);
+  const Eigen::Vector2d goal(world().field().x_min(), 0.0);
   const auto& robot              = robots.at(id_);
   const Eigen::Vector2d wall_pos = util::math::position(robot);
 
@@ -73,7 +73,7 @@ model::command guard::execute() {
   //ゴールから対象の位置への角度
   const auto target_theta = std::atan2(target_.y() - goal.y(), target_.x() - goal.x());
   const auto corner_theta =
-      std::atan2(world_.field().penalty_width() / 2, world_.field().penalty_length());
+      std::atan2(world().field().penalty_width() / 2, world().field().penalty_length());
 
   const double robot_size = std::copysign(95, wall_pos.y());
   //ゴールから壁の距離
@@ -91,11 +91,11 @@ model::command guard::execute() {
 
   //壁からボール方向に目標地点をずらして座標を計算
   if (range >= 2500) {
-    command.set_position({goal.x() + world_.field().penalty_length(), 0.0, 0.0});
+    command.set_position({goal.x() + world().field().penalty_length(), 0.0, 0.0});
     return command;
   }
   if (std::abs(wall_theta) <= corner_theta) {
-    const double x = goal.x() + world_.field().penalty_length() + 160.0 + margin_;
+    const double x = goal.x() + world().field().penalty_length() + 160.0 + margin_;
     const double y =
         std::sin(wall_theta + std::copysign(interval, target_theta - wall_theta)) * distance;
     const double theta = target_theta;
@@ -111,8 +111,8 @@ model::command guard::execute() {
     const double x = std::max(
         goal.x() + std::cos(wall_theta + std::copysign(interval, target_theta - wall_theta)) *
                        distance,
-        world_.field().x_min() + 100);
-    const double y = std::copysign(world_.field().penalty_width() / 2, wall_pos.y()) +
+        world().field().x_min() + 100);
+    const double y = std::copysign(world().field().penalty_width() / 2, wall_pos.y()) +
                      robot_size + std::copysign(margin_, target_.y());
     const double theta = target_theta;
     const Eigen::Vector2d pos(x, y);

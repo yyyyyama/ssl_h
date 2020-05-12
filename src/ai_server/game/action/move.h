@@ -19,7 +19,7 @@ public:
     double theta;
   };
 
-  move(const model::world& world, bool is_yellow, unsigned int id);
+  move(context& ctx, unsigned int id);
 
   // 目的地を指定する
   void move_to(double x, double y, double theta = 0.0);

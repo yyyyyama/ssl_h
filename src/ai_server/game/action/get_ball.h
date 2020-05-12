@@ -16,14 +16,13 @@ public:
   /// @param is_yellow チームカラー(黄色か?)
   /// @param id 使うロボットのid
   /// @param target 目標座標
-  get_ball(const model::world& world, bool is_yellow, unsigned int id,
-           const Eigen::Vector2d& target);
+  get_ball(context& ctx, unsigned int id, const Eigen::Vector2d& target);
 
   /// @brief コンストラクタ
   /// @param world ボールやロボットの情報
   /// @param is_yellow チームカラー(黄色か?)
   /// @param id 使うロボットのid
-  get_ball(const model::world& world, bool is_yellow, unsigned int id);
+  get_ball(context& ctx, unsigned int id);
 
   /// @brief 実行
   /// @return ロボットに送信するコマンド

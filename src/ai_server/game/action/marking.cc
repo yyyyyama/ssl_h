@@ -29,8 +29,8 @@ model::command marking::execute() {
 
   //それぞれ自機と敵機を生成
   model::command ally_robot(id_);
-  const auto enemy_robots = is_yellow_ ? world_.robots_blue() : world_.robots_yellow();
-  const auto my_robots    = is_yellow_ ? world_.robots_yellow() : world_.robots_blue();
+  const auto enemy_robots = model::enemy_robots(world(), team_color());
+  const auto my_robots    = model::our_robots(world(), team_color());
   //指定されたロボットが見えなかったらその位置で停止
   if (!enemy_robots.count(enemy_id_) || !my_robots.count(id_)) {
     ally_robot.set_velocity({0.0, 0.0, 0.0});
@@ -41,8 +41,8 @@ model::command marking::execute() {
   //必要なパラメータ
   const Eigen::Vector2d enemy{enemy_robot.x(), enemy_robot.y()};
   const Eigen::Vector2d my{my_robot.x(), my_robot.y()};
-  const Eigen::Vector2d ball{world_.ball().x(), world_.ball().y()};
-  const Eigen::Vector2d goal{world_.field().x_min(), 0.0};
+  const Eigen::Vector2d ball{world().ball().x(), world().ball().y()};
+  const Eigen::Vector2d goal{world().field().x_min(), 0.0};
   Eigen::Vector2d tmp_pos{0.0, 0.0};
   Eigen::Vector2d position{0.0, 0.0};
   auto ratio = 0.0; //敵位置とボールの比
@@ -59,11 +59,12 @@ model::command marking::execute() {
       position = (-ratio * enemy + 1 * ball) / (1 - ratio);
       tmp_pos  = ball;
       break;
-    case mark_mode::shoot_block:                        //シュートを阻止
-      const auto length        = (goal - enemy).norm(); //敵機とゴールの距離
-      const double penalty_rad = std::sqrt(std::pow(world_.field().penalty_width() / 2.0, 2.0) +
-                                           std::pow(world_.field().penalty_length(), 2.0)) +
-                                 300.0;
+    case mark_mode::shoot_block:                 //シュートを阻止
+      const auto length = (goal - enemy).norm(); //敵機とゴールの距離
+      const double penalty_rad =
+          std::sqrt(std::pow(world().field().penalty_width() / 2.0, 2.0) +
+                    std::pow(world().field().penalty_length(), 2.0)) +
+          300.0;
       tmp = std::signbit(penalty_rad - length / 2)
                 ? 0
                 : penalty_rad - length / 2; //敵機-ゴール中央の中間地点とゴールラインの差
@@ -102,8 +103,8 @@ model::command marking::execute() {
       std::atan2(position.y() - tmp_pos.y(), position.x() - tmp_pos.x()) + pi<double>();
 
   //目標位置が外側に行ったらその場で停止
-  if (std::abs(position.x()) > world_.field().x_max() ||
-      std::abs(position.y()) > world_.field().y_max()) {
+  if (std::abs(position.x()) > world().field().x_max() ||
+      std::abs(position.y()) > world().field().y_max()) {
     ally_robot.set_velocity({0.0, 0.0, 0.0});
     return ally_robot;
   }

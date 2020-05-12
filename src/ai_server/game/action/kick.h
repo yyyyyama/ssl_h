@@ -12,7 +12,7 @@ namespace action {
 
 class kick : public base {
 public:
-  kick(const model::world& world, bool is_yellow, unsigned int id);
+  kick(context& ctx, unsigned int id);
 
   enum class mode { goal, ball };
   enum class running_state { move, round, kick };

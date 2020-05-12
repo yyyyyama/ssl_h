@@ -20,24 +20,22 @@ namespace ai_server {
 namespace game {
 namespace agent {
 
-ball_placement::ball_placement(const model::world& world, bool is_yellow,
-                               const std::vector<unsigned int>& ids,
+ball_placement::ball_placement(context& ctx, const std::vector<unsigned int>& ids,
                                const Eigen::Vector2d target, bool is_active)
-    : base(world, is_yellow),
+    : base(ctx),
       ids_(ids),
       visible_ids_(ids),
       lost_count_(3s),
       abp_target_(target),
       is_active_(is_active) {
-  const auto our_robots = is_yellow_ ? world_.robots_yellow() : world_.robots_blue();
-  const auto ball       = world_.ball();
+  const auto our_robots = model::our_robots(world(), team_color());
+  const auto ball       = world().ball();
   const Eigen::Vector2d ball_pos(ball.x(), ball.y());
   const Eigen::Vector2d ball_vel(ball.vx(), ball.vy());
   for (const auto& id : ids_) {
-    abp_[id] =
-        std::make_shared<action::autonomous_ball_place>(world_, is_yellow_, id, abp_target_);
-    receive_[id]   = std::make_shared<action::receive>(world_, is_yellow_, id);
-    move_[id]      = std::make_shared<action::move>(world_, is_yellow_, id);
+    abp_[id]       = make_action<action::autonomous_ball_place>(id, abp_target_);
+    receive_[id]   = make_action<action::receive>(id);
+    move_[id]      = make_action<action::move>(id);
     robot_pos_[id] = our_robots.count(id)
                          ? Eigen::Vector2d(our_robots.at(id).x(), our_robots.at(id).y())
                          : Eigen::Vector2d(0, 0);
@@ -70,8 +68,7 @@ ball_placement::ball_placement(const model::world& world, bool is_yellow,
 void ball_placement::set_target(const Eigen::Vector2d target) {
   abp_target_ = target;
   for (const auto& id : ids_) {
-    abp_[id] =
-        std::make_shared<action::autonomous_ball_place>(world_, is_yellow_, id, abp_target_);
+    abp_[id] = make_action<action::autonomous_ball_place>(id, abp_target_);
   }
 }
 
@@ -82,12 +79,12 @@ void ball_placement::set_active(const bool is_active) {
 std::vector<std::shared_ptr<action::base>> ball_placement::execute() {
   std::vector<std::shared_ptr<action::base>> baseaction;
   if (static_cast<int>(ids_.size() == 0)) return baseaction;
-  const auto wf   = world_.field();
-  const auto ball = world_.ball();
+  const auto wf   = world().field();
+  const auto ball = world().ball();
   const Eigen::Vector2d ball_pos(ball.x(), ball.y());
   const Eigen::Vector2d ball_vel(ball.vx(), ball.vy());
-  const auto our_robots = is_yellow_ ? world_.robots_yellow() : world_.robots_blue();
-  const auto ene_robots = is_yellow_ ? world_.robots_blue() : world_.robots_yellow();
+  const auto our_robots = model::our_robots(world(), team_color());
+  const auto ene_robots = model::enemy_robots(world(), team_color());
   std::vector<unsigned int> our_ids;
   for (const auto& our : our_robots) our_ids.push_back(our.first);
   std::vector<unsigned int> ene_ids;

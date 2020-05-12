@@ -25,8 +25,7 @@ public:
   /// @param id 使うロボットのid
   /// @param target 目標座標
   /// @param is_active 自分のplacementか
-  ball_placement(const model::world& world, bool is_yellow,
-                 const std::vector<unsigned int>& ids,
+  ball_placement(context& ctx, const std::vector<unsigned int>& ids,
                  const Eigen::Vector2d target = Eigen::Vector2d(0, 0),
                  const bool is_active         = true);
 

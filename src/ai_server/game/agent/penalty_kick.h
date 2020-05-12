@@ -14,8 +14,8 @@ namespace agent {
 
 class penalty_kick : public base {
 public:
-  penalty_kick(const model::world& world, bool is_yellow, unsigned int kicker_id,
-               const std::vector<unsigned int>& ids, unsigned int enemy_keeper);
+  penalty_kick(context& ctx, unsigned int kicker_id, const std::vector<unsigned int>& ids,
+               unsigned int enemy_keeper);
   enum class penalty_mode { attack, defense }; //攻撃側と守備側で変える
 
   penalty_kick::penalty_mode mode() const;

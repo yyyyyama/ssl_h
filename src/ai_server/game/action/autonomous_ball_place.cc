@@ -14,9 +14,9 @@ namespace ai_server {
 namespace game {
 namespace action {
 
-autonomous_ball_place::autonomous_ball_place(const model::world& world, bool is_yellow,
-                                             unsigned int id, Eigen::Vector2d target)
-    : base(world, is_yellow, id),
+autonomous_ball_place::autonomous_ball_place(context& ctx, unsigned int id,
+                                             Eigen::Vector2d target)
+    : base(ctx, id),
       state_(running_state::move),
       finished_(false),
       wait_flag_(true),
@@ -36,9 +36,9 @@ void autonomous_ball_place::set_kick_type(const model::command::kick_flag_t& kic
 
 model::command autonomous_ball_place::execute() {
   model::command command{id_};
-  const auto our_robots           = is_yellow_ ? world_.robots_yellow() : world_.robots_blue();
+  const auto our_robots           = model::our_robots(world(), team_color());
   const auto& robot               = our_robots.at(id_);
-  const auto ball                 = world_.ball();
+  const auto ball                 = world().ball();
   const Eigen::Vector2d robot_pos = util::math::position(robot);
   const Eigen::Vector2d face_pos =
       robot_pos + 100.0 * Eigen::Vector2d(std::cos(robot.theta()), std::sin(robot.theta()));
@@ -71,33 +71,33 @@ model::command autonomous_ball_place::execute() {
 
   // ボールがフィールド外にあれば目標・モード変更
   {
-    if ((std::abs(predicted_ball_pos.x()) > world_.field().x_max() - 100.0 &&
-         std::abs(predicted_ball_pos.y()) > world_.field().y_max() - 100.0 &&
+    if ((std::abs(predicted_ball_pos.x()) > world().field().x_max() - 100.0 &&
+         std::abs(predicted_ball_pos.y()) > world().field().y_max() - 100.0 &&
          mode_ == place_mode::pull) ||
-        (std::abs(predicted_ball_pos.x()) > world_.field().x_max() &&
-         std::abs(predicted_ball_pos.y()) > world_.field().y_max() &&
+        (std::abs(predicted_ball_pos.x()) > world().field().x_max() &&
+         std::abs(predicted_ball_pos.y()) > world().field().y_max() &&
          mode_ != place_mode::pull)) {
-      target_.x() = (world_.field().x_max() - 500.0) * sign(predicted_ball_pos.x(), 0.0);
-      target_.y() = (world_.field().y_max() - 500.0) * sign(predicted_ball_pos.y(), 0.0);
+      target_.x() = (world().field().x_max() - 500.0) * sign(predicted_ball_pos.x(), 0.0);
+      target_.y() = (world().field().y_max() - 500.0) * sign(predicted_ball_pos.y(), 0.0);
       mode_       = place_mode::pull;
-    } else if ((std::abs(predicted_ball_pos.x()) > world_.field().x_max() - 100.0 &&
+    } else if ((std::abs(predicted_ball_pos.x()) > world().field().x_max() - 100.0 &&
                 mode_ == place_mode::pull) ||
-               (std::abs(predicted_ball_pos.x()) > world_.field().x_max() &&
+               (std::abs(predicted_ball_pos.x()) > world().field().x_max() &&
                 mode_ != place_mode::pull)) {
-      target_.x() = (world_.field().x_max() - 500.0) * sign(predicted_ball_pos.x(), 0.0);
+      target_.x() = (world().field().x_max() - 500.0) * sign(predicted_ball_pos.x(), 0.0);
       target_.y() = predicted_ball_pos.y();
       mode_       = place_mode::pull;
-    } else if ((std::abs(predicted_ball_pos.y()) > world_.field().y_max() - 100.0 &&
+    } else if ((std::abs(predicted_ball_pos.y()) > world().field().y_max() - 100.0 &&
                 mode_ == place_mode::pull) ||
-               (std::abs(predicted_ball_pos.y()) > world_.field().y_max() &&
+               (std::abs(predicted_ball_pos.y()) > world().field().y_max() &&
                 mode_ != place_mode::pull)) {
       target_.x() = predicted_ball_pos.x();
-      target_.y() = (world_.field().y_max() - 500.0) * sign(predicted_ball_pos.y(), 0.0);
+      target_.y() = (world().field().y_max() - 500.0) * sign(predicted_ball_pos.y(), 0.0);
       mode_       = place_mode::pull;
     } else {
       target_ = abp_target_;
-      mode_   = std::abs(predicted_ball_pos.x()) < world_.field().x_max() - 100.0 &&
-                      std::abs(predicted_ball_pos.y()) < world_.field().y_max() - 100.0
+      mode_   = std::abs(predicted_ball_pos.x()) < world().field().x_max() - 100.0 &&
+                      std::abs(predicted_ball_pos.y()) < world().field().y_max() - 100.0
                   ? place_mode::push
                   : place_mode::pull;
     }

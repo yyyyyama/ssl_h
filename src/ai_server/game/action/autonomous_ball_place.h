@@ -17,8 +17,7 @@ public:
   /// @param is_yellow チームカラー(黄色か?)
   /// @param id 使うロボットのid
   /// @param target 目標座標
-  autonomous_ball_place(const model::world& world, bool is_yellow, unsigned int id,
-                        Eigen::Vector2d target);
+  autonomous_ball_place(context& ctx, unsigned int id, Eigen::Vector2d target);
 
   /// @brief 動作の状態を表現する
   /// @var move ボール前まで移動

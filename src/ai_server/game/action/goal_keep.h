@@ -8,7 +8,7 @@
 namespace ai_server::game::action {
 class goal_keep : public base {
 public:
-  goal_keep(const model::world& world, bool is_yellow, unsigned int id);
+  goal_keep(context& ctx, unsigned int id);
   void set_kick_type(const model::command::kick_flag_t& kick_type);
   model::command::kick_flag_t kick_type() const;
   void set_dribble(int dribble);

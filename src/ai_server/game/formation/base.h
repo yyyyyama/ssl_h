@@ -27,8 +27,7 @@ protected:
   /// @param args             Agentのコンストラクタに渡す引数
   template <class T, class... Args>
   std::shared_ptr<T> make_agent(Args&&... args) {
-    return std::make_shared<T>(ctx_.world, ctx_.team_color == model::team_color::yellow,
-                               std::forward<Args>(args)...);
+    return std::make_shared<T>(ctx_, std::forward<Args>(args)...);
   }
 
   const model::world& world() const {

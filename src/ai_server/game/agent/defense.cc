@@ -12,10 +12,10 @@ namespace ai_server {
 namespace game {
 namespace agent {
 
-defense::defense(const model::world& world, bool is_yellow, unsigned int keeper_id,
+defense::defense(context& ctx, unsigned int keeper_id,
                  const std::vector<unsigned int>& wall_ids,
                  const std::vector<unsigned int>& marking_ids)
-    : base(world, is_yellow),
+    : base(ctx),
       keeper_id_(keeper_id),
       wall_ids_(wall_ids),
       marking_ids_(marking_ids),
@@ -28,8 +28,8 @@ defense::defense(const model::world& world, bool is_yellow, unsigned int keeper_
   //
 
   //キーパー用のaction
-  keeper_     = std::make_shared<action::goal_keep>(world_, is_yellow_, keeper_id_);
-  keeper_get_ = std::make_shared<action::get_ball>(world_, is_yellow_, keeper_id_);
+  keeper_     = make_action<action::goal_keep>(keeper_id_);
+  keeper_get_ = make_action<action::get_ball>(keeper_id_);
 }
 
 void defense::set_mode(defense_mode mode) {
@@ -45,10 +45,10 @@ std::vector<std::shared_ptr<action::base>> defense::execute() {
 
   std::vector<std::shared_ptr<action::base>> baseaction;
   //ボールの座標
-  const Eigen::Vector2d ball_vel = util::math::velocity(world_.ball());
+  const Eigen::Vector2d ball_vel = util::math::velocity(world().ball());
   // visionから取得した今のボールの位置
-  const Eigen::Vector2d ball_pos(std::max(world_.ball().x(), world_.field().x_min()),
-                                 world_.ball().y());
+  const Eigen::Vector2d ball_pos(std::max(world().ball().x(), world().field().x_min()),
+                                 world().ball().y());
   const Eigen::Vector2d ball_k(ball_vel * 0.5);
   // 0.5s後のボールの位置(推定)
   const Eigen::Vector2d ball(ball_pos + ball_k);
@@ -59,10 +59,10 @@ std::vector<std::shared_ptr<action::base>> defense::execute() {
   }
 
   //ゴールの座標
-  const Eigen::Vector2d goal(world_.field().x_min(), 0.0);
+  const Eigen::Vector2d goal(world().field().x_min(), 0.0);
 
-  const auto ally_robots  = is_yellow_ ? world_.robots_yellow() : world_.robots_blue();
-  const auto enemy_robots = is_yellow_ ? world_.robots_blue() : world_.robots_yellow();
+  const auto ally_robots  = model::our_robots(world(), team_color());
+  const auto enemy_robots = model::enemy_robots(world(), team_color());
 
   //ここから壁の処理
   if (!wall_ids_.empty()) {
@@ -120,7 +120,7 @@ std::vector<std::shared_ptr<action::base>> defense::execute() {
     Eigen::Vector2d last_pos{0.0, 0.0};
     for (auto wall_it = wall_pairs_.begin(); wall_it != wall_pairs_.end(); ++wall_it) {
       int i          = static_cast<int>(std::distance(wall_pairs_.begin(), wall_it));
-      auto guard     = std::make_shared<action::guard>(world_, is_yellow_, (*wall_it).first);
+      auto guard     = make_action<action::guard>((*wall_it).first);
       const auto pos = (*wall_it).second;
       if (i == 0) last_pos = pos;
       const double last_theta = std::atan2(last_pos.y() - goal.y(), last_pos.x() - goal.x());
@@ -134,7 +134,7 @@ std::vector<std::shared_ptr<action::base>> defense::execute() {
     }
 
     if (!active_walls.empty()) {
-      const auto wf = world_.field();
+      const auto wf = world().field();
       std::vector<Eigen::Vector2d> pos_candidates{
           {wf.x_min() + wf.penalty_length() + 1000.0, 300.0},
           {wf.x_min() + wf.penalty_length() + 1000.0, -300.0},
@@ -154,7 +154,7 @@ std::vector<std::shared_ptr<action::base>> defense::execute() {
                                  const auto& a, const auto& b) {
                                return (robot_pos - a).norm() < (robot_pos - b).norm();
                              });
-        auto move = std::make_shared<action::move>(world_, is_yellow_, id);
+        auto move = make_action<action::move>(id);
         move->move_to(*itr, 0.0);
         baseaction.push_back(move);
         pos_candidates.erase(itr);

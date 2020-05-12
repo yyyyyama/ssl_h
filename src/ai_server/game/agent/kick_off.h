@@ -14,9 +14,8 @@ namespace agent {
 
 class kick_off : public base {
 public:
-  kick_off(const model::world& world, bool is_yellow, unsigned int kicker_id,
-           const std::vector<unsigned int>& waiter);
-  kick_off(const model::world& world, bool is_yellow, unsigned int kicker_id);
+  kick_off(context& ctx, unsigned int kicker_id, const std::vector<unsigned int>& waiter);
+  kick_off(context& ctx, unsigned int kicker_id);
   bool start_flag() const;
   void set_start_flag(bool start_flag);
   bool finished() const;

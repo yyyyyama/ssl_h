@@ -18,20 +18,19 @@ namespace game {
 namespace agent {
 
 // 通常stopgame用コンストラクタ
-stopgame::stopgame(const model::world& world, bool is_yellow,
-                   const std::vector<unsigned int>& ids)
-    : base(world, is_yellow), ids_(ids), nearest_robot_(0) {}
+stopgame::stopgame(context& ctx, const std::vector<unsigned int>& ids)
+    : base(ctx), ids_(ids), nearest_robot_(0) {}
 
 std::vector<std::shared_ptr<action::base>> stopgame::execute() {
   std::vector<std::shared_ptr<action::base>> baseaction;
-  const auto our_robots = is_yellow_ ? world_.robots_yellow() : world_.robots_blue();
-  const auto ene_robots = is_yellow_ ? world_.robots_blue() : world_.robots_yellow();
+  const auto our_robots = model::our_robots(world(), team_color());
+  const auto ene_robots = model::enemy_robots(world(), team_color());
   std::vector<unsigned int> visible_ids;
   std::copy_if(ids_.cbegin(), ids_.cend(), std::back_inserter(visible_ids),
                [&our_robots](unsigned int i) { return our_robots.count(i); });
   if (ids_.empty() || visible_ids.empty()) return baseaction;
 
-  const Eigen::Vector2d ball_pos = util::math::position(world_.ball());
+  const Eigen::Vector2d ball_pos = util::math::position(world().ball());
   const double ballxsign  = ((ball_pos.x() > 0) || (std::abs(ball_pos.x()) < 250)) ? 1.0 : -1.0;
   const double ballysign  = ((ball_pos.y() > 0) || (std::abs(ball_pos.y()) < 250)) ? 1.0 : -1.0;
   constexpr double margin = 700.0;
@@ -42,9 +41,9 @@ std::vector<std::shared_ptr<action::base>> stopgame::execute() {
                (util::math::position(our_robots.at(b)) - ball_pos).norm();
       });
 
-  const double dist =
-      (2 * world_.field().y_max() - std::abs(world_.field().y_max() - std::abs(ball_pos.y()))) /
-      ids_.size();
+  const double dist = (2 * world().field().y_max() -
+                       std::abs(world().field().y_max() - std::abs(ball_pos.y()))) /
+                      ids_.size();
 
   // 目標座標算出
   std::unordered_map<unsigned int, Eigen::Vector2d> target_pos;
@@ -56,20 +55,20 @@ std::vector<std::shared_ptr<action::base>> stopgame::execute() {
         // 一番近いロボット
         tmp_pos =
             ball_pos +
-            margin * (Eigen::Vector2d(world_.field().x_min(), 0.0) - ball_pos).normalized();
+            margin * (Eigen::Vector2d(world().field().x_min(), 0.0) - ball_pos).normalized();
       } else {
         // それ以外
         tmp_pos.x() = ball_pos.x() - i * 500;
         tmp_pos.y() = ball_pos.y() - dist * ballysign * (i % 2 == 0 ? -i : i) / 2;
-        if (std::abs(tmp_pos.y()) > world_.field().y_max())
+        if (std::abs(tmp_pos.y()) > world().field().y_max())
           tmp_pos.y() = ball_pos.y() - dist * ballysign * (i - 1);
-        if (std::abs(tmp_pos.x()) > world_.field().x_max() - 300)
-          tmp_pos.x() = ballxsign * (world_.field().x_max() - 300);
+        if (std::abs(tmp_pos.x()) > world().field().x_max() - 300)
+          tmp_pos.x() = ballxsign * (world().field().x_max() - 300);
         if ((std::abs(tmp_pos.x()) >
-             world_.field().x_max() - (world_.field().penalty_length() + 500)) &&
-            (std::abs(tmp_pos.y()) < world_.field().penalty_width() / 2.0 + 500)) {
+             world().field().x_max() - (world().field().penalty_length() + 500)) &&
+            (std::abs(tmp_pos.y()) < world().field().penalty_width() / 2.0 + 500)) {
           tmp_pos.x() =
-              ballxsign * (world_.field().x_max() - (world_.field().penalty_length() + 600));
+              ballxsign * (world().field().x_max() - (world().field().penalty_length() + 600));
         }
         i++;
       }
@@ -84,14 +83,14 @@ std::vector<std::shared_ptr<action::base>> stopgame::execute() {
       common_obstacles.add(model::obstacle::point{util::math::position(ene.second), 300.0});
     }
     common_obstacles.add(model::obstacle::point{ball_pos, margin});
-    common_obstacles.add(model::obstacle::enemy_penalty_area(world_.field(), 150.0));
-    common_obstacles.add(model::obstacle::our_penalty_area(world_.field(), 150.0));
+    common_obstacles.add(model::obstacle::enemy_penalty_area(world().field(), 150.0));
+    common_obstacles.add(model::obstacle::our_penalty_area(world().field(), 150.0));
   }
   for (auto id : visible_ids) {
     const Eigen::Vector2d robot_pos = util::math::position(our_robots.at(id));
     const double theta = std::atan2(ball_pos.y() - robot_pos.y(), ball_pos.x() - robot_pos.x());
     std::unique_ptr<planner::rrt_star> rrt = std::make_unique<planner::rrt_star>();
-    rrt->set_area(world_.field(), 200.0);
+    rrt->set_area(world().field(), 200.0);
     {
       auto obstacles = common_obstacles;
       for (const auto& our : our_robots) {
@@ -101,7 +100,7 @@ std::vector<std::shared_ptr<action::base>> stopgame::execute() {
       rrt->set_node_count(10);
       rrt->set_max_branch_length(50.0);
     }
-    auto move = std::make_shared<action::move>(world_, is_yellow_, id);
+    auto move = make_action<action::move>(id);
     move->set_path_planner(std::move(rrt));
     // TODO: actionに障害物リストを渡す
     move->move_to(target_pos[id], theta);

@@ -8,18 +8,17 @@ namespace ai_server {
 namespace game {
 namespace agent {
 
-alignment::alignment(const model::world& world, bool is_yellow,
-                     const std::vector<unsigned int>& ids)
-    : base(world, is_yellow), ids_(ids) {}
+alignment::alignment(context& ctx, const std::vector<unsigned int>& ids)
+    : base(ctx), ids_(ids) {}
 
 std::vector<std::shared_ptr<action::base>> alignment::execute() {
   std::vector<std::shared_ptr<action::base>> exe;
-  const auto our_robots = is_yellow_ ? world_.robots_yellow() : world_.robots_blue();
+  const auto our_robots = model::our_robots(world(), team_color());
 
   // move
   int id_n = 0;
   const double x0 =
-      -world_.field().x_max() / 2 + 110.0 * (static_cast<double>(ids_.size()) - 1.0);
+      -world().field().x_max() / 2 + 110.0 * (static_cast<double>(ids_.size()) - 1.0);
   for (auto id : ids_) {
     if (our_robots.count(id)) {
       auto move          = make_action<action::move>(id);

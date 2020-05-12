@@ -10,7 +10,7 @@ namespace agent {
 
 class alignment : public base {
 public:
-  alignment(const model::world& world, bool is_yellow, const std::vector<unsigned int>& ids);
+  alignment(context& ctx, const std::vector<unsigned int>& ids);
   std::vector<std::shared_ptr<action::base>> execute() override;
 
 private:

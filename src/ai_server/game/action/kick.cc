@@ -7,8 +7,8 @@
 namespace ai_server {
 namespace game {
 namespace action {
-kick::kick(const model::world& world, bool is_yellow, unsigned int id)
-    : base(world, is_yellow, id),
+kick::kick(context& ctx, unsigned int id)
+    : base(ctx, id),
       mode_(mode::goal),
       state_(running_state::move),
       dribble_(0),
@@ -49,11 +49,11 @@ model::command kick::execute() {
   using boost::math::constants::pi;
   using boost::math::constants::two_pi;
 
-  const auto our_robots           = is_yellow_ ? world_.robots_yellow() : world_.robots_blue();
+  const auto our_robots           = model::our_robots(world(), team_color());
   const auto& robot_me            = our_robots.at(id_);
   const Eigen::Vector2d robot_pos = util::math::position(robot_me);
-  const Eigen::Vector2d ball_pos  = util::math::position(world_.ball());
-  const Eigen::Vector2d ball_vel  = util::math::velocity(world_.ball());
+  const Eigen::Vector2d ball_pos  = util::math::position(world().ball());
+  const Eigen::Vector2d ball_vel  = util::math::velocity(world().ball());
   //ボールから目標
   const double ball_target = std::atan2(target_.y() - ball_pos.y(), target_.x() - ball_pos.x());
   //ボールからロボット

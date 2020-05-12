@@ -15,11 +15,10 @@ namespace ai_server {
 namespace game {
 namespace agent {
 
-marking::marking(const model::world& world, bool is_yellow,
-                 const std::vector<unsigned int>& ids, bool setplay_flag)
-    : base(world, is_yellow), ids_(ids), setplay_flag_(setplay_flag) {
-  const auto our_robots   = is_yellow_ ? world_.robots_yellow() : world_.robots_blue();
-  const auto enemy_robots = is_yellow_ ? world_.robots_blue() : world_.robots_yellow();
+marking::marking(context& ctx, const std::vector<unsigned int>& ids, bool setplay_flag)
+    : base(ctx), ids_(ids), setplay_flag_(setplay_flag) {
+  const auto our_robots   = model::our_robots(world(), team_color());
+  const auto enemy_robots = model::enemy_robots(world(), team_color());
 
   marker_ids_ = ids_;
   const auto m_end =
@@ -29,7 +28,7 @@ marking::marking(const model::world& world, bool is_yellow,
 
   if (!our_robots.empty() && !enemy_robots.empty()) {
     for (const auto& enemy : enemy_robots) {
-      if (enemy.second.x() < world_.field().x_max() - 1600.0 ||
+      if (enemy.second.x() < world().field().x_max() - 1600.0 ||
           std::abs(enemy.second.y()) > 1600.0) {
         // 敵ゴールエリア周辺以外の敵ロボットをマーク対象として設定
         enemy_ids_.push_back(enemy.first);
@@ -39,9 +38,9 @@ marking::marking(const model::world& world, bool is_yellow,
     if (!enemy_ids_.empty()) {
       // 敵ロボットを自チームゴールに近い順にソート
       std::sort(enemy_ids_.begin(), enemy_ids_.end(), [&](const auto& a, const auto& b) {
-        return std::hypot(enemy_robots.at(a).x() - world_.field().x_min(),
+        return std::hypot(enemy_robots.at(a).x() - world().field().x_min(),
                           enemy_robots.at(a).y() - 0.0) <
-               std::hypot(enemy_robots.at(b).x() - world_.field().x_min(),
+               std::hypot(enemy_robots.at(b).x() - world().field().x_min(),
                           enemy_robots.at(b).y() - 0.0);
       });
 
@@ -79,9 +78,9 @@ void marking::set_setplay_flag(bool setplay_flag) {
 
 std::vector<std::shared_ptr<action::base>> marking::execute() {
   std::vector<std::shared_ptr<action::base>> baseaction;
-  const auto our_robots   = is_yellow_ ? world_.robots_yellow() : world_.robots_blue();
-  const auto enemy_robots = is_yellow_ ? world_.robots_blue() : world_.robots_yellow();
-  const auto ball         = world_.ball();
+  const auto our_robots   = model::our_robots(world(), team_color());
+  const auto enemy_robots = model::enemy_robots(world(), team_color());
+  const auto ball         = world().ball();
 
   using boost::math::constants::pi;
 
@@ -100,19 +99,19 @@ std::vector<std::shared_ptr<action::base>> marking::execute() {
     // 敵ロボットが全く見えない場合
     for (const auto id : marker_ids_) {
       const auto robot = our_robots.at(id);
-      if (std::abs(robot.x()) > world_.field().x_max() - 1300.0 &&
+      if (std::abs(robot.x()) > world().field().x_max() - 1300.0 &&
           std::abs(robot.y()) < 1300.0) {
         // ゴールエリアから出る
         double vx, vy;
-        double goal_x = robot.x() > 0.0 ? world_.field().x_max() : world_.field().x_min();
+        double goal_x = robot.x() > 0.0 ? world().field().x_max() : world().field().x_min();
         vx = 500.0 * (robot.x() - goal_x) / std::hypot(robot.x() - goal_x, robot.y() - 0.0);
         vy = 500.0 * (robot.y() - 0.0) / std::hypot(robot.x() - goal_x, robot.y() - 0.0);
-        auto vec = std::make_shared<action::vec>(world_, is_yellow_, id);
+        auto vec = make_action<action::vec>(id);
         vec->move_to(vx, vy, 0.0);
         baseaction.push_back(vec);
       } else {
         // 停止
-        auto vec = std::make_shared<action::vec>(world_, is_yellow_, id);
+        auto vec = make_action<action::vec>(id);
         vec->move_to(0.0, 0.0, 0.0);
         baseaction.push_back(vec);
       }
@@ -123,7 +122,7 @@ std::vector<std::shared_ptr<action::base>> marking::execute() {
   std::vector<unsigned int> tmp_1 = enemy_ids_;
   enemy_ids_.clear();
   for (const auto& enemy : enemy_robots) {
-    if (enemy.second.x() < world_.field().x_max() - 1600.0 ||
+    if (enemy.second.x() < world().field().x_max() - 1600.0 ||
         std::abs(enemy.second.y()) > 1600.0) {
       // 敵ゴールエリア周辺以外の敵ロボットをマーク対象として設定
       enemy_ids_.push_back(enemy.first);
@@ -134,19 +133,19 @@ std::vector<std::shared_ptr<action::base>> marking::execute() {
     // 敵マーク対象が存在しない場合
     for (const auto id : marker_ids_) {
       const auto robot = our_robots.at(id);
-      if (std::abs(robot.x()) > world_.field().x_max() - 1300.0 &&
+      if (std::abs(robot.x()) > world().field().x_max() - 1300.0 &&
           std::abs(robot.y()) < 1300.0) {
         // ゴールエリアから出る
         double vx, vy;
-        double goal_x = robot.x() > 0.0 ? world_.field().x_max() : world_.field().x_min();
+        double goal_x = robot.x() > 0.0 ? world().field().x_max() : world().field().x_min();
         vx = 500.0 * (robot.x() - goal_x) / std::hypot(robot.x() - goal_x, robot.y() - 0.0);
         vy = 500.0 * (robot.y() - 0.0) / std::hypot(robot.x() - goal_x, robot.y() - 0.0);
-        auto vec = std::make_shared<action::vec>(world_, is_yellow_, id);
+        auto vec = make_action<action::vec>(id);
         vec->move_to(vx, vy, 0.0);
         baseaction.push_back(vec);
       } else {
         // 停止
-        auto vec = std::make_shared<action::vec>(world_, is_yellow_, id);
+        auto vec = make_action<action::vec>(id);
         vec->move_to(0.0, 0.0, 0.0);
         baseaction.push_back(vec);
       }
@@ -156,9 +155,9 @@ std::vector<std::shared_ptr<action::base>> marking::execute() {
 
   // 敵ロボットを自チームゴールに近い順にソート
   std::sort(enemy_ids_.begin(), enemy_ids_.end(), [&](const auto& a, const auto& b) {
-    return std::hypot(enemy_robots.at(a).x() - world_.field().x_min(),
+    return std::hypot(enemy_robots.at(a).x() - world().field().x_min(),
                       enemy_robots.at(a).y() - 0.0) <
-           std::hypot(enemy_robots.at(b).x() - world_.field().x_min(),
+           std::hypot(enemy_robots.at(b).x() - world().field().x_min(),
                       enemy_robots.at(b).y() - 0.0);
   });
 
@@ -221,8 +220,8 @@ std::vector<std::shared_ptr<action::base>> marking::execute() {
         std::any_of(marker_ids_.cbegin(), marker_ids_.cend(),
                     [&](const unsigned int x) {
                       return mark_pairs_.at(x) == eid && x != id &&
-                             std::hypot(robot.x() - world_.field().x_min(), robot.y() - 0.0) <
-                                 std::hypot(our_robots.at(x).x() - world_.field().x_min(),
+                             std::hypot(robot.x() - world().field().x_min(), robot.y() - 0.0) <
+                                 std::hypot(our_robots.at(x).x() - world().field().x_min(),
                                             our_robots.at(x).y() - 0.0);
                     })
             ? action::marking::mark_mode::shoot_block
@@ -230,17 +229,17 @@ std::vector<std::shared_ptr<action::base>> marking::execute() {
 
     if (our_robots.count(id) == 0) {
       // 停止
-      auto vec = std::make_shared<action::vec>(world_, is_yellow_, id);
+      auto vec = make_action<action::vec>(id);
       vec->move_to(0.0, 0.0, 0.0);
       baseaction.push_back(vec);
-    } else if (std::abs(robot.x()) > world_.field().x_max() - 1300.0 &&
+    } else if (std::abs(robot.x()) > world().field().x_max() - 1300.0 &&
                std::abs(robot.y()) < 1300.0) {
       // ゴールエリアから出る
       double vx, vy;
-      const double goal_x = robot.x() > 0.0 ? world_.field().x_max() : world_.field().x_min();
+      const double goal_x = robot.x() > 0.0 ? world().field().x_max() : world().field().x_min();
       vx       = 500.0 * (robot.x() - goal_x) / std::hypot(robot.x() - goal_x, robot.y() - 0.0);
       vy       = 500.0 * (robot.y() - 0.0) / std::hypot(robot.x() - goal_x, robot.y() - 0.0);
-      auto vec = std::make_shared<action::vec>(world_, is_yellow_, id);
+      auto vec = make_action<action::vec>(id);
       vec->move_to(vx, vy, 0.0);
       baseaction.push_back(vec);
     } else if (setplay_flag_) {
@@ -250,15 +249,15 @@ std::vector<std::shared_ptr<action::base>> marking::execute() {
                                                           ball.x() - enemy_robots.at(eid).x()));
         auto x       = ball.x() + 650 * std::cos(r_theta);
         auto y       = ball.y() + 650 * std::sin(r_theta);
-        if (std::abs(x) > world_.field().x_max() || std::abs(y) > world_.field().y_max()) {
+        if (std::abs(x) > world().field().x_max() || std::abs(y) > world().field().y_max()) {
           const auto b2gtheta = util::math::wrap_to_2pi(
-              std::atan2(0 - ball.y(), world_.field().x_min() - ball.x()));
+              std::atan2(0 - ball.y(), world().field().x_min() - ball.x()));
           x = ball.x() + 650 * std::sin(b2gtheta);
           y = ball.y() + 650 * std::cos(b2gtheta);
         }
         const auto to_ball_theta =
             util::math::wrap_to_2pi(std::atan2(ball.y() - y, ball.x() - x));
-        auto move = std::make_shared<action::move>(world_, is_yellow_, id);
+        auto move = make_action<action::move>(id);
         move->move_to(x, y, to_ball_theta);
         baseaction.push_back(move);
       } else if (std::hypot(robot.x() - ball.x(), robot.y() - ball.y()) < 600.0) {
@@ -269,8 +268,8 @@ std::vector<std::shared_ptr<action::base>> marking::execute() {
         const double c_to_btheta =
             util::math::wrap_to_2pi(std::atan2(ball.y() - 0.0, ball.x() - 0.0));
 
-        if (std::abs(robot.x()) < world_.field().x_max() - 750.0 &&
-            std::abs(robot.y()) < world_.field().y_max() - 750.0) {
+        if (std::abs(robot.x()) < world().field().x_max() - 750.0 &&
+            std::abs(robot.y()) < world().field().y_max() - 750.0) {
           vx = (650.0 - std::hypot(robot.x() - ball.x(), robot.y() - ball.y())) *
                (robot.x() - ball.x()) / std::hypot(robot.x() - ball.x(), robot.y() - ball.y());
           vy = (650.0 - std::hypot(robot.x() - ball.x(), robot.y() - ball.y())) *
@@ -281,26 +280,26 @@ std::vector<std::shared_ptr<action::base>> marking::execute() {
           vy = -1000.0 * std::cos(c_to_rtheta) *
                ((c_to_btheta > c_to_rtheta) - (c_to_btheta < c_to_rtheta));
         }
-        auto vec = std::make_shared<action::vec>(world_, is_yellow_, id);
+        auto vec = make_action<action::vec>(id);
         vec->move_to(vx, vy, 0.0);
         baseaction.push_back(vec);
       } else {
         if (enemy_robots.count(eid) != 0) {
           // 対象が見えればマーク
-          auto mark = std::make_shared<action::marking>(world_, is_yellow_, id);
+          auto mark = make_action<action::marking>(id);
           mark->mark_robot(eid);
           mark->set_mode(mark_mode);
           mark->set_radius(300.0);
           baseaction.push_back(mark);
         } else {
           // 停止
-          auto vec = std::make_shared<action::vec>(world_, is_yellow_, id);
+          auto vec = make_action<action::vec>(id);
           vec->move_to(0.0, 0.0, 0.0);
           baseaction.push_back(vec);
         }
       }
     } else {
-      if ((std::abs(ball.x()) < world_.field().x_max() - 1200.0 ||
+      if ((std::abs(ball.x()) < world().field().x_max() - 1200.0 ||
            std::abs(ball.y()) > 1200.0) &&
           std::hypot(robot.x() - ball.x(), robot.y() - ball.y()) < 700.0 && id == nid &&
           std::all_of(our_ids.cbegin(), our_ids.cend(),
@@ -313,8 +312,8 @@ std::vector<std::shared_ptr<action::base>> marking::execute() {
                                           our_robots.at(our_id).y() - ball.y()) > 700.0;
                       })) {
         // ボールに近く、ボールの近くに味方ロボットがいない場合、ボールを相手ゴール方向に蹴る
-        auto get_ball = std::make_shared<action::get_ball>(world_, is_yellow_, id);
-        get_ball->set_target(world_.field().x_max(), 0.0);
+        auto get_ball = make_action<action::get_ball>(id);
+        get_ball->set_target(world().field().x_max(), 0.0);
         baseaction.push_back(get_ball);
       } else {
         if (enemy_robots.count(eid) != 0) {
@@ -332,14 +331,14 @@ std::vector<std::shared_ptr<action::base>> marking::execute() {
             // 近くにマーカー以外のロボットがいればモード変更
             mark_mode = action::marking::mark_mode::shoot_block;
           }
-          auto mark = std::make_shared<action::marking>(world_, is_yellow_, id);
+          auto mark = make_action<action::marking>(id);
           mark->mark_robot(eid);
           mark->set_mode(mark_mode);
           mark->set_radius(300.0);
           baseaction.push_back(mark);
         } else {
           // 停止
-          auto vec = std::make_shared<action::vec>(world_, is_yellow_, id);
+          auto vec = make_action<action::vec>(id);
           vec->move_to(0.0, 0.0, 0.0);
           baseaction.push_back(vec);
         }

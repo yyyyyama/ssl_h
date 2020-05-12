@@ -3,6 +3,7 @@
 
 #include <memory>
 
+#include "ai_server/game/context.h"
 #include "ai_server/model/command.h"
 #include "ai_server/model/world.h"
 #include "ai_server/planner/base.h"
@@ -16,7 +17,7 @@ public:
   /// @param world            WorldModelの参照
   /// @param is_yellow        チームカラーは黄色か
   /// @param id               操作するロボットのID
-  base(const model::world& world, bool is_yellow, unsigned int id);
+  base(context& ctx, unsigned int id);
 
   virtual ~base() = default;
 
@@ -38,15 +39,17 @@ public:
 
 protected:
   const model::world& world() const {
-    return world_;
+    return ctx_.world;
   }
 
   model::team_color team_color() const {
-    return static_cast<model::team_color>(is_yellow_);
+    return ctx_.team_color;
   }
 
-  const model::world& world_;
-  bool is_yellow_;
+private:
+  context& ctx_;
+
+protected:
   unsigned int id_;
   std::unique_ptr<planner::base> planner_;
 };

@@ -6,17 +6,17 @@ namespace ai_server {
 namespace game {
 namespace action {
 
-rush::rush(const model::world& world, bool is_yellow, unsigned int id)
-    : base(world, is_yellow, id),
+rush::rush(context& ctx, unsigned int id)
+    : base(ctx, id),
       kick_type_({model::command::kick_type_t::none, 0.0}),
       flag_(false),
-      previous_kick_ball_(world_.ball()) {}
+      previous_kick_ball_(world().ball()) {}
 
 model::command rush::execute() {
   model::command command(id_);
 
-  const auto robots = is_yellow_ ? world_.robots_yellow() : world_.robots_blue();
-  const auto ball   = world_.ball();
+  const auto robots = model::our_robots(world(), team_color());
+  const auto ball   = world().ball();
 
   //見えなかったら止める
   if (!robots.count(id_)) {

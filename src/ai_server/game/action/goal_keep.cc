@@ -10,8 +10,8 @@ using boost::math::constants::pi;
 
 namespace ai_server::game::action {
 
-goal_keep::goal_keep(const model::world& world, bool is_yellow, unsigned int id)
-    : base(world, is_yellow, id),
+goal_keep::goal_keep(context& ctx, unsigned int id)
+    : base(ctx, id),
       dribble_(0),
       kick_type_(model::command::kick_type_t::none, 0.0),
       halt_flag_(false) {}
@@ -40,14 +40,14 @@ model::command goal_keep::execute() {
   // ロボットの中心からキッカーまでの距離
   constexpr double to_kicker_dist = 75.0;
   // ゴールの幅
-  const double width = world_.field().goal_width();
+  const double width = world().field().goal_width();
   // 遅延時間
   constexpr double delay = 0.08;
 
-  const auto wf = world_.field();
+  const auto wf = world().field();
 
-  const auto our_robots   = is_yellow_ ? world_.robots_yellow() : world_.robots_blue();
-  const auto enemy_robots = is_yellow_ ? world_.robots_blue() : world_.robots_yellow();
+  const auto our_robots   = model::our_robots(world(), team_color());
+  const auto enemy_robots = model::enemy_robots(world(), team_color());
 
   if (!our_robots.count(id_) || halt_flag_) {
     command.set_velocity({0.0, 0.0, 0.0});
@@ -55,11 +55,11 @@ model::command goal_keep::execute() {
   }
 
   const auto robot = our_robots.at(id_);
-  const Eigen::Vector2d goal_pos(world_.field().x_min(), 0);
+  const Eigen::Vector2d goal_pos(world().field().x_min(), 0);
   const Eigen::Vector2d robot_vel = util::math::velocity(robot);
   const Eigen::Vector2d robot_pos = util::math::position(robot) + robot_vel * delay;
-  const Eigen::Vector2d ball_vel  = util::math::velocity(world_.ball());
-  const Eigen::Vector2d ball_pos  = util::math::position(world_.ball()) + ball_vel * delay;
+  const Eigen::Vector2d ball_vel  = util::math::velocity(world().ball());
+  const Eigen::Vector2d ball_pos  = util::math::position(world().ball()) + ball_vel * delay;
   const double omega              = 4.0 * util::math::wrap_to_pi(0 - robot.theta());
 
   const auto& target_robots = enemy_robots;

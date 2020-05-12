@@ -9,9 +9,8 @@ namespace agent {
 
 using ai_server::util::pop_each;
 
-regular::regular(const model::world& world, bool is_yellow,
-                 const std::vector<unsigned int>& ids)
-    : base(world, is_yellow),
+regular::regular(context& ctx, const std::vector<unsigned int>& ids)
+    : base(ctx),
       ids_(ids),
       can_chase_(true),
       has_chaser_(true),
@@ -20,9 +19,9 @@ regular::regular(const model::world& world, bool is_yellow,
   chaser_id_ = select_chaser();
 }
 
-regular::regular(const model::world& world, bool is_yellow,
-                 const std::vector<unsigned int>& ids, unsigned int default_chaser)
-    : base(world, is_yellow),
+regular::regular(context& ctx, const std::vector<unsigned int>& ids,
+                 unsigned int default_chaser)
+    : base(ctx),
       ids_(ids),
       can_chase_(true),
       has_chaser_(true),
@@ -56,21 +55,21 @@ void regular::customize_marking(regular::mark_option option) {
 
 std::vector<std::shared_ptr<action::base>> regular::execute() {
   std::vector<std::shared_ptr<action::base>> actions;
-  const auto our_team       = is_yellow_ ? world_.robots_yellow() : world_.robots_blue();
-  const auto ball           = world_.ball();
-  const auto penalty_width  = world_.field().penalty_width();
-  const auto penalty_length = world_.field().penalty_length();
+  const auto our_team       = model::our_robots(world(), team_color());
+  const auto ball           = world().ball();
+  const auto penalty_width  = world().field().penalty_width();
+  const auto penalty_length = world().field().penalty_length();
   const double margin       = 200;
 
   // chaserを使う時
   if (has_chaser_) {
     // 自分側のゴール
-    regular::area my_goal{world_.field().x_min(), -penalty_width / 2 - margin,
-                          world_.field().x_min() + penalty_length + margin,
+    regular::area my_goal{world().field().x_min(), -penalty_width / 2 - margin,
+                          world().field().x_min() + penalty_length + margin,
                           penalty_width / 2 + margin, 0.0};
     // 相手側のゴール
-    regular::area enemy_goal{world_.field().x_max(), -penalty_width / 2 - margin,
-                             world_.field().x_max() - penalty_length - margin,
+    regular::area enemy_goal{world().field().x_max(), -penalty_width / 2 - margin,
+                             world().field().x_max() - penalty_length - margin,
                              penalty_width / 2 + margin, 0.0};
 
     if ( // 自分側のゴール中心に入っているか
@@ -158,11 +157,11 @@ std::vector<std::shared_ptr<action::base>> regular::execute() {
       if (our_team.find(chaser_id_) != our_team.end()) {
         // 初期化が必要なとき
         if (need_reset_chaser_) {
-          get_ball_ = std::make_shared<action::get_ball>(world_, is_yellow_, chaser_id_);
+          get_ball_          = make_action<action::get_ball>(chaser_id_);
           need_reset_chaser_ = false;
         }
         get_ball_->set_target(target_.x(), target_.y());
-        get_ball_->set_pow((target_.x() == world_.field().x_max() ? 110 : 60));
+        get_ball_->set_pow((target_.x() == world().field().x_max() ? 110 : 60));
         actions.push_back(get_ball_);
       }
     }
@@ -209,8 +208,8 @@ std::vector<std::shared_ptr<action::base>> regular::execute() {
 
 // chase id_の候補を取得
 unsigned int regular::select_chaser() {
-  const auto ball     = world_.ball();
-  const auto our_team = is_yellow_ ? world_.robots_yellow() : world_.robots_blue();
+  const auto ball     = world().ball();
+  const auto our_team = model::our_robots(world(), team_color());
   std::vector<unsigned int> ids;
 
   // 見えるロボットだけ選考する
@@ -241,7 +240,7 @@ void regular::update_first_marking() {
     return;
   }
 
-  const auto those_team = !is_yellow_ ? world_.robots_yellow() : world_.robots_blue();
+  const auto those_team = model::enemy_robots(world(), team_color());
 
   std::unordered_map<unsigned int, unsigned int> new_marked_list;
 
@@ -265,7 +264,7 @@ void regular::update_first_marking() {
       // ロボットの手が空いているか
       auto find_itr = std::find(follower_ids_.begin(), follower_ids_.end(), id);
       if (find_itr != follower_ids_.end()) {
-        first_marking_[id] = std::make_shared<action::marking>(world_, is_yellow_, id);
+        first_marking_[id] = make_action<action::marking>(id);
         first_marking_.at(id)->mark_robot(enemy_id);
         first_marking_.at(id)->set_mode(action::marking::mark_mode::shoot_block);
         first_marking_.at(id)->set_radius(600.0);
@@ -289,8 +288,7 @@ void regular::update_first_marking() {
       const auto tmp_id = nearest_id(follower_ids_, those_team.at(tmp_enemies.top().id).x(),
                                      those_team.at(tmp_enemies.top().id).y());
       if (tmp_id != follower_ids_.end()) {
-        first_marking_[*tmp_id] =
-            std::make_shared<action::marking>(world_, is_yellow_, *tmp_id);
+        first_marking_[*tmp_id] = make_action<action::marking>(*tmp_id);
         first_marking_.at(*tmp_id)->mark_robot(tmp_enemies.top().id);
         first_marking_.at(*tmp_id)->set_mode(action::marking::mark_mode::shoot_block);
         first_marking_.at(*tmp_id)->set_radius(600.0);
@@ -316,8 +314,8 @@ void regular::update_second_mariking() {
     return;
   }
 
-  const auto those_team = !is_yellow_ ? world_.robots_yellow() : world_.robots_blue();
-  const auto ball       = world_.ball();
+  const auto those_team = model::enemy_robots(world(), team_color());
+  const auto ball       = world().ball();
   auto tmp_enemies      = enemy_list_;
 
   // 全ての味方ロボットが割り当てられるか、敵を全てマークするまで続ける
@@ -325,7 +323,7 @@ void regular::update_second_mariking() {
     //自チーム側のゴール->敵ロボの角度
     const double goal_angle =
         std::atan2(0.0 - those_team.at(tmp_enemies.top().id).y(),
-                   world_.field().x_min() - those_team.at(tmp_enemies.top().id).x());
+                   world().field().x_min() - those_team.at(tmp_enemies.top().id).x());
     //ボール->敵ロボの角度
     const double ball_angle = std::atan2(ball.y() - those_team.at(tmp_enemies.top().id).y(),
                                          ball.x() - those_team.at(tmp_enemies.top().id).x());
@@ -335,8 +333,7 @@ void regular::update_second_mariking() {
                                      those_team.at(tmp_enemies.top().id).y());
       if (tmp_id != follower_ids_.end()) {
         // マーキングの設定
-        second_marking_[*tmp_id] =
-            std::make_shared<action::marking>(world_, is_yellow_, *tmp_id);
+        second_marking_[*tmp_id] = make_action<action::marking>(*tmp_id);
         second_marking_.at(*tmp_id)->mark_robot(tmp_enemies.top().id);
         second_marking_.at(*tmp_id)->set_mode(action::marking::mark_mode::kick_block);
         second_marking_.at(*tmp_id)->set_radius(600.0);
@@ -353,14 +350,14 @@ void regular::update_recievers() {
   reserved_points_ = reserved_points_old_;
   std::unordered_map<unsigned int, point> tmp_reserved_points;
 
-  const auto ball       = world_.ball();
-  const auto our_team   = is_yellow_ ? world_.robots_yellow() : world_.robots_blue();
-  const auto those_team = !is_yellow_ ? world_.robots_yellow() : world_.robots_blue();
+  const auto ball       = world().ball();
+  const auto our_team   = model::our_robots(world(), team_color());
+  const auto those_team = model::enemy_robots(world(), team_color());
 
   // エリアの先頭
   double area_top;
   // エリア先頭のX座標の下限値
-  const double area_top_min = world_.field().x_max() * 0.4;
+  const double area_top_min = world().field().x_max() * 0.4;
 
   // receive_の更新用
   std::unordered_map<unsigned int, std::shared_ptr<action::receive>> new_receive;
@@ -374,18 +371,18 @@ void regular::update_recievers() {
     area_top = area_top_min;
   } else if (has_chaser_ && can_chase_) {
     //　chaserがいるときは、パス待ちをするために、少し前へ
-    area_top = world_.field().x_max() * 0.5;
+    area_top = world().field().x_max() * 0.5;
   } else {
     //　目一杯前にいく
-    area_top = world_.field().x_max() - world_.field().penalty_length() - 300;
+    area_top = world().field().x_max() - world().field().penalty_length() - 300;
   }
 
   // action生成
   for (const auto& id : follower_ids_) {
     // ロボットがいられる範囲
-    area field{area_top, world_.field().y_min() + 200.0,
-               world_.field().x_min() + world_.field().penalty_length() + 300,
-               world_.field().y_max() - 200.0, 0.0};
+    area field{area_top, world().field().y_min() + 200.0,
+               world().field().x_min() + world().field().penalty_length() + 300,
+               world().field().y_max() - 200.0, 0.0};
     // 空いている場所を探す
     auto a = empty_area(field, id, follower_ids_);
     // デフォルトの移動場所は、空いている場所の中心
@@ -413,14 +410,12 @@ void regular::update_recievers() {
           our_team.find(chaser_id_) != our_team.end()) {
         // パスを待機
         auto itr     = receive_.find(id);
-        auto receive = itr == receive_.end()
-                           ? std::make_shared<action::receive>(world_, is_yellow_, id)
-                           : itr->second;
+        auto receive = itr == receive_.end() ? make_action<action::receive>(id) : itr->second;
         receive->set_passer(chaser_id_);
         new_receive[id] = receive;
       } else {
         // 移動するだけ
-        auto move = std::make_shared<action::move>(world_, is_yellow_, id);
+        auto move = make_action<action::move>(id);
         move->move_to(p.x(), p.y(), ball_p_theta);
         move_[id] = move;
       }
@@ -440,21 +435,21 @@ std::priority_queue<regular::id_importance> regular::make_enemy_list() {
   // 一時的なリスト
   std::priority_queue<regular::id_importance> tmp_enemies;
   // 味方
-  const auto our_team = is_yellow_ ? world_.robots_yellow() : world_.robots_blue();
+  const auto our_team = model::our_robots(world(), team_color());
   // 敵
-  const auto those_team = !is_yellow_ ? world_.robots_yellow() : world_.robots_blue();
+  const auto those_team = model::enemy_robots(world(), team_color());
   // ボール
-  const auto ball = world_.ball();
+  const auto ball = world().ball();
 
   // ペナルティエリアの高さ
-  const auto penalty_length = world_.field().penalty_length();
+  const auto penalty_length = world().field().penalty_length();
   // ペナルティエリアの幅
-  const auto penalty_width = world_.field().penalty_width();
+  const auto penalty_width = world().field().penalty_width();
   // ペナルティエリアとのマージン
   const double margin = 500;
   // 自分側のペナルティエリア
-  regular::area my_penalty_area{world_.field().x_min(), -penalty_width / 2 - margin,
-                                world_.field().x_min() + penalty_length + margin,
+  regular::area my_penalty_area{world().field().x_min(), -penalty_width / 2 - margin,
+                                world().field().x_min() + penalty_length + margin,
                                 penalty_width / 2 + margin, 0.0};
 
   for (const auto& that_rob : those_team) {
@@ -465,13 +460,13 @@ std::priority_queue<regular::id_importance> regular::make_enemy_list() {
     // ロボットのx速度
     const double robot_vx = that_rob.second.vx();
     // ゴールとの距離
-    const double gall_dist = std::hypot(that_p.x() - world_.field().x_min(), that_p.y());
+    const double gall_dist = std::hypot(that_p.x() - world().field().x_min(), that_p.y());
     // ボールとの距離
     const double ball_dist = std::hypot(that_p.x() - ball.x(), that_p.y() - ball.y());
     // ゴールからの角度
-    const double gall_angle = std::atan2(that_p.y(), that_p.x() - world_.field().x_min());
+    const double gall_angle = std::atan2(that_p.y(), that_p.x() - world().field().x_min());
     // ゴールからみたボールの角度
-    const double ball_gall_angle = std::atan2(ball.y(), ball.x() - world_.field().x_min());
+    const double ball_gall_angle = std::atan2(ball.y(), ball.x() - world().field().x_min());
 
     // ボールを持っているか
     bool is_kicker = ball_dist < 1000;
@@ -482,7 +477,7 @@ std::priority_queue<regular::id_importance> regular::make_enemy_list() {
     // 対象となるエリアの中か
     bool is_marking_area =
         // 敵側に寄りすぎていないか
-        that_p.x() < world_.field().x_max() * 0.65 &&
+        that_p.x() < world().field().x_max() * 0.65 &&
         // ペナルティエリア付近にいないか
         !regular::in_area(that_p.x(), that_p.y(), my_penalty_area) &&
         // ディフェンスの近くにいないか
@@ -493,8 +488,8 @@ std::priority_queue<regular::id_importance> regular::make_enemy_list() {
       // 敵のマーク重要度
       double score = 0.0;
       // 距離の正規化用に使う
-      const double gall_dist_max =
-          std::hypot(world_.field().x_max() - world_.field().x_min(), world_.field().y_max());
+      const double gall_dist_max = std::hypot(world().field().x_max() - world().field().x_min(),
+                                              world().field().y_max());
 
       // ゴールに近い or ゴールに対して正面なほど優先度高め
       score += std::cos(gall_angle * 0.3) * (gall_dist_max - gall_dist) / gall_dist_max;
@@ -504,7 +499,7 @@ std::priority_queue<regular::id_importance> regular::make_enemy_list() {
         // こっち側に向かってくる程優先度高め
         // 爆走してきた時に優先度TOPになるように
         // -robot_vx/<爆走した時の速度>*(<重要度を覆したい分のx幅>/gall_dist_max）
-        score -= robot_vx / 5000 * 0.8 * (world_.field().x_max() - world_.field().x_min()) /
+        score -= robot_vx / 5000 * 0.8 * (world().field().x_max() - world().field().x_min()) /
                  gall_dist_max;
       }
 
@@ -527,16 +522,16 @@ std::priority_queue<regular::id_importance> regular::make_enemy_list() {
       enemies.push(item);
       added_list.push_back(id);
     } else {
-      double target_theta = std::atan2(that_p.y(), that_p.x() - world_.field().x_min());
+      double target_theta = std::atan2(that_p.y(), that_p.x() - world().field().x_min());
 
       // 最も角度差が小さいID
       auto next_id = std::min_element(
           added_list.begin(), added_list.end(),
           [&target_theta, &those_team, this](unsigned int a, unsigned int b) {
-            const double theta_a =
-                std::atan2(those_team.at(a).y(), those_team.at(a).x() - world_.field().x_min());
-            const double theta_b =
-                std::atan2(those_team.at(b).y(), those_team.at(b).x() - world_.field().x_min());
+            const double theta_a = std::atan2(those_team.at(a).y(),
+                                              those_team.at(a).x() - world().field().x_min());
+            const double theta_b = std::atan2(those_team.at(b).y(),
+                                              those_team.at(b).x() - world().field().x_min());
             return std::abs(theta_a - target_theta) < std::abs(theta_b - target_theta);
           });
 
@@ -544,8 +539,8 @@ std::priority_queue<regular::id_importance> regular::make_enemy_list() {
         const regular::point next_p{those_team.at(*next_id).x(), those_team.at(*next_id).y()};
         // 最も角度が近いロボットとの角度差
         const auto smallest_theta =
-            std::abs(std::atan2(that_p.y(), that_p.x() - world_.field().x_min()) -
-                     std::atan2(next_p.y(), next_p.x() - world_.field().x_min()));
+            std::abs(std::atan2(that_p.y(), that_p.x() - world().field().x_min()) -
+                     std::atan2(next_p.y(), next_p.x() - world().field().x_min()));
 
         if (smallest_theta > std::atan2(1.0, 2.8)) {
           // ある程度の角度差が保たれている時
@@ -561,19 +556,19 @@ std::priority_queue<regular::id_importance> regular::make_enemy_list() {
 // パス経路を生成してポイントを返す
 regular::point regular::select_target() {
   // ゴール幅
-  const auto goal_width = world_.field().goal_width();
+  const auto goal_width = world().field().goal_width();
   // 敵ゴールの左端
-  const regular::point goal_left{world_.field().x_max(), goal_width / 2 - 150};
+  const regular::point goal_left{world().field().x_max(), goal_width / 2 - 150};
   // 敵ゴールの右端
-  const regular::point goal_right{world_.field().x_max(), -goal_width / 2 + 150};
+  const regular::point goal_right{world().field().x_max(), -goal_width / 2 + 150};
   // 敵ゴールの中心
-  const regular::point goal_center{world_.field().x_max(), 0.0};
+  const regular::point goal_center{world().field().x_max(), 0.0};
   // 味方
-  const auto our_team = is_yellow_ ? world_.robots_yellow() : world_.robots_blue();
+  const auto our_team = model::our_robots(world(), team_color());
   // 敵
-  const auto those_team = !is_yellow_ ? world_.robots_yellow() : world_.robots_blue();
+  const auto those_team = model::enemy_robots(world(), team_color());
   // ボール
-  const auto ball = world_.ball();
+  const auto ball = world().ball();
 
   // 敵(ディフェンス、キーパー以外)の位置
   std::vector<regular::point> enemy_points;
@@ -585,14 +580,14 @@ regular::point regular::select_target() {
   // 敵の位置 & 敵ディフェンス の追加
   {
     // ペナルティエリアの幅
-    const auto penalty_width = world_.field().penalty_width();
+    const auto penalty_width = world().field().penalty_width();
     // ペナルティエリアの高さ
-    const auto penalty_length = world_.field().penalty_length();
+    const auto penalty_length = world().field().penalty_length();
     // マージン
     const double margin = 400;
     // ディフェンスがいるエリア
-    const regular::area d_area{world_.field().x_max(), -penalty_width / 2 - margin,
-                               world_.field().x_max() - penalty_length - margin,
+    const regular::area d_area{world().field().x_max(), -penalty_width / 2 - margin,
+                               world().field().x_max() - penalty_length - margin,
                                penalty_width / 2 + margin, 0.0};
 
     for (const auto& that_rob : those_team) {
@@ -678,7 +673,7 @@ regular::point regular::select_target() {
   if ( // パスの相手がいない
       pass_points.empty() ||
       // パスしないほうが有利な場所
-      ball.x() < world_.field().x_max() * 0.5 ||
+      ball.x() < world().field().x_max() * 0.5 ||
       // ゴールからほぼ真正面
       std::abs(std::atan2(ball.y(), goal_center.x() - ball.x())) < std::atan2(1, 2) ||
       // シュートしやすい位置
@@ -707,8 +702,8 @@ regular::point regular::select_target() {
     // 一番通りやすいところにキック
     auto p = std::min_element(
         kick_points.begin(), kick_points.end(), [this](regular::point a, regular::point b) {
-          double theta_a = std::atan2(a.y(), world_.field().x_max() - a.x());
-          double theta_b = std::atan2(b.y(), world_.field().x_max() - b.x());
+          double theta_a = std::atan2(a.y(), world().field().x_max() - a.x());
+          double theta_b = std::atan2(b.y(), world().field().x_max() - b.x());
           return std::abs(theta_a) < std::abs(theta_b);
         });
     if (p != enemy_points.end()) {
@@ -763,7 +758,7 @@ regular::point regular::select_target() {
 // ターゲットに最も近いロボットID
 std::vector<unsigned int>::const_iterator regular::nearest_id(
     const std::vector<unsigned int>& can_ids, double target_x, double target_y) const {
-  const auto our_team = is_yellow_ ? world_.robots_yellow() : world_.robots_blue();
+  const auto our_team = model::our_robots(world(), team_color());
   return std::min_element(
       can_ids.begin(), can_ids.end(),
       [&target_x, &target_y, our_team](unsigned int a, unsigned int b) {
@@ -799,9 +794,9 @@ regular::area regular::empty_area(const regular::area& area, unsigned int my_id,
   }
 
   // 味方
-  const auto our_team = is_yellow_ ? world_.robots_yellow() : world_.robots_blue();
+  const auto our_team = model::our_robots(world(), team_color());
   // 敵
-  const auto those_team = !is_yellow_ ? world_.robots_yellow() : world_.robots_blue();
+  const auto those_team = model::enemy_robots(world(), team_color());
   // 自分以外のロボットの位置
   std::vector<regular::point> points;
 
