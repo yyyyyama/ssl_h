@@ -106,11 +106,18 @@ void driver::process(const model::world& world, metadata_type& metadata) {
     auto c = [&robot, &field, &c = *controller](auto&& s) {
       return c.update(robot, field, std::forward<decltype(s)>(s));
     };
-    const auto velocity = std::visit(c, command.setpoint());
+    const auto [vx, vy, omega] = std::visit(c, command.setpoint());
+
+    // controller 修正後、↑ の4行をこれにする
+    // auto c = [&robot, &field, &c = *controller](auto&&... args) {
+    //   return c.update(robot, field, std::forward<decltype(args)>(args)...);
+    // };
+    // const auto [sp, sp_rot]    = command.setpoint_pair();
+    // const auto [vx, vy, omega] = std::visit(c, sp, sp_rot);
 
     // 実際に送信する命令
     auto actual_command = command;
-    actual_command.set_velocity(velocity);
+    actual_command.set_velocity({vx, vy, omega});
 
     // 命令の送信
     radio->send(team_color_, actual_command);
