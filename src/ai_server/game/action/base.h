@@ -46,6 +46,10 @@ protected:
     return ctx_.team_color;
   }
 
+  const game::nnabla& nnabla() const {
+    return *ctx_.nnabla;
+  }
+
 private:
   context& ctx_;
 
