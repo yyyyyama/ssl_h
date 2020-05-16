@@ -1,5 +1,4 @@
 #include <algorithm>
-#include <boost/algorithm/clamp.hpp>
 #include <boost/math/special_functions/sign.hpp>
 #include <cmath>
 
@@ -46,7 +45,7 @@ double velocity_generator::control_vel(const double pre_vel, const double target
   // 制限加速度計算
   // 速度によって加速度が変化,初動でスリップしないように
   double optimized_accel = v_target * (a_max_ - a_min_) / reach_speed_ + a_min_;
-  optimized_accel        = boost::algorithm::clamp(optimized_accel, a_min_, a_max_);
+  optimized_accel        = std::clamp(optimized_accel, a_min_, a_max_);
 
   if (stable) {
     optimized_accel = a_min_ / 2.0;
