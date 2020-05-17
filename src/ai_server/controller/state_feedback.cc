@@ -3,7 +3,7 @@
 #include <cmath>
 
 #include "ai_server/util/math/angle.h"
-#include "state_feedback_controller.h"
+#include "state_feedback.h"
 
 namespace ai_server {
 namespace controller {
@@ -11,13 +11,13 @@ namespace controller {
 using boost::math::constants::half_pi;
 using boost::math::constants::pi;
 
-const double state_feedback_controller::k_         = 49.17;
-const double state_feedback_controller::zeta_      = 1.0;
-const double state_feedback_controller::omega_     = 49.17;
-const double state_feedback_controller::v_max_     = 10000.0;
-const double state_feedback_controller::omega_max_ = 2.0;
+const double state_feedback::k_         = 49.17;
+const double state_feedback::zeta_      = 1.0;
+const double state_feedback::omega_     = 49.17;
+const double state_feedback::v_max_     = 10000.0;
+const double state_feedback::omega_max_ = 2.0;
 
-state_feedback_controller::state_feedback_controller(const double cycle)
+state_feedback::state_feedback(const double cycle)
     : base(v_max_),
       cycle_(cycle),
       velocity_generator_(cycle_),
@@ -40,13 +40,13 @@ state_feedback_controller::state_feedback_controller(const double cycle)
   }
 }
 
-void state_feedback_controller::set_velocity_limit(const double limit) {
+void state_feedback::set_velocity_limit(const double limit) {
   base::set_velocity_limit(std::min(limit, v_max_));
 }
 
-velocity_t state_feedback_controller::update(const model::robot& robot,
-                                             [[maybe_unused]] const model::field& field,
-                                             const position_t& setpoint) {
+velocity_t state_feedback::update(const model::robot& robot,
+                                  [[maybe_unused]] const model::field& field,
+                                  const position_t& setpoint) {
   calculate_regulator(robot);
   Eigen::Vector3d set     = {setpoint.x, setpoint.y, setpoint.theta};
   Eigen::Vector3d e_p     = set - estimated_robot_.col(0);
@@ -68,9 +68,9 @@ velocity_t state_feedback_controller::update(const model::robot& robot,
   return velocity_t{u_[0].x(), u_[0].y(), u_[0].z()};
 }
 
-velocity_t state_feedback_controller::update(const model::robot& robot,
-                                             [[maybe_unused]] const model::field& field,
-                                             const velocity_t& setpoint) {
+velocity_t state_feedback::update(const model::robot& robot,
+                                  [[maybe_unused]] const model::field& field,
+                                  const velocity_t& setpoint) {
   calculate_regulator(robot);
 
   Eigen::Vector3d set    = {setpoint.vx, setpoint.vy, setpoint.omega};
@@ -89,7 +89,7 @@ velocity_t state_feedback_controller::update(const model::robot& robot,
   return velocity_t{u_[0].x(), u_[0].y(), u_[0].z()};
 }
 
-void state_feedback_controller::calculate_regulator(const model::robot& robot) {
+void state_feedback::calculate_regulator(const model::robot& robot) {
   // 前回制御入力をフィールド基準に座標変換
   double u_direction    = std::atan2(u_[1].y(), u_[1].x());
   Eigen::Vector3d pre_u = Eigen::AngleAxisd(u_direction, Eigen::Vector3d::UnitZ()) * u_[1];
@@ -110,14 +110,12 @@ void state_feedback_controller::calculate_regulator(const model::robot& robot) {
   u_[0] = up_[0] + ui_[0] + ud_[0];
 }
 
-Eigen::Vector3d state_feedback_controller::convert(const Eigen::Vector3d& raw,
-                                                   const double robot_theta) {
+Eigen::Vector3d state_feedback::convert(const Eigen::Vector3d& raw, const double robot_theta) {
   Eigen::Vector3d target = Eigen::AngleAxisd(-robot_theta, Eigen::Vector3d::UnitZ()) * raw;
   return target;
 }
 // 出力計算及び後処理
-void state_feedback_controller::calculate_output(const model::field& field,
-                                                 Eigen::Vector3d target) {
+void state_feedback::calculate_output(const model::field& field, Eigen::Vector3d target) {
   // ロボット入力計算
   u_[0] = u_[0] + (std::pow(k_, 2) / std::pow(omega_, 2)) * target;
   if (u_[0].head<2>().norm() > velocity_limit_) {
@@ -185,8 +183,8 @@ void state_feedback_controller::calculate_output(const model::field& field,
   e_[1]  = e_[0];
 }
 
-double state_feedback_controller::find_cross_point(const double x_1, const double y_2,
-                                                   const double angle) {
+double state_feedback::find_cross_point(const double x_1, const double y_2,
+                                        const double angle) {
   // 2点から直線の式を求め,交点を求める
   // (y_1,x_2はゼロ)
   double x;

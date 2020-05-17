@@ -19,7 +19,7 @@
 
 #include <gtkmm.h>
 
-#include "ai_server/controller/state_feedback_controller.h"
+#include "ai_server/controller/state_feedback.h"
 #include "ai_server/driver.h"
 #include "ai_server/filter/state_observer/ball.h"
 #include "ai_server/filter/va_calculator.h"
@@ -113,7 +113,7 @@ public:
 
     for (auto id : active_robots_) {
       constexpr auto cycle_count = std::chrono::duration<double>(cycle).count();
-      auto controller = std::make_unique<controller::state_feedback_controller>(cycle_count);
+      auto controller            = std::make_unique<controller::state_feedback>(cycle_count);
       driver_.register_robot(id, std::move(controller), radio_);
     }
   }
@@ -151,7 +151,7 @@ public:
     for (auto id : ids) {
       if (!driver_.registered(id)) {
         constexpr auto cycle_count = std::chrono::duration<double>(cycle).count();
-        auto controller = std::make_unique<controller::state_feedback_controller>(cycle_count);
+        auto controller            = std::make_unique<controller::state_feedback>(cycle_count);
         driver_.register_robot(id, std::move(controller), radio_);
         changed = true;
       }

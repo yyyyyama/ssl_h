@@ -1,5 +1,5 @@
-#ifndef AI_SERVER_CONTROLLER_STATE_FEEDBACK_CONTROLLER_H
-#define AI_SERVER_CONTROLLER_STATE_FEEDBACK_CONTROLLER_H
+#ifndef AI_SERVER_CONTROLLER_STATE_FEEDBACK_H
+#define AI_SERVER_CONTROLLER_STATE_FEEDBACK_H
 
 #include <Eigen/Core>
 #include <Eigen/Geometry>
@@ -14,7 +14,7 @@
 namespace ai_server {
 namespace controller {
 
-class state_feedback_controller : public base {
+class state_feedback : public base {
   /* ------------------------------------
   ロボットの状態を3*3行列で表す
          x,    vx,    ax
@@ -58,7 +58,7 @@ private:
 
 public:
   // コンストラクタ
-  explicit state_feedback_controller(double cycle);
+  explicit state_feedback(double cycle);
 
   void set_velocity_limit(double limit) override;
 
@@ -72,4 +72,4 @@ public:
 } // namespace controller
 } // namespace ai_server
 
-#endif // AI_SERVER_CONTROLLER_STATE_FEEDBACK_CONTROLLER_H
+#endif // AI_SERVER_CONTROLLER_STATE_FEEDBACK_H
