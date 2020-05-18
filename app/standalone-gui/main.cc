@@ -90,7 +90,7 @@ static constexpr auto cycle =
     std::chrono::duration_cast<std::chrono::steady_clock::duration>(fps60_type{1});
 
 // stopgame時の速度制限
-static constexpr double velocity_limit_at_stopgame = 800.0;
+static constexpr double velocity_limit_at_stopgame = 1400.0;
 
 // Gameを行うクラス
 // --------------------------------
