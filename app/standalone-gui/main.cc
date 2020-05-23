@@ -92,6 +92,24 @@ static constexpr auto cycle =
 // stopgame時の速度制限
 static constexpr double velocity_limit_at_stopgame = 1400.0;
 
+// スコープを抜けるときに io_context と thread を stop(), join() する helper
+class stop_and_join_at_exit {
+  boost::asio::io_context& ctx_;
+  std::thread thread_;
+
+public:
+  stop_and_join_at_exit(const stop_and_join_at_exit&) = delete;
+  stop_and_join_at_exit(stop_and_join_at_exit&&)      = delete;
+
+  stop_and_join_at_exit(boost::asio::io_context& ctx, std::thread thread)
+      : ctx_{ctx}, thread_{std::move(thread)} {}
+
+  ~stop_and_join_at_exit() {
+    ctx_.stop();
+    thread_.join();
+  }
+};
+
 // Gameを行うクラス
 // --------------------------------
 class game_runner {
@@ -611,9 +629,6 @@ auto main(int argc, char** argv) -> int {
 
   l.info("(⋈◍＞◡＜◍)。✧♡");
 
-  boost::asio::io_context receiver_io{1}, driver_io{1};
-  std::thread io_thread{}, driver_thread{};
-
   try {
     // WorldModelの設定
     model::updater::world updater_world{};
@@ -633,6 +648,8 @@ auto main(int argc, char** argv) -> int {
       }
       l.info("state observer (ball): "s + (use_ball_observer ? "enabled"s : "disabled"s));
     }
+
+    boost::asio::io_context receiver_io{1};
 
     // Vision receiverの設定
     std::atomic<bool> vision_received{false};
@@ -677,14 +694,17 @@ auto main(int argc, char** argv) -> int {
     l.info(fmt::format("local refbox: {}:{}", local_refbox_address, local_refbox_port));
 
     // receiver_ioに登録されたタスクを別スレッドで開始
-    io_thread = std::thread{[&receiver_io, &l] {
+    std::thread receiver_thread{[&receiver_io, &l] {
       try {
         receiver_io.run();
       } catch (std::exception& e) {
-        l.error(fmt::format("exception at io_thread: {}", e.what()));
+        l.error(fmt::format("exception at receiver_thread: {}", e.what()));
       }
     }};
-    util::set_thread_name(io_thread, "io_thread");
+    util::set_thread_name(receiver_thread, "receiver_thread");
+    stop_and_join_at_exit receiver_io_and_thread{receiver_io, std::move(receiver_thread)};
+
+    boost::asio::io_context driver_io{1};
 
     // Radioの設定
     auto radio = [&] {
@@ -704,7 +724,7 @@ auto main(int argc, char** argv) -> int {
 
     // driver による命令の送信を別スレッドで開始
     ai_server::driver driver{driver_io, cycle, updater_world, model::team_color::yellow};
-    driver_thread = std::thread{[&driver_io, &l] {
+    std::thread driver_thread{[&driver_io, &l] {
       try {
         driver_io.run();
       } catch (std::exception& e) {
@@ -712,6 +732,7 @@ auto main(int argc, char** argv) -> int {
       }
     }};
     util::set_thread_name(driver_thread, "driver_thread");
+    stop_and_join_at_exit driver_io_and_thread{driver_io, std::move(driver_thread)};
 
     auto app = Gtk::Application::create(argc, argv);
 
@@ -755,24 +776,11 @@ auto main(int argc, char** argv) -> int {
       win.show_all_children();
     }
     app->run(win);
-
-    receiver_io.stop();
-    driver_io.stop();
-    io_thread.join();
-    driver_thread.join();
   } catch (std::exception& e) {
     l.error(e.what());
-    receiver_io.stop();
-    driver_io.stop();
-    io_thread.join();
-    driver_thread.join();
-    std::quick_exit(-1);
+    return -1;
   } catch (...) {
     l.error("unknown error occurred");
-    receiver_io.stop();
-    driver_io.stop();
-    io_thread.join();
-    driver_thread.join();
-    std::quick_exit(-1);
+    return -1;
   }
 }
