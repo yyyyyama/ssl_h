@@ -63,10 +63,19 @@ public:
   void set_velocity_limit(double limit) override;
 
   // 制御入力更新関数
-  velocity_t update(const model::robot& robot, const model::field& field,
-                    const position_t& setpoint) override;
-  velocity_t update(const model::robot& robot, const model::field& field,
-                    const velocity_t& setpoint) override;
+  base::result_type update(const model::robot& robot, const model::field& field,
+                           const model::setpoint::position& position,
+                           const model::setpoint::angle& angle) override;
+  base::result_type update(const model::robot& robot, const model::field& field,
+                           const model::setpoint::position& position,
+                           const model::setpoint::velangular& velangular) override;
+
+  base::result_type update(const model::robot& robot, const model::field& field,
+                           const model::setpoint::velocity& velocity,
+                           const model::setpoint::angle& angle) override;
+  base::result_type update(const model::robot& robot, const model::field& field,
+                           const model::setpoint::velocity& velocity,
+                           const model::setpoint::velangular& velangular) override;
 };
 
 } // namespace controller

@@ -27,10 +27,21 @@ public:
   /// @param stable           true->安定,false->通常
   virtual void set_stable(const bool stable);
 
-  virtual velocity_t update(const model::robot& robot, const model::field& field,
-                            const position_t& setpoint) = 0;
-  virtual velocity_t update(const model::robot& robot, const model::field& field,
-                            const velocity_t& setpoint) = 0;
+  using result_type = std::tuple<double, double, double>;
+
+  virtual result_type update(const model::robot& robot, const model::field& field,
+                             const model::setpoint::position& position,
+                             const model::setpoint::angle& angle)           = 0;
+  virtual result_type update(const model::robot& robot, const model::field& field,
+                             const model::setpoint::position& position,
+                             const model::setpoint::velangular& velangular) = 0;
+
+  virtual result_type update(const model::robot& robot, const model::field& field,
+                             const model::setpoint::velocity& velocity,
+                             const model::setpoint::angle& angle)           = 0;
+  virtual result_type update(const model::robot& robot, const model::field& field,
+                             const model::setpoint::velocity& velocity,
+                             const model::setpoint::velangular& velangular) = 0;
 
 protected:
   double velocity_limit_; // 制限速度

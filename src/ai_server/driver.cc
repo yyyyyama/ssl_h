@@ -103,17 +103,11 @@ void driver::process(const model::world& world, metadata_type& metadata) {
     const auto& robot = it->second;
 
     // 指令値を Controller に通して速度を得る
-    auto c = [&robot, &field, &c = *controller](auto&& s) {
-      return c.update(robot, field, std::forward<decltype(s)>(s));
+    auto c = [&robot, &field, &c = *controller](auto&&... args) {
+      return c.update(robot, field, std::forward<decltype(args)>(args)...);
     };
-    const auto [vx, vy, omega] = std::visit(c, command.setpoint());
-
-    // controller 修正後、↑ の4行をこれにする
-    // auto c = [&robot, &field, &c = *controller](auto&&... args) {
-    //   return c.update(robot, field, std::forward<decltype(args)>(args)...);
-    // };
-    // const auto [sp, sp_rot]    = command.setpoint_pair();
-    // const auto [vx, vy, omega] = std::visit(c, sp, sp_rot);
+    const auto [sp, sp_rot]    = command.setpoint_pair();
+    const auto [vx, vy, omega] = std::visit(c, sp, sp_rot);
 
     // 実際に送信する命令
     auto actual_command = command;

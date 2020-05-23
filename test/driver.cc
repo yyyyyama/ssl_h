@@ -93,17 +93,33 @@ struct mock_controller : public controller::base {
   model::field field_;
 
 protected:
-  controller::velocity_t update(const model::robot&, const model::field& field,
-                                const controller::position_t&) {
+  controller::base::result_type update(const model::robot&, const model::field& field,
+                                       const model::setpoint::position&,
+                                       const model::setpoint::angle&) {
     executed_ = true;
     field_    = field;
     return {};
   }
-  controller::velocity_t update(const model::robot&, const model::field& field,
-                                const controller::velocity_t& v) {
+  controller::base::result_type update(const model::robot&, const model::field& field,
+                                       const model::setpoint::position&,
+                                       const model::setpoint::velangular&) {
     executed_ = true;
     field_    = field;
-    return v;
+    return {};
+  }
+  controller::base::result_type update(const model::robot&, const model::field& field,
+                                       const model::setpoint::velocity&,
+                                       const model::setpoint::angle&) {
+    executed_ = true;
+    field_    = field;
+    return {};
+  }
+  controller::base::result_type update(const model::robot&, const model::field& field,
+                                       const model::setpoint::velocity& v,
+                                       const model::setpoint::velangular& va) {
+    executed_ = true;
+    field_    = field;
+    return {std::get<0>(v), std::get<1>(v), std::get<0>(va)};
   }
 };
 

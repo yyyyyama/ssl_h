@@ -44,11 +44,11 @@ void state_feedback::set_velocity_limit(const double limit) {
   base::set_velocity_limit(std::min(limit, v_max_));
 }
 
-velocity_t state_feedback::update(const model::robot& robot,
-                                  [[maybe_unused]] const model::field& field,
-                                  const position_t& setpoint) {
+base::result_type state_feedback::update(const model::robot& robot, const model::field& field,
+                                         const model::setpoint::position& position,
+                                         const model::setpoint::angle& angle) {
   calculate_regulator(robot);
-  Eigen::Vector3d set     = {setpoint.x, setpoint.y, setpoint.theta};
+  Eigen::Vector3d set     = {std::get<0>(position), std::get<1>(position), std::get<0>(angle)};
   Eigen::Vector3d e_p     = set - estimated_robot_.col(0);
   Eigen::Vector3d delta_p = convert(e_p, estimated_robot_(2, 0));
 
@@ -65,15 +65,62 @@ velocity_t state_feedback::update(const model::robot& robot,
 
   calculate_output(field, target);
 
-  return velocity_t{u_[0].x(), u_[0].y(), u_[0].z()};
+  return {u_[0].x(), u_[0].y(), u_[0].z()};
 }
 
-velocity_t state_feedback::update(const model::robot& robot,
-                                  [[maybe_unused]] const model::field& field,
-                                  const velocity_t& setpoint) {
+base::result_type state_feedback::update(const model::robot& robot, const model::field& field,
+                                         const model::setpoint::position& position,
+                                         const model::setpoint::velangular& velangular) {
+  calculate_regulator(robot);
+  Eigen::Vector3d set     = {std::get<0>(position), std::get<1>(position), 0.0};
+  Eigen::Vector3d e_p     = set - estimated_robot_.col(0);
+  Eigen::Vector3d delta_p = convert(e_p, estimated_robot_(2, 0));
+
+  Eigen::Vector3d target;
+  {
+    const double pre_vel = delta_p.head<2>().normalized().dot(u_[1].head<2>());
+    const Eigen::Vector2d vel =
+        velocity_generator_.control_pos(pre_vel, e_p.head<2>().norm(), stable_flag_) *
+        delta_p.head<2>().normalized();
+    target.x() = vel.x();
+    target.y() = vel.y();
+    target.z() = std::clamp(std::get<0>(velangular), -omega_max_, omega_max_);
+  }
+
+  calculate_output(field, target);
+
+  return {u_[0].x(), u_[0].y(), u_[0].z()};
+}
+
+base::result_type state_feedback::update(const model::robot& robot, const model::field& field,
+                                         const model::setpoint::velocity& velocity,
+                                         const model::setpoint::angle& angle) {
   calculate_regulator(robot);
 
-  Eigen::Vector3d set    = {setpoint.vx, setpoint.vy, setpoint.omega};
+  const auto delta_p_z = std::get<0>(angle) - estimated_robot_(2, 0);
+
+  Eigen::Vector3d set    = {std::get<0>(velocity), std::get<1>(velocity), 0.0};
+  Eigen::Vector3d target = convert(set, estimated_robot_(2, 0));
+
+  const double pre_vel = target.head<2>().normalized().dot(u_[1].head<2>());
+  const Eigen::Vector2d vel =
+      velocity_generator_.control_vel(pre_vel, target.head<2>().norm(), stable_flag_) *
+      target.head<2>().normalized();
+  target.x() = vel.x();
+  target.y() = vel.y();
+  target.z() = std::clamp(4.0 * util::math::wrap_to_pi(delta_p_z), -omega_max_, omega_max_);
+
+  calculate_output(field, target);
+
+  return {u_[0].x(), u_[0].y(), u_[0].z()};
+}
+
+base::result_type state_feedback::update(const model::robot& robot, const model::field& field,
+                                         const model::setpoint::velocity& velocity,
+                                         const model::setpoint::velangular& velangular) {
+  calculate_regulator(robot);
+
+  Eigen::Vector3d set = {std::get<0>(velocity), std::get<1>(velocity), std::get<0>(velangular)};
   Eigen::Vector3d target = convert(set, estimated_robot_(2, 0));
 
   const double pre_vel = target.head<2>().normalized().dot(u_[1].head<2>());
@@ -86,7 +133,7 @@ velocity_t state_feedback::update(const model::robot& robot,
 
   calculate_output(field, target);
 
-  return velocity_t{u_[0].x(), u_[0].y(), u_[0].z()};
+  return {u_[0].x(), u_[0].y(), u_[0].z()};
 }
 
 void state_feedback::calculate_regulator(const model::robot& robot) {
