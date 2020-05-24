@@ -27,7 +27,7 @@ robot<Color>::robot() : affine_{Eigen::Translation3d{.0, .0, .0}} {}
 
 template <model::team_color Color>
 void robot<Color>::update(const ssl_protos::vision::Frame& detection) {
-  std::unique_lock<std::shared_timed_mutex> lock(mutex_);
+  std::unique_lock lock(mutex_);
 
   // カメラID
   const auto camera_id = detection.camera_id();
@@ -143,33 +143,33 @@ void robot<Color>::update(const ssl_protos::vision::Frame& detection) {
 
 template <model::team_color Color>
 typename robot<Color>::robots_list_type robot<Color>::value() const {
-  std::shared_lock<std::shared_timed_mutex> lock(mutex_);
+  std::unique_lock lock(mutex_);
   return robots_;
 }
 
 template <model::team_color Color>
 void robot<Color>::set_transformation_matrix(const Eigen::Affine3d& matrix) {
-  std::unique_lock<std::shared_timed_mutex> lock(mutex_);
+  std::unique_lock lock(mutex_);
   affine_ = matrix;
 }
 
 template <model::team_color Color>
 void robot<Color>::clear_filter(unsigned int id) {
-  std::unique_lock<std::shared_timed_mutex> lock(mutex_);
+  std::unique_lock lock(mutex_);
   filters_same_.erase(id);
   filters_manual_.erase(id);
 }
 
 template <model::team_color Color>
 void robot<Color>::clear_all_filters() {
-  std::unique_lock<std::shared_timed_mutex> lock(mutex_);
+  std::unique_lock lock(mutex_);
   filters_same_.clear();
   filters_manual_.clear();
 }
 
 template <model::team_color Color>
 void robot<Color>::clear_default_filter() {
-  std::unique_lock<std::shared_timed_mutex> lock(mutex_);
+  std::unique_lock lock(mutex_);
   filter_initializer_ = decltype(filter_initializer_){};
 }
 

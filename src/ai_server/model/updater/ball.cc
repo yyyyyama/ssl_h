@@ -12,17 +12,17 @@ namespace updater {
 ball::ball() : ball_{}, affine_{Eigen::Translation3d{.0, .0, .0}} {}
 
 model::ball ball::value() const {
-  std::shared_lock<std::shared_timed_mutex> lock(mutex_);
+  std::unique_lock lock(mutex_);
   return ball_;
 }
 
 void ball::set_transformation_matrix(const Eigen::Affine3d& matrix) {
-  std::unique_lock<std::shared_timed_mutex> lock(mutex_);
+  std::unique_lock lock(mutex_);
   affine_ = matrix;
 }
 
 void ball::update(const ssl_protos::vision::Frame& detection) {
-  std::unique_lock<std::shared_timed_mutex> lock(mutex_);
+  std::unique_lock lock(mutex_);
 
   // カメラID
   const auto& camera_id = detection.camera_id();
@@ -86,7 +86,7 @@ void ball::update(const ssl_protos::vision::Frame& detection) {
 }
 
 void ball::clear_filter() {
-  std::unique_lock<std::shared_timed_mutex> lock(mutex_);
+  std::unique_lock lock(mutex_);
   filter_same_.reset();
   filter_manual_.reset();
 }

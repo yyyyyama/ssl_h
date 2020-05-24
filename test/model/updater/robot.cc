@@ -758,4 +758,67 @@ BOOST_AUTO_TEST_CASE(clear_filter) {
   BOOST_TEST(fp9.expired());
 }
 
+// set_raw_value() で write() を呼ぶ filter
+struct mock_filter4 : public filter::base<model::robot, filter::timing::manual> {
+  using own_type = filter::base<model::robot, filter::timing::manual>;
+
+  mock_filter4(own_type::writer_func_type wf) : base(wf) {}
+
+  void set_raw_value(std::optional<model::robot> v,
+                     std::chrono::system_clock::time_point) override {
+    write(v);
+  }
+
+  void wv(std::optional<model::robot> v) {
+    write(v);
+  }
+};
+
+BOOST_AUTO_TEST_CASE(manual_filter2, *boost::unit_test::tolerance(0.0000001)) {
+  model::updater::robot<model::team_color::blue> ru;
+  const auto fp = ru.set_filter<mock_filter4>(0).lock();
+
+  {
+    ssl_protos::vision::Frame f;
+    f.set_camera_id(0);
+    f.set_t_capture(2.0);
+
+    auto rb1 = f.add_robots_blue();
+    rb1->set_robot_id(0);
+    rb1->set_x(10);
+    rb1->set_y(20);
+    rb1->set_orientation(rad(30));
+    rb1->set_confidence(90.0);
+
+    ru.update(f);
+  }
+
+  {
+    // ID0 が見える
+    const auto rb = ru.value();
+    BOOST_TEST(rb.size() == 1);
+
+    ai_server::model::robot r;
+    BOOST_CHECK_NO_THROW(r = rb.at(0));
+    BOOST_TEST(r.x() == 10);
+    BOOST_TEST(r.y() == 20);
+    BOOST_TEST(r.theta() == rad(30));
+  }
+
+  {
+    // writeで値が更新される
+    fp->wv(model::robot{0, 40, 50, rad(60)});
+
+    // ID0 が見える
+    const auto rb = ru.value();
+    BOOST_TEST(rb.size() == 1);
+
+    ai_server::model::robot r;
+    BOOST_CHECK_NO_THROW(r = rb.at(0));
+    BOOST_TEST(r.x() == 40);
+    BOOST_TEST(r.y() == 50);
+    BOOST_TEST(r.theta() == rad(60));
+  }
+}
+
 BOOST_AUTO_TEST_SUITE_END()

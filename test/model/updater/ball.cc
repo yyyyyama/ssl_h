@@ -481,4 +481,57 @@ BOOST_AUTO_TEST_CASE(clear_filter) {
   BOOST_TEST(!fp5.expired());
 }
 
+// set_raw_value() で write() を呼ぶ filter
+struct mock_filter4 : public filter::base<model::ball, filter::timing::manual> {
+  using own_type = filter::base<model::ball, filter::timing::manual>;
+
+  mock_filter4(own_type::writer_func_type wf) : base(wf) {}
+
+  void set_raw_value(std::optional<model::ball> v,
+                     std::chrono::system_clock::time_point) override {
+    write(v);
+  }
+
+  void wv(std::optional<model::ball> v) {
+    write(v);
+  }
+};
+
+BOOST_AUTO_TEST_CASE(manual_filter2, *boost::unit_test::tolerance(0.0000001)) {
+  model::updater::ball bu;
+  const auto fp = bu.set_filter<mock_filter4>().lock();
+
+  {
+    ssl_protos::vision::Frame f;
+    f.set_camera_id(0);
+    f.set_t_capture(2.0);
+
+    auto b1 = f.add_balls();
+    b1->set_x(1);
+    b1->set_y(2);
+    b1->set_z(3);
+    b1->set_confidence(90.0);
+
+    bu.update(f);
+  }
+
+  {
+    // ボールの値が更新されている
+    const auto b = bu.value();
+    BOOST_TEST(b.x() == 1);
+    BOOST_TEST(b.y() == 2);
+    BOOST_TEST(b.z() == 3);
+  }
+
+  {
+    // writeで値が更新される
+    fp->wv(model::ball{4, 5, 6});
+
+    const auto b = bu.value();
+    BOOST_TEST(b.x() == 4);
+    BOOST_TEST(b.y() == 5);
+    BOOST_TEST(b.z() == 6);
+  }
+}
+
 BOOST_AUTO_TEST_SUITE_END()

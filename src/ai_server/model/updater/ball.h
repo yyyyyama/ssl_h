@@ -2,8 +2,8 @@
 #define AI_SERVER_MODEL_UPDATER_BALL_H
 
 #include <memory>
+#include <mutex>
 #include <optional>
-#include <shared_mutex>
 #include <type_traits>
 #include <unordered_map>
 
@@ -51,7 +51,7 @@ public:
   template <class Filter, class... Args>
   std::weak_ptr<std::enable_if_t<std::is_base_of<filter_same_type, Filter>::value, Filter>>
   set_filter(Args&&... args) {
-    std::unique_lock<std::shared_timed_mutex> lock(mutex_);
+    std::unique_lock lock(mutex_);
     filter_manual_.reset();
     auto p       = std::make_shared<Filter>(std::forward<Args>(args)...);
     filter_same_ = p;
@@ -64,7 +64,7 @@ public:
   template <class Filter, class... Args>
   std::weak_ptr<std::enable_if_t<std::is_base_of<filter_manual_type, Filter>::value, Filter>>
   set_filter(Args&&... args) {
-    std::unique_lock<std::shared_timed_mutex> lock(mutex_);
+    std::unique_lock lock(mutex_);
     filter_same_.reset();
     auto p = std::make_shared<Filter>(
         // 値を更新する関数オブジェクト
@@ -72,7 +72,7 @@ public:
           // 現時点ではボールが存在しない場合を想定していないので,
           // 値を持っていた場合のみ値の更新を行う
           if (value) {
-            std::unique_lock<std::shared_timed_mutex> lock(mutex_);
+            std::unique_lock lock(mutex_);
             ball_ = *value;
           }
         },
@@ -83,7 +83,7 @@ public:
   }
 
 private:
-  mutable std::shared_timed_mutex mutex_;
+  mutable std::recursive_mutex mutex_;
 
   /// 最終的な値
   model::ball ball_;

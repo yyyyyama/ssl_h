@@ -3,7 +3,7 @@
 
 #include <functional>
 #include <memory>
-#include <shared_mutex>
+#include <mutex>
 #include <tuple>
 #include <type_traits>
 #include <unordered_map>
@@ -76,7 +76,7 @@ public:
   template <class Filter, class... Args>
   std::weak_ptr<std::enable_if_t<std::is_base_of<filters_same_type, Filter>::value, Filter>>
   set_filter(unsigned int id, Args&&... args) {
-    std::unique_lock<std::shared_timed_mutex> lock(mutex_);
+    std::unique_lock lock(mutex_);
     filters_manual_.erase(id);
     auto p            = std::make_shared<Filter>(std::forward<Args>(args)...);
     filters_same_[id] = p;
@@ -90,12 +90,12 @@ public:
   template <class Filter, class... Args>
   std::weak_ptr<std::enable_if_t<std::is_base_of<filters_manual_type, Filter>::value, Filter>>
   set_filter(unsigned int id, Args&&... args) {
-    std::unique_lock<std::shared_timed_mutex> lock(mutex_);
+    std::unique_lock lock(mutex_);
     filters_same_.erase(id);
     auto p = std::make_shared<Filter>(
         // 値を更新する関数オブジェクト
         [id, this](std::optional<model::robot> value) {
-          std::unique_lock<std::shared_timed_mutex> lock(mutex_);
+          std::unique_lock lock(mutex_);
           if (value) {
             // valueが値を持っていた場合はその値で更新
             robots_[id] = *value;
@@ -118,12 +118,12 @@ public:
   template <class Filter, class... Args>
   auto set_default_filter(Args... args)
       -> std::enable_if_t<std::is_base_of<filters_same_type, Filter>::value> {
-    std::unique_lock<std::shared_timed_mutex> lock(mutex_);
+    std::unique_lock lock(mutex_);
     filter_initializer_ = [args...] { return std::make_shared<Filter>(args...); };
   }
 
 private:
-  mutable std::shared_timed_mutex mutex_;
+  mutable std::recursive_mutex mutex_;
 
   /// ロボットの生データを取得するFrameのメンバ関数へのポインタ
   /// このポインタを各チームカラーに対して特殊化することで, 同じ更新処理を使えるようにしている
