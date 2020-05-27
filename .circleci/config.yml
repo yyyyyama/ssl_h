@@ -58,8 +58,24 @@ jobs:
     steps:
       - attach_workspace:
           at: ~/
-      - run: ninja test
-      - run: bash <(curl -s https://codecov.io/bash) -x ~/project/tools/llvm-cov.sh -R ~/project
+      - run:
+          name: Run unit tests
+          environment:
+            LLVM_PROFILE_FILE: /tmp/profile/dump-%p.profraw
+          command: ninja test
+      - run:
+          name: Generating coverage report
+          command: |
+            llvm-profdata merge /tmp/profile/dump-*.profraw -o /tmp/profile/dump.profdata
+            args=()
+            for bin in src/ai_server/libai-server.a test/test_*; do
+              args+=( -object "$bin" )
+            done
+            llvm-cov show -instr-profile /tmp/profile/dump.profdata "${args[@]}" > /tmp/profile/coverage.txt
+      - run:
+          name: Uploading coverage report
+          working_directory: ~/project
+          command: bash <(curl -s https://codecov.io/bash) -f /tmp/profile/coverage.txt || echo 'Codecov upload failed'
 
   test-gcc:
     docker: *docker
