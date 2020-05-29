@@ -7,10 +7,9 @@ BOOST_AUTO_TEST_SUITE(robotdata)
 
 BOOST_AUTO_TEST_CASE(test001) {
   // constructor test
-  ai_server::model::robot rob(1, 2.0, 3.0, 4.0);
+  ai_server::model::robot rob(2.0, 3.0, 4.0);
 
   // get value test
-  BOOST_TEST(rob.id() == 1);
   BOOST_TEST(rob.x() == 2.0);
   BOOST_TEST(rob.y() == 3.0);
   BOOST_TEST(rob.theta() == 4.0);
@@ -46,10 +45,9 @@ BOOST_AUTO_TEST_CASE(test001) {
 
 BOOST_AUTO_TEST_CASE(test002) {
   // constructor test
-  ai_server::model::robot rob2{21};
+  ai_server::model::robot rob2{};
 
   // get value test
-  BOOST_TEST(rob2.id() == 21);
   BOOST_TEST(rob2.x() == 0.0);
   BOOST_TEST(rob2.y() == 0.0);
   BOOST_TEST(rob2.theta() == 0.0);
@@ -77,7 +75,6 @@ BOOST_AUTO_TEST_CASE(test002) {
 BOOST_AUTO_TEST_CASE(test003) {
   ai_server::model::robot r;
 
-  BOOST_TEST(r.id() == 0);
   BOOST_TEST(r.x() == 0.0);
   BOOST_TEST(r.y() == 0.0);
   BOOST_TEST(r.theta() == 0.0);

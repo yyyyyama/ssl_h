@@ -17,7 +17,7 @@ BOOST_AUTO_TEST_SUITE(math)
 BOOST_AUTO_TEST_CASE(affine, *boost::unit_test::tolerance(0.0000001)) {
   // テスト用のオブジェクト
   model::ball b{100, 200, 0};
-  model::robot r{0, 300, 400, 0};
+  model::robot r{300, 400, 0};
 
   auto t2d = std::make_tuple(100.0, 200.0);
   auto t3d = std::make_tuple(300.0, 400.0, 0.0);

@@ -20,7 +20,6 @@ public:
           std::chrono::system_clock::duration)>;
 
 private:
-  unsigned int id_;
   double x_;
   double y_;
   double vx_;
@@ -35,9 +34,8 @@ private:
 
 public:
   robot();
-  robot(unsigned int id, double x = 0.0, double y = 0.0, double theta = 0.0);
+  robot(double x, double y, double theta);
 
-  unsigned int id() const;
   double x() const;
   double y() const;
   double vx() const;

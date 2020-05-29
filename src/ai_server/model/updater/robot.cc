@@ -80,7 +80,7 @@ void robot<Color>::update(const ssl_protos::vision::Frame& detection) {
       // 現在のカメラで検出された値のほうがconfidenceが高かった)
       const auto value    = util::math::transform(affine_, [reliable] {
         const auto r = std::get<1>(reliable->second);
-        return model::robot{r->robot_id(), r->x(), r->y(), r->orientation()};
+        return model::robot{r->x(), r->y(), r->orientation()};
       }());
       reliables[robot_id] = value;
 

@@ -73,14 +73,12 @@ BOOST_AUTO_TEST_CASE(detection, *boost::unit_test::tolerance(0.0000001)) {
 
     // ID1の青ロボが存在 (ID1の要素を参照してもstd::out_of_range例外が飛ばない)
     BOOST_CHECK_NO_THROW(r = w.robots_blue().at(1));
-    BOOST_TEST(r.id() == 1);
     BOOST_TEST(r.x() == 10);
     BOOST_TEST(r.y() == 11);
     BOOST_TEST(r.theta() == bmc::sixth_pi);
 
     // ID3の青ロボが存在
     BOOST_CHECK_NO_THROW(r = w.robots_blue().at(3));
-    BOOST_TEST(r.id() == 3);
     BOOST_TEST(r.x() == 30);
     BOOST_TEST(r.y() == 31);
     BOOST_TEST(r.theta() == bmc::third_pi);
@@ -90,14 +88,12 @@ BOOST_AUTO_TEST_CASE(detection, *boost::unit_test::tolerance(0.0000001)) {
 
     // ID5の黃ロボが存在
     BOOST_CHECK_NO_THROW(r = w.robots_yellow().at(5));
-    BOOST_TEST(r.id() == 5);
     BOOST_TEST(r.x() == 500);
     BOOST_TEST(r.y() == 501);
     BOOST_TEST(r.theta() == bmc::half_pi);
 
     // ID7の黃ロボが存在
     BOOST_CHECK_NO_THROW(r = w.robots_yellow().at(7));
-    BOOST_TEST(r.id() == 7);
     BOOST_TEST(r.x() == 700);
     BOOST_TEST(r.y() == 701);
     BOOST_TEST(r.theta() == bmc::two_thirds_pi);
@@ -166,7 +162,6 @@ BOOST_AUTO_TEST_CASE(transformation, *boost::unit_test::tolerance(0.0000001)) {
 
     // ID1の青ロボが存在 (ID1の要素を参照してもstd::out_of_range例外が飛ばない)
     BOOST_CHECK_NO_THROW(r = w.robots_blue().at(1));
-    BOOST_TEST(r.id() == 1);
     BOOST_TEST(r.x() == -1.0);
     BOOST_TEST(r.y() == 30.0);
     BOOST_TEST(r.theta() == bmc::pi + bmc::two_thirds_pi);
@@ -176,7 +171,6 @@ BOOST_AUTO_TEST_CASE(transformation, *boost::unit_test::tolerance(0.0000001)) {
 
     // ID5の黃ロボが存在
     BOOST_CHECK_NO_THROW(r = w.robots_yellow().at(5));
-    BOOST_TEST(r.id() == 5);
     BOOST_TEST(r.x() == -491.0);
     BOOST_TEST(r.y() == 520.0);
     BOOST_TEST(r.theta() == bmc::half_pi);

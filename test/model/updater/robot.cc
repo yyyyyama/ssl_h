@@ -60,7 +60,6 @@ BOOST_AUTO_TEST_CASE(color, *boost::unit_test::tolerance(0.0000001)) {
     const auto rb = rbu.value();
     BOOST_TEST(rb.size() == 1);
     BOOST_CHECK_NO_THROW(r = rb.at(1));
-    BOOST_TEST(r.id() == 1);
     BOOST_TEST(r.x() == 10);
     BOOST_TEST(r.y() == 20);
     BOOST_TEST(r.theta() == rad(30));
@@ -69,7 +68,6 @@ BOOST_AUTO_TEST_CASE(color, *boost::unit_test::tolerance(0.0000001)) {
     const auto ry = ryu.value();
     BOOST_TEST(ry.size() == 1);
     BOOST_CHECK_NO_THROW(r = ry.at(2));
-    BOOST_TEST(r.id() == 2);
     BOOST_TEST(r.x() == 40);
     BOOST_TEST(r.y() == 50);
     BOOST_TEST(r.theta() == rad(60));
@@ -116,21 +114,18 @@ BOOST_AUTO_TEST_CASE(normal, *boost::unit_test::tolerance(0.0000001)) {
 
     // ID1の青ロボが存在 (ID1の要素を参照してもstd::out_of_range例外が飛ばない)
     BOOST_CHECK_NO_THROW(r = rb.at(1));
-    BOOST_TEST(r.id() == 1);
     BOOST_TEST(r.x() == 10);
     BOOST_TEST(r.y() == 11);
     BOOST_TEST(r.theta() == rad(12));
 
     // ID3の青ロボが存在
     BOOST_CHECK_NO_THROW(r = rb.at(3));
-    BOOST_TEST(r.id() == 3);
     BOOST_TEST(r.x() == 30);
     BOOST_TEST(r.y() == 31);
     BOOST_TEST(r.theta() == rad(32));
 
     // ID5の青ロボが存在
     BOOST_CHECK_NO_THROW(r = rb.at(5));
-    BOOST_TEST(r.id() == 5);
     BOOST_TEST(r.x() == 50);
     BOOST_TEST(r.y() == 51);
     BOOST_TEST(r.theta() == rad(52));
@@ -177,21 +172,18 @@ BOOST_AUTO_TEST_CASE(normal, *boost::unit_test::tolerance(0.0000001)) {
     // ID1の青ロボが存在
     // cam1で検出されたID1の青ロボのほうがconfidenceが高いので値が更新される
     BOOST_CHECK_NO_THROW(r = rb.at(1));
-    BOOST_TEST(r.id() == 1);
     BOOST_TEST(r.x() == 13);
     BOOST_TEST(r.y() == 14);
     BOOST_TEST(r.theta() == rad(15));
 
     // ID2の青ロボが存在
     BOOST_CHECK_NO_THROW(r = rb.at(2));
-    BOOST_TEST(r.id() == 2);
     BOOST_TEST(r.x() == 20);
     BOOST_TEST(r.y() == 21);
     BOOST_TEST(r.theta() == rad(22));
 
     // ID3の青ロボが存在, 値の変化なし
     BOOST_CHECK_NO_THROW(r = rb.at(3));
-    BOOST_TEST(r.id() == 3);
     BOOST_TEST(r.x() == 30);
     BOOST_TEST(r.y() == 31);
     BOOST_TEST(r.theta() == rad(32));
@@ -199,7 +191,6 @@ BOOST_AUTO_TEST_CASE(normal, *boost::unit_test::tolerance(0.0000001)) {
     // ID5の青ロボが存在
     // cam0で検出されたID5の青ロボのほうがconfidenceが高いので値の変化なし
     BOOST_CHECK_NO_THROW(r = rb.at(5));
-    BOOST_TEST(r.id() == 5);
     BOOST_TEST(r.x() == 50);
     BOOST_TEST(r.y() == 51);
     BOOST_TEST(r.theta() == rad(52));
@@ -221,14 +212,12 @@ BOOST_AUTO_TEST_CASE(normal, *boost::unit_test::tolerance(0.0000001)) {
 
     // cam1で検出されたID1の青ロボが存在
     BOOST_CHECK_NO_THROW(r = rb.at(1));
-    BOOST_TEST(r.id() == 1);
     BOOST_TEST(r.x() == 13);
     BOOST_TEST(r.y() == 14);
     BOOST_TEST(r.theta() == rad(15));
 
     // cam1で検出されたID2の青ロボが存在
     BOOST_CHECK_NO_THROW(r = rb.at(2));
-    BOOST_TEST(r.id() == 2);
     BOOST_TEST(r.x() == 20);
     BOOST_TEST(r.y() == 21);
     BOOST_TEST(r.theta() == rad(22));
@@ -236,7 +225,6 @@ BOOST_AUTO_TEST_CASE(normal, *boost::unit_test::tolerance(0.0000001)) {
     // ID5の青ロボが存在
     // cam0から検出されなくなったが, まだcam1に残っているので
     BOOST_CHECK_NO_THROW(r = rb.at(5));
-    BOOST_TEST(r.id() == 5);
     BOOST_TEST(r.x() == 50);
     BOOST_TEST(r.y() == 51);
     BOOST_TEST(r.theta() == rad(52));
@@ -446,7 +434,7 @@ struct mock_filter2 : public filter::base<model::robot, filter::timing::same> {
     if (value.has_value()) {
       return std::nullopt;
     } else {
-      return model::robot{0, 123, 456, 2};
+      return model::robot{123, 456, 2};
     }
   }
 };
@@ -707,7 +695,6 @@ BOOST_AUTO_TEST_CASE(default_filter, *boost::unit_test::tolerance(0.0000001)) {
     // ID7の青ロボが存在
     // filter_initializer_が初期化されたので, mock_filter1は適用されていない
     BOOST_CHECK_NO_THROW(r = rb.at(7));
-    BOOST_TEST(r.id() == 7);
     BOOST_TEST(r.x() == 70);
     BOOST_TEST(r.y() == 71);
     BOOST_TEST(r.theta() == rad(72));
@@ -807,7 +794,7 @@ BOOST_AUTO_TEST_CASE(manual_filter2, *boost::unit_test::tolerance(0.0000001)) {
 
   {
     // writeで値が更新される
-    fp->wv(model::robot{0, 40, 50, rad(60)});
+    fp->wv(model::robot{40, 50, rad(60)});
 
     // ID0 が見える
     const auto rb = ru.value();

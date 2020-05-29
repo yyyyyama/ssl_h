@@ -42,10 +42,10 @@ BOOST_AUTO_TEST_CASE(nyan) {
     ai_server::model::ball ball{123, 456, 789};
     w.set_ball(ball);
 
-    ai_server::model::world::robots_list robots_blue{{1, {1}}, {3, {3}}};
+    ai_server::model::world::robots_list robots_blue{{1, {}}, {3, {}}};
     w.set_robots_blue(robots_blue);
 
-    ai_server::model::world::robots_list robots_yellow{{2, {2}}, {4, {4}}};
+    ai_server::model::world::robots_list robots_yellow{{2, {}}, {4, {}}};
     w.set_robots_yellow(robots_yellow);
 
     BOOST_TEST(w.field().length() == 1);
@@ -111,9 +111,9 @@ BOOST_AUTO_TEST_CASE(nyan) {
 BOOST_AUTO_TEST_CASE(helper_functions) {
   ai_server::model::world w{};
   // blue には ID1 が1台
-  w.set_robots_blue(ai_server::model::world::robots_list{{1, {1}}});
+  w.set_robots_blue(ai_server::model::world::robots_list{{1, {}}});
   // yellow には ID2,ID4 が1台ずつ
-  w.set_robots_yellow(ai_server::model::world::robots_list{{2, {2}}, {4, {4}}});
+  w.set_robots_yellow(ai_server::model::world::robots_list{{2, {}}, {4, {}}});
 
   const auto rb = w.robots_blue();
   const auto ry = w.robots_yellow();
@@ -123,7 +123,6 @@ BOOST_AUTO_TEST_CASE(helper_functions) {
     BOOST_TEST(r.size() == rb.size());
     for (auto&& [k, v] : rb) {
       BOOST_TEST(r.count(k) == 1);
-      BOOST_TEST(r.at(k).id() == rb.at(k).id());
     }
   }
 
@@ -132,7 +131,6 @@ BOOST_AUTO_TEST_CASE(helper_functions) {
     BOOST_TEST(r.size() == ry.size());
     for (auto&& [k, v] : ry) {
       BOOST_TEST(r.count(k) == 1);
-      BOOST_TEST(r.at(k).id() == ry.at(k).id());
     }
   }
 
@@ -141,7 +139,6 @@ BOOST_AUTO_TEST_CASE(helper_functions) {
     BOOST_TEST(r.size() == ry.size());
     for (auto&& [k, v] : ry) {
       BOOST_TEST(r.count(k) == 1);
-      BOOST_TEST(r.at(k).id() == ry.at(k).id());
     }
   }
 
@@ -150,7 +147,6 @@ BOOST_AUTO_TEST_CASE(helper_functions) {
     BOOST_TEST(r.size() == rb.size());
     for (auto&& [k, v] : rb) {
       BOOST_TEST(r.count(k) == 1);
-      BOOST_TEST(r.at(k).id() == rb.at(k).id());
     }
   }
 }

@@ -20,7 +20,7 @@ BOOST_AUTO_TEST_CASE(robot, *boost::unit_test::tolerance(0.0000001)) {
   constexpr auto t = std::chrono::system_clock::time_point{};
 
   // 初期位置 (100, 200, pi/6)
-  model::robot r{1337};
+  model::robot r{};
   r.set_x(100);
   r.set_y(200);
   r.set_theta(bmc::two_thirds_pi);
@@ -37,7 +37,6 @@ BOOST_AUTO_TEST_CASE(robot, *boost::unit_test::tolerance(0.0000001)) {
     const auto rf = f.update(r, t);
 
     // 最初は速度, 加速度は計算されない
-    BOOST_TEST(rf->id() == 1337);
     BOOST_TEST(rf->x() == 100);
     BOOST_TEST(rf->y() == 200);
     BOOST_TEST(rf->theta() == bmc::two_thirds_pi);
@@ -56,7 +55,6 @@ BOOST_AUTO_TEST_CASE(robot, *boost::unit_test::tolerance(0.0000001)) {
   {
     const auto rf = f.update(r, t + 1s);
 
-    BOOST_TEST(rf->id() == 1337);
     BOOST_TEST(rf->x() == 200);
     BOOST_TEST(rf->y() == 0);
     BOOST_TEST(rf->theta() == bmc::third_pi);
@@ -72,7 +70,6 @@ BOOST_AUTO_TEST_CASE(robot, *boost::unit_test::tolerance(0.0000001)) {
   {
     const auto rf = f.update(r, t + 2s);
 
-    BOOST_TEST(rf->id() == 1337);
     BOOST_TEST(rf->x() == 600);
     BOOST_TEST(rf->y() == -300);
     BOOST_TEST(rf->theta() == (bmc::pi + bmc::two_thirds_pi));
@@ -89,7 +86,6 @@ BOOST_AUTO_TEST_CASE(robot, *boost::unit_test::tolerance(0.0000001)) {
     const auto rf = f.update(r, t + 2s);
 
     // 直前と同じ値が返る
-    BOOST_TEST(rf->id() == 1337);
     BOOST_TEST(rf->x() == 600);
     BOOST_TEST(rf->y() == -300);
     BOOST_TEST(rf->theta() == (bmc::pi + bmc::two_thirds_pi));
@@ -111,7 +107,6 @@ BOOST_AUTO_TEST_CASE(robot, *boost::unit_test::tolerance(0.0000001)) {
     const auto rf = f.update(r, t + 4s);
 
     // 一度ロストした後は速度, 加速度は計算されない
-    BOOST_TEST(rf->id() == 1337);
     BOOST_TEST(rf->x() == 600);
     BOOST_TEST(rf->y() == -300);
     BOOST_TEST(rf->theta() == (bmc::pi + bmc::two_thirds_pi));
