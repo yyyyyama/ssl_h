@@ -119,10 +119,7 @@ std::vector<std::shared_ptr<action::base>> setplay::execute() {
       if (positions_.size() == 0) {
         // 初めて呼ばれた時はレシーバたちの位置を決める
         // 現状固定なので動的に求めたい{{{
-        int i = 0;
-        for (auto receiver_id : receiver_ids_) {
-          const double rad          = std::abs(ball_pos.y()) > 1500 ? -0.4 : -0.7;
-          const double theta        = ballysign * (i / 2 + 1) * rad * (1.0 - 2 * (i % 2));
+        for (int i = 0; i < static_cast<int>(receiver_ids_.size()); ++i) {
           const double kick_off_coe = ball_pos.norm() > 250 ? 1.0 : -1.0;
           const double dy =
               6000 / (receiver_ids_.size() + 1) / (std::abs(ball_pos.y()) > 1500 ? 1 : 2);
@@ -185,7 +182,6 @@ std::vector<std::shared_ptr<action::base>> setplay::execute() {
           if (std::hypot(enemygoal_x - positions_[i].x(), positions_[i].y()) < 1500) {
             positions_[i].x() = enemygoal_x - 1500;
           }
-          i++;
         } // }}}
       }
       state_      = state::pass;
@@ -197,8 +193,8 @@ std::vector<std::shared_ptr<action::base>> setplay::execute() {
       if ((shoot_pos - ball_pos).norm() > 200 && change_count_ < 5 &&
           !(mode_ == 1 && pos_ == pos::far)) {
         const int chose_num = chose_location(positions_, enemy_robots);
-        if (shooter_num_ != chose_num && chose_num < receiver_ids_.size()) {
-          if ((chose_num + 1) < receiver_ids_.size() / 3 * 2) {
+        if (shooter_num_ != chose_num && chose_num < static_cast<int>(receiver_ids_.size())) {
+          if ((chose_num + 1) < static_cast<int>(receiver_ids_.size()) / 3 * 2) {
             kick_        = make_action<action::kick>(kicker_id_);
             shooter_num_ = chose_num;
             shooter_id_  = receiver_ids_[shooter_num_];
