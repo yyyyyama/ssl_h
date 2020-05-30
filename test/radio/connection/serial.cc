@@ -17,6 +17,7 @@ extern "C" {
 }
 
 #include "ai_server/radio/connection/serial.h"
+#include "../../asio_helper.h"
 
 namespace radio = ai_server::radio;
 
@@ -52,12 +53,6 @@ public:
             std::forward_as_tuple(slave)};
   }
 };
-
-inline std::thread run_io_context_in_new_thread(boost::asio::io_context& ctx) {
-  return std::thread{
-      static_cast<std::size_t (boost::asio::io_context::*)()>(&boost::asio::io_context::run),
-      &ctx};
-}
 
 BOOST_AUTO_TEST_SUITE(serial)
 
@@ -113,9 +108,6 @@ BOOST_AUTO_TEST_CASE(send, *boost::unit_test::timeout(30)) {
   BOOST_TEST(tx.messages_per_second() == 0);
   std::this_thread::sleep_for(1s);
   BOOST_TEST(tx.messages_per_second() == 2);
-
-  ctx1.stop();
-  th.join();
 }
 
 BOOST_AUTO_TEST_SUITE_END()

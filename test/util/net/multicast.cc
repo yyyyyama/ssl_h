@@ -12,6 +12,7 @@
 
 #include "ai_server/util/net/multicast/receiver.h"
 #include "ai_server/util/net/multicast/sender.h"
+#include "../../asio_helper.h"
 
 using namespace std::chrono_literals;
 using namespace std::string_literals;
@@ -19,12 +20,6 @@ using namespace ai_server::util::net::multicast;
 
 using promise_type = std::promise<std::tuple<receiver::buffer_t, std::size_t, std::uint64_t,
                                              std::chrono::system_clock::time_point>>;
-
-inline std::thread run_io_context_in_new_thread(boost::asio::io_context& ctx) {
-  return std::thread{
-      static_cast<std::size_t (boost::asio::io_context::*)()>(&boost::asio::io_context::run),
-      &ctx};
-}
 
 BOOST_AUTO_TEST_SUITE(multicast)
 
@@ -57,9 +52,6 @@ BOOST_AUTO_TEST_CASE(receiver_error, *boost::unit_test::timeout(30)) {
 
     // エラー発生
     BOOST_TEST(future.get() == boost::asio::error::invalid_argument);
-
-    ctx.stop();
-    t.join();
   }
 }
 
@@ -84,9 +76,6 @@ BOOST_AUTO_TEST_CASE(send_and_receive, *boost::unit_test::timeout(30)) {
 
   // 受信を開始する
   auto t = run_io_context_in_new_thread(ctx);
-
-  // 念の為少し待つ
-  std::this_thread::sleep_for(50ms);
 
   {
     // promise のリセット
@@ -136,10 +125,6 @@ BOOST_AUTO_TEST_CASE(send_and_receive, *boost::unit_test::timeout(30)) {
     // 受信したメッセージの数がカウントアップしているか
     BOOST_TEST(std::get<2>(result) == 2);
   }
-
-  // 受信の終了
-  ctx.stop();
-  t.join();
 }
 
 BOOST_AUTO_TEST_CASE(random_data1, *boost::unit_test::timeout(30)) {
@@ -163,9 +148,6 @@ BOOST_AUTO_TEST_CASE(random_data1, *boost::unit_test::timeout(30)) {
 
   // 受信を開始する
   auto t = run_io_context_in_new_thread(ctx);
-
-  // 念の為少し待つ
-  std::this_thread::sleep_for(50ms);
 
   // 乱数生成器を初期化
   std::mt19937 mt{0x12345678};
@@ -203,10 +185,6 @@ BOOST_AUTO_TEST_CASE(random_data1, *boost::unit_test::timeout(30)) {
     // 受信したメッセージの数がカウントアップしているか
     BOOST_TEST(std::get<2>(result) == (i + 1));
   }
-
-  // 受信の終了
-  ctx.stop();
-  t.join();
 }
 
 BOOST_AUTO_TEST_CASE(random_data2, *boost::unit_test::timeout(30)) {
@@ -230,9 +208,6 @@ BOOST_AUTO_TEST_CASE(random_data2, *boost::unit_test::timeout(30)) {
 
   // 受信を開始する
   auto t = run_io_context_in_new_thread(ctx);
-
-  // 念の為少し待つ
-  std::this_thread::sleep_for(50ms);
 
   // 乱数生成器を初期化
   std::mt19937 mt{0x12345678};
@@ -270,10 +245,6 @@ BOOST_AUTO_TEST_CASE(random_data2, *boost::unit_test::timeout(30)) {
     // 受信したメッセージの数がカウントアップしているか
     BOOST_TEST(std::get<2>(result) == (i + 1));
   }
-
-  // 受信の終了
-  ctx.stop();
-  t.join();
 }
 
 BOOST_AUTO_TEST_CASE(messages_per_second, *boost::unit_test::timeout(30)) {
@@ -293,9 +264,6 @@ BOOST_AUTO_TEST_CASE(messages_per_second, *boost::unit_test::timeout(30)) {
   // 別スレッドで受信を開始する
   auto t = run_io_context_in_new_thread(ctx);
 
-  // 念の為少し待つ
-  std::this_thread::sleep_for(50ms);
-
   // 5回メッセージを送信する
   for (auto i = 0u; i < 5; ++i) {
     s.send("Hello!"s);
@@ -314,10 +282,6 @@ BOOST_AUTO_TEST_CASE(messages_per_second, *boost::unit_test::timeout(30)) {
     // 次の1秒間で受信したメッセージ数は0
     BOOST_TEST(promise.get_future().get() == 0);
   }
-
-  // 受信の終了
-  ctx.stop();
-  t.join();
 }
 
 BOOST_AUTO_TEST_SUITE_END()

@@ -8,6 +8,7 @@
 #include <boost/asio.hpp>
 #include <boost/test/unit_test.hpp>
 
+#include "../asio_helper.h"
 #include "../util/slot_testing_helper.h"
 
 #include "ssl-protos/refbox/referee.pb.h"
@@ -21,12 +22,6 @@ using namespace std::string_literals;
 using namespace ai_server::logger;
 using namespace ai_server::receiver;
 using namespace ai_server::util::net::multicast;
-
-inline std::thread run_io_context_in_new_thread(boost::asio::io_context& ctx) {
-  return std::thread{
-      static_cast<std::size_t (boost::asio::io_context::*)()>(&boost::asio::io_context::run),
-      &ctx};
-}
 
 BOOST_AUTO_TEST_SUITE(refbox_receiver)
 
@@ -43,10 +38,10 @@ BOOST_AUTO_TEST_CASE(receiver_error, *boost::unit_test::timeout(30)) {
   // まだエラーメッセージは出力されていない
   BOOST_TEST(s.str() == "");
 
-  auto t = run_io_context_in_new_thread(ctx);
-
   {
     slot_testing_helper wrapper{&refbox::on_error, r};
+
+    auto t = run_io_context_in_new_thread(ctx);
 
     // on_error に登録したハンドラが呼ばれる
     BOOST_CHECK_NO_THROW(wrapper.result());
@@ -54,10 +49,6 @@ BOOST_AUTO_TEST_CASE(receiver_error, *boost::unit_test::timeout(30)) {
     // エラーメッセージが出力される
     BOOST_TEST(s.str() == "nyan\n");
   }
-
-  // 受信の終了
-  ctx.stop();
-  t.join();
 }
 
 BOOST_AUTO_TEST_CASE(send_and_receive, *boost::unit_test::timeout(30)) {
@@ -115,9 +106,6 @@ BOOST_AUTO_TEST_CASE(send_and_receive, *boost::unit_test::timeout(30)) {
   // 受信を開始する
   auto t = run_io_context_in_new_thread(ctx);
 
-  // 念の為少し待つ
-  std::this_thread::sleep_for(50ms);
-
   {
     slot_testing_helper<ssl_protos::refbox::Referee> referee{&refbox::on_receive, r};
 
@@ -162,10 +150,6 @@ BOOST_AUTO_TEST_CASE(send_and_receive, *boost::unit_test::timeout(30)) {
   // 前回の1秒間に受信したメッセージは1
   std::this_thread::sleep_for(1s);
   BOOST_TEST(r.messages_per_second() == 1);
-
-  // 受信の終了
-  ctx.stop();
-  t.join();
 }
 
 BOOST_AUTO_TEST_CASE(non_protobuf_data, *boost::unit_test::timeout(30)) {
@@ -184,9 +168,6 @@ BOOST_AUTO_TEST_CASE(non_protobuf_data, *boost::unit_test::timeout(30)) {
 
   // 受信を開始する
   auto t = run_io_context_in_new_thread(ctx);
-
-  // 念の為少し待つ
-  std::this_thread::sleep_for(50ms);
 
   {
     slot_testing_helper<> referee{&refbox::on_error, r};
@@ -209,10 +190,6 @@ BOOST_AUTO_TEST_CASE(non_protobuf_data, *boost::unit_test::timeout(30)) {
   // 前回の1秒間に受信したメッセージは1
   std::this_thread::sleep_for(1s);
   BOOST_TEST(r.messages_per_second() == 1);
-
-  // 受信の終了
-  ctx.stop();
-  t.join();
 }
 
 BOOST_AUTO_TEST_SUITE_END()

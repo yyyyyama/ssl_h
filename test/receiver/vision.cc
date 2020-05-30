@@ -8,6 +8,7 @@
 #include <boost/asio.hpp>
 #include <boost/test/unit_test.hpp>
 
+#include "../asio_helper.h"
 #include "../util/slot_testing_helper.h"
 
 #include "ssl-protos/vision/wrapperpacket.pb.h"
@@ -21,12 +22,6 @@ using namespace std::string_literals;
 using namespace ai_server::logger;
 using namespace ai_server::receiver;
 using namespace ai_server::util::net::multicast;
-
-inline std::thread run_io_context_in_new_thread(boost::asio::io_context& ctx) {
-  return std::thread{
-      static_cast<std::size_t (boost::asio::io_context::*)()>(&boost::asio::io_context::run),
-      &ctx};
-}
 
 BOOST_AUTO_TEST_SUITE(vision_receiver)
 
@@ -43,10 +38,10 @@ BOOST_AUTO_TEST_CASE(receiver_error, *boost::unit_test::timeout(30)) {
   // まだエラーメッセージは出力されていない
   BOOST_TEST(s.str() == "");
 
-  auto t = run_io_context_in_new_thread(ctx);
-
   {
     slot_testing_helper wrapper{&vision::on_error, v};
+
+    auto t = run_io_context_in_new_thread(ctx);
 
     // on_error に登録したハンドラが呼ばれる
     BOOST_CHECK_NO_THROW(wrapper.result());
@@ -54,10 +49,6 @@ BOOST_AUTO_TEST_CASE(receiver_error, *boost::unit_test::timeout(30)) {
     // エラーメッセージが出力される
     BOOST_TEST(s.str() == "nyan\n");
   }
-
-  // 受信の終了
-  ctx.stop();
-  t.join();
 }
 
 BOOST_AUTO_TEST_CASE(send_and_receive, *boost::unit_test::timeout(30)) {
@@ -91,9 +82,6 @@ BOOST_AUTO_TEST_CASE(send_and_receive, *boost::unit_test::timeout(30)) {
   // 受信を開始する
   auto t = run_io_context_in_new_thread(ctx);
 
-  // 念の為少し待つ
-  std::this_thread::sleep_for(50ms);
-
   {
     slot_testing_helper<ssl_protos::vision::Packet> wrapper{&vision::on_receive, v};
 
@@ -122,10 +110,6 @@ BOOST_AUTO_TEST_CASE(send_and_receive, *boost::unit_test::timeout(30)) {
   // 前回の1秒間に受信したメッセージは1
   std::this_thread::sleep_for(1s);
   BOOST_TEST(v.messages_per_second() == 1);
-
-  // 受信の終了
-  ctx.stop();
-  t.join();
 }
 
 BOOST_AUTO_TEST_CASE(timestamp_adjustment,
@@ -152,9 +136,6 @@ BOOST_AUTO_TEST_CASE(timestamp_adjustment,
 
   // 受信を開始する
   auto t = run_io_context_in_new_thread(ctx);
-
-  // 念の為少し待つ
-  std::this_thread::sleep_for(50ms);
 
   for (auto i = 0u; i < 5; ++i) {
     for (auto cam_id = 0u; cam_id < 5; ++cam_id) {
@@ -193,10 +174,6 @@ BOOST_AUTO_TEST_CASE(timestamp_adjustment,
 
     std::this_thread::sleep_for(50ms);
   }
-
-  // 受信の終了
-  ctx.stop();
-  t.join();
 }
 
 BOOST_AUTO_TEST_CASE(non_protobuf_data, *boost::unit_test::timeout(30)) {
@@ -215,9 +192,6 @@ BOOST_AUTO_TEST_CASE(non_protobuf_data, *boost::unit_test::timeout(30)) {
 
   // 受信を開始する
   auto t = run_io_context_in_new_thread(ctx);
-
-  // 念の為少し待つ
-  std::this_thread::sleep_for(50ms);
 
   {
     slot_testing_helper<> wrapper{&vision::on_error, v};
@@ -240,10 +214,6 @@ BOOST_AUTO_TEST_CASE(non_protobuf_data, *boost::unit_test::timeout(30)) {
   // 前回の1秒間に受信したメッセージは1
   std::this_thread::sleep_for(1s);
   BOOST_TEST(v.messages_per_second() == 1);
-
-  // 受信の終了
-  ctx.stop();
-  t.join();
 }
 
 BOOST_AUTO_TEST_SUITE_END()
