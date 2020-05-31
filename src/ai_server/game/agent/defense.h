@@ -30,7 +30,7 @@ public:
     unsigned int score;
   };
   defense(context& ctx, unsigned int keeper_id, const std::vector<unsigned int>& wall_ids,
-          const std::vector<unsigned int>& marking_ids);
+          const std::vector<unsigned int>& marking_ids = {});
   enum class defense_mode {
     normal_mode,       //通常のディフェンス状態
     pk_normal_mode,    // pkのディフェンス状態
