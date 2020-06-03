@@ -51,23 +51,20 @@ void rrt_star::set_max_branch_length(double length) {
   max_branch_length_ = length;
 }
 
-rrt_star::result_type rrt_star::execute(const position_t& start, const position_t& goal,
+rrt_star::result_type rrt_star::execute(const Eigen::Vector2d& start_pos,
+                                        const Eigen::Vector2d& goal_pos,
                                         const obstacle_list& obs) {
   // 障害物取得
   const auto obstacles = obs.to_tree();
 
-  // スタート座標とゴール座標を変換
-  const auto start_pos = util::math::position(start);
-  const auto goal_pos  = util::math::position(goal);
-
   // 障害物の圏内から脱出する必要があるとき
   if (auto p = exit_position(start_pos, goal_pos, max_branch_length_, obstacles)) {
-    return std::make_pair(position_t{p->x(), p->y(), goal.theta}, (*p - start_pos).norm());
+    return std::make_pair(*p, (*p - start_pos).norm());
   }
 
   // 目的地周辺のとき
   if ((start_pos - goal_pos).norm() < 80.0) {
-    return std::make_pair(goal, (goal_pos - start_pos).norm());
+    return std::make_pair(goal_pos, (goal_pos - start_pos).norm());
   }
 
   // === rrt star ===
@@ -164,7 +161,7 @@ rrt_star::result_type rrt_star::execute(const position_t& start, const position_
     return start_pos;
   }();
 
-  return std::make_pair(position_t{p.x(), p.y(), goal.theta}, trajectory_length);
+  return std::make_pair(p, trajectory_length);
 }
 
 std::optional<Eigen::Vector2d> rrt_star::exit_position(

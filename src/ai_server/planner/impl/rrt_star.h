@@ -16,8 +16,6 @@
 
 namespace ai_server::planner::impl {
 class rrt_star {
-  using position_t = model::command::position_t;
-
 public:
   // 節点
   struct node {
@@ -28,7 +26,7 @@ public:
     node(const Eigen::Vector2d& pos, double c, const std::shared_ptr<node>& ptr);
   };
 
-  using result_type = std::pair<position_t, double>;
+  using result_type = std::pair<Eigen::Vector2d, double>;
 
   rrt_star();
 
@@ -48,7 +46,7 @@ public:
   /// @param length 設定値．
   void set_max_branch_length(double length);
 
-  result_type execute(const position_t& start, const position_t& goal,
+  result_type execute(const Eigen::Vector2d& start_pos, const Eigen::Vector2d& goal_pos,
                       const obstacle_list& obs);
 
 private:

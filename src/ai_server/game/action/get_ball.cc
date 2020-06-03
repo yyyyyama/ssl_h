@@ -126,8 +126,6 @@ model::command get_ball::execute() {
       // 障害物設定
       planner::rrt_star rrt{};
       rrt.set_area(world().field(), 200.0);
-      const planner::position_t robot_p{robot_pos.x(), robot_pos.y(), robot.theta()};
-      const planner::position_t target_p{tar.x(), tar.y(), theta};
       planner::obstacle_list obstacles;
       obstacles.add(model::obstacle::enemy_penalty_area(world().field(), 150.0));
       obstacles.add(model::obstacle::our_penalty_area(world().field(), 150.0));
@@ -136,11 +134,10 @@ model::command get_ball::execute() {
       }
 
       const auto plan        = rrt.planner();
-      const auto plan_result = plan(robot_p, target_p, obstacles);
+      const auto plan_result = plan(robot_pos, tar, obstacles);
 
       const Eigen::Vector2d final_vel =
-          vel.norm() *
-          (util::math::position(std::get<0>(plan_result)) - robot_pos).normalized();
+          vel.norm() * (std::get<0>(plan_result) - robot_pos).normalized();
       command.set_velocity({final_vel.x(), final_vel.y(), omega});
       break;
     }
@@ -173,8 +170,6 @@ model::command get_ball::execute() {
       // 障害物設定
       planner::rrt_star rrt{};
       rrt.set_area(world().field(), 200.0);
-      const planner::position_t robot_p{robot_pos.x(), robot_pos.y(), robot.theta()};
-      const planner::position_t target_p{tar.x(), tar.y(), theta};
 
       planner::obstacle_list obstacles;
       obstacles.add(model::obstacle::enemy_penalty_area(world().field(), 150.0));
@@ -189,11 +184,10 @@ model::command get_ball::execute() {
       }
 
       const auto plan        = rrt.planner();
-      const auto plan_result = plan(robot_p, target_p, obstacles);
+      const auto plan_result = plan(robot_pos, tar, obstacles);
 
       const Eigen::Vector2d final_vel =
-          vel.norm() *
-          (util::math::position(std::get<0>(plan_result)) - robot_pos).normalized();
+          vel.norm() * (std::get<0>(plan_result) - robot_pos).normalized();
       command.set_velocity({final_vel.x(), final_vel.y(), omega});
     }
   }

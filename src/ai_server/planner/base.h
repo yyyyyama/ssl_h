@@ -9,15 +9,11 @@
 
 namespace ai_server::planner {
 
-using position_t     = model::command::position_t;
-using velocity_t     = model::command::velocity_t;
-using acceleration_t = model::command::acceleration_t;
-
 class base {
 public:
-  using result_type = std::pair<position_t, double>;
-  using planner_type =
-      std::function<result_type(const position_t&, const position_t&, const obstacle_list&)>;
+  using result_type  = std::pair<Eigen::Vector2d, double>;
+  using planner_type = std::function<result_type(const Eigen::Vector2d&, const Eigen::Vector2d&,
+                                                 const obstacle_list&)>;
 
   base();
   virtual ~base();

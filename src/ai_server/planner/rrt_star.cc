@@ -14,7 +14,8 @@ void rrt_star::set_max_branch_length(double length) {
 }
 
 base::planner_type rrt_star::planner() {
-  return [this](const position_t& start, const position_t& goal, const obstacle_list& obs) {
+  return [this](const Eigen::Vector2d& start, const Eigen::Vector2d& goal,
+                const obstacle_list& obs) {
     impl::rrt_star rrt{};
     rrt.set_max_pos(max_pos_);
     rrt.set_min_pos(min_pos_);
