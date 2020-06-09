@@ -36,16 +36,14 @@ BOOST_AUTO_TEST_CASE(test02) {
   auto kick_flag_test2 = command.kick_flag();
   BOOST_TEST(std::get<0>(kick_flag_test2) == ai_server::model::command::kick_type_t::line);
   BOOST_TEST(std::get<1>(kick_flag_test2) == 2.0);
-  ai_server::model::command::position_t position{3.0, 4.0, 5.0};
-  command.set_position(position);
+  command.set_position({3.0, 4.0, 5.0});
   const auto test_position =
       std::get_if<ai_server::model::command::position_t>(&command.setpoint());
   BOOST_TEST(test_position != nullptr);
   BOOST_TEST(test_position->x == 3.0);
   BOOST_TEST(test_position->y == 4.0);
   BOOST_TEST(test_position->theta == 5.0);
-  ai_server::model::command::velocity_t velocity{6.0, 7.0, 8.0};
-  command.set_velocity(velocity);
+  command.set_velocity({6.0, 7.0, 8.0});
   const auto test_velocity =
       std::get_if<ai_server::model::command::velocity_t>(&command.setpoint());
   BOOST_TEST(test_velocity != nullptr);
@@ -54,7 +52,7 @@ BOOST_AUTO_TEST_CASE(test02) {
   BOOST_TEST(test_velocity->omega == 8.0);
 }
 
-BOOST_AUTO_TEST_CASE(temp_if) {
+BOOST_AUTO_TEST_CASE(new_if) {
   ai_server::model::command cmd{0};
 
   // 座標と角速度が設定された状態で setpoint() を呼んだら例外
@@ -87,6 +85,96 @@ BOOST_AUTO_TEST_CASE(temp_if) {
 
     const auto r2 = std::get<ai_server::model::setpoint::angle>(sp_rot);
     BOOST_TEST(std::get<0>(r2) == 987);
+  }
+
+  // 3引数のオーバーロード
+  cmd.set_position(12, 34, 56);
+  {
+    const auto [sp, sp_rot] = cmd.setpoint_pair();
+
+    const auto r1 = std::get<ai_server::model::setpoint::position>(sp);
+    BOOST_TEST(std::get<0>(r1) == 12);
+    BOOST_TEST(std::get<1>(r1) == 34);
+    const auto r2 = std::get<ai_server::model::setpoint::angle>(sp_rot);
+    BOOST_TEST(std::get<0>(r2) == 56);
+  }
+  cmd.set_velocity(21, 43, 65);
+  {
+    const auto [sp, sp_rot] = cmd.setpoint_pair();
+
+    const auto r1 = std::get<ai_server::model::setpoint::velocity>(sp);
+    BOOST_TEST(std::get<0>(r1) == 21);
+    BOOST_TEST(std::get<1>(r1) == 43);
+    const auto r2 = std::get<ai_server::model::setpoint::velangular>(sp_rot);
+    BOOST_TEST(std::get<0>(r2) == 65);
+  }
+
+  cmd.set_velanglar(1000);
+
+  // Vector2d を渡すケース
+  cmd.set_position(Eigen::Vector2d(1.2, 3.4));
+  {
+    const auto [sp, sp_rot] = cmd.setpoint_pair();
+
+    const auto r1 = std::get<ai_server::model::setpoint::position>(sp);
+    BOOST_TEST(std::get<0>(r1) == 1.2);
+    BOOST_TEST(std::get<1>(r1) == 3.4);
+    const auto r2 = std::get<ai_server::model::setpoint::velangular>(sp_rot);
+    BOOST_TEST(std::get<0>(r2) == 1000);
+  }
+  cmd.set_velocity(Eigen::Vector2d(2.1, 4.3));
+  {
+    const auto [sp, sp_rot] = cmd.setpoint_pair();
+
+    const auto r1 = std::get<ai_server::model::setpoint::velocity>(sp);
+    BOOST_TEST(std::get<0>(r1) == 2.1);
+    BOOST_TEST(std::get<1>(r1) == 4.3);
+    const auto r2 = std::get<ai_server::model::setpoint::velangular>(sp_rot);
+    BOOST_TEST(std::get<0>(r2) == 1000);
+  }
+
+  // Vector3d を渡すケース
+  cmd.set_position(Eigen::Vector3d(1.2, 3.4, 5.6));
+  {
+    const auto [sp, sp_rot] = cmd.setpoint_pair();
+
+    const auto r1 = std::get<ai_server::model::setpoint::position>(sp);
+    BOOST_TEST(std::get<0>(r1) == 1.2);
+    BOOST_TEST(std::get<1>(r1) == 3.4);
+    const auto r2 = std::get<ai_server::model::setpoint::angle>(sp_rot);
+    BOOST_TEST(std::get<0>(r2) == 5.6);
+  }
+  cmd.set_velocity(Eigen::Vector3d(2.1, 4.3, 6.5));
+  {
+    const auto [sp, sp_rot] = cmd.setpoint_pair();
+
+    const auto r1 = std::get<ai_server::model::setpoint::velocity>(sp);
+    BOOST_TEST(std::get<0>(r1) == 2.1);
+    BOOST_TEST(std::get<1>(r1) == 4.3);
+    const auto r2 = std::get<ai_server::model::setpoint::velangular>(sp_rot);
+    BOOST_TEST(std::get<0>(r2) == 6.5);
+  }
+
+  // Vector2d + double を渡すケース
+  cmd.set_position(Eigen::Vector2d(1.2, 3.4), 5.6);
+  {
+    const auto [sp, sp_rot] = cmd.setpoint_pair();
+
+    const auto r1 = std::get<ai_server::model::setpoint::position>(sp);
+    BOOST_TEST(std::get<0>(r1) == 1.2);
+    BOOST_TEST(std::get<1>(r1) == 3.4);
+    const auto r2 = std::get<ai_server::model::setpoint::angle>(sp_rot);
+    BOOST_TEST(std::get<0>(r2) == 5.6);
+  }
+  cmd.set_velocity(Eigen::Vector2d(2.1, 4.3), 6.5);
+  {
+    const auto [sp, sp_rot] = cmd.setpoint_pair();
+
+    const auto r1 = std::get<ai_server::model::setpoint::velocity>(sp);
+    BOOST_TEST(std::get<0>(r1) == 2.1);
+    BOOST_TEST(std::get<1>(r1) == 4.3);
+    const auto r2 = std::get<ai_server::model::setpoint::velangular>(sp_rot);
+    BOOST_TEST(std::get<0>(r2) == 6.5);
   }
 }
 

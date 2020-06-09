@@ -67,15 +67,5 @@ void command::set_kick_flag(const command::kick_flag_t& kick_flag) {
   kick_flag_ = kick_flag;
 }
 
-void command::set_position(const command::position_t& position) {
-  setpoint_.emplace<setpoint::position>(position.x, position.y, setpoint::phantom::position{});
-  setpoint_rot_.emplace<setpoint::angle>(position.theta, setpoint::phantom::angle{});
-}
-
-void command::set_velocity(const command::velocity_t& velocity) {
-  setpoint_.emplace<setpoint::velocity>(velocity.vx, velocity.vy,
-                                        setpoint::phantom::velocity{});
-  setpoint_rot_.emplace<setpoint::velangular>(velocity.omega, setpoint::phantom::velangular{});
-}
 } // namespace model
 } // namespace ai_server

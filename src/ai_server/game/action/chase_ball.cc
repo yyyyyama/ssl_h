@@ -247,7 +247,7 @@ model::command chase_ball::execute() {
   if (!wait_flag_) {
     next_vel = {next_vel.vx + ball_vx, next_vel.vy + ball_vy, next_vel.omega};
   }
-  command.set_velocity(next_vel);
+  command.set_velocity(next_vel.vx, next_vel.vy, next_vel.omega);
   return command;
 }
 

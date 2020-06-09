@@ -12,10 +12,8 @@ void vec::move_to(double vx, double vy, double omega) {
 
 model::command vec::execute() {
   model::command command{id_};
-  model::command::velocity_t robot_vec;
 
-  robot_vec = {vx_, vy_, omega_};
-  command.set_velocity(robot_vec);
+  command.set_velocity(vx_, vy_, omega_);
 
   return command;
 }
