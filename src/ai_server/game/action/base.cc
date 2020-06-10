@@ -1,3 +1,4 @@
+#include "ai_server/planner/base.h"
 #include "base.h"
 
 namespace ai_server {
@@ -10,11 +11,11 @@ unsigned int base::id() const {
   return id_;
 }
 
-void base::set_path_planner(std::unique_ptr<planner::base> planner) {
+void self_planning_base::set_path_planner(std::unique_ptr<planner::base> planner) {
   planner_ = std::move(planner);
 }
 
-bool base::has_path_planner() const {
+bool self_planning_base::has_path_planner() const {
   return static_cast<bool>(planner_);
 }
 } // namespace action

@@ -101,7 +101,8 @@ std::vector<std::shared_ptr<action::base>> stopgame::execute() {
       rrt->set_max_branch_length(50.0);
     }
     auto move = make_action<action::move>(id);
-    move->set_path_planner(std::move(rrt));
+    // TODO: move で planner を使う
+    // move->set_path_planner(std::move(rrt));
     // TODO: actionに障害物リストを渡す
     move->move_to(target_pos[id], theta);
     baseaction.push_back(move);

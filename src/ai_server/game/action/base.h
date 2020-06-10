@@ -6,7 +6,10 @@
 #include "ai_server/game/context.h"
 #include "ai_server/model/command.h"
 #include "ai_server/model/world.h"
-#include "ai_server/planner/base.h"
+
+namespace ai_server::planner {
+class base;
+}
 
 namespace ai_server {
 namespace game {
@@ -30,13 +33,6 @@ public:
   /// @brief                  Actionが完了したか
   virtual bool finished() const = 0;
 
-  /// @brief                  plannerを設定する
-  /// @param planner          使用するplanner
-  void set_path_planner(std::unique_ptr<planner::base> planner);
-
-  /// @brief                  plannerが設定されているか
-  bool has_path_planner() const;
-
 protected:
   const model::world& world() const {
     return ctx_.world;
@@ -55,6 +51,20 @@ private:
 
 protected:
   unsigned int id_;
+};
+
+/// planner を使った処理を独自で持つ action
+class self_planning_base : public base {
+  using base::base;
+
+  /// @brief                  plannerを設定する
+  /// @param planner          使用するplanner
+  void set_path_planner(std::unique_ptr<planner::base> planner);
+
+  /// @brief                  plannerが設定されているか
+  bool has_path_planner() const;
+
+protected:
   std::unique_ptr<planner::base> planner_;
 };
 

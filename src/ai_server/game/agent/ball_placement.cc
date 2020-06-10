@@ -227,7 +227,8 @@ std::vector<std::shared_ptr<action::base>> ball_placement::execute() {
         rrt->set_node_count(10);
         rrt->set_max_branch_length(50.0);
       }
-      move_[id]->set_path_planner(std::move(rrt));
+      // TODO: move で planner を使う
+      // move_[id]->set_path_planner(std::move(rrt));
       // TODO: actionに障害物リストを渡す
       move_[id]->move_to(target_pos, theta);
       baseaction.push_back(move_[id]);
