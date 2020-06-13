@@ -2,6 +2,7 @@
 
 #include <vector>
 #include <boost/test/unit_test.hpp>
+#include <Eigen/Core>
 
 #include "ai_server/filter/state_observer/robot.h"
 #include "ai_server/model/command.h"
@@ -54,8 +55,8 @@ BOOST_AUTO_TEST_CASE(rest, *boost::unit_test::tolerance(0.1)) {
 
 BOOST_AUTO_TEST_CASE(move, *boost::unit_test::tolerance(5.0)) {
   // テストするロボットの移動速度
-  const auto robot_velocities = std::vector<model::command::velocity_t>{
-      {0, 0, 0}, {0, 100, 0}, {100, 0, 0}, {100, 100, 0}};
+  const auto robot_velocities =
+      std::vector<Eigen::Vector3d>{{0, 0, 0}, {0, 100, 0}, {100, 0, 0}, {100, 100, 0}};
 
   // 初期時刻
   auto t = std::chrono::system_clock::now();
@@ -68,17 +69,17 @@ BOOST_AUTO_TEST_CASE(move, *boost::unit_test::tolerance(5.0)) {
   filter::state_observer::robot obs{wr, 1s};
 
   for (auto vel : robot_velocities) {
-    r.set_vx(vel.vx);
-    r.set_vy(vel.vy);
+    r.set_vx(vel.x());
+    r.set_vy(vel.y());
     // 状態オブザーバを20ms * 1000回更新する
     for (auto i = 0u; i < 1000; ++i) {
       t += 20ms;
       model::command command{0};
-      command.set_velocity(vel);
+      command.set_velocity(vel.x(), vel.y(), vel.z());
       obs.set_raw_value(r, t);
       obs.observe(command);
-      r.set_x(r.x() + vel.vx * 0.02);
-      r.set_y(r.y() + vel.vy * 0.02);
+      r.set_x(r.x() + vel.x() * 0.02);
+      r.set_y(r.y() + vel.y() * 0.02);
     }
 
     // それっぽい値が返ってくるか
