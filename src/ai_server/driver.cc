@@ -109,15 +109,11 @@ void driver::process(const model::world& world, metadata_type& metadata) {
     const auto [sp, sp_rot]    = command.setpoint_pair();
     const auto [vx, vy, omega] = std::visit(c, sp, sp_rot);
 
-    // 実際に送信する命令
-    auto actual_command = command;
-    actual_command.set_velocity({vx, vy, omega});
-
     // 命令の送信
-    radio->send(team_color_, actual_command);
+    radio->send(team_color_, id, command.kick_flag(), command.dribble(), vx, vy, omega);
 
     // 登録された関数があればそれを呼び出す
-    command_updated_(actual_command);
+    command_updated_(team_color_, id, command.kick_flag(), command.dribble(), vx, vy, omega);
   }
 }
 

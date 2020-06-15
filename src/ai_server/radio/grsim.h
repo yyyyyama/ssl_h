@@ -20,7 +20,9 @@ public:
     return *connection_;
   }
 
-  void send(model::team_color color, const model::command& command) override {
+  void send(model::team_color color, unsigned int id,
+            const model::command::kick_flag_t& kick_flag, int dribble, double vx, double vy,
+            double omega) override {
     ssl_protos::grsim::Packet packet{};
 
     auto commands = packet.mutable_commands();
@@ -28,7 +30,7 @@ public:
     commands->set_timestamp(0.0);
 
     auto gr_cmd = commands->add_robot_commands();
-    convert(command, *gr_cmd);
+    convert(id, kick_flag, dribble, vx, vy, omega, *gr_cmd);
 
     connection_->send(packet.SerializeAsString());
   }
@@ -60,10 +62,12 @@ public:
   }
 
 protected:
-  static void convert(const model::command& command, ssl_protos::grsim::Command& gr_cmd) {
-    gr_cmd.set_id(command.id());
+  static void convert(unsigned int id, const model::command::kick_flag_t& kick_flag,
+                      int dribble, double vx, double vy, double omega,
+                      ssl_protos::grsim::Command& gr_cmd) {
+    gr_cmd.set_id(id);
 
-    switch (const auto& [type, power] = command.kick_flag(); type) {
+    switch (const auto& [type, power] = kick_flag; type) {
       case model::command::kick_type_t::line:
         gr_cmd.set_kickspeedx(power);
         gr_cmd.set_kickspeedz(0);
@@ -80,20 +84,11 @@ protected:
         gr_cmd.set_kickspeedz(0);
     }
 
-    if (const auto& setpoint = command.setpoint();
-        const auto velocity  = std::get_if<model::command::velocity_t>(&setpoint)) {
-      // velocity_tへのキャストが成功した時
-      gr_cmd.set_veltangent(velocity->vx / 1000);
-      gr_cmd.set_velnormal(velocity->vy / 1000);
-      gr_cmd.set_velangular(velocity->omega);
-    } else {
-      // velocity_tへのキャストが失敗した時
-      gr_cmd.set_veltangent(0);
-      gr_cmd.set_velnormal(0);
-      gr_cmd.set_velangular(0);
-    }
+    gr_cmd.set_veltangent(vx / 1000);
+    gr_cmd.set_velnormal(vy / 1000);
+    gr_cmd.set_velangular(omega);
 
-    gr_cmd.set_spinner(command.dribble() != 0);
+    gr_cmd.set_spinner(dribble != 0);
     gr_cmd.set_wheelsspeed(false);
   }
 

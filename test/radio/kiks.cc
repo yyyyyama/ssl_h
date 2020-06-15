@@ -27,12 +27,7 @@ BOOST_AUTO_TEST_CASE(send_command) {
 
   BOOST_TEST(!rc.last_value.has_value());
 
-  model::command cmd{1};
-  cmd.set_dribble(2);
-  cmd.set_kick_flag({model::command::kick_type_t::none, 0});
-  cmd.set_velocity({0, 0, 0});
-
-  k.send(model::team_color::yellow, cmd);
+  k.send(model::team_color::yellow, 1, {model::command::kick_type_t::none, 0}, 2, 0, 0, 0);
   {
     BOOST_TEST(rc.last_value.has_value());
 
@@ -51,11 +46,9 @@ BOOST_AUTO_TEST_CASE(send_command) {
     BOOST_TEST(v[10] == '\n');
   }
 
-  cmd.set_kick_flag({model::command::kick_type_t::line, 3});
-
   rc.last_value.reset();
 
-  k.send(model::team_color::yellow, cmd);
+  k.send(model::team_color::yellow, 1, {model::command::kick_type_t::line, 3}, 2, 0, 0, 0);
   {
     BOOST_TEST(rc.last_value.has_value());
 
@@ -74,12 +67,9 @@ BOOST_AUTO_TEST_CASE(send_command) {
     BOOST_TEST(v[10] == '\n');
   }
 
-  cmd.set_kick_flag({model::command::kick_type_t::chip, 4});
-  cmd.set_velocity({0, 0, -1});
-
   rc.last_value.reset();
 
-  k.send(model::team_color::yellow, cmd);
+  k.send(model::team_color::yellow, 1, {model::command::kick_type_t::chip, 4}, 2, 0, 0, -1);
   {
     BOOST_TEST(rc.last_value.has_value());
 

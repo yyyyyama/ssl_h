@@ -124,12 +124,24 @@ protected:
 };
 
 struct mock_radio : public radio::base::command {
-  std::vector<model::command> commands_;
+  std::vector<std::tuple<unsigned int, double, double, double>> commands_;
   model::team_color color_;
 
-  void send(model::team_color color, const model::command& command) {
-    commands_.push_back(command);
+  void send(model::team_color color, unsigned int id, const model::command::kick_flag_t&, int,
+            double vx, double vy, double omega) {
+    commands_.emplace_back(id, vx, vy, omega);
     color_ = color;
+  }
+};
+
+struct command_updated_handler {
+  std::vector<std::tuple<unsigned int, double, double, double>> commands;
+  model::team_color color;
+
+  void operator()(model::team_color c, unsigned int id, const model::command::kick_flag_t&, int,
+                  double vx, double vy, double omega) {
+    commands.emplace_back(id, vx, vy, omega);
+    color = c;
   }
 };
 
@@ -206,12 +218,16 @@ BOOST_AUTO_TEST_CASE(main_loop) {
   auto& s2    = *s2_ptr;
   d.register_robot(2, std::move(c2_ptr), std::move(s2_ptr));
 
+  command_updated_handler handler{};
+  d.on_command_updated(std::ref(handler));
+
   // ロボットが検出されていないとき命令は送信されない
   io_service.run_one();
   BOOST_TEST(!c1.executed_);
   BOOST_TEST(s1.commands_.empty());
   BOOST_TEST(!c2.executed_);
   BOOST_TEST(s2.commands_.empty());
+  BOOST_TEST(handler.commands.empty());
 
   // blue の ID 1 が見えるようにしてみる
   {
@@ -236,13 +252,11 @@ BOOST_AUTO_TEST_CASE(main_loop) {
   {
     BOOST_TEST(c1.executed_);
     BOOST_TEST(s1.commands_.size() == 1);
-    const auto& c = s1.commands_.back();
-    BOOST_TEST(c.id() == 1);
-    const auto v = std::get_if<ai_server::model::command::velocity_t>(&c.setpoint());
-    BOOST_TEST(v != nullptr);
-    BOOST_TEST(v->vx == 0);
-    BOOST_TEST(v->vy == 0);
-    BOOST_TEST(v->omega == 0);
+    const auto& [id, vx, vy, omega] = s1.commands_.back();
+    BOOST_TEST(id == 1);
+    BOOST_TEST(vx == 0);
+    BOOST_TEST(vy == 0);
+    BOOST_TEST(omega == 0);
     // コンストラクタのteam_colorの設定が反映されている
     BOOST_TEST(s1.color_ == model::team_color::blue);
     c1.executed_ = false;
@@ -250,6 +264,16 @@ BOOST_AUTO_TEST_CASE(main_loop) {
   }
   BOOST_TEST(!c2.executed_);
   BOOST_TEST(s2.commands_.empty());
+  {
+    BOOST_TEST(handler.commands.size() == 1);
+    const auto& [id, vx, vy, omega] = handler.commands.back();
+    BOOST_TEST(id == 1);
+    BOOST_TEST(vx == 0);
+    BOOST_TEST(vy == 0);
+    BOOST_TEST(omega == 0);
+    BOOST_TEST(handler.color == model::team_color::blue);
+    handler.commands.clear();
+  }
 
   // チームカラーを yellow に変更
   d.set_team_color(model::team_color::yellow);
@@ -260,6 +284,7 @@ BOOST_AUTO_TEST_CASE(main_loop) {
   BOOST_TEST(s1.commands_.empty());
   BOOST_TEST(!c2.executed_);
   BOOST_TEST(s2.commands_.empty());
+  BOOST_TEST(handler.commands.empty());
 
   // yellow の ID 1 が見えるようにしてみる
   {
@@ -283,13 +308,11 @@ BOOST_AUTO_TEST_CASE(main_loop) {
   {
     BOOST_TEST(c1.executed_);
     BOOST_TEST(s1.commands_.size() == 1);
-    const auto& c = s1.commands_.back();
-    BOOST_TEST(c.id() == 1);
-    const auto v = std::get_if<ai_server::model::command::velocity_t>(&c.setpoint());
-    BOOST_TEST(v != nullptr);
-    BOOST_TEST(v->vx == 0);
-    BOOST_TEST(v->vy == 0);
-    BOOST_TEST(v->omega == 0);
+    const auto& [id, vx, vy, omega] = s1.commands_.back();
+    BOOST_TEST(id == 1);
+    BOOST_TEST(vx == 0);
+    BOOST_TEST(vy == 0);
+    BOOST_TEST(omega == 0);
     // set_team_colorでのteam_colorの変更が反映されている
     BOOST_TEST(s1.color_ == model::team_color::yellow);
     c1.executed_ = false;
@@ -297,6 +320,16 @@ BOOST_AUTO_TEST_CASE(main_loop) {
   }
   BOOST_TEST(!c2.executed_);
   BOOST_TEST(s2.commands_.empty());
+  {
+    BOOST_TEST(handler.commands.size() == 1);
+    const auto& [id, vx, vy, omega] = handler.commands.back();
+    BOOST_TEST(id == 1);
+    BOOST_TEST(vx == 0);
+    BOOST_TEST(vy == 0);
+    BOOST_TEST(omega == 0);
+    BOOST_TEST(handler.color == model::team_color::yellow);
+    handler.commands.clear();
+  }
 
   // ID 1 の命令を更新してみる
   {
@@ -310,18 +343,26 @@ BOOST_AUTO_TEST_CASE(main_loop) {
   {
     BOOST_TEST(c1.executed_);
     BOOST_TEST(s1.commands_.size() == 1);
-    const auto& c = s1.commands_.back();
-    BOOST_TEST(c.id() == 1);
-    const auto v = std::get_if<ai_server::model::command::velocity_t>(&c.setpoint());
-    BOOST_TEST(v != nullptr);
-    BOOST_TEST(v->vx == 1);
-    BOOST_TEST(v->vy == 2);
-    BOOST_TEST(v->omega == 3);
+    const auto& [id, vx, vy, omega] = s1.commands_.back();
+    BOOST_TEST(id == 1);
+    BOOST_TEST(vx == 1);
+    BOOST_TEST(vy == 2);
+    BOOST_TEST(omega == 3);
     c1.executed_ = false;
     s1.commands_.clear();
   }
   BOOST_TEST(!c2.executed_);
   BOOST_TEST(s2.commands_.empty());
+  {
+    BOOST_TEST(handler.commands.size() == 1);
+    const auto& [id, vx, vy, omega] = handler.commands.back();
+    BOOST_TEST(id == 1);
+    BOOST_TEST(vx == 1);
+    BOOST_TEST(vy == 2);
+    BOOST_TEST(omega == 3);
+    BOOST_TEST(handler.color == model::team_color::yellow);
+    handler.commands.clear();
+  }
 
   // yellow の ID 2 も見えるようにしてみる
   {
@@ -345,28 +386,45 @@ BOOST_AUTO_TEST_CASE(main_loop) {
   {
     BOOST_TEST(c1.executed_);
     BOOST_TEST(s1.commands_.size() == 1);
-    const auto& c = s1.commands_.back();
-    BOOST_TEST(c.id() == 1);
-    const auto v = std::get_if<ai_server::model::command::velocity_t>(&c.setpoint());
-    BOOST_TEST(v != nullptr);
-    BOOST_TEST(v->vx == 1);
-    BOOST_TEST(v->vy == 2);
-    BOOST_TEST(v->omega == 3);
+    const auto& [id, vx, vy, omega] = s1.commands_.back();
+    BOOST_TEST(id == 1);
+    BOOST_TEST(vx == 1);
+    BOOST_TEST(vy == 2);
+    BOOST_TEST(omega == 3);
     c1.executed_ = false;
     s1.commands_.clear();
   }
   {
     BOOST_TEST(c2.executed_);
     BOOST_TEST(s2.commands_.size() == 1);
-    const auto& c = s2.commands_.back();
-    BOOST_TEST(c.id() == 2);
-    const auto v = std::get_if<ai_server::model::command::velocity_t>(&c.setpoint());
-    BOOST_TEST(v != nullptr);
-    BOOST_TEST(v->vx == 0);
-    BOOST_TEST(v->vy == 0);
-    BOOST_TEST(v->omega == 0);
+    const auto& [id, vx, vy, omega] = s2.commands_.back();
+    BOOST_TEST(id == 2);
+    BOOST_TEST(vx == 0);
+    BOOST_TEST(vy == 0);
+    BOOST_TEST(omega == 0);
     c2.executed_ = false;
     s2.commands_.clear();
+  }
+  {
+    BOOST_TEST(handler.color == model::team_color::yellow);
+    BOOST_TEST(handler.commands.size() == 2);
+
+    const auto& cmds = handler.commands;
+    const auto& c1 =
+        std::find_if(cmds.cbegin(), cmds.cend(), [](auto&& c) { return std::get<0>(c) == 1; });
+    BOOST_TEST((c1 != cmds.cend()));
+    BOOST_TEST(std::get<1>(*c1) == 1);
+    BOOST_TEST(std::get<2>(*c1) == 2);
+    BOOST_TEST(std::get<3>(*c1) == 3);
+
+    const auto& c2 =
+        std::find_if(cmds.cbegin(), cmds.cend(), [](auto&& c) { return std::get<0>(c) == 2; });
+    BOOST_TEST((c2 != cmds.cend()));
+    BOOST_TEST(std::get<1>(*c2) == 0);
+    BOOST_TEST(std::get<2>(*c2) == 0);
+    BOOST_TEST(std::get<3>(*c2) == 0);
+
+    handler.commands.clear();
   }
 }
 
@@ -405,7 +463,7 @@ BOOST_AUTO_TEST_CASE(main_loop2) {
   {
     BOOST_TEST(c1.executed_);
     const auto& c = s1.commands_.back();
-    BOOST_TEST(c.id() == 1);
+    BOOST_TEST(std::get<0>(c) == 1);
 
     // field が正しく渡されているか
     BOOST_TEST(c1.field_.length() == 9000);
@@ -430,7 +488,7 @@ BOOST_AUTO_TEST_CASE(main_loop2) {
   {
     BOOST_TEST(c1.executed_);
     const auto& c = s1.commands_.back();
-    BOOST_TEST(c.id() == 1);
+    BOOST_TEST(std::get<0>(c) == 1);
 
     // field が正しく渡されているか
     BOOST_TEST(c1.field_.length() == 18000);

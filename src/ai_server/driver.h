@@ -26,7 +26,9 @@ class driver {
   /// Driverで行う処理で必要となる各ロボットの情報の型
   using metadata_type = std::tuple<model::command, controller_type, radio_type>;
   /// Commandが更新された(Controllerを通された)ときに発火するシグナルの型
-  using updated_signal_type = boost::signals2::signal<void(const model::command&)>;
+  using updated_signal_type = boost::signals2::signal<void(
+      model::team_color color, unsigned int id, const model::command::kick_flag_t& kick_flag,
+      int dribble, double vx, double vy, double omega)>;
 
 public:
   /// @param cycle            制御周期

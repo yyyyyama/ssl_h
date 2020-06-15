@@ -11,10 +11,17 @@ class command {
 public:
   virtual ~command() = default;
 
-  /// @brief         ロボットへ命令を送信する
-  /// @param color   チームカラー
-  /// @param command ロボットへの命令
-  virtual void send(model::team_color color, const model::command& command) = 0;
+  /// @brief            ロボットへ命令を送信する
+  /// @param color      チームカラー
+  /// @param id         ロボットの ID
+  /// @param kick_flag  キッカーへの命令
+  /// @param dribble    ドリブラーへの命令
+  /// @param vx         x 軸方向の速度
+  /// @param vy         y 軸方向の速度
+  /// @param omega      角速度
+  virtual void send(model::team_color color, unsigned int id,
+                    const model::command::kick_flag_t& kick_flag, int dribble, double vx,
+                    double vy, double omega) = 0;
 };
 
 /// シミュレータの制御コマンドの送信

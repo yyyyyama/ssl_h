@@ -24,21 +24,18 @@ struct mock_connection {
 };
 
 struct wrapper : public radio::grsim<mock_connection> {
-  static ssl_protos::grsim::Command convert2(const model::command cmd) {
+  static ssl_protos::grsim::Command convert2(unsigned int id,
+                                             const model::command::kick_flag_t& kick_flag,
+                                             int dribble, double vx, double vy, double omega) {
     ssl_protos::grsim::Command c{};
-    convert(cmd, c);
+    convert(id, kick_flag, dribble, vx, vy, omega, c);
     return c;
   }
 };
 
 BOOST_AUTO_TEST_CASE(to_gr_command) {
-  model::command cmd{123};
-  cmd.set_dribble(456);
-  cmd.set_kick_flag({model::command::kick_type_t::none, 0});
-  cmd.set_velocity({7, 8, 9});
-
   {
-    const auto c = wrapper::convert2(cmd);
+    const auto c = wrapper::convert2(123, {model::command::kick_type_t::none, 0}, 456, 4, 8, 9);
 
     BOOST_TEST(c.id() == 123);
 
@@ -53,29 +50,26 @@ BOOST_AUTO_TEST_CASE(to_gr_command) {
     BOOST_TEST(!c.wheelsspeed());
   }
 
-  cmd.set_dribble(0);
   {
-    const auto c = wrapper::convert2(cmd);
+    const auto c = wrapper::convert2(123, {model::command::kick_type_t::none, 0}, 0, 4, 8, 9);
     BOOST_TEST(!c.spinner());
   }
 
-  cmd.set_kick_flag({model::command::kick_type_t::line, 321});
   {
-    const auto c = wrapper::convert2(cmd);
+    const auto c = wrapper::convert2(123, {model::command::kick_type_t::line, 321}, 0, 4, 8, 9);
     BOOST_TEST(c.kickspeedx() == 321);
     BOOST_TEST(c.kickspeedz() == 0);
   }
 
-  cmd.set_kick_flag({model::command::kick_type_t::chip, 654});
   {
-    const auto c = wrapper::convert2(cmd);
+    const auto c = wrapper::convert2(123, {model::command::kick_type_t::chip, 654}, 0, 4, 8, 9);
     BOOST_TEST(c.kickspeedx() == 0);
     BOOST_TEST(c.kickspeedz() == 654);
   }
 
-  cmd.set_kick_flag({model::command::kick_type_t::backspin, 987});
   {
-    const auto c = wrapper::convert2(cmd);
+    const auto c =
+        wrapper::convert2(123, {model::command::kick_type_t::backspin, 987}, 0, 4, 8, 9);
     BOOST_TEST(c.kickspeedx() == 0);
     BOOST_TEST(c.kickspeedz() == 987);
   }
@@ -88,7 +82,7 @@ BOOST_AUTO_TEST_CASE(send_command) {
 
   BOOST_TEST(!rc.last_value.has_value());
 
-  g.send(model::team_color::yellow, model::command{123});
+  g.send(model::team_color::yellow, 123, {model::command::kick_type_t::none, 0}, 0, 0, 0, 0);
   {
     BOOST_TEST(rc.last_value.has_value());
 
@@ -108,7 +102,7 @@ BOOST_AUTO_TEST_CASE(send_command) {
 
   rc.last_value.reset();
 
-  g.send(model::team_color::blue, model::command{456});
+  g.send(model::team_color::blue, 456, {model::command::kick_type_t::none, 0}, 0, 0, 0, 0);
   {
     BOOST_TEST(rc.last_value.has_value());
 
