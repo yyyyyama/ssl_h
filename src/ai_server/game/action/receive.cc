@@ -45,7 +45,7 @@ model::command receive::execute() {
   // 既定のキックパワー
   constexpr int kick_power = 50;
   //それぞれ自機を生成
-  model::command command(id_);
+  model::command command{};
   const auto our_robots = model::our_robots(world(), team_color());
   if (!our_robots.count(id_)) return command;
   const auto& robot               = our_robots.at(id_);

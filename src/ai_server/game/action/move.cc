@@ -48,7 +48,7 @@ Eigen::Vector3d move::target() const {
 model::command move::execute() {
   const auto our_robot_team = model::our_robots(world(), team_color());
   const auto robot_p        = util::math::position3d(our_robot_team.at(id_));
-  model::command command(id_);
+  model::command command{};
 
   //ロボットが指定位置に存在するか
   finished_ = (robot_p - target_).head<2>().norm() <= margin_.position &&

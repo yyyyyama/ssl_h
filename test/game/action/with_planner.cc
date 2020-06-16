@@ -31,7 +31,7 @@ struct mock_planner : public planner::base {
 };
 
 struct stub_action : public action::base {
-  stub_action(game::context& ctx, unsigned int id) : base{ctx, id}, cmd{id} {}
+  stub_action(game::context& ctx, unsigned int id) : base{ctx, id}, cmd{} {}
 
   bool f;
   bool finished() const override {
@@ -78,8 +78,6 @@ BOOST_AUTO_TEST_CASE(execute) {
     a->cmd.set_velocity(1, 2, 3);
     const auto cmd = b->execute();
 
-    BOOST_TEST(cmd.id() == 123);
-
     auto sp  = cmd.setpoint_pair();
     auto& v  = std::get<model::setpoint::velocity>(std::get<0>(sp));
     auto& va = std::get<model::setpoint::velangular>(std::get<1>(sp));
@@ -92,8 +90,6 @@ BOOST_AUTO_TEST_CASE(execute) {
   {
     a->cmd.set_position(4, 5);
     const auto cmd = b->execute();
-
-    BOOST_TEST(cmd.id() == 123);
 
     // planner の引数に現在地、目標座標が渡されている
     BOOST_TEST(p.from.x() == 100);

@@ -272,7 +272,7 @@ private:
           auto actions = agent->execute();
           for (auto action : actions) {
             auto command = action->execute();
-            driver_.update_command(command);
+            driver_.update_command(action->id(), command);
           }
         }
 
@@ -288,7 +288,7 @@ private:
     {
       std::unique_lock lock{mutex_};
       for (const auto& id : active_robots_) {
-        driver_.update_command(model::command{id});
+        driver_.update_command(id, {});
       }
     }
 

@@ -64,7 +64,7 @@ model::command kick::execute() {
   //ボールとロボットの間の距離
   const double dist = 350;
   //送りたいロボットを指定
-  model::command command(id_);
+  model::command command{};
 
   // executeが呼ばれる間にボールがこれだけ移動したら蹴ったと判定する長さ(mm)
   const double kick_decision = 550;

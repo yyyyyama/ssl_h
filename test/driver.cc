@@ -52,12 +52,9 @@ BOOST_AUTO_TEST_CASE(register_robot) {
   ai_server::model::updater::world wu{};
   ai_server::driver d{io_service, std::chrono::seconds{1}, wu, model::team_color::yellow};
 
-  ai_server::model::command cmd0{0};
-  ai_server::model::command cmd1{1};
-
   // ロボットが登録されていない状態でupdate_command()を呼ぶとエラー
-  BOOST_CHECK_THROW(d.update_command(cmd0), std::runtime_error);
-  BOOST_CHECK_THROW(d.update_command(cmd1), std::runtime_error);
+  BOOST_CHECK_THROW(d.update_command(0, {}), std::runtime_error);
+  BOOST_CHECK_THROW(d.update_command(1, {}), std::runtime_error);
 
   // まだ登録されていない
   BOOST_TEST(!d.registered(0));
@@ -65,21 +62,21 @@ BOOST_AUTO_TEST_CASE(register_robot) {
 
   // ID0のロボットを登録
   BOOST_CHECK_NO_THROW(d.register_robot(0, nullptr, nullptr));
-  BOOST_CHECK_NO_THROW(d.update_command(cmd0));
+  BOOST_CHECK_NO_THROW(d.update_command(0, {}));
   BOOST_TEST(d.registered(0));
 
   // ID1のロボットを登録
   BOOST_CHECK_NO_THROW(d.register_robot(1, nullptr, nullptr));
-  BOOST_CHECK_NO_THROW(d.update_command(cmd1));
+  BOOST_CHECK_NO_THROW(d.update_command(1, {}));
   BOOST_TEST(d.registered(1));
 
   // 登録したロボットが正常に削除されるか
   d.unregister_robot(0);
-  BOOST_CHECK_THROW(d.update_command(cmd0), std::runtime_error);
-  BOOST_CHECK_NO_THROW(d.update_command(cmd1));
+  BOOST_CHECK_THROW(d.update_command(0, {}), std::runtime_error);
+  BOOST_CHECK_NO_THROW(d.update_command(1, {}));
   BOOST_TEST(!d.registered(0));
   d.unregister_robot(1);
-  BOOST_CHECK_THROW(d.update_command(cmd1), std::runtime_error);
+  BOOST_CHECK_THROW(d.update_command(1, {}), std::runtime_error);
   BOOST_TEST(!d.registered(1));
 }
 
@@ -333,9 +330,9 @@ BOOST_AUTO_TEST_CASE(main_loop) {
 
   // ID 1 の命令を更新してみる
   {
-    model::command c{1};
+    model::command c{};
     c.set_velocity({1, 2, 3});
-    d.update_command(c);
+    d.update_command(1, c);
   }
 
   // ID 1 に対して命令が送られる

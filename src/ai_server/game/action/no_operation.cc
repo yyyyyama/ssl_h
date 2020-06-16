@@ -5,7 +5,7 @@ namespace game {
 namespace action {
 
 model::command no_operation::execute() {
-  return model::command{id_};
+  return {};
 }
 
 bool no_operation::finished() const {

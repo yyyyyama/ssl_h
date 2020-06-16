@@ -37,9 +37,8 @@ public:
   using setpoint_t  = std::variant<position_t, velocity_t>;
   using kick_flag_t = std::tuple<kick_type_t, double>;
 
-  explicit command(unsigned int id);
+  command();
 
-  unsigned int id() const;
   int dribble() const;
   kick_flag_t kick_flag() const;
   const setpoint_t& setpoint() const;
@@ -120,7 +119,6 @@ public:
   }
 
 private:
-  unsigned int id_;
   int dribble_;
   kick_flag_t kick_flag_;
 

@@ -30,7 +30,7 @@ int goal_keep::dribble() const {
 }
 model::command goal_keep::execute() {
   //それぞれ自機を生成
-  model::command command(id_);
+  model::command command{};
 
   command.set_kick_flag(kick_type_);
   command.set_dribble(dribble_);

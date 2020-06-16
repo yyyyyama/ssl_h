@@ -50,7 +50,7 @@ int guard::dribble() const {
 }
 model::command guard::execute() {
   //それぞれ自機を生成
-  model::command command(id_);
+  model::command command{};
 
   //キックフラグを立てて置く
   command.set_kick_flag(kick_type_);

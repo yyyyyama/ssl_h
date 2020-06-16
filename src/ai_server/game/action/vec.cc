@@ -11,7 +11,7 @@ void vec::move_to(double vx, double vy, double omega) {
 }
 
 model::command vec::execute() {
-  model::command command{id_};
+  model::command command{};
 
   command.set_velocity(vx_, vy_, omega_);
 

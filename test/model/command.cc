@@ -9,9 +9,8 @@ BOOST_AUTO_TEST_SUITE(command)
 
 // command getter and initialization check
 BOOST_AUTO_TEST_CASE(test01) {
-  ai_server::model::command command{0};
+  ai_server::model::command command{};
 
-  BOOST_TEST(command.id() == 0);
   BOOST_TEST(command.dribble() == 0);
   auto kick_flag_test = command.kick_flag();
   BOOST_TEST(std::get<0>(kick_flag_test) == ai_server::model::command::kick_type_t::none);
@@ -26,7 +25,7 @@ BOOST_AUTO_TEST_CASE(test01) {
 
 // command setter check
 BOOST_AUTO_TEST_CASE(test02) {
-  ai_server::model::command command{0};
+  ai_server::model::command command{};
 
   command.set_dribble(1);
   BOOST_TEST(command.dribble() == 1);
@@ -53,7 +52,7 @@ BOOST_AUTO_TEST_CASE(test02) {
 }
 
 BOOST_AUTO_TEST_CASE(new_if) {
-  ai_server::model::command cmd{0};
+  ai_server::model::command cmd{};
 
   // 座標と角速度が設定された状態で setpoint() を呼んだら例外
   cmd.set_position(123, 456);

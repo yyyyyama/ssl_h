@@ -71,7 +71,7 @@ void get_ball::set_chip(bool chip) {
 }
 
 model::command get_ball::execute() {
-  model::command command{id_};
+  model::command command{};
   const auto our_robots   = model::our_robots(world(), team_color());
   const auto enemy_robots = model::enemy_robots(world(), team_color());
   if (!our_robots.count(id_)) return command;

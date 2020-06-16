@@ -13,7 +13,7 @@ rush::rush(context& ctx, unsigned int id)
       previous_kick_ball_(world().ball()) {}
 
 model::command rush::execute() {
-  model::command command(id_);
+  model::command command{};
 
   const auto robots = model::our_robots(world(), team_color());
   const auto ball   = world().ball();

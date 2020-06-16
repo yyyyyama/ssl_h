@@ -20,7 +20,7 @@ turn_kick::turn_kick(context& ctx, unsigned int id)
 
 model::command turn_kick::execute() {
   using boost::math::constants::pi;
-  model::command command(id_);
+  model::command command{};
 
   const auto robots = model::our_robots(world(), team_color());
   const auto ball   = world().ball();

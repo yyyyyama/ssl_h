@@ -12,7 +12,7 @@ void chase_ball::set_target(double x, double y) {
 }
 
 model::command chase_ball::execute() {
-  model::command command(id_);
+  model::command command{};
   const auto fri_robots = model::our_robots(world(), team_color());
   const auto& robot     = fri_robots.at(id_);
 

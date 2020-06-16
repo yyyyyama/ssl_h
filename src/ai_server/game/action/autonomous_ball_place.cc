@@ -35,7 +35,7 @@ void autonomous_ball_place::set_kick_type(const model::command::kick_flag_t& kic
 }
 
 model::command autonomous_ball_place::execute() {
-  model::command command{id_};
+  model::command command{};
   const auto our_robots           = model::our_robots(world(), team_color());
   const auto& robot               = our_robots.at(id_);
   const auto ball                 = world().ball();

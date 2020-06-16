@@ -5,18 +5,13 @@
 namespace ai_server {
 namespace model {
 
-command::command(unsigned int id)
-    : id_(id),
-      dribble_(0),
+command::command()
+    : dribble_(0),
       kick_flag_(command::kick_type_t::none, 0.0),
       setpoint_(std::in_place_type<setpoint::velocity>, 0.0, 0.0,
                 setpoint::phantom::velocity{}),
       setpoint_rot_(std::in_place_type<setpoint::velangular>, 0.0,
                     setpoint::phantom::velangular{}) {}
-
-unsigned int command::id() const {
-  return id_;
-}
 
 int command::dribble() const {
   return dribble_;

@@ -28,7 +28,7 @@ model::command marking::execute() {
   using boost::math::constants::pi;
 
   //それぞれ自機と敵機を生成
-  model::command ally_robot(id_);
+  model::command ally_robot{};
   const auto enemy_robots = model::enemy_robots(world(), team_color());
   const auto my_robots    = model::our_robots(world(), team_color());
   //指定されたロボットが見えなかったらその位置で停止

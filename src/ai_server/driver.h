@@ -59,8 +59,9 @@ public:
   bool registered(unsigned int id) const;
 
   /// @brief                  ロボットへの命令を更新する
+  /// @param id               ロボットのID
   /// @param command          ロボットへの命令
-  void update_command(const model::command& command);
+  void update_command(unsigned int id, const model::command& command);
 
   /// @brief                  commandが更新されたときに呼ばれる関数を登録する
   /// @param slot             commandが更新されたときに呼びたい関数
@@ -79,7 +80,7 @@ private:
   void main_loop(const boost::system::error_code& error);
 
   /// @brief                  ロボットへの命令をControllerを通してから送信する
-  void process(const model::world& world, metadata_type& metadata);
+  void process(unsigned int id, metadata_type& metadata, const model::world& world);
 
   mutable std::mutex mutex_;
 

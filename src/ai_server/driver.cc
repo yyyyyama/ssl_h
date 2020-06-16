@@ -42,7 +42,8 @@ void driver::set_stable(const bool stable) {
 void driver::register_robot(unsigned int id, controller_type controller, radio_type radio) {
   std::lock_guard<std::mutex> lock(mutex_);
   robots_metadata_.emplace(
-      id, std::forward_as_tuple(model::command{id}, std::move(controller), std::move(radio)));
+      std::piecewise_construct, std::forward_as_tuple(id),
+      std::forward_as_tuple(model::command{}, std::move(controller), std::move(radio)));
 }
 
 void driver::unregister_robot(unsigned int id) {
@@ -55,11 +56,10 @@ bool driver::registered(unsigned int id) const {
   return robots_metadata_.count(id);
 }
 
-void driver::update_command(const model::command& command) {
+void driver::update_command(unsigned int id, const model::command& command) {
   std::lock_guard<std::mutex> lock(mutex_);
 
   // ロボットが登録されていなかったらエラー
-  const auto id = command.id();
   if (auto it = robots_metadata_.find(id); it != robots_metadata_.end()) {
     std::get<0>(it->second) = command;
   } else {
@@ -82,17 +82,16 @@ void driver::main_loop(const boost::system::error_code& error) {
   const auto world = world_.value();
 
   // 登録されたロボットの命令をControllerを通してから送信する
-  for (auto&& meta : robots_metadata_) process(world, meta.second);
+  for (auto&& [id, meta] : robots_metadata_) process(id, meta, world);
 
   // 処理の開始時刻からcycle_経過した後に再度main_loop()が呼び出されるように設定
   timer_.expires_at(start_time + cycle_);
   timer_.async_wait([this](auto&& error) { main_loop(std::forward<decltype(error)>(error)); });
 }
 
-void driver::process(const model::world& world, metadata_type& metadata) {
+void driver::process(unsigned int id, metadata_type& metadata, const model::world& world) {
   auto& [command, controller, radio] = metadata;
 
-  const auto id = command.id();
   const auto robots =
       static_cast<bool>(team_color_) ? world.robots_yellow() : world.robots_blue();
 
