@@ -2,7 +2,6 @@
 #define AI_SERVER_FILTER_STATE_OBSERVER_ROBOT_H
 
 #include "ai_server/filter/base.h"
-#include "ai_server/model/command.h"
 #include "ai_server/model/robot.h"
 #include <Eigen/Core>
 #include <array>
@@ -35,9 +34,10 @@ public:
   explicit robot(own_type::writer_func_type wf, std::chrono::system_clock::duration time);
 
   /// @brief       オブザーバの状態更新
-  /// @param controller_input  制御入力
+  /// @param vx    制御入力 (x 軸方向の速度)
+  /// @param vy    制御入力 (y 軸方向の速度)
   /// @return      オブザーバを通したロボットの情報
-  void observe(const model::command& controller_input);
+  void observe(double vx, double vy);
 
   void set_raw_value(std::optional<model::robot> value,
                      std::chrono::system_clock::time_point time) override;

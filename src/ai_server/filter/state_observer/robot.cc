@@ -18,7 +18,7 @@ robot::robot(own_type::writer_func_type wf, std::chrono::system_clock::duration 
   x_hat_.fill(decltype(x_hat_)::value_type::Zero());
 }
 
-void robot::observe(const model::command& controller_input) {
+void robot::observe(double vx, double vy) {
   const auto A = (Eigen::Matrix<double, 3, 3>{} << 0, 1, 0, // a11, a12, a13
                   0, 0, 1,                                  // a21, a22, a23
                   0, -decay_vel_, -decay_acc_               // a31, a32, a33
@@ -35,7 +35,6 @@ void robot::observe(const model::command& controller_input) {
   const auto h = (Eigen::Matrix<double, 3, 1>{} << h1, h2,
                   std::pow(lambda_robot_observer_, 3) - decay_vel_ * h1 - decay_acc_ * h2)
                      .finished();
-  const auto velocity_t = std::get<model::command::velocity_t>(controller_input.setpoint());
 
   // 観測した時間からlost_duration_経過していたらロストさせる
   if (std::chrono::system_clock::now() - capture_time_ > lost_duration_) {
@@ -61,7 +60,7 @@ void robot::observe(const model::command& controller_input) {
   Eigen::Matrix<double, 3, 1> x_hat_dot;
   // x軸方向
   // 時間更新
-  x_hat_[0] += (A * x_hat_[0] + B * velocity_t.vx) * passed_time;
+  x_hat_[0] += (A * x_hat_[0] + B * vx) * passed_time;
   // 観測情報に基づき補正
   const auto error_x = C * x_hat_[0] - robot.x();
   x_hat_dot          = -h * error_x;
@@ -73,7 +72,7 @@ void robot::observe(const model::command& controller_input) {
 
   // y軸方向
   // 時間更新
-  x_hat_[1] += (A * x_hat_[1] + B * velocity_t.vy) * passed_time;
+  x_hat_[1] += (A * x_hat_[1] + B * vy) * passed_time;
   // 観測情報に基づき補正
   const auto error_y = C * x_hat_[1] - robot.y();
   x_hat_dot          = -h * error_y;

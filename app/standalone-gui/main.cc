@@ -22,6 +22,7 @@
 #include "ai_server/controller/state_feedback.h"
 #include "ai_server/driver.h"
 #include "ai_server/filter/state_observer/ball.h"
+#include "ai_server/filter/state_observer/robot.h"
 #include "ai_server/filter/va_calculator.h"
 #include "ai_server/game/context.h"
 #include "ai_server/game/formation/first_formation.h"
@@ -64,9 +65,16 @@ enum class dir { right, left };
 // 基本設定
 // --------------------------------
 
+// チームの最大のロボット数 (ID 0 ~ ID max_robots - 1 の機体を使う)
+static constexpr std::size_t max_robots = 12;
+
 // WorldModelの設定
 static constexpr auto use_va_filter = true; // ロボットの速度/加速度を計算する
 static constexpr auto use_ball_observer = true; // ボールの状態オブザーバを有効にする
+
+// ロボットの状態オブザーバの設定
+static constexpr auto use_robot_observer = false; // 自チームのロボットでは状態オブザーバを使う
+static constexpr auto lost_duration = 1s; // ロスト判定するまでの時間
 
 // Visionの設定
 static constexpr char vision_address[] = "224.5.23.2";
@@ -127,12 +135,20 @@ public:
         active_robots_{0u, 1u, 2u, 3u, 4u, 5u, 6u, 7u},
         driver_{driver},
         radio_{radio} {
+    auto lock = driver_.lock();
     driver_.set_team_color(team_color_);
 
     for (auto id : active_robots_) {
       constexpr auto cycle_count = std::chrono::duration<double>(cycle).count();
       auto controller            = std::make_unique<controller::state_feedback>(cycle_count);
       driver_.register_robot(id, std::move(controller), radio_);
+    }
+
+    if constexpr (use_robot_observer) {
+      reset_state_observers();
+      on_command_updated_connection_ = driver_.on_command_updated([this](auto&&... args) {
+        handle_command_updated(std::forward<decltype(args)>(args)...);
+      });
     }
   }
 
@@ -163,7 +179,10 @@ public:
   }
 
   void set_active_robots(const std::vector<unsigned int>& ids) {
-    std::unique_lock lock{mutex_};
+    auto lock1 = std::unique_lock{mutex_, std::defer_lock};
+    auto lock2 = driver_.lock(std::defer_lock);
+    std::lock(lock1, lock2);
+
     bool changed = false;
     // register new robots
     for (auto id : ids) {
@@ -171,6 +190,7 @@ public:
         constexpr auto cycle_count = std::chrono::duration<double>(cycle).count();
         auto controller            = std::make_unique<controller::state_feedback>(cycle_count);
         driver_.register_robot(id, std::move(controller), radio_);
+        if constexpr (use_robot_observer) set_state_observer(id);
         changed = true;
       }
     }
@@ -178,6 +198,7 @@ public:
     for (auto id : active_robots_) {
       if (std::find(ids.cbegin(), ids.cend(), id) == ids.cend()) {
         driver_.unregister_robot(id);
+        if constexpr (use_robot_observer) clear_state_observer(id);
         changed = true;
       }
     }
@@ -190,11 +211,15 @@ public:
   }
 
   void set_team_color(model::team_color color) {
-    std::unique_lock lock{mutex_};
+    auto lock1 = std::unique_lock{mutex_, std::defer_lock};
+    auto lock2 = driver_.lock(std::defer_lock);
+    std::lock(lock1, lock2);
+
     if (team_color_ != color) {
       driver_.set_team_color(color);
       team_color_ = color;
       need_reset_ = true;
+      if constexpr (use_robot_observer) reset_state_observers();
     }
   }
 
@@ -295,6 +320,52 @@ private:
     l_.info("game stopped!");
   }
 
+  // id の state_observer を初期化する
+  void set_state_observer(unsigned int id) {
+    auto f = [this, id](auto& updater) {
+      state_observers_[id] =
+          updater.template set_filter<filter::state_observer::robot>(id, lost_duration);
+    };
+    if (team_color_ == model::team_color::yellow) {
+      f(updater_world_.robots_yellow_updater());
+    } else {
+      f(updater_world_.robots_blue_updater());
+    }
+  }
+
+  // state_observer を (再) 初期化する
+  void reset_state_observers() {
+    if (team_color_ == model::team_color::yellow) {
+      updater_world_.robots_blue_updater().clear_all_filters();
+    } else {
+      updater_world_.robots_yellow_updater().clear_all_filters();
+    }
+    for (auto id : active_robots_) {
+      set_state_observer(id);
+    }
+  }
+
+  // id の state_observer を解除する
+  void clear_state_observer(unsigned int id) {
+    if (team_color_ == model::team_color::yellow) {
+      updater_world_.robots_yellow_updater().clear_filter(id);
+    } else {
+      updater_world_.robots_blue_updater().clear_filter(id);
+    }
+  }
+
+  // contrtoller が新しい値を出力したときの処理
+  void handle_command_updated(model::team_color, unsigned int id,
+                              const model::command::kick_flag_t&, int, double vx, double vy,
+                              double) {
+    if (auto p = state_observers_.at(id).lock()) {
+      p->observe(vx, vy);
+    } else {
+      l_.warn(fmt::format("state_observer for id {} is not initialized / already dead", id));
+      return;
+    }
+  }
+
   mutable std::mutex mutex_;
   std::condition_variable cv_;
   std::atomic<bool> running_;
@@ -314,6 +385,9 @@ private:
   std::shared_ptr<radio::base::command> radio_;
 
   std::thread game_thread_;
+
+  boost::signals2::connection on_command_updated_connection_;
+  std::array<std::weak_ptr<filter::state_observer::robot>, max_robots> state_observers_;
 
   logger::logger_for<game_runner> l_;
 };
@@ -349,7 +423,7 @@ public:
       robots_.set_label("Active robots");
       robots_id_box_.set_border_width(4);
       robots_id_box_.set_max_children_per_line(6);
-      for (auto i = 0u; i < 12; ++i) {
+      for (auto i = 0u; i < max_robots; ++i) {
         robots_cb_.emplace_back(std::to_string(i));
         robots_id_box_.add(robots_cb_.back());
       }
@@ -430,7 +504,7 @@ private:
 
   void init_check_buttons() {
     auto robots = runner_.active_robots();
-    for (auto i = 0u; i < 12; ++i) {
+    for (auto i = 0u; i < max_robots; ++i) {
       auto& cb = robots_cb_.at(i);
       cb.set_active(std::find(robots.cbegin(), robots.cend(), i) != robots.cend());
       cb.signal_toggled().connect(

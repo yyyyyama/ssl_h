@@ -5,7 +5,6 @@
 #include <Eigen/Core>
 
 #include "ai_server/filter/state_observer/robot.h"
-#include "ai_server/model/command.h"
 #include "ai_server/model/robot.h"
 
 using namespace std::chrono_literals;
@@ -36,14 +35,12 @@ BOOST_AUTO_TEST_CASE(rest, *boost::unit_test::tolerance(0.1)) {
 
   filter::state_observer::robot obs{wr, 1s};
 
-  model::command command{};
-
   for (const auto& robot : robot_positions) {
     // 状態オブザーバを20ms * 500回更新する
     for (auto i = 0u; i < 500; ++i) {
       t += 20ms;
       obs.set_raw_value(robot, t);
-      obs.observe(command);
+      obs.observe(0, 0);
     }
 
     // それっぽい値が返ってくるか
@@ -74,10 +71,8 @@ BOOST_AUTO_TEST_CASE(move, *boost::unit_test::tolerance(5.0)) {
     // 状態オブザーバを20ms * 1000回更新する
     for (auto i = 0u; i < 1000; ++i) {
       t += 20ms;
-      model::command command{};
-      command.set_velocity(vel.x(), vel.y(), vel.z());
       obs.set_raw_value(r, t);
-      obs.observe(command);
+      obs.observe(vel.x(), vel.y());
       r.set_x(r.x() + vel.x() * 0.02);
       r.set_y(r.y() + vel.y() * 0.02);
     }
