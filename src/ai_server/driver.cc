@@ -15,12 +15,12 @@ driver::driver(boost::asio::io_context& io_context, std::chrono::steady_clock::d
 }
 
 model::team_color driver::team_color() const {
-  std::lock_guard<std::mutex> lock(mutex_);
+  std::unique_lock lock(mutex_);
   return team_color_;
 }
 
 void driver::set_team_color(model::team_color color) {
-  std::lock_guard<std::mutex> lock(mutex_);
+  std::unique_lock lock(mutex_);
   team_color_ = color;
 }
 
@@ -30,34 +30,34 @@ boost::signals2::connection driver::on_command_updated(
 }
 
 void driver::set_velocity_limit(double limit) {
-  std::lock_guard<std::mutex> lock(mutex_);
+  std::unique_lock lock(mutex_);
   for (auto&& meta : robots_metadata_) std::get<1>(meta.second)->set_velocity_limit(limit);
 }
 
 void driver::set_stable(const bool stable) {
-  std::lock_guard<std::mutex> lock(mutex_);
+  std::unique_lock lock(mutex_);
   for (auto&& meta : robots_metadata_) std::get<1>(meta.second)->set_stable(stable);
 }
 
 void driver::register_robot(unsigned int id, controller_type controller, radio_type radio) {
-  std::lock_guard<std::mutex> lock(mutex_);
+  std::unique_lock lock(mutex_);
   robots_metadata_.emplace(
       std::piecewise_construct, std::forward_as_tuple(id),
       std::forward_as_tuple(model::command{}, std::move(controller), std::move(radio)));
 }
 
 void driver::unregister_robot(unsigned int id) {
-  std::lock_guard<std::mutex> lock(mutex_);
+  std::unique_lock lock(mutex_);
   robots_metadata_.erase(id);
 }
 
 bool driver::registered(unsigned int id) const {
-  std::lock_guard<std::mutex> lock(mutex_);
+  std::unique_lock lock(mutex_);
   return robots_metadata_.count(id);
 }
 
 void driver::update_command(unsigned int id, const model::command& command) {
-  std::lock_guard<std::mutex> lock(mutex_);
+  std::unique_lock lock(mutex_);
 
   // ロボットが登録されていなかったらエラー
   if (auto it = robots_metadata_.find(id); it != robots_metadata_.end()) {
@@ -76,7 +76,7 @@ void driver::main_loop(const boost::system::error_code& error) {
   // 処理の開始時刻を記録
   const auto start_time = std::chrono::steady_clock::now();
 
-  std::lock_guard<std::mutex> lock(mutex_);
+  std::unique_lock lock(mutex_);
 
   // このループでのWorldModelを生成
   const auto world = world_.value();

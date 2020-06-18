@@ -75,6 +75,13 @@ public:
   /// @param stable           true->安定,false->通常
   void set_stable(const bool stable);
 
+  /// @brief                  mutex_ をロックする
+  /// @param args             unique_lock へ渡す追加の引数
+  template <class... Args>
+  auto lock(Args&&... args) const {
+    return std::unique_lock{mutex_, std::forward<Args>(args)...};
+  }
+
 private:
   /// @brief                  cycle_毎に呼ばれる制御部のメインループ
   void main_loop(const boost::system::error_code& error);
@@ -82,7 +89,7 @@ private:
   /// @brief                  ロボットへの命令をControllerを通してから送信する
   void process(unsigned int id, metadata_type& metadata, const model::world& world);
 
-  mutable std::mutex mutex_;
+  mutable std::recursive_mutex mutex_;
 
   /// 制御部の処理を一定の周期で回すためのタイマ
   boost::asio::steady_timer timer_;
