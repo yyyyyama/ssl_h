@@ -1,5 +1,6 @@
 #define BOOST_TEST_DYN_LINK
 
+#include <cmath>
 #include <memory>
 #include <unordered_map>
 
@@ -73,22 +74,30 @@ BOOST_AUTO_TEST_CASE(execute) {
     BOOST_TEST(!b->finished());
   }
 
-  // setpoint が速度のときは何もしない
+  // setpoint が速度のときは setpoint の大きさで planner が算出した位置の方向の速度が出力される
   {
-    a->cmd.set_velocity(1, 2, 3);
+    a->cmd.set_velocity(3, 4);
+    a->cmd.set_angle(5);
     const auto cmd = b->execute();
 
-    auto sp  = cmd.setpoint_pair();
-    auto& v  = std::get<model::setpoint::velocity>(std::get<0>(sp));
-    auto& va = std::get<model::setpoint::velangular>(std::get<1>(sp));
-    BOOST_TEST(std::get<0>(v) == 1);
-    BOOST_TEST(std::get<1>(v) == 2);
-    BOOST_TEST(std::get<0>(va) == 3);
+    // planner の引数に現在地が渡されている
+    BOOST_TEST(p.from.x() == 100);
+    BOOST_TEST(p.from.y() == 200);
+
+    // planner を通した値が出力される
+    // setpoint は速度・角度が混在していても Ok
+    auto sp = cmd.setpoint_pair();
+    auto& v = std::get<model::setpoint::velocity>(std::get<0>(sp));
+    auto& a = std::get<model::setpoint::angle>(std::get<1>(sp));
+    BOOST_TEST(std::get<0>(v) == std::hypot(3, 4) * 10 / std::hypot(10, 20));
+    BOOST_TEST(std::get<1>(v) == std::hypot(3, 4) * 20 / std::hypot(10, 20));
+    BOOST_TEST(std::get<0>(a) == 5);
   }
 
-  // setpoint が座標のときは planner が使われる
+  // setpoint が座標のときは planner が算出した位置が出力される
   {
     a->cmd.set_position(4, 5);
+    a->cmd.set_velanglar(6);
     const auto cmd = b->execute();
 
     // planner の引数に現在地、目標座標が渡されている
@@ -104,7 +113,7 @@ BOOST_AUTO_TEST_CASE(execute) {
     auto& va = std::get<model::setpoint::velangular>(std::get<1>(sp));
     BOOST_TEST(std::get<0>(p) == 100 + 10);
     BOOST_TEST(std::get<1>(p) == 200 + 20);
-    BOOST_TEST(std::get<0>(va) == 3);
+    BOOST_TEST(std::get<0>(va) == 6);
   }
 }
 

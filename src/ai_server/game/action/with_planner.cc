@@ -22,6 +22,18 @@ model::command with_planner::execute() {
     const auto planner = planner_->planner();
     const auto new_pos = planner(start, goal, obstacles_);
     cmd.set_position(std::get<0>(new_pos));
+  } else if (auto sp  = cmd.setpoint_pair();
+             auto vel = std::get_if<model::setpoint::velocity>(&std::get<0>(sp))) {
+    constexpr double acc  = 3000.0;
+    const auto robot      = our_robots(world(), team_color()).at(id());
+    const auto start      = util::math::position(robot);
+    const auto target_vel = Eigen::Vector2d(std::get<0>(*vel), std::get<1>(*vel));
+    const Eigen::Vector2d goal =
+        (target_vel.squaredNorm() / (2.0 * acc)) * target_vel.normalized() + start;
+
+    const auto planner = planner_->planner();
+    const auto new_pos = planner(start, goal, obstacles_);
+    cmd.set_velocity(target_vel.norm() * (std::get<0>(new_pos) - start).normalized());
   }
 
   return cmd;

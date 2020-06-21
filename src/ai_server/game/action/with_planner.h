@@ -13,7 +13,7 @@ class base;
 
 namespace ai_server::game::action {
 
-/// action を wrap し、目標座標を planner に掛けたものを出力する
+/// action を wrap し、目標値を planner に掛けたものを出力する
 class with_planner : public action::base {
   std::shared_ptr<action::base> action_;
   std::unique_ptr<planner::base> planner_;
