@@ -15,7 +15,7 @@ const double state_feedback::k_         = 49.17;
 const double state_feedback::zeta_      = 1.0;
 const double state_feedback::omega_     = 49.17;
 const double state_feedback::v_max_     = 10000.0;
-const double state_feedback::omega_max_ = 2.0;
+const double state_feedback::omega_max_ = 10.0;
 
 state_feedback::state_feedback(const double cycle)
     : base(v_max_),
