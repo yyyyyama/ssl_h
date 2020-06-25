@@ -89,10 +89,7 @@ jobs:
     resource_class: small
     steps:
       - checkout
-
-      - run: ./tools/validate/encoding.sh
-      - run: ./tools/validate/include_guard.sh
-      - run: ./tools/validate/format.sh
+      - run: ./tools/validate.sh
 
 workflows:
   version: 2
