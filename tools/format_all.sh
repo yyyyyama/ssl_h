@@ -1,8 +1,10 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
-. "$(dirname "$0")/is_toplevel.sh"
+cd "$(dirname "$0")/.."
 
-for f in $(git ls-files | grep -E '*\.(cc|h)$'); do
-  echo "formatting ${f}"
-  clang-format -i "${f}"
+shopt -s nullglob globstar
+
+for f in ./{app,src,test}/**/*.{cc,h}; do
+  echo "formatting $f"
+  clang-format -i "$f"
 done
