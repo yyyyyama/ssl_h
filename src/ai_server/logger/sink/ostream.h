@@ -50,9 +50,9 @@ private:
 // コンストラクタの引数から Stream を導出できるようにする
 // http://en.cppreference.com/w/cpp/language/class_template_argument_deduction#User-defined_deduction_guides
 template <class T>
-ostream(T&, ...)->ostream<T&>;
+ostream(T&, ...) -> ostream<T&>;
 template <class T>
-ostream(T&&, ...)->ostream<T>;
+ostream(T&&, ...) -> ostream<T>;
 
 } // namespace ai_server::logger::sink
 

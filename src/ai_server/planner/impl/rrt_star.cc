@@ -102,7 +102,7 @@ rrt_star::result_type rrt_star::execute(const Eigen::Vector2d& start_pos,
     // これまでの道と新しいノードからの道を比較してコスト低ならノード再接続
     if (!list.empty()) {
       const auto min = *std::min_element(
-          list.begin(), list.end(), [& np = new_node->position](const auto& a, const auto& b) {
+          list.begin(), list.end(), [&np = new_node->position](const auto& a, const auto& b) {
             return a.lock()->cost + (np - a.lock()->position).norm() <
                    b.lock()->cost + (np - b.lock()->position).norm();
           });

@@ -7,6 +7,12 @@ executors:
         auth:
           username: $GH_PKG_USERNAME
           password: $GH_PKG_PASSWORD
+  simplecheck-env:
+    docker:
+      - image: docker.pkg.github.com/kiksworks/docker-build-env/simplecheck-env:latest
+        auth:
+          username: $GH_PKG_USERNAME
+          password: $GH_PKG_PASSWORD
 
 anchors:
   - &environment-clang
@@ -85,7 +91,7 @@ jobs:
       - run: ninja test
 
   static-validations:
-    executor: build-env
+    executor: simplecheck-env
     resource_class: small
     steps:
       - checkout
