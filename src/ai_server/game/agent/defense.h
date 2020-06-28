@@ -8,7 +8,6 @@
 #include "ai_server/game/action/guard.h"
 #include "ai_server/game/action/goal_keep.h"
 #include "ai_server/game/action/get_ball.h"
-#include "ai_server/game/action/marking.h"
 #include "ai_server/game/agent/base.h"
 
 namespace ai_server {
@@ -29,8 +28,7 @@ public:
     //評価点数
     unsigned int score;
   };
-  defense(context& ctx, unsigned int keeper_id, const std::vector<unsigned int>& wall_ids,
-          const std::vector<unsigned int>& marking_ids = {});
+  defense(context& ctx, unsigned int keeper_id, const std::vector<unsigned int>& wall_ids);
   enum class defense_mode {
     normal_mode,       //通常のディフェンス状態
     pk_normal_mode,    // pkのディフェンス状態
@@ -38,8 +36,6 @@ public:
     stop_mode          //ストップゲームのディフェンス状態
   };
   void set_mode(agent::defense::defense_mode mode);
-  //必要のない、優先順位が低いマーキングロボットのidを返す
-  std::vector<unsigned int> marking_ids() const;
   std::vector<std::shared_ptr<action::base>> execute() override;
 
 private:
@@ -47,8 +43,6 @@ private:
   std::vector<unsigned int> enemy_ids_;
   const std::vector<unsigned int> wall_ids_;
   std::map<unsigned int, Eigen::Vector2d> wall_pairs_;
-  const std::vector<unsigned int> marking_ids_;
-  std::vector<unsigned int> marking_ids_re_;
   std::shared_ptr<action::goal_keep> keeper_;
   std::shared_ptr<action::get_ball> keeper_get_;
   defense_mode mode_;

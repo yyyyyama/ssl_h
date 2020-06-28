@@ -76,10 +76,10 @@ std::vector<std::shared_ptr<agent::base>> first_formation::execute() {
       }
       if (std::hypot((ball.x() + 3500), (ball.y() - 0)) < 200) {
         exe.emplace_back(pk(false, false, enemy_keeper));
-        exe.emplace_back(defense(agent::defense::defense_mode::pk_normal_mode, 0));
+        exe.emplace_back(defense(agent::defense::defense_mode::pk_normal_mode));
       } else {
         exe.emplace_back(stop());
-        exe.emplace_back(defense(agent::defense::defense_mode::stop_mode, 0));
+        exe.emplace_back(defense(agent::defense::defense_mode::stop_mode));
       }
       break;
 
@@ -117,8 +117,7 @@ std::vector<std::shared_ptr<agent::base>> first_formation::execute() {
       if ((kickoff_ && kickoff_->finished()) || time_over(point, 8)) {
         //定常状態に入った時に初期化,agentを初期化する関数群では対応できないため直接初期化する
         if (regular_flag_ || initialize_flag_) {
-          id_vec dummy;
-          df_      = make_agent<agent::defense>(keeper_, wall_, dummy);
+          df_      = make_agent<agent::defense>(keeper_, wall_);
           regular_ = make_agent<agent::regular>(others_);
           regular_->use_chaser(true);
           regular_->customize_marking(agent::regular::mark_option::no_mark);
@@ -130,7 +129,7 @@ std::vector<std::shared_ptr<agent::base>> first_formation::execute() {
       }
       exe.emplace_back(kickoff(true));
       exe.emplace_back(kickoff_waiter(agent::kick_off_waiter::kickoff_mode::attack, true));
-      exe.emplace_back(defense(agent::defense::defense_mode::normal_mode, 0));
+      exe.emplace_back(defense(agent::defense::defense_mode::normal_mode));
       break;
 
     case command::penalty_attack_start:
@@ -138,8 +137,7 @@ std::vector<std::shared_ptr<agent::base>> first_formation::execute() {
       if (pk_ && pk_->finished()) {
         //定常状態に入った時に初期化,agentを初期化する関数群では対応できないため直接初期化する
         if (regular_flag_ || initialize_flag_) {
-          id_vec dummy;
-          df_      = make_agent<agent::defense>(keeper_, wall_, dummy);
+          df_      = make_agent<agent::defense>(keeper_, wall_);
           regular_ = make_agent<agent::regular>(others_);
           regular_->use_chaser(true);
           regular_flag_ = false; //一度だけ初期化するように,egular_flag_をfalseにしておく
@@ -153,18 +151,18 @@ std::vector<std::shared_ptr<agent::base>> first_formation::execute() {
         regular_flag_ = true;
       }
       exe.emplace_back(pk(true, true, enemy_keeper));
-      exe.emplace_back(defense(agent::defense::defense_mode::normal_mode, 0));
+      exe.emplace_back(defense(agent::defense::defense_mode::normal_mode));
       break;
 
     case command::force_start:
       exe.emplace_back(regular(true));
-      exe.emplace_back(defense(agent::defense::defense_mode::normal_mode, 0));
+      exe.emplace_back(defense(agent::defense::defense_mode::normal_mode));
       break;
 
     case command::kickoff_attack:
       exe.emplace_back(kickoff(false));
       exe.emplace_back(kickoff_waiter(agent::kick_off_waiter::kickoff_mode::attack, true));
-      exe.emplace_back(defense(agent::defense::defense_mode::normal_mode, 0));
+      exe.emplace_back(defense(agent::defense::defense_mode::normal_mode));
       break;
 
     case command::kickoff_defense:
@@ -177,8 +175,7 @@ std::vector<std::shared_ptr<agent::base>> first_formation::execute() {
       if (kicked_flag_) {
         //定常状態に入った時に初期化,agentを初期化する関数群では対応できないため直接初期化する
         if (regular_flag_ || initialize_flag_) {
-          id_vec dummy;
-          df_      = make_agent<agent::defense>(keeper_, wall_, dummy);
+          df_      = make_agent<agent::defense>(keeper_, wall_);
           regular_ = make_agent<agent::regular>(others_);
           regular_->use_chaser(true);
           regular_flag_ = false; //一度だけ初期化するように,egular_flag_をfalseにしておく
@@ -190,12 +187,12 @@ std::vector<std::shared_ptr<agent::base>> first_formation::execute() {
 
       kicked_flag_ = kicked(ball);
       exe.emplace_back(kickoff_waiter(agent::kick_off_waiter::kickoff_mode::defense, false));
-      exe.emplace_back(defense(agent::defense::defense_mode::normal_mode, 0));
+      exe.emplace_back(defense(agent::defense::defense_mode::normal_mode));
       break;
 
     case command::penalty_attack:
       exe.emplace_back(pk(false, true, enemy_keeper));
-      exe.emplace_back(defense(agent::defense::defense_mode::normal_mode, 0));
+      exe.emplace_back(defense(agent::defense::defense_mode::normal_mode));
       break;
 
     case command::penalty_defense:
@@ -204,8 +201,7 @@ std::vector<std::shared_ptr<agent::base>> first_formation::execute() {
         if (time_over(point, 3)) {
           //定常状態に入った時に初期化,agentを初期化する関数群では対応できないため直接初期化する
           if (regular_flag_ || initialize_flag_) {
-            id_vec dummy;
-            df_      = make_agent<agent::defense>(keeper_, wall_, dummy);
+            df_      = make_agent<agent::defense>(keeper_, wall_);
             regular_ = make_agent<agent::regular>(others_);
             regular_->use_chaser(true);
             regular_flag_ = false; //一度だけ初期化するように,egular_flag_をfalseにしておく
@@ -215,7 +211,7 @@ std::vector<std::shared_ptr<agent::base>> first_formation::execute() {
           break;
         } else {
           exe.emplace_back(pk(false, false, enemy_keeper));
-          exe.emplace_back(defense(agent::defense::defense_mode::pk_normal_mode, 0));
+          exe.emplace_back(defense(agent::defense::defense_mode::pk_normal_mode));
           break;
         }
       }
@@ -229,7 +225,7 @@ std::vector<std::shared_ptr<agent::base>> first_formation::execute() {
         kicked_flag_  = false;
       }
       exe.emplace_back(pk(false, false, enemy_keeper));
-      exe.emplace_back(defense(agent::defense::defense_mode::pk_normal_mode, 0));
+      exe.emplace_back(defense(agent::defense::defense_mode::pk_normal_mode));
       break;
 
     case command::setplay_attack:
@@ -241,8 +237,7 @@ std::vector<std::shared_ptr<agent::base>> first_formation::execute() {
       if ((setplay_ && setplay_->finished()) || time_over(point, 15)) {
         //定常状態に入った時に初期化,agentを初期化する関数群では対応できないため直接初期化する
         if (regular_flag_ || initialize_flag_) {
-          id_vec dummy;
-          df_      = make_agent<agent::defense>(keeper_, wall_, dummy);
+          df_      = make_agent<agent::defense>(keeper_, wall_);
           regular_ = make_agent<agent::regular>(others_);
           regular_->use_chaser(true);
           regular_flag_ = false; //一度だけ初期化するように,regular_flag_をfalseにしておく
@@ -255,15 +250,13 @@ std::vector<std::shared_ptr<agent::base>> first_formation::execute() {
       if (is_corner_) {
         if (kicked_flag_) {
           id_vec wall = setplay_->free_robots();
-          id_vec dummy;
           wall.erase(std::remove(wall.begin(), wall.end(), kicker_), wall.end());
-          df_ = make_agent<agent::defense>(keeper_, wall, dummy);
+          df_ = make_agent<agent::defense>(keeper_, wall);
           exe.emplace_back(setplay_);
           exe.emplace_back(df_);
         } else {
           if (is_command_changed()) {
-            id_vec dummy;
-            df_ = make_agent<agent::defense>(keeper_, dummy, dummy);
+            df_ = make_agent<agent::defense>(keeper_, id_vec{});
             std::copy(wall_.begin(), wall_.end(), std::back_inserter(waiter_));
             setplay_ = make_agent<agent::setplay>(kicker_, waiter_);
           }
@@ -272,7 +265,7 @@ std::vector<std::shared_ptr<agent::base>> first_formation::execute() {
         }
       } else {
         exe.emplace_back(setplay());
-        exe.emplace_back(defense(agent::defense::defense_mode::normal_mode, 0));
+        exe.emplace_back(defense(agent::defense::defense_mode::normal_mode));
       }
       kicked_flag_ = kicked(ball);
       break;
@@ -285,64 +278,20 @@ std::vector<std::shared_ptr<agent::base>> first_formation::execute() {
       }
       //定常状態に入る
       if (kicked_flag_) {
-        if (is_corner_) {
-          if (time_over(point, 3)) {
-            //定常状態に入った時に初期化,agentを初期化する関数群では対応できないため直接初期化する
-            if (regular_flag_ && !initialize_flag_) {
-              id_vec dummy;
-              id_vec wall;
-              id_vec marking = df_->marking_ids();
-
-              std::copy_n(marking.begin(), std::min(wall_count_, marking.size()),
-                          std::back_inserter(wall));
-
-              df_ = make_agent<agent::defense>(keeper_, wall, dummy);
-
-              auto tmp_ids = visible_robots;
-              tmp_ids.erase(std::remove(tmp_ids.begin(), tmp_ids.end(), keeper_),
-                            tmp_ids.end());
-              tmp_ids.erase(std::remove_if(tmp_ids.begin(), tmp_ids.end(),
-                                           [&wall](auto&& id) {
-                                             return std::count(wall.begin(), wall.end(), id);
-                                           }),
-                            tmp_ids.end());
-
-              regular_ = make_agent<agent::regular>(tmp_ids);
-              regular_->use_chaser(true);
-              regular_flag_ = false; //一度だけ初期化するように,egular_flag_をfalseにしておく
-            } else if (initialize_flag_) {
-              id_vec dummy;
-              df_      = make_agent<agent::defense>(keeper_, wall_, dummy);
-              regular_ = make_agent<agent::regular>(others_);
-              regular_->use_chaser(true);
-              regular_flag_ = false; //一度だけ初期化するように,egular_flag_をfalseにしておく
-            }
-            exe.emplace_back(regular_);
-            exe.emplace_back(df_);
-          } else {
-            exe.emplace_back(defense(agent::defense::defense_mode::normal_mode, 1));
-          }
-        } else {
-          //定常状態に入った時に初期化,agentを初期化する関数群では対応できないため直接初期化する
-          if (regular_flag_ || initialize_flag_) {
-            id_vec dummy;
-            df_      = make_agent<agent::defense>(keeper_, wall_, dummy);
-            regular_ = make_agent<agent::regular>(others_);
-            regular_->use_chaser(true);
-            regular_flag_ = false; //一度だけ初期化するように,egular_flag_をfalseにしておく
-          }
-          exe.emplace_back(regular_);
-          exe.emplace_back(df_);
+        //定常状態に入った時に初期化,agentを初期化する関数群では対応できないため直接初期化する
+        if (regular_flag_ || initialize_flag_) {
+          df_      = make_agent<agent::defense>(keeper_, wall_);
+          regular_ = make_agent<agent::regular>(others_);
+          regular_->use_chaser(true);
+          regular_flag_ = false; //一度だけ初期化するように,egular_flag_をfalseにしておく
         }
+        exe.emplace_back(regular_);
+        exe.emplace_back(df_);
         break;
       }
       kicked_flag_ = kicked(ball);
-      if (is_corner_) { //コーナーキックの場合はマークを使う
-        exe.emplace_back(defense(agent::defense::defense_mode::normal_mode, 1));
-      } else {
-        exe.emplace_back(regular(false));
-        exe.emplace_back(defense(agent::defense::defense_mode::stop_mode, 0));
-      }
+      exe.emplace_back(regular(false));
+      exe.emplace_back(defense(agent::defense::defense_mode::stop_mode));
       if (kicked_flag_) {
         change_command_time_ = point;
       }
@@ -358,12 +307,12 @@ std::vector<std::shared_ptr<agent::base>> first_formation::execute() {
 
     case command::shootout_defense:
       exe.emplace_back(pk(false, false, enemy_keeper));
-      exe.emplace_back(defense(agent::defense::defense_mode::pk_normal_mode, 0));
+      exe.emplace_back(defense(agent::defense::defense_mode::pk_normal_mode));
       break;
 
     case command::shootout_defense_start:
       exe.emplace_back(pk(false, false, enemy_keeper));
-      exe.emplace_back(defense(agent::defense::defense_mode::pk_extention_mode, 0));
+      exe.emplace_back(defense(agent::defense::defense_mode::pk_extention_mode));
 
     default:
       exe.emplace_back(halt());
@@ -547,35 +496,15 @@ std::shared_ptr<agent::stopgame> first_formation::stop() {
 }
 
 //引数でディフェンスモード,マークの有無を指定
-std::shared_ptr<agent::defense> first_formation::defense(agent::defense::defense_mode mode,
-                                                         unsigned int mark_num) {
+std::shared_ptr<agent::defense> first_formation::defense(agent::defense::defense_mode mode) {
   // agentが空のとき,コマンドが変わったとき,見えるロボットが変わったときに初期化する
   if (!df_ || is_command_changed() || initialize_flag_) {
-    id_vec mark;
     // normalかpkか判定
-    if (mode == agent::defense::defense_mode::normal_mode) {
-      if (mark_num == 0) {
-        df_ = make_agent<agent::defense>(keeper_, wall_, mark);
-      } else {
-        const auto our_robots = model::our_robots(world(), team_color());
-
-        auto w = wall_;
-        const auto wall_it =
-            std::max_element(w.begin(), w.end(), [&our_robots](auto& a, auto& b) {
-              return std::abs(our_robots.at(a).y()) < std::abs(our_robots.at(b).y());
-            });
-        if (wall_it != w.end()) {
-          w.erase(wall_it);
-          mark.push_back(*wall_it);
-        }
-        std::copy(w.begin(), w.end(), std::back_inserter(others_));
-        df_ = make_agent<agent::defense>(keeper_, mark, others_);
-      }
-    } else if (mode == agent::defense::defense_mode::pk_normal_mode ||
-               mode == agent::defense::defense_mode::pk_extention_mode) {
-      df_ = make_agent<agent::defense>(keeper_, mark, mark);
+    if (mode == agent::defense::defense_mode::pk_normal_mode ||
+        mode == agent::defense::defense_mode::pk_extention_mode) {
+      df_ = make_agent<agent::defense>(keeper_, id_vec{});
     } else {
-      df_ = make_agent<agent::defense>(keeper_, wall_, mark);
+      df_ = make_agent<agent::defense>(keeper_, wall_);
     }
     df_->set_mode(mode);
   }

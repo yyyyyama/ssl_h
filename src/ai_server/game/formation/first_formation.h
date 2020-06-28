@@ -116,8 +116,7 @@ private:
   std::shared_ptr<agent::penalty_kick> pk(bool start_flag, bool attack,
                                           unsigned int enemy_keeper);
   std::shared_ptr<agent::halt> halt();
-  std::shared_ptr<agent::defense> defense(agent::defense::defense_mode mode,
-                                          unsigned int mark_num);
+  std::shared_ptr<agent::defense> defense(agent::defense::defense_mode mode);
   std::shared_ptr<agent::kick_off> kickoff(bool start_flag);
   std::shared_ptr<agent::kick_off_waiter> kickoff_waiter(
       agent::kick_off_waiter::kickoff_mode mode, bool attack);

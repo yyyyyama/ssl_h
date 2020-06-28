@@ -13,12 +13,10 @@ namespace game {
 namespace agent {
 
 defense::defense(context& ctx, unsigned int keeper_id,
-                 const std::vector<unsigned int>& wall_ids,
-                 const std::vector<unsigned int>& marking_ids)
+                 const std::vector<unsigned int>& wall_ids)
     : base(ctx),
       keeper_id_(keeper_id),
       wall_ids_(wall_ids),
-      marking_ids_(marking_ids),
       mode_(defense_mode::normal_mode),
       ball_(Eigen::Vector2d::Zero()) {
   // actionの生成部分
@@ -34,10 +32,6 @@ defense::defense(context& ctx, unsigned int keeper_id,
 
 void defense::set_mode(defense_mode mode) {
   mode_ = mode;
-}
-
-std::vector<unsigned int> defense::marking_ids() const {
-  return marking_ids_re_;
 }
 
 std::vector<std::shared_ptr<action::base>> defense::execute() {
