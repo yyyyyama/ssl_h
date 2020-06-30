@@ -11,7 +11,7 @@ namespace ai_server::game::detail::mcts {
 // 行動
 struct behavior {
   Eigen::Vector2d target_pos;
-  behavior(const Eigen::Vector2d& p = Eigen::Vector2d::Zero()) : target_pos(p) {}
+  behavior(const Eigen::Vector2d& pos = Eigen::Vector2d::Zero()) : target_pos(pos) {}
 };
 
 // 各スレッドで行うノード評価の処理および依存するデータを持つクラス
@@ -170,19 +170,19 @@ double worker::playout(const state& state, double p) {
   if (end(state)) return p * score(state);
 
   const double p_to_goal = probability(state.ball_pos, ene_goal_pos_, ene_robots_);
-  if (p_to_goal > 0.8) {
+  const auto behaviors   = legal_behaviors(state);
+  std::uniform_int_distribution<std::size_t> dist(0, behaviors.size() - 1);
+  const behavior selected_b = behaviors.at(dist(mt_));
+  const double next_p       = probability(state.ball_pos, selected_b.target_pos, ene_robots_);
+  if (next_p > p_to_goal)
+    return playout(next_state(state, selected_b), p * next_p);
+  else
     return playout(next_state(state, behavior{ene_goal_pos_}), p * p_to_goal);
-  } else {
-    const auto behaviors = legal_behaviors(state);
-    std::uniform_int_distribution<std::size_t> dist(0, static_cast<int>(behaviors.size()) - 1);
-    const behavior selected_b = behaviors.at(dist(mt_));
-    return playout(next_state(state, selected_b),
-                   p * probability(state.ball_pos, selected_b.target_pos, ene_robots_));
-  }
 }
 
 double worker::probability(const Eigen::Vector2d& pos, const Eigen::Vector2d& target,
                            const model::world::robots_list& ene_robots) {
+  using boost::math::constants::half_pi;
   using boost::math::constants::pi;
   constexpr double ball_speed  = 6000.0;
   constexpr double robot_speed = 3000.0;
@@ -193,20 +193,24 @@ double worker::probability(const Eigen::Vector2d& pos, const Eigen::Vector2d& ta
   float* in_data             = in_ptr->variable()->cast_data_and_get_pointer<float>(cpu_ctx);
   in_data[0]                 = static_cast<float>(ball_speed / 10000.0);
 
-  double probability = 0.99;
+  // ゴールへのキックか?
+  const bool is_goal = (ene_goal_pos_ - target).norm() < 500.0;
+  // 何も妨害されない状態で，ゴールへのシュートは100%，パスは80%の確率でできるとする
+  double probability = is_goal ? 1.0 : 0.8;
   for (const auto& r : ene_robots) {
     const Eigen::Vector2d ene_pos = util::math::position(r.second);
+
+    // チップ
+    if (!is_goal && (pos - target).norm() < 2500.0 && (ene_pos - pos).norm() < 1000.0) continue;
+
     const double theta =
         util::math::wrap_to_pi(std::atan2(ene_pos.y() - pos.y(), ene_pos.x() - pos.x()) -
                                std::atan2(target.y() - pos.y(), target.x() - pos.x()));
-    // チップ
-    if ((pos - target).norm() < 2500.0 && (ene_pos - pos).norm() < 1000.0 &&
-        std::abs(theta) < 1.0)
-      continue;
     const double sin_dist = std::abs((ene_pos - pos).norm() * std::sin(theta));
     const double cos_dist = std::abs((ene_pos - pos).norm() * std::cos(theta));
-    if (std::abs(theta) < 0.5 * pi<double>() &&
-        sin_dist < robot_speed * cos_dist / ball_speed && cos_dist < (target - pos).norm()) {
+
+    if (std::abs(theta) < half_pi<double>() && sin_dist < robot_speed * cos_dist / ball_speed &&
+        cos_dist < (target - pos).norm()) {
       in_data[1] = static_cast<float>((ene_pos - pos).norm() / 10000.0);
       in_data[2] = static_cast<float>(std::abs(theta) / pi<double>());
       // execute
