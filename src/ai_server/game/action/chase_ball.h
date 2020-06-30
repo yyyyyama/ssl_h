@@ -1,52 +1,83 @@
 #ifndef AI_SERVER_GAME_ACTION_CHASE_BALL_H
 #define AI_SERVER_GAME_ACTION_CHASE_BALL_H
 
+#include <Eigen/Core>
+
 #include "ai_server/model/command.h"
 #include "base.h"
 
-namespace ai_server {
-namespace game {
-namespace action {
+namespace ai_server::game::action {
 
 class chase_ball : public base {
 public:
-  using base::base;
-  enum class mode {
-    move_to_ball, // first_posに移動
-    wraparound,   // ボールに回り込む
-    dribble,      // ドリブルしながら直進
-    wait_ball     // ボールが来るのを待つ
-  };
-  mode mode_ = mode::move_to_ball;
+  /// @brief コンストラクタ
+  /// @param ctx コンテキスト
+  /// @param id 使うロボットのid
+  /// @param target 目標とする座標(デフォルトでは敵ゴール)
+  chase_ball(context& ctx, unsigned int id, const Eigen::Vector2d& target);
 
+  /// @brief コンストラクタ
+  /// @param ctx コンテキスト
+  /// @param id 使うロボットのid
+  chase_ball(context& ctx, unsigned int id);
+
+  /// 動作モード
+  enum class mode {
+    move_to_ball, ///< first_posに移動
+    wraparound,   ///< ボールに回り込む
+    dribble,      ///< ドリブルしながら前進
+    wait_ball     ///< ボールが来るのを待つ
+  };
+
+  /// @brief 目標位置を設定する
+  /// @param x, y 目標とする座標
   void set_target(double x, double y);
+
+  /// @brief 目標位置を設定する
+  /// @param target 目標とする座標
+  void set_target(const Eigen::Vector2d& target);
+
+  /// @brief モードを取得する
+  /// @return モード
+  mode mode() const;
+
+  /// @brief 実行
+  /// @return ロボットに送信するコマンド
   model::command execute() override;
+
+  /// @return 動作が完了しているか?
   bool finished() const override;
 
 private:
-  double kick_target_x_; // 蹴りたい方向
-  double kick_target_y_;
+  // モード
+  enum mode mode_;
 
-  double start_dist_; // mode::wait_ball 開始時のfirst_posまでの距離
+  // 蹴りたい方向
+  Eigen::Vector2d kick_target_;
 
-  int count_     = 0; // 移動時間のカウント [fps]
-  int sub_count_ = 0; // 減速時間のカウント [fps]
+  // mode::wait_ball 開始時のfirst_posまでの距離
+  double start_dist_;
 
-  double ball_x_; // mode::wait_ball 開始時のballの位置
-  double ball_y_;
+  // 移動時間のカウント [fps]
+  int count_ = 0;
+  // 減速時間のカウント [fps]
+  int sub_count_ = 0;
 
-  double ball_vx_; // ballの速度(速度フィルター)
-  double ball_vy_;
+  // mode::wait_ball 開始時のballの位置
+  Eigen::Vector2d ball_pos_;
 
-  bool init_flag_ = false; //初期化
-  bool wait_flag_ = false; //ボールを待つ動作の判断
-  bool wrap_flag_ = false; //回り込みの判断
-  bool sign_flag_ = false; //回り込みの正負の判断
-  bool fin_flag_  = false; //終了
+  //初期化
+  bool init_flag_ = false;
+  //ボールを待つ動作の判断
+  bool wait_flag_ = false;
+  //回り込みの判断
+  bool wrap_flag_ = false;
+  //回り込みの正負の判断
+  bool sign_flag_ = false;
+  //終了
+  bool fin_flag_ = false;
 };
 
-} // namespace action
-} // namespace game
-} // namespace ai_server
+} // namespace ai_server::game::action
 
 #endif // AI_SERVER_GAME_ACTION_CHASE_BALL_H
