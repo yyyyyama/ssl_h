@@ -1,3 +1,5 @@
+#include <algorithm>
+#include <numeric>
 #include <boost/math/constants/constants.hpp>
 #include <boost/random.hpp>
 
@@ -96,9 +98,7 @@ worker::worker(nbla::utils::nnp::Nnp& nnp, const model::field& field,
       our_robots_(our_robots),
       ene_robots_(ene_robots),
       our_goal_pos_(our_goal_pos),
-      ene_goal_pos_(ene_goal_pos) {
-  executor_->set_batch_size(1);
-}
+      ene_goal_pos_(ene_goal_pos) {}
 
 void worker::run(node& root_node, const std::chrono::steady_clock::duration& duration) {
   const auto mcts_start = std::chrono::steady_clock::now();
@@ -187,16 +187,12 @@ double worker::probability(const Eigen::Vector2d& pos, const Eigen::Vector2d& ta
   constexpr double ball_speed  = 6000.0;
   constexpr double robot_speed = 3000.0;
   if ((pos - target).norm() > 10000.0) return 0;
-  // 入出力データは必ずCPUのコンテキストで扱う
-  const nbla::Context cpu_ctx{{"cpu:float"}, "CpuArray", "0"};
-  nbla::CgVariablePtr in_ptr = executor_->get_data_variables().at(0).variable;
-  float* in_data             = in_ptr->variable()->cast_data_and_get_pointer<float>(cpu_ctx);
-  in_data[0]                 = static_cast<float>(ball_speed / 10000.0);
-
   // ゴールへのキックか?
   const bool is_goal = (ene_goal_pos_ - target).norm() < 500.0;
-  // 何も妨害されない状態で，ゴールへのシュートは100%，パスは80%の確率でできるとする
-  double probability = is_goal ? 1.0 : 0.8;
+
+  // 入力データを作成
+  // (ボール速度 / 10000, 敵との距離 / 10000, 目標と敵との角度差 / pi)
+  std::vector<std::array<float, 3>> inputs;
   for (const auto& r : ene_robots) {
     const Eigen::Vector2d ene_pos = util::math::position(r.second);
 
@@ -211,25 +207,40 @@ double worker::probability(const Eigen::Vector2d& pos, const Eigen::Vector2d& ta
 
     if (std::abs(theta) < half_pi<double>() && sin_dist < robot_speed * cos_dist / ball_speed &&
         cos_dist < (target - pos).norm()) {
-      in_data[1] = static_cast<float>((ene_pos - pos).norm() / 10000.0);
-      in_data[2] = static_cast<float>(std::abs(theta) / pi<double>());
-      // execute
-      executor_->execute();
-      nbla::CgVariablePtr out_ptr = executor_->get_output_variables().at(0).variable;
-      const float* out_data       = out_ptr->variable()->get_data_pointer<float>(cpu_ctx);
-      const double tmp_p          = static_cast<double>(out_data[0]);
-
-      constexpr bool use_all_enemy = true;
-      if (use_all_enemy) {
-        // 対象領域内の全ロボットからの危険度を考慮する
-        probability *= tmp_p;
-      } else {
-        // 一番危険なロボットからの危険度のみ考慮する
-        if (tmp_p < probability) probability = tmp_p;
-      }
+      inputs.push_back({static_cast<float>(ball_speed / 10000.0),
+                        static_cast<float>((ene_pos - pos).norm() / 10000.0),
+                        static_cast<float>(std::abs(theta) / pi<double>())});
     }
   }
-  return probability;
+
+  // 何も妨害されない状態で，ゴールへのシュートは100%，パスは80%の確率でできるとする
+  double probability = is_goal ? 1.0 : 0.8;
+  if (inputs.empty()) return probability;
+
+  // バッチサイズを入力データ数にする
+  executor_->set_batch_size(inputs.size());
+  // 入出力データは必ずCPUのコンテキストで扱う
+  const nbla::Context cpu_ctx{{"cpu:float"}, "CpuArray", "0"};
+  // ネットワークに入力する
+  nbla::CgVariablePtr in_ptr = executor_->get_data_variables().at(0).variable;
+  float* in_data             = in_ptr->variable()->cast_data_and_get_pointer<float>(cpu_ctx);
+  for (const auto& i : inputs) in_data = std::copy(i.cbegin(), i.cend(), in_data);
+
+  // execute
+  executor_->execute();
+  // 出力を取得
+  nbla::CgVariablePtr out_ptr = executor_->get_output_variables().at(0).variable;
+  const float* out_data       = out_ptr->variable()->get_data_pointer<float>(cpu_ctx);
+
+  constexpr bool use_all_enemy = true;
+  if constexpr (use_all_enemy) {
+    // 対象領域内の全ロボットからの危険度を考慮する
+    return std::reduce(out_data, out_data + inputs.size(), probability,
+                       [](auto a, auto b) { return a * b; });
+  } else {
+    // 一番危険なロボットからの危険度のみ考慮する
+    return probability * (*std::min_element(out_data, out_data + inputs.size()));
+  }
 }
 
 node& worker::next_child_node(std::forward_list<node>::iterator begin,
