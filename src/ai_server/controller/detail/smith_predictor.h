@@ -4,7 +4,6 @@
 #include <deque>
 #include <Eigen/Core>
 
-#include "ai_server/model/command.h"
 #include "ai_server/model/robot.h"
 
 namespace ai_server {

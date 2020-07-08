@@ -10,7 +10,6 @@
 #include <boost/random.hpp>
 #include <Eigen/Core>
 
-#include "ai_server/model/command.h"
 #include "ai_server/util/math/geometry_traits.h"
 #include "ai_server/planner/obstacle_list.h"
 

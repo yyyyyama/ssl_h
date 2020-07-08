@@ -12,7 +12,6 @@
 #include <Eigen/Core>
 #include <Eigen/Geometry>
 
-#include "ai_server/model/command.h"
 #include "ai_server/util/math/geometry_traits.h"
 #include "ai_server/util/math/to_vector.h"
 #include "ai_server/planner/detail/clipping.h"

@@ -1,15 +1,12 @@
 #ifndef AI_SERVER_CONTROLLER_BASE_H
 #define AI_SERVER_CONTROLLER_BASE_H
 
-#include "ai_server/model/command.h"
 #include "ai_server/model/field.h"
 #include "ai_server/model/robot.h"
+#include "ai_server/model/setpoint/types.h"
 
 namespace ai_server {
 namespace controller {
-
-using position_t = model::command::position_t;
-using velocity_t = model::command::velocity_t;
 
 class base {
 public:

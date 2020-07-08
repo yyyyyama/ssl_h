@@ -21,39 +21,6 @@ command::kick_flag_t command::kick_flag() const {
   return kick_flag_;
 }
 
-const command::setpoint_t& command::setpoint() const {
-  setpoint_old_ = std::visit(
-      [](auto&& sp, auto&& sp_rot) -> command::setpoint_t {
-        using sp_type     = std::decay_t<decltype(sp)>;
-        using sp_rot_type = std::decay_t<decltype(sp_rot)>;
-
-        [[maybe_unused]] constexpr auto sp_is_position =
-            std::is_same_v<sp_type, setpoint::position>;
-        [[maybe_unused]] constexpr auto sp_is_velocity =
-            std::is_same_v<sp_type, setpoint::velocity>;
-
-        [[maybe_unused]] constexpr auto sp_rot_is_angle =
-            std::is_same_v<sp_rot_type, setpoint::angle>;
-        [[maybe_unused]] constexpr auto sp_rot_is_velangular =
-            std::is_same_v<sp_rot_type, setpoint::velangular>;
-
-        if constexpr (sp_is_position && sp_rot_is_angle) {
-          return position_t{std::get<0>(sp), std::get<1>(sp), std::get<0>(sp_rot)};
-        } else if constexpr (sp_is_velocity && sp_rot_is_velangular) {
-          return velocity_t{std::get<0>(sp), std::get<1>(sp), std::get<0>(sp_rot)};
-        } else if constexpr (sp_is_position && sp_rot_is_velangular) {
-          throw std::runtime_error{"position + velangular"};
-        } else if constexpr (sp_is_velocity && sp_rot_is_angle) {
-          throw std::runtime_error{"velocity + angle"};
-        } else {
-          static_assert(
-              decltype(std::void_t<sp_type, sp_rot_type>(), std::false_type())::value);
-        }
-      },
-      setpoint_, setpoint_rot_);
-  return setpoint_old_;
-}
-
 void command::set_dribble(int dribble) {
   dribble_ = dribble;
 }

@@ -3,7 +3,6 @@
 
 #include <functional>
 #include <Eigen/Core>
-#include "ai_server/model/command.h"
 #include "ai_server/model/field.h"
 #include "obstacle_list.h"
 

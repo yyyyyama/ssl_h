@@ -4,7 +4,6 @@
 #include <boost/test/unit_test.hpp>
 
 #include "ai_server/model/ball.h"
-#include "ai_server/model/command.h"
 #include "ai_server/model/robot.h"
 #include "ai_server/util/math/affine.h"
 #include "ai_server/util/math/angle.h"
@@ -90,18 +89,6 @@ BOOST_AUTO_TEST_CASE(to_vector) {
 
   BOOST_TEST(util::math::acceleration(r) == Eigen::Vector2d(7, 8));
   BOOST_TEST(util::math::acceleration3d(r) == Eigen::Vector3d(7, 8, 9));
-
-  const auto p = model::command::position_t{12, 34, 56};
-  BOOST_TEST(util::math::position(p) == Eigen::Vector2d(12, 34));
-  BOOST_TEST(util::math::position3d(p) == Eigen::Vector3d(12, 34, 56));
-
-  const auto v = model::command::velocity_t{56, 78, 90};
-  BOOST_TEST(util::math::velocity(v) == Eigen::Vector2d(56, 78));
-  BOOST_TEST(util::math::velocity3d(v) == Eigen::Vector3d(56, 78, 90));
-
-  const auto a = model::command::acceleration_t{90, 12, 34};
-  BOOST_TEST(util::math::acceleration(a) == Eigen::Vector2d(90, 12));
-  BOOST_TEST(util::math::acceleration3d(a) == Eigen::Vector3d(90, 12, 34));
 }
 
 BOOST_AUTO_TEST_CASE(wrap_to_2pi, *boost::unit_test::tolerance(0.0000001)) {

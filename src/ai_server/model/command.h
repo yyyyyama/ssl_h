@@ -16,32 +16,12 @@ class command {
 public:
   enum class kick_type_t { none, line, chip, backspin };
 
-  struct position_t {
-    double x;
-    double y;
-    double theta;
-  };
-
-  struct velocity_t {
-    double vx;
-    double vy;
-    double omega;
-  };
-
-  struct acceleration_t {
-    double ax;
-    double ay;
-    double alpha;
-  };
-
-  using setpoint_t  = std::variant<position_t, velocity_t>;
   using kick_flag_t = std::tuple<kick_type_t, double>;
 
   command();
 
   int dribble() const;
   kick_flag_t kick_flag() const;
-  const setpoint_t& setpoint() const;
 
   void set_dribble(int dribble);
   void set_kick_flag(const kick_flag_t& kick_flag);
@@ -124,9 +104,6 @@ private:
 
   setpoint::position_or_velocity setpoint_;
   setpoint::angle_or_velangular setpoint_rot_;
-
-  // setpoint() の参照を使っている箇所へ対応するため
-  mutable setpoint_t setpoint_old_;
 };
 } // namespace model
 } // namespace ai_server
