@@ -34,6 +34,7 @@ private:
   const std::vector<unsigned int> ids_;
   // pass目標
   Eigen::Vector2d pass_target_;
+  unsigned int target_id_;
   // ロボットが消えた時点
   std::unordered_map<unsigned int, std::chrono::steady_clock::time_point> lost_point_;
   // ロボットの座標

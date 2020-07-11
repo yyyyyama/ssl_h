@@ -19,6 +19,7 @@ all::all(context& ctx, const std::vector<unsigned int>& ids, unsigned int keeper
     : base(ctx),
       ids_(ids),
       pass_target_(Eigen::Vector2d(world().field().x_max(), 0.0)),
+      target_id_(0),
       evaluator_(nnabla()),
       keeper_id_(keeper_id),
       goal_keep_(make_action<action::goal_keep>(keeper_id)),
@@ -167,17 +168,22 @@ std::vector<std::shared_ptr<action::base>> all::execute() {
   // chaser /////////////////////////////
   if (our_robots.count(chaser_)) {
     // MCTSでpass_targetを決定
-    const detail::mcts::state state{ball_pos};
+    const detail::mcts::state state{ball_pos, chaser_};
     detail::mcts::node root_node(state);
     evaluator_.execute(wf, our_robots, ene_robots, our_goal_pos, ene_goal_pos, root_node);
     const auto& child_nodes = root_node.child_nodes;
-    const auto& selected_node =
-        *std::max_element(child_nodes.cbegin(), child_nodes.cend(),
-                          [](const auto& a, const auto& b) { return a.n < b.n; });
-    pass_target_ = selected_node.state.ball_pos;
-
-    // TODO: ドリブルすべきかキックすべきか判断する処理を実装する
-    const bool dribble_flag = false;
+    target_id_              = chaser_;
+    bool dribble_flag       = false;
+    if (child_nodes.empty()) {
+      pass_target_ = ene_goal_pos;
+    } else {
+      const auto& selected_node =
+          *std::max_element(child_nodes.cbegin(), child_nodes.cend(),
+                            [](const auto& a, const auto& b) { return a.n < b.n; });
+      pass_target_ = selected_node.state.ball_pos;
+      target_id_   = selected_node.state.chaser;
+      dribble_flag = target_id_ == chaser_ && (ene_goal_pos - pass_target_).norm() > 500.0;
+    }
 
     const unsigned int id = chaser_;
     const auto& robot_pos = robot_pos_.at(id);
@@ -229,8 +235,8 @@ std::vector<std::shared_ptr<action::base>> all::execute() {
       get_ball_.at(id)->set_target(pass_target_.x(), pass_target_.y());
       // ボールを打つ目標がゴール外ならばget_ballにチップ判定してもらう
       // TODO: get_ballにchip用のキックパワー設定関数を実装する
-      if (pass_target_.x() < wf.x_max() - wf.penalty_length() ||
-          std::abs(pass_target_.y()) > wf.penalty_width() / 2.0)
+      if (!dribble_flag && (pass_target_.x() < wf.x_max() - wf.penalty_length() ||
+                            std::abs(pass_target_.y()) > wf.penalty_width() / 2.0))
         get_ball_.at(id)->set_pow(line_pow);
       baseaction.push_back(
           std::make_shared<action::with_planner>(get_ball_.at(id), std::move(hl), obstacles));
@@ -295,7 +301,8 @@ std::vector<std::shared_ptr<action::base>> all::execute() {
     for (const auto id : waiters_) {
       if (!our_robots.count(id)) continue;
       const Eigen::Vector2d& robot_pos = robot_pos_.at(id);
-      const Eigen::Vector2d& pos       = wait_pos.count(id) ? wait_pos.at(id) : robot_pos;
+      const Eigen::Vector2d& pos =
+          wait_pos.count(id) ? (id == target_id_ ? pass_target_ : wait_pos.at(id)) : robot_pos;
 
       // 自チームロボットを障害物設定
       planner::obstacle_list obstacles = common_obstacles;

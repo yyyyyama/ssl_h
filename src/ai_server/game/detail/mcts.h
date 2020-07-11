@@ -21,6 +21,8 @@ namespace ai_server::game::detail::mcts {
 struct state {
   // ボールの位置
   Eigen::Vector2d ball_pos;
+  // ボールを持つロボット
+  unsigned int chaser;
   // 到達までの時間
   double t = 0.0;
 };
