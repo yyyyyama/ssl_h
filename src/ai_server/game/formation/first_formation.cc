@@ -1,45 +1,41 @@
 #include "first_formation.h"
+#include "ai_server/util/math/distance.h"
+#include "ai_server/util/math/to_vector.h"
 
-#include <thread>
-
-namespace ai_server {
-namespace game {
-namespace formation {
-
-using id_vec = std::vector<unsigned int>;
+namespace ai_server::game::formation {
 
 first_formation::first_formation(context& ctx, const model::refbox& refcommand,
-                                 const std::vector<unsigned int>& ids)
+                                 const id_vec& ids)
     : base(ctx, refcommand),
-      wall_count_(2),
+      default_wall_count_(0),
+      wall_count_(default_wall_count_),
       ids_(ids),
       kicked_flag_(false),
       initialize_flag_(false),
-      regular_flag_(true),
-      is_corner_(true),
-      previous_command_(command::halt),
-      previous_ball_(world().ball()),
-      past_ball_(
-          {world().ball(), world().ball(), world().ball(), world().ball(), world().ball()}) {}
+      previous_command_(game_situation::halt, false, false),
+      current_command_(game_situation::halt, false, false),
+      previous_ball_(util::math::position(world().ball())) {
+  past_ball_.fill(util::math::position(world().ball()));
+  const auto our_robots = model::our_robots(world(), team_color());
+  std::copy_if(ids.cbegin(), ids.cend(), std::back_inserter(previous_visible_robots_),
+               [&our_robots](auto id) { return our_robots.count(id); });
+}
 
 std::vector<std::shared_ptr<agent::base>> first_formation::execute() {
-  const auto command      = refcommand_.command();
-  current_command_        = convert_command(command);
-  const auto enemy_keeper = team_color() == model::team_color::yellow
+  current_command_ = detail::convert_command(team_color(), previous_command_, refcommand_);
+  const auto [situation, is_attack, is_start] = current_command_;
+  const auto enemy_keeper                     = team_color() == model::team_color::yellow
                                 ? refcommand_.team_blue().goalie()
                                 : refcommand_.team_yellow().goalie();
-  const auto point = std::chrono::high_resolution_clock::now();
+  const auto point = std::chrono::steady_clock::now();
 
   const auto our_robots = model::our_robots(world(), team_color());
-  const auto enemies    = model::enemy_robots(world(), team_color());
-  id_vec enemies_id;
-  for (auto& enemy : enemies) {
-    enemies_id.push_back(enemy.first);
-  }
 
-  const auto ball = world().ball();
-  past_ball_.erase(past_ball_.begin());
-  past_ball_.push_back(ball);
+  const Eigen::Vector2d ball = util::math::position(world().ball());
+  for (std::size_t i = 0; i < past_ball_.size() - 1; ++i) {
+    past_ball_[i] = past_ball_[i + 1];
+  }
+  past_ball_.back() = ball;
 
   std::vector<std::shared_ptr<agent::base>> exe;
 
@@ -48,271 +44,184 @@ std::vector<std::shared_ptr<agent::base>> first_formation::execute() {
   std::copy_if(ids_.cbegin(), ids_.cend(), std::back_inserter(visible_robots),
                [&our_robots](auto id) { return our_robots.count(id); });
 
-  //全て見えない場合は何もしない
-  if (visible_robots.empty()) {
-    return exe;
-  }
-
   //前回と見えているロボットが違うとき,初期化フラグを立てる
-  if (previous_visible_robots_ != visible_robots) {
-    initialize_flag_ = true;
+  initialize_flag_ = previous_visible_robots_ != visible_robots;
+
+  // stopgame時に見えている台数に応じて台数の割り振りを更新する
+  if (situation == game_situation::stop) {
+    const auto num = static_cast<unsigned int>(visible_robots.size());
+    if (num <= 2)
+      wall_count_ = 0; // 2台以下なら壁は無し
+    else if (num <= 4)
+      wall_count_ = std::min(static_cast<int>(default_wall_count_), 1);
+    else
+      wall_count_ = default_wall_count_;
   }
 
   // idの割り振りを行う
   role_reset(visible_robots);
 
-  // commandによってagentを使い分ける
-  switch (current_command_) {
-    case command::halt:
+  // コマンドが切り替わったときフラグを初期化する
+  if (is_command_changed()) {
+    kicked_flag_         = false;
+    initialize_flag_     = false;
+    change_command_time_ = point;
+  }
+
+  if (!kicked_flag_) {
+    kicked_flag_ = kicked(ball);
+    if (kicked_flag_) kicked_time_ = point;
+  }
+
+  // game_command_typeによってagentを使い分ける
+  switch (situation) {
+    case game_situation::halt:
       exe.emplace_back(halt());
       break;
 
-    case command::stop:
-      if (is_command_changed()) { //コマンドが変わったタイミングでフラグを初期化しておく
-        kicked_flag_     = false;
-        initialize_flag_ = false;
-        regular_flag_    = true;
-        reset_agent();
-      }
-      if (std::hypot((ball.x() + 3500), (ball.y() - 0)) < 200) {
+    case game_situation::timeout:
+      exe.emplace_back(alignment());
+      break;
+
+    case game_situation::stop:
+      reset_agent();
+      if (std::hypot(ball.x() - (world().field().x_min() + world().field().penalty_length()),
+                     ball.y() - 0) < 200) {
         exe.emplace_back(pk(false, false, enemy_keeper));
         exe.emplace_back(defense(agent::defense::defense_mode::pk_normal_mode));
       } else {
-        exe.emplace_back(stop());
-        exe.emplace_back(defense(agent::defense::defense_mode::stop_mode));
-      }
-      break;
-
-    case command::ball_placement:
-      if (is_command_changed() || prev_abp_target_ != abp_target()) {
-        //コマンドが変わったタイミングでフラグを初期化しておく
-        // palcementのtargetが変わったら初期化し直す
-        kicked_flag_     = false;
-        initialize_flag_ = false;
-        regular_flag_    = true;
-        prev_abp_target_ = abp_target();
-        reset_agent();
-        ball_placement_ = make_agent<agent::ball_placement>(ids_, abp_target(), true);
-      }
-      exe.emplace_back(ball_placement_);
-      break;
-
-    case command::ball_placement_enemy:
-      if (is_command_changed()) { //コマンドが変わったタイミングでフラグを初期化しておく
-        kicked_flag_     = false;
-        initialize_flag_ = false;
-        regular_flag_    = true;
-        prev_abp_target_ = abp_target();
-        reset_agent();
-      }
-      exe.emplace_back(ball_placement(false));
-      break;
-
-    case command::kickoff_attack_start:
-      if (is_command_changed()) { //コマンドが切り替わった時だけ初期化
-        regular_flag_        = true;
-        change_command_time_ = point;
-      }
-      //定常状態に入る
-      if ((kickoff_ && kickoff_->finished()) || time_over(point, 8)) {
-        //定常状態に入った時に初期化,agentを初期化する関数群では対応できないため直接初期化する
-        if (regular_flag_ || initialize_flag_) {
-          df_      = make_agent<agent::defense>(keeper_, wall_);
-          regular_ = make_agent<agent::regular>(others_);
-          regular_->use_chaser(true);
-          regular_->customize_marking(agent::regular::mark_option::no_mark);
-          regular_flag_ = false; //一度だけ初期化するように,egular_flag_をfalseにしておく
-        }
-        exe.emplace_back(regular_);
+        stop_ = make_agent<agent::stopgame>(except_keeper_);
+        df_   = make_agent<agent::defense>(keeper_, wall_);
+        exe.emplace_back(stop_);
         exe.emplace_back(df_);
-        break;
       }
-      exe.emplace_back(kickoff(true));
-      exe.emplace_back(kickoff_waiter(agent::kick_off_waiter::kickoff_mode::attack, true));
-      exe.emplace_back(defense(agent::defense::defense_mode::normal_mode));
       break;
 
-    case command::penalty_attack_start:
-      //定常状態に入る
-      if (pk_ && pk_->finished()) {
-        //定常状態に入った時に初期化,agentを初期化する関数群では対応できないため直接初期化する
-        if (regular_flag_ || initialize_flag_) {
-          df_      = make_agent<agent::defense>(keeper_, wall_);
-          regular_ = make_agent<agent::regular>(others_);
-          regular_->use_chaser(true);
-          regular_flag_ = false; //一度だけ初期化するように,egular_flag_をfalseにしておく
-        }
-        exe.emplace_back(regular_);
-        exe.emplace_back(df_);
-        break;
-      }
-
-      if (is_command_changed()) { //コマンドが切り替わった時だけ初期化
-        regular_flag_ = true;
-      }
-      exe.emplace_back(pk(true, true, enemy_keeper));
-      exe.emplace_back(defense(agent::defense::defense_mode::normal_mode));
+    case game_situation::ball_placement:
+      exe.emplace_back(ball_placement(is_attack));
       break;
 
-    case command::force_start:
-      exe.emplace_back(regular(true));
-      exe.emplace_back(defense(agent::defense::defense_mode::normal_mode));
-      break;
-
-    case command::kickoff_attack:
-      exe.emplace_back(kickoff(false));
-      exe.emplace_back(kickoff_waiter(agent::kick_off_waiter::kickoff_mode::attack, true));
-      exe.emplace_back(defense(agent::defense::defense_mode::normal_mode));
-      break;
-
-    case command::kickoff_defense:
-      if (is_command_changed()) { //コマンドが切り替わった時だけ初期化
-        regular_flag_        = true;
-        kicked_flag_         = false;
-        change_command_time_ = point;
-      }
-      //定常状態に入る
-      if (kicked_flag_) {
-        //定常状態に入った時に初期化,agentを初期化する関数群では対応できないため直接初期化する
-        if (regular_flag_ || initialize_flag_) {
-          df_      = make_agent<agent::defense>(keeper_, wall_);
-          regular_ = make_agent<agent::regular>(others_);
-          regular_->use_chaser(true);
-          regular_flag_ = false; //一度だけ初期化するように,egular_flag_をfalseにしておく
-        }
-        exe.emplace_back(regular_);
-        exe.emplace_back(df_);
-        break;
-      }
-
-      kicked_flag_ = kicked(ball);
-      exe.emplace_back(kickoff_waiter(agent::kick_off_waiter::kickoff_mode::defense, false));
-      exe.emplace_back(defense(agent::defense::defense_mode::normal_mode));
-      break;
-
-    case command::penalty_attack:
-      exe.emplace_back(pk(false, true, enemy_keeper));
-      exe.emplace_back(defense(agent::defense::defense_mode::normal_mode));
-      break;
-
-    case command::penalty_defense:
-      //定常状態に入る
-      if (kicked_flag_) {
-        if (time_over(point, 3)) {
-          //定常状態に入った時に初期化,agentを初期化する関数群では対応できないため直接初期化する
-          if (regular_flag_ || initialize_flag_) {
-            df_      = make_agent<agent::defense>(keeper_, wall_);
-            regular_ = make_agent<agent::regular>(others_);
-            regular_->use_chaser(true);
-            regular_flag_ = false; //一度だけ初期化するように,egular_flag_をfalseにしておく
+    case game_situation::kickoff:
+      if (is_attack) {
+        if (is_start) {
+          //定常状態に入る
+          if ((kickoff_ && kickoff_->finished()) || time_over(point, change_command_time_, 8)) {
+            exe.emplace_back(all());
+            break;
           }
-          exe.emplace_back(regular_);
-          exe.emplace_back(df_);
+          exe.emplace_back(kickoff(true));
+          exe.emplace_back(defense(agent::defense::defense_mode::normal_mode));
+        } else {
+          exe.emplace_back(kickoff(false));
+          exe.emplace_back(defense(agent::defense::defense_mode::normal_mode));
+        }
+      } else {
+        //定常状態に入る
+        if (kicked_flag_) {
+          exe.emplace_back(all());
           break;
+        }
+        kicked_flag_ = kicked(ball);
+        exe.emplace_back(kickoff_waiter(agent::kick_off_waiter::kickoff_mode::defense, false));
+        exe.emplace_back(defense(agent::defense::defense_mode::normal_mode));
+      }
+      break;
+
+    case game_situation::penalty:
+      if (is_attack) {
+        if (is_start) {
+          //定常状態に入る
+          if ((pk_ && pk_->finished()) || time_over(point, change_command_time_, 10)) {
+            exe.emplace_back(all());
+            break;
+          }
+          exe.emplace_back(pk(true, true, enemy_keeper));
+          exe.emplace_back(defense(agent::defense::defense_mode::normal_mode));
+        } else {
+          exe.emplace_back(pk(false, true, enemy_keeper));
+          exe.emplace_back(defense(agent::defense::defense_mode::normal_mode));
+        }
+      } else {
+        if (is_start) {
+          exe.emplace_back(pk(false, false, enemy_keeper));
+          exe.emplace_back(defense(agent::defense::defense_mode::pk_normal_mode));
+        } else {
+          //定常状態に入る
+          if (kicked_flag_) {
+            if (time_over(point, kicked_time_, 1)) {
+              exe.emplace_back(all());
+              break;
+            } else {
+              exe.emplace_back(pk(false, false, enemy_keeper));
+              exe.emplace_back(defense(agent::defense::defense_mode::pk_normal_mode));
+              break;
+            }
+          }
+          kicked_flag_ = kicked(ball);
+          if (kicked_flag_) {
+            kicked_time_ = point;
+          }
+          exe.emplace_back(pk(false, false, enemy_keeper));
+          exe.emplace_back(defense(agent::defense::defense_mode::pk_normal_mode));
+        }
+      }
+      break;
+
+    case game_situation::force_start:
+      exe.emplace_back(all());
+      break;
+
+    case game_situation::setplay:
+      if (is_attack) {
+        //定常状態に入る
+        if ((setplay_ && setplay_->finished()) || time_over(point, change_command_time_, 15)) {
+          exe.emplace_back(all());
+          break;
+        }
+        exe.emplace_back(setplay());
+        exe.emplace_back(defense(agent::defense::defense_mode::normal_mode));
+      } else {
+        //定常状態に入る
+        if (kicked_flag_) {
+          if (time_over(point, kicked_time_, 1)) {
+            exe.emplace_back(all());
+            break;
+          } else {
+            stop_ = make_agent<agent::stopgame>(except_keeper_);
+            df_   = make_agent<agent::defense>(keeper_, id_vec{});
+            exe.emplace_back(stop_);
+            exe.emplace_back(df_);
+            break;
+          }
+        }
+        kicked_flag_ = kicked(ball);
+        if (kicked_flag_) {
+          kicked_time_ = point;
+        }
+        stop_ = make_agent<agent::stopgame>(except_keeper_);
+        df_   = make_agent<agent::defense>(keeper_, id_vec{});
+        exe.emplace_back(stop_);
+        exe.emplace_back(df_);
+      }
+      break;
+
+    case game_situation::shootout:
+      if (is_attack) {
+        if (is_start) {
+          exe.emplace_back(shootout(true, enemy_keeper));
+        } else {
+          exe.emplace_back(stop());
+        }
+      } else {
+        if (is_start) {
+          exe.emplace_back(pk(false, false, enemy_keeper));
+          exe.emplace_back(defense(agent::defense::defense_mode::pk_extention_mode));
         } else {
           exe.emplace_back(pk(false, false, enemy_keeper));
           exe.emplace_back(defense(agent::defense::defense_mode::pk_normal_mode));
-          break;
         }
       }
-
-      kicked_flag_ = kicked(ball);
-      if (kicked_flag_) {
-        change_command_time_ = point;
-      }
-      if (is_command_changed()) { //コマンドが切り替わった時だけ初期化
-        regular_flag_ = true;
-        kicked_flag_  = false;
-      }
-      exe.emplace_back(pk(false, false, enemy_keeper));
-      exe.emplace_back(defense(agent::defense::defense_mode::pk_normal_mode));
       break;
-
-    case command::setplay_attack:
-      if (is_command_changed()) { //コマンドが切り替わった時だけ初期化
-        change_command_time_ = point;
-        is_corner_           = ball.x() > 2500;
-      }
-      ////定常状態に入る
-      if ((setplay_ && setplay_->finished()) || time_over(point, 15)) {
-        //定常状態に入った時に初期化,agentを初期化する関数群では対応できないため直接初期化する
-        if (regular_flag_ || initialize_flag_) {
-          df_      = make_agent<agent::defense>(keeper_, wall_);
-          regular_ = make_agent<agent::regular>(others_);
-          regular_->use_chaser(true);
-          regular_flag_ = false; //一度だけ初期化するように,regular_flag_をfalseにしておく
-        }
-        exe.emplace_back(regular_);
-        exe.emplace_back(df_);
-        break;
-      }
-
-      if (is_corner_) {
-        if (kicked_flag_) {
-          id_vec wall = setplay_->free_robots();
-          wall.erase(std::remove(wall.begin(), wall.end(), kicker_), wall.end());
-          df_ = make_agent<agent::defense>(keeper_, wall);
-          exe.emplace_back(setplay_);
-          exe.emplace_back(df_);
-        } else {
-          if (is_command_changed()) {
-            df_ = make_agent<agent::defense>(keeper_, id_vec{});
-            std::copy(wall_.begin(), wall_.end(), std::back_inserter(waiter_));
-            setplay_ = make_agent<agent::setplay>(kicker_, waiter_);
-          }
-          exe.emplace_back(setplay_);
-          exe.emplace_back(df_);
-        }
-      } else {
-        exe.emplace_back(setplay());
-        exe.emplace_back(defense(agent::defense::defense_mode::normal_mode));
-      }
-      kicked_flag_ = kicked(ball);
-      break;
-
-    case command::setplay_defense:
-      if (is_command_changed()) { //コマンドが切り替わった時だけ初期化
-        regular_flag_ = true;
-        kicked_flag_  = false;
-        is_corner_    = ball.x() < -3000;
-      }
-      //定常状態に入る
-      if (kicked_flag_) {
-        //定常状態に入った時に初期化,agentを初期化する関数群では対応できないため直接初期化する
-        if (regular_flag_ || initialize_flag_) {
-          df_      = make_agent<agent::defense>(keeper_, wall_);
-          regular_ = make_agent<agent::regular>(others_);
-          regular_->use_chaser(true);
-          regular_flag_ = false; //一度だけ初期化するように,egular_flag_をfalseにしておく
-        }
-        exe.emplace_back(regular_);
-        exe.emplace_back(df_);
-        break;
-      }
-      kicked_flag_ = kicked(ball);
-      exe.emplace_back(regular(false));
-      exe.emplace_back(defense(agent::defense::defense_mode::stop_mode));
-      if (kicked_flag_) {
-        change_command_time_ = point;
-      }
-      break;
-
-    case command::shootout_attack:
-      exe.emplace_back(shootout(false, enemy_keeper));
-      break;
-
-    case command::shootout_attack_start:
-      exe.emplace_back(shootout(true, enemy_keeper));
-      break;
-
-    case command::shootout_defense:
-      exe.emplace_back(pk(false, false, enemy_keeper));
-      exe.emplace_back(defense(agent::defense::defense_mode::pk_normal_mode));
-      break;
-
-    case command::shootout_defense_start:
-      exe.emplace_back(pk(false, false, enemy_keeper));
-      exe.emplace_back(defense(agent::defense::defense_mode::pk_extention_mode));
 
     default:
       exe.emplace_back(halt());
@@ -320,7 +229,6 @@ std::vector<std::shared_ptr<agent::base>> first_formation::execute() {
   }
 
   previous_command_        = current_command_;
-  previous_refcommand_     = command;
   previous_visible_robots_ = visible_robots;
   initialize_flag_         = false;
 
@@ -336,48 +244,45 @@ void first_formation::role_reset(const id_vec& visible_robots) {
   extract_waiter();
 }
 
-bool first_formation::kicked(model::ball ball) {
+bool first_formation::kicked(const Eigen::Vector2d& ball) {
   if (is_command_changed()) {
     previous_ball_ = ball;
+    return false;
   } else {
-    auto& pb = previous_ball_;
-    if (std::all_of(past_ball_.cbegin(), past_ball_.cend(), [&](auto&& a) {
-          return std::hypot(pb.x() - a.x(), pb.y() - a.y()) > 100;
-        })) {
-      return true;
-    }
+    const auto& pb = previous_ball_;
+    return std::all_of(past_ball_.cbegin(), past_ball_.cend(),
+                       [&pb](auto&& a) { return util::math::distance(pb, a) > 200; });
   }
-  return false;
 }
 
 bool first_formation::is_command_changed() {
   return current_command_ != previous_command_;
 }
 
-bool first_formation::time_over(std::chrono::high_resolution_clock::time_point point,
-                                int count) {
-  return (point - change_command_time_) > std::chrono::seconds(count);
+bool first_formation::time_over(const std::chrono::steady_clock::time_point& point,
+                                const std::chrono::steady_clock::time_point& time, int count) {
+  return (point - time) > std::chrono::seconds(count);
 }
 
 void first_formation::reset_agent() {
   pk_.reset();
   halt_.reset();
+  alignment_.reset();
   df_.reset();
   kickoff_.reset();
   kickoff_waiter_.reset();
   stop_.reset();
-  ball_placement_.reset();
-  regular_.reset();
+  all_.reset();
   setplay_.reset();
 }
 
-Eigen::Vector2d first_formation::abp_target() const {
+Eigen::Vector2d first_formation::abp_target() {
   return Eigen::Vector2d(std::get<0>(refcommand_.ball_placement_position()),
                          std::get<1>(refcommand_.ball_placement_position()));
 }
 
 ///////////////////////////////////////////////////////
-//              idを割り振る関数                       //
+//              idを割り振る関数                     //
 ///////////////////////////////////////////////////////
 void first_formation::update_keeper() {
   if (team_color() == model::team_color::yellow) {
@@ -387,18 +292,12 @@ void first_formation::update_keeper() {
   }
 }
 
-void first_formation::decide_wall_count(const id_vec& visible_robots) {
-  wall_count_ = visible_robots.size() < 4 ? 1 : 2;
-}
-
 void first_formation::decide_wall(const id_vec& visible_robots) {
-  const auto keeper = keeper_;
-  auto tmp_ids      = visible_robots;
-  decide_wall_count(visible_robots);
   //壁が見えているか判定 壁が見えていて,数が足りているとき作り直さない
   if (!initialize_flag_ && wall_count_ == wall_.size() &&
-      std::all_of(wall_.begin(), wall_.end(), [&tmp_ids](auto&& id) {
-        return std::find(tmp_ids.begin(), tmp_ids.end(), id) != tmp_ids.end();
+      std::all_of(wall_.cbegin(), wall_.cend(), [&visible_robots](auto&& id) {
+        return std::any_of(visible_robots.cbegin(), visible_robots.cend(),
+                           [&id](auto v) { return v == id; });
       })) {
     return;
   }
@@ -406,28 +305,31 @@ void first_formation::decide_wall(const id_vec& visible_robots) {
   wall_.clear();
 
   //キーパーを候補から除外
-  tmp_ids.erase(std::remove(tmp_ids.begin(), tmp_ids.end(), keeper), tmp_ids.end());
+  auto tmp_ids = visible_robots;
+  tmp_ids.erase(std::remove(tmp_ids.begin(), tmp_ids.end(), keeper_), tmp_ids.end());
 
   // wall_countの値だけ前から順に壁にする
-  std::copy_n(tmp_ids.begin(), std::min(wall_count_, tmp_ids.size()),
+  std::copy_n(tmp_ids.cbegin(), std::min(wall_count_, tmp_ids.size()),
               std::back_inserter(wall_));
 }
 
 void first_formation::decide_kicker(const id_vec& visible_robots) {
   const auto our_robots = model::our_robots(world(), team_color());
   const auto ball       = world().ball();
-  auto tmp_ids          = others_; //キーパー,壁以外のロボットを抽出
+  id_vec tmp_ids;
+  std::copy_if(others_.cbegin(), others_.cend(), std::back_inserter(tmp_ids),
+               [&our_robots](auto id) { return our_robots.count(id); });
 
   if (!tmp_ids.empty() &&
-      std::all_of(tmp_ids.begin(), tmp_ids.end(), [&visible_robots](auto&& id) {
-        return std::find(visible_robots.begin(), visible_robots.end(), id) !=
-               visible_robots.end();
+      std::all_of(tmp_ids.cbegin(), tmp_ids.cend(), [&visible_robots](auto&& id) {
+        return std::find(visible_robots.cbegin(), visible_robots.cend(), id) !=
+               visible_robots.cend();
       })) {
-    //ボールに近いロボットをキッカーに決定
+    // others_の中でボールに近いロボットをキッカーに決定
     const auto kicker_it = std::min_element(
-        tmp_ids.cbegin(), tmp_ids.cend(), [&ball, &our_robots](auto& a, auto& b) {
-          return std::hypot(our_robots.at(a).x() - ball.x(), our_robots.at(a).y() - ball.y()) <
-                 std::hypot(our_robots.at(b).x() - ball.x(), our_robots.at(b).y() - ball.y());
+        tmp_ids.cbegin(), tmp_ids.cend(), [&ball, &our_robots](auto a, auto b) {
+          return util::math::distance(our_robots.at(a), ball) <
+                 util::math::distance(our_robots.at(b), ball);
         });
 
     if (kicker_it != tmp_ids.cend()) {
@@ -437,36 +339,32 @@ void first_formation::decide_kicker(const id_vec& visible_robots) {
 }
 
 void first_formation::extract_other_robots(const id_vec& visible_robots) {
-  const auto keeper = keeper_;
-  const auto wall   = wall_;
-  auto tmp_ids      = visible_robots;
-
-  //キーパー,壁を除外
-  tmp_ids.erase(std::remove(tmp_ids.begin(), tmp_ids.end(), keeper), tmp_ids.end());
-
-  tmp_ids.erase(
-      std::remove_if(tmp_ids.begin(), tmp_ids.end(),
-                     [&wall](auto&& id) { return std::count(wall.begin(), wall.end(), id); }),
-      tmp_ids.end());
+  id_vec tmp_ids;
+  //見えているロボットからキーパー,壁を除外したものを抽出
+  std::copy_if(visible_robots.cbegin(), visible_robots.cend(), std::back_inserter(tmp_ids),
+               [this](auto id) {
+                 return id != keeper_ && std::none_of(wall_.cbegin(), wall_.cend(),
+                                                      [id](auto w) { return w == id; });
+               });
   others_ = tmp_ids;
 }
 
 void first_formation::extract_waiter() {
   auto tmp_ids = others_;
-  auto kicker  = kicker_;
-  tmp_ids.erase(std::remove(tmp_ids.begin(), tmp_ids.end(), kicker), tmp_ids.end());
+  tmp_ids.erase(std::remove(tmp_ids.begin(), tmp_ids.end(), kicker_), tmp_ids.end());
+  tmp_ids.shrink_to_fit();
   waiter_ = tmp_ids;
 }
 
 void first_formation::extract_except_keeper(const id_vec& visible_robots) {
-  auto tmp_ids      = visible_robots;
-  const auto keeper = keeper_;
-  tmp_ids.erase(std::remove(tmp_ids.begin(), tmp_ids.end(), keeper), tmp_ids.end());
+  auto tmp_ids = visible_robots;
+  tmp_ids.erase(std::remove(tmp_ids.begin(), tmp_ids.end(), keeper_), tmp_ids.end());
+  tmp_ids.shrink_to_fit();
   except_keeper_ = tmp_ids;
 }
 
 ///////////////////////////////////////////////////////
-//              agentを呼び出す関数                    //
+//              agentを呼び出す関数                  //
 ///////////////////////////////////////////////////////
 std::shared_ptr<agent::halt> first_formation::halt() {
   // agentが空のとき,コマンドが変わったとき,見えるロボットが変わったときに初期化する
@@ -474,6 +372,14 @@ std::shared_ptr<agent::halt> first_formation::halt() {
     halt_ = make_agent<agent::halt>(ids_);
   }
   return halt_;
+}
+
+std::shared_ptr<agent::alignment> first_formation::alignment() {
+  // agentが空のとき,コマンドが変わったとき,見えるロボットが変わったときに初期化する
+  if (!alignment_ || is_command_changed() || initialize_flag_) {
+    alignment_ = make_agent<agent::alignment>(ids_);
+  }
+  return alignment_;
 }
 
 //引数で敵味方どちらのabpか指定
@@ -500,8 +406,11 @@ std::shared_ptr<agent::defense> first_formation::defense(agent::defense::defense
   // agentが空のとき,コマンドが変わったとき,見えるロボットが変わったときに初期化する
   if (!df_ || is_command_changed() || initialize_flag_) {
     // normalかpkか判定
-    if (mode == agent::defense::defense_mode::pk_normal_mode ||
-        mode == agent::defense::defense_mode::pk_extention_mode) {
+    if (mode == agent::defense::defense_mode::normal_mode) {
+      df_ = make_agent<agent::defense>(keeper_, wall_);
+
+    } else if (mode == agent::defense::defense_mode::pk_normal_mode ||
+               mode == agent::defense::defense_mode::pk_extention_mode) {
       df_ = make_agent<agent::defense>(keeper_, id_vec{});
     } else {
       df_ = make_agent<agent::defense>(keeper_, wall_);
@@ -534,11 +443,7 @@ std::shared_ptr<agent::kick_off_waiter> first_formation::kickoff_waiter(
   // agentが空のとき,コマンドが変わったとき,見えるロボットが変わったときに初期化する
   if (!kickoff_waiter_ || is_command_changed() || initialize_flag_) {
     //攻撃と守備でロボットの台数を変える
-    if (attack) {
-      kickoff_waiter_ = make_agent<agent::kick_off_waiter>(waiter_);
-    } else {
-      kickoff_waiter_ = make_agent<agent::kick_off_waiter>(others_);
-    }
+    kickoff_waiter_ = make_agent<agent::kick_off_waiter>(attack ? waiter_ : others_);
     kickoff_waiter_->set_mode(mode);
   }
   return kickoff_waiter_;
@@ -549,7 +454,7 @@ std::shared_ptr<agent::kick_off> first_formation::kickoff(bool start_flag) {
   // agentが空のとき,コマンドが変わったとき,見えるロボットが変わったときに初期化する
   if (!kickoff_ ||
       (!start_flag && is_command_changed())) { // normal_startが入ったときは初期化しない
-    kickoff_ = make_agent<agent::kick_off>(kicker_);
+    kickoff_ = make_agent<agent::kick_off>(kicker_, waiter_);
   }
   kickoff_->set_start_flag(start_flag);
   return kickoff_;
@@ -563,175 +468,23 @@ std::shared_ptr<agent::setplay> first_formation::setplay() {
   return setplay_;
 }
 
-//引数でchase_ballを指定
-std::shared_ptr<agent::regular> first_formation::regular(bool chase_flag) {
-  // agentが空のとき,コマンドが変わったとき,見えるロボットが変わったときに初期化する
-  if (!regular_ || is_command_changed() || initialize_flag_) {
-    regular_ = make_agent<agent::regular>(others_);
-    regular_->use_chaser(chase_flag);
+std::shared_ptr<agent::all> first_formation::all() {
+  // agentが空のとき,コマンドが変わったときに初期化する
+  if (!all_ || is_command_changed()) {
+    all_ = make_agent<agent::all>(except_keeper_, keeper_);
   }
-  return regular_;
+  return all_;
 }
 
-std::shared_ptr<agent::penalty_kick> first_formation::shootout(bool start_flag,
-                                                               unsigned int enemy_keeper) {
+std::shared_ptr<agent::all> first_formation::shootout(
+    bool start_flag, [[maybe_unused]] unsigned int enemy_keeper) {
   // agentが空のとき,コマンドが変わったときに初期化する
   if (!shoot_out_ ||
       (!start_flag && is_command_changed())) { // normal_startが入ったときは初期化しない
-    shoot_out_ = make_agent<agent::penalty_kick>(kicker_, waiter_, enemy_keeper);
-    pk_->set_mode(agent::penalty_kick::penalty_mode::attack);
+    id_vec kick;
+    kick.push_back(shootout_id_);
+    shoot_out_ = make_agent<agent::all>(kick, keeper_);
   }
-  shoot_out_->set_start_flag(start_flag);
   return shoot_out_;
 }
-
-first_formation::command first_formation::convert_command(model::refbox::game_command command) {
-  using cmd = ai_server::model::refbox::game_command;
-
-  switch (command) {
-    case cmd::halt:
-    case cmd::timeout_blue:
-    case cmd::timeout_yellow:
-      return command::halt;
-
-    case cmd::normal_start:
-      if (previous_refcommand_ == cmd::prepare_kickoff_yellow) {
-        if (team_color() == model::team_color::yellow) {
-          return command::kickoff_attack_start;
-        } else {
-          return command::kickoff_defense;
-        }
-      } else if (previous_refcommand_ == cmd::prepare_kickoff_blue) {
-        if (team_color() == model::team_color::blue) {
-          return command::kickoff_attack_start;
-        } else {
-          return command::kickoff_defense;
-        }
-      } else if (previous_refcommand_ == cmd::prepare_penalty_yellow) {
-        if (refcommand_.stage() == model::refbox::stage_name::penalty_shootout) {
-          if (team_color() == model::team_color::yellow) {
-            return command::shootout_attack_start;
-          } else {
-            return command::shootout_defense_start;
-          }
-        } else {
-          if (team_color() == model::team_color::yellow) {
-            return command::penalty_attack_start;
-          } else {
-            return command::penalty_defense;
-          }
-        }
-      } else if (previous_refcommand_ == cmd::prepare_penalty_blue) {
-        if (refcommand_.stage() == model::refbox::stage_name::penalty_shootout) {
-          if (team_color() == model::team_color::blue) {
-            return command::shootout_attack_start;
-          } else {
-            return command::shootout_defense_start;
-          }
-        } else {
-          if (team_color() == model::team_color::blue) {
-            return command::penalty_attack_start;
-          } else {
-            return command::penalty_defense;
-          }
-        }
-      } else if (current_command_ == command::kickoff_attack_start) {
-        return command::kickoff_attack_start;
-      } else if (current_command_ == command::penalty_attack_start) {
-        return command::penalty_attack_start;
-      } else if (current_command_ == command::kickoff_defense) {
-        return command::kickoff_defense;
-      } else if (current_command_ == command::penalty_defense) {
-        return command::penalty_defense;
-      } else if (current_command_ == command::shootout_attack_start) {
-        return command::shootout_attack_start;
-      } else if (current_command_ == command::shootout_defense_start) {
-        return command::shootout_defense_start;
-      } else {
-        return command::force_start;
-      }
-      break;
-
-    case cmd::force_start:
-      return command::force_start;
-      break;
-
-    case cmd::prepare_kickoff_yellow:
-      if (team_color() == model::team_color::yellow)
-        return command::kickoff_attack;
-      else
-        return command::kickoff_defense;
-      break;
-
-    case cmd::prepare_kickoff_blue:
-      if (team_color() == model::team_color::blue)
-        return command::kickoff_attack;
-      else
-        return command::kickoff_defense;
-      break;
-
-    case cmd::prepare_penalty_yellow:
-      if (refcommand_.stage() == model::refbox::stage_name::penalty_shootout) {
-        if (team_color() == model::team_color::yellow)
-          return command::shootout_attack;
-        else
-          return command::shootout_defense;
-      } else {
-        if (team_color() == model::team_color::yellow)
-          return command::penalty_attack;
-        else
-          return command::penalty_defense;
-      }
-      break;
-
-    case cmd::prepare_penalty_blue:
-      if (refcommand_.stage() == model::refbox::stage_name::penalty_shootout) {
-        if (team_color() == model::team_color::blue)
-          return command::shootout_attack;
-        else
-          return command::shootout_defense;
-      } else {
-        if (team_color() == model::team_color::blue)
-          return command::penalty_attack;
-        else
-          return command::penalty_defense;
-      }
-      break;
-
-    case cmd::direct_free_yellow:
-    case cmd::indirect_free_yellow:
-      if (team_color() == model::team_color::yellow)
-        return command::setplay_attack;
-      else
-        return command::setplay_defense;
-
-    case cmd::direct_free_blue:
-    case cmd::indirect_free_blue:
-      if (team_color() == model::team_color::blue)
-        return command::setplay_attack;
-      else
-        return command::setplay_defense;
-
-    case cmd::ball_placement_yellow:
-      if (team_color() == model::team_color::yellow)
-        return command::ball_placement;
-      else
-        return command::ball_placement_enemy;
-
-    case cmd::ball_placement_blue:
-      if (team_color() == model::team_color::blue)
-        return command::ball_placement;
-      else
-        return command::ball_placement_enemy;
-
-    case cmd::stop:
-    case cmd::goal_blue:
-    case cmd::goal_yellow:
-      return command::stop;
-    default:
-      return command::stop;
-  }
-}
-} // namespace formation
-} // namespace game
-} // namespace ai_server
+} // namespace ai_server::game::formation
