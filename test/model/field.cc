@@ -34,16 +34,87 @@ BOOST_AUTO_TEST_CASE(test002) {
   BOOST_TEST(f.penalty_width() == 6);
 }
 
-BOOST_AUTO_TEST_CASE(test003) {
+BOOST_AUTO_TEST_CASE(test003, *boost::unit_test::tolerance(0.0000001)) {
   ai_server::model::field f{};
 
   f.set_length(100);
   f.set_width(90);
+  f.set_goal_width(40);
+  f.set_penalty_length(30);
+  f.set_penalty_width(20);
 
   BOOST_TEST(f.x_max() == 50);
   BOOST_TEST(f.x_min() == -50);
   BOOST_TEST(f.y_max() == 45);
   BOOST_TEST(f.y_min() == -45);
+
+  /////////////////
+  BOOST_TEST(f.back_penalty_x() == -50.0 + 30.0);
+  BOOST_TEST(f.front_penalty_x() == 50.0 - 30.0);
+  BOOST_TEST(f.penalty_y_max() == 10.0);
+  BOOST_TEST(f.penalty_y_min() == -10.0);
+  BOOST_TEST(f.goal_y_max() == 20.0);
+  BOOST_TEST(f.goal_y_min() == -20.0);
+
+  /////////////////
+  BOOST_TEST(f.back_goal_center().x == -50.0);
+  BOOST_TEST(f.back_goal_center().y == 0.0);
+  BOOST_TEST(f.back_goal_left().x == -50.0);
+  BOOST_TEST(f.back_goal_left().y == 20.0);
+  BOOST_TEST(f.back_goal_right().x == -50.0);
+  BOOST_TEST(f.back_goal_right().y == -20.0);
+  // ---
+  BOOST_TEST(f.front_goal_center().x == 50.0);
+  BOOST_TEST(f.front_goal_center().y == 0.0);
+  BOOST_TEST(f.front_goal_left().x == 50.0);
+  BOOST_TEST(f.front_goal_left().y == 20.0);
+  BOOST_TEST(f.front_goal_right().x == 50.0);
+  BOOST_TEST(f.front_goal_right().y == -20.0);
+
+  /////////////////
+  BOOST_TEST(f.back_left_corner().x == -50.0);
+  BOOST_TEST(f.back_left_corner().y == 45.0);
+  BOOST_TEST(f.back_right_corner().x == -50.0);
+  BOOST_TEST(f.back_right_corner().y == -45.0);
+  // ---
+  BOOST_TEST(f.front_left_corner().x == 50.0);
+  BOOST_TEST(f.front_left_corner().y == 45.0);
+  BOOST_TEST(f.front_right_corner().x == 50.0);
+  BOOST_TEST(f.front_right_corner().y == -45.0);
+
+  /////////////////
+  BOOST_TEST(f.back_penalty_mark().x == 50.0 - 100.0 * 2.0 / 3.0);
+  BOOST_TEST(f.back_penalty_mark().y == 0.0);
+  BOOST_TEST(f.front_penalty_mark().x == -50.0 + 100.0 * 2.0 / 3.0);
+  BOOST_TEST(f.front_penalty_mark().y == 0.0);
+
+  /////////////////
+  BOOST_TEST(f.back_half_area().max.x == 0.0);
+  BOOST_TEST(f.back_half_area().max.y == 45.0);
+  BOOST_TEST(f.back_half_area().min.x == -50.0);
+  BOOST_TEST(f.back_half_area().min.y == -45.0);
+  // ---
+  BOOST_TEST(f.front_half_area().max.x == 50.0);
+  BOOST_TEST(f.front_half_area().max.y == 45.0);
+  BOOST_TEST(f.front_half_area().min.x == 0.0);
+  BOOST_TEST(f.front_half_area().min.y == -45.0);
+
+  /////////////////
+  BOOST_TEST(f.back_penalty_area().max.x == -50.0 + 30.0);
+  BOOST_TEST(f.back_penalty_area().max.y == 10.0);
+  BOOST_TEST(f.back_penalty_area().min.x == -50.0);
+  BOOST_TEST(f.back_penalty_area().min.y == -10.0);
+  // ---
+  BOOST_TEST(f.front_penalty_area().max.x == 50.0);
+  BOOST_TEST(f.front_penalty_area().max.y == 10.0);
+  BOOST_TEST(f.front_penalty_area().min.x == 50.0 - 30.0);
+  BOOST_TEST(f.front_penalty_area().min.y == -10.0);
+
+  /////////////////
+  BOOST_TEST(f.game_area().max.x == 50.0);
+  BOOST_TEST(f.game_area().max.y == 45.0);
+  BOOST_TEST(f.game_area().min.x == -50.0);
+  BOOST_TEST(f.game_area().min.y == -45.0);
 }
 
 BOOST_AUTO_TEST_CASE(test004) {

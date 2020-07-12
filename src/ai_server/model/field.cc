@@ -57,5 +57,83 @@ double field::x_min() const {
 double field::y_min() const {
   return (-width_ / 2);
 }
+double field::back_penalty_x() const {
+  return x_min() + penalty_length_;
+}
+double field::front_penalty_x() const {
+  return x_max() - penalty_length_;
+}
+double field::penalty_y_max() const {
+  return (penalty_width_ / 2);
+}
+double field::penalty_y_min() const {
+  return (-penalty_width_ / 2);
+}
+double field::goal_y_max() const {
+  return (goal_width_ / 2);
+}
+double field::goal_y_min() const {
+  return (-goal_width_ / 2);
+}
+field::point field::back_goal_center() const {
+  return point{x_min(), 0.0};
+}
+field::point field::back_goal_left() const {
+  return point{x_min(), goal_y_max()};
+}
+field::point field::back_goal_right() const {
+  return point{x_min(), goal_y_min()};
+}
+field::point field::front_goal_center() const {
+  return point{x_max(), 0.0};
+}
+field::point field::front_goal_left() const {
+  return point{x_max(), goal_y_max()};
+}
+field::point field::front_goal_right() const {
+  return point{x_max(), goal_y_min()};
+}
+field::point field::back_left_corner() const {
+  return point{x_min(), y_max()};
+}
+field::point field::back_right_corner() const {
+  return point{x_min(), y_min()};
+}
+field::point field::front_left_corner() const {
+  return point{x_max(), y_max()};
+}
+field::point field::front_right_corner() const {
+  return point{x_max(), y_min()};
+}
+field::point field::back_penalty_mark() const {
+  // ペナルティマークの座標は
+  //   - division Aのとき [12.0 / 2.0 - 8.0, 0.0]
+  //   - division Bのとき [ 9.0 / 2.0 - 6.0, 0.0]
+  // なので，以下のようにして対応させる．
+  return {x_max() - 2.0 / 3.0 * length_, 0.0};
+}
+field::point field::front_penalty_mark() const {
+  // ペナルティマークの座標は
+  //   - division Aのとき [-12.0 / 2.0 + 8.0, 0.0]
+  //   - division Bのとき [ -9.0 / 2.0 + 6.0, 0.0]
+  // なので，以下のようにして対応させる．
+  return {x_min() + 2.0 / 3.0 * length_, 0.0};
+}
+field::box field::back_penalty_area() const {
+  return box{point{x_min(), penalty_y_min()}, point{back_penalty_x(), penalty_y_max()}};
+}
+field::box field::front_penalty_area() const {
+  return box{point{front_penalty_x(), penalty_y_min()}, point{x_max(), penalty_y_max()}};
+}
+field::box field::back_half_area() const {
+  return box{point{x_min(), y_min()}, point{0.0, y_max()}};
+}
+field::box field::front_half_area() const {
+  return box{point{0.0, y_min()}, point{x_max(), y_max()}};
+}
+field::box field::game_area() const {
+  return box{point{x_min(), y_min()}, point{x_max(), y_max()}};
+}
+
 } // namespace model
 } // namespace ai_server
