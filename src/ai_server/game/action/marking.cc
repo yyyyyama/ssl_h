@@ -12,6 +12,10 @@
 namespace ai_server {
 namespace game {
 namespace action {
+
+marking::marking(context& ctx, unsigned int id)
+    : base(ctx, id), mode_(mark_mode::kick_block), flag_(false), radius_(250.0) {}
+
 void marking::mark_robot(unsigned int enemy_id) {
   enemy_id_ = enemy_id;
 }
@@ -115,7 +119,7 @@ model::command marking::execute() {
   return ally_robot;
 }
 bool marking::finished() const {
-  return flag;
+  return flag_;
 }
 } // namespace action
 } // namespace game

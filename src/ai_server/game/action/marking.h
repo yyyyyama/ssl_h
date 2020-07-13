@@ -9,7 +9,7 @@ namespace game {
 namespace action {
 class marking : public base {
 public:
-  using base::base;
+  marking(context& ctx, unsigned int id);
   enum class mark_mode { kick_block, shoot_block, corner_block };
   void mark_robot(unsigned int enemy_id);
   void set_mode(action::marking::mark_mode mode);
@@ -18,10 +18,10 @@ public:
   bool finished() const override;
 
 private:
-  unsigned int enemy_id_;                  //指定された敵ロボットのidを保持
-  mark_mode mode_ = mark_mode::kick_block; //マーキングの種類変更
-  bool flag       = false;                 //終了判定のフラグ
-  double radius_  = 250.0;
+  unsigned int enemy_id_; //指定された敵ロボットのidを保持
+  mark_mode mode_;        //マーキングの種類変更
+  bool flag_;             //終了判定のフラグ
+  double radius_;
 };
 } // namespace action
 } // namespace game
