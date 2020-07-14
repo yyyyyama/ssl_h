@@ -30,8 +30,8 @@ anchors:
       - run:
           name: Initialize git submodules
           command: |
-            git submodule sync --recursive
-            git submodule update --recursive --init
+            git submodule sync --recursive 3rd/
+            git submodule update --recursive --init 3rd/
 
       - run: cmake -S ~/project -B ~/build -G Ninja -DCMAKE_BUILD_TYPE=Debug -DENABLE_SANITIZERS=ON -DENABLE_CODE_COVERAGE=ON -DUSE_SYSTEM_NNABLA=ON
       - run: cmake --build ~/build -v -j 4

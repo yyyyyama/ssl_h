@@ -7,3 +7,6 @@
 [submodule "3rd/fmt"]
 	path = 3rd/fmt
 	url = https://github.com/fmtlib/fmt.git
+[submodule "config"]
+	path = config
+	url = https://github.com/kiksworks/ai-server-config.git
