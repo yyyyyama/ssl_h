@@ -23,3 +23,13 @@ target_link_libraries(standalone-gui
 )
 
 ai_server_create_symlink(standalone-gui)
+
+# 設定ファイルのディレクトリを求めやすくするため
+# 実行ファイルと同じディレクトリに config への symlink を作る
+add_custom_command(
+  TARGET standalone-gui
+  POST_BUILD
+  COMMAND ${CMAKE_COMMAND} -E create_symlink "${PROJECT_SOURCE_DIR}/config" config
+  BYPRODUCTS config
+  WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
+)

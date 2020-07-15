@@ -2,6 +2,7 @@
 #include <atomic>
 #include <chrono>
 #include <condition_variable>
+#include <filesystem>
 #include <functional>
 #include <iostream>
 #include <memory>
@@ -100,6 +101,16 @@ static constexpr auto cycle =
 // stopgame時の速度制限
 static constexpr double velocity_limit_at_stopgame = 1400.0;
 
+// .nnp ファイルの設定
+auto nnp_files(const std::filesystem::path& config_dir)
+    -> std::unordered_map<std::string, game::nnabla::nnp_file_type> {
+  const auto nnp_dir = config_dir / "nnp";
+  return {
+      // { key, { path, 常に CPU で計算するか } }
+      {"probability", {nnp_dir / "game/detail/mcts/probability.nnp", true}},
+  };
+}
+
 // スコープを抜けるときに io_context と thread を stop(), join() する helper
 class stop_and_join_at_exit {
   boost::asio::io_context& ctx_;
@@ -122,12 +133,13 @@ public:
 // --------------------------------
 class game_runner {
 public:
-  game_runner(model::updater::world& world, model::updater::refbox& refbox1,
-              model::updater::refbox& refbox2, ai_server::driver& driver,
-              std::shared_ptr<radio::base::command> radio)
+  game_runner(const std::filesystem::path& config_dir, model::updater::world& world,
+              model::updater::refbox& refbox1, model::updater::refbox& refbox2,
+              ai_server::driver& driver, std::shared_ptr<radio::base::command> radio)
       : running_{false},
         is_global_refbox_{true},
         need_reset_{false},
+        config_dir_{config_dir},
         team_color_{model::team_color::yellow},
         updater_world_{world},
         updater_refbox1_{refbox1},
@@ -250,9 +262,8 @@ private:
 
     game::context ctx{};
     // TODO: パラメータを外から渡せるようにする
-    ctx.nnabla = std::make_unique<game::nnabla>(
-        std::vector{"cpu"s}, "0"s,
-        std::unordered_map<std::string, game::nnabla::nnp_file_type>{});
+    ctx.nnabla =
+        std::make_unique<game::nnabla>(std::vector{"cpu"s}, "0"s, nnp_files(config_dir_));
 
     model::refbox refbox{};
     std::unique_ptr<game::formation::base> formation{};
@@ -373,6 +384,8 @@ private:
   bool is_global_refbox_;
   // formation のリセットが必要か
   bool need_reset_;
+
+  const std::filesystem::path& config_dir_;
 
   model::team_color team_color_;
   model::updater::world& updater_world_;
@@ -704,6 +717,19 @@ auto main(int argc, char** argv) -> int {
   l.info("(⋈◍＞◡＜◍)。✧♡");
 
   try {
+    // 設定ファイルのパスを決める
+    // デフォルトは実行ファイルと同じディレクトリの config (<ai-server>/config への symlink)
+    // argv[1] が指定されていたらそれを使う
+    const auto config_dir =
+        (argc == 2)
+            ? std::filesystem::path{argv[1]}
+            : weakly_canonical(std::filesystem::canonical(argv[0]).parent_path() / "config");
+    l.info(fmt::format("configuration directory: {}", config_dir.c_str()));
+    if (!is_directory(config_dir)) {
+      l.error(fmt::format("'{}' does not exist or is not a directory", config_dir.c_str()));
+      return -1;
+    }
+
     // WorldModelの設定
     model::updater::world updater_world{};
     {
@@ -810,7 +836,9 @@ auto main(int argc, char** argv) -> int {
 
     auto app = Gtk::Application::create(argc, argv);
 
-    game_runner runner{updater_world, updater_refbox1_, updater_refbox2_, driver, radio};
+    game_runner runner{
+        config_dir, updater_world, updater_refbox1_, updater_refbox2_, driver, radio,
+    };
     game_panel gp{updater_world, runner};
 
     Glib::signal_timeout().connect(
