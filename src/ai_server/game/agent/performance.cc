@@ -79,7 +79,7 @@ std::vector<std::shared_ptr<action::base>> performance::execute() {
       const Eigen::Vector2d robot_pos = util::math::position(our_robots.at(id));
       const Eigen::Vector2d vel =
           (pos - robot_pos).normalized() * (1.0 * (pos - robot_pos).norm() + rad * omega0);
-      action->move_to(vel.x(), vel.y(), 0.0);
+      action->move_at(vel, 0.0);
       baseaction.push_back(action);
     }
   }

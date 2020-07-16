@@ -107,12 +107,12 @@ std::vector<std::shared_ptr<action::base>> marking::execute() {
         vx = 500.0 * (robot.x() - goal_x) / std::hypot(robot.x() - goal_x, robot.y() - 0.0);
         vy = 500.0 * (robot.y() - 0.0) / std::hypot(robot.x() - goal_x, robot.y() - 0.0);
         auto vec = make_action<action::vec>(id);
-        vec->move_to(vx, vy, 0.0);
+        vec->move_at(vx, vy, 0.0);
         baseaction.push_back(vec);
       } else {
         // 停止
         auto vec = make_action<action::vec>(id);
-        vec->move_to(0.0, 0.0, 0.0);
+        vec->move_at(0.0, 0.0, 0.0);
         baseaction.push_back(vec);
       }
     }
@@ -141,12 +141,12 @@ std::vector<std::shared_ptr<action::base>> marking::execute() {
         vx = 500.0 * (robot.x() - goal_x) / std::hypot(robot.x() - goal_x, robot.y() - 0.0);
         vy = 500.0 * (robot.y() - 0.0) / std::hypot(robot.x() - goal_x, robot.y() - 0.0);
         auto vec = make_action<action::vec>(id);
-        vec->move_to(vx, vy, 0.0);
+        vec->move_at(vx, vy, 0.0);
         baseaction.push_back(vec);
       } else {
         // 停止
         auto vec = make_action<action::vec>(id);
-        vec->move_to(0.0, 0.0, 0.0);
+        vec->move_at(0.0, 0.0, 0.0);
         baseaction.push_back(vec);
       }
     }
@@ -230,7 +230,7 @@ std::vector<std::shared_ptr<action::base>> marking::execute() {
     if (our_robots.count(id) == 0) {
       // 停止
       auto vec = make_action<action::vec>(id);
-      vec->move_to(0.0, 0.0, 0.0);
+      vec->move_at(0.0, 0.0, 0.0);
       baseaction.push_back(vec);
     } else if (std::abs(robot.x()) > world().field().x_max() - 1300.0 &&
                std::abs(robot.y()) < 1300.0) {
@@ -240,7 +240,7 @@ std::vector<std::shared_ptr<action::base>> marking::execute() {
       vx       = 500.0 * (robot.x() - goal_x) / std::hypot(robot.x() - goal_x, robot.y() - 0.0);
       vy       = 500.0 * (robot.y() - 0.0) / std::hypot(robot.x() - goal_x, robot.y() - 0.0);
       auto vec = make_action<action::vec>(id);
-      vec->move_to(vx, vy, 0.0);
+      vec->move_at(vx, vy, 0.0);
       baseaction.push_back(vec);
     } else if (setplay_flag_) {
       // 敵チームセットプレイ時
@@ -281,7 +281,7 @@ std::vector<std::shared_ptr<action::base>> marking::execute() {
                ((c_to_btheta > c_to_rtheta) - (c_to_btheta < c_to_rtheta));
         }
         auto vec = make_action<action::vec>(id);
-        vec->move_to(vx, vy, 0.0);
+        vec->move_at(vx, vy, 0.0);
         baseaction.push_back(vec);
       } else {
         if (enemy_robots.count(eid) != 0) {
@@ -294,7 +294,7 @@ std::vector<std::shared_ptr<action::base>> marking::execute() {
         } else {
           // 停止
           auto vec = make_action<action::vec>(id);
-          vec->move_to(0.0, 0.0, 0.0);
+          vec->move_at(0.0, 0.0, 0.0);
           baseaction.push_back(vec);
         }
       }
@@ -339,7 +339,7 @@ std::vector<std::shared_ptr<action::base>> marking::execute() {
         } else {
           // 停止
           auto vec = make_action<action::vec>(id);
-          vec->move_to(0.0, 0.0, 0.0);
+          vec->move_at(0.0, 0.0, 0.0);
           baseaction.push_back(vec);
         }
       }

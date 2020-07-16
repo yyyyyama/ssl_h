@@ -17,10 +17,6 @@ public:
   void move_at(double vx, double vy, double omega = 0.0);
   void move_at(const Eigen::Vector2d& v, double omega = 0.0);
   void move_at(const Eigen::Vector3d& v);
-  [[deprecated("please use move_at(...)")]] void move_to(double vx, double vy,
-                                                         double omega = 0.0) {
-    move_at(vx, vy, omega);
-  }
 
   model::command execute() override;
 
