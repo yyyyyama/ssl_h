@@ -8,6 +8,7 @@ foreach(TEST_SOURCE_FILE ${SOURCES})
   add_executable(${TEST_EXECUTABLE_NAME} ${TEST_SOURCE_FILE})
   target_compile_definitions(${TEST_EXECUTABLE_NAME} PRIVATE BOOST_TEST_MODULE=${TEST_MODULE_NAME})
   target_link_libraries(${TEST_EXECUTABLE_NAME}
+    ai-server-common-flags
     ai-server-lib
     Boost::unit_test_framework
 

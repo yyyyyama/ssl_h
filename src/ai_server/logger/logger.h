@@ -34,13 +34,13 @@ public:
   }
 
   inline void debug([[maybe_unused]] std::string_view msg) const {
-#ifdef DEBUG
+#ifdef AI_SERVER_DEBUG
     log(log_level::debug, msg);
 #endif
   }
 
   inline void trace([[maybe_unused]] std::string_view msg) const {
-#ifdef DEBUG
+#ifdef AI_SERVER_DEBUG
     log(log_level::trace, msg);
 #endif
   }

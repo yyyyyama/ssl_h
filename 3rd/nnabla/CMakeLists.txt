@@ -9,19 +9,19 @@ set(BUILD_CPP_UTILS ON CACHE BOOL "Build C++ API and utilities")
 # Python インターフェースはビルドしない
 set(BUILD_PYTHON_PACKAGE OFF CACHE BOOL "Build python package")
 
-# git apply を使いたい
-find_package(Git REQUIRED)
+# patch を使いたい
+find_package(Patch REQUIRED)
 
 # FetchContent で nnabla のソースコードをダウンロード & プロジェクトへの追加をする
 # https://cmake.org/cmake/help/v3.13/module/FetchContent.html
 include(FetchContent)
 FetchContent_Declare(nnabla
-  GIT_REPOSITORY https://github.com/sony/nnabla.git
-  GIT_TAG        v1.7.0
+  URL      https://github.com/sony/nnabla/archive/v1.7.0.tar.gz
+  URL_HASH SHA256=7602b95a547a0c593cbc040cfc771ea60619c5128748722533ac2fb48a150c9d
 
   # nnabla の CMakeLists.txt 内では CMAKE_SOURCE_DIR などが使われていて
   # add_subdirectory/FetchContent_MakeAvailable したときに問題となるためパッチを当てる
-  PATCH_COMMAND  ${GIT_EXECUTABLE} apply ${CMAKE_CURRENT_SOURCE_DIR}/use-correct-variables.patch
+  PATCH_COMMAND ${Patch_EXECUTABLE} -p1 < ${CMAKE_CURRENT_SOURCE_DIR}/use-correct-variables.patch
 )
 FetchContent_GetProperties(nnabla)
 if(NOT nnabla_POPULATED)
@@ -29,11 +29,11 @@ if(NOT nnabla_POPULATED)
   add_subdirectory(${nnabla_SOURCE_DIR} ${nnabla_BINARY_DIR})
 endif()
 
-# nnabla 側で宣言されたターゲット nnabla, nnabla_utils, nbla_cli に
+# nnabla 側で宣言されたターゲット nnabla, nnabla_utils, nnabla_cli に
 # 追加の依存関係と include パスの指定をして使いやすくする
 add_library(nnabla_interface INTERFACE)
 target_link_libraries(nnabla_interface INTERFACE nnabla)
-target_include_directories(nnabla_interface INTERFACE "${nnabla_SOURCE_DIR}/include")
+target_include_directories(nnabla_interface SYSTEM INTERFACE "${nnabla_SOURCE_DIR}/include")
 add_library(nnabla::nnabla ALIAS nnabla_interface)
 
 add_library(nnabla_utils_interface INTERFACE)
@@ -43,10 +43,10 @@ target_link_libraries(nnabla_utils_interface INTERFACE
 )
 add_library(nnabla::nnabla_utils ALIAS nnabla_utils_interface)
 
-add_library(nbla_cli_interface INTERFACE)
-target_link_libraries(nbla_cli_interface INTERFACE
+add_library(nnabla_cli_interface INTERFACE)
+target_link_libraries(nnabla_cli_interface INTERFACE
   nnabla::nnabla
   nnabla::nnabla_utils
-  nbla_cli
+  nnabla_cli
 )
-add_library(nnabla::nbla_cli ALIAS nbla_cli_interface)
+add_library(nnabla::nnabla_cli ALIAS nnabla_cli_interface)

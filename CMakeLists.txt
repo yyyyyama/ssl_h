@@ -14,42 +14,54 @@ if(NOT CMAKE_BUILD_TYPE)
 endif()
 message(STATUS "Build type: ${CMAKE_BUILD_TYPE}")
 
-# Set compiler flags
+# 基本的なコンパイルオプションを設定
+# これらは ai-server 以外 (3rd/ など) にも影響するため最小限 (最適化関連など) にとどめる
 set(CMAKE_CXX_EXTENSIONS  OFF)
 set(CMAKE_CXX_STANDARD    17)
 set(CXX_STANDARD_REQUIRED ON)
 
-set(CMAKE_CXX_FLAGS         "${CMAKE_CXX_FLAGS}         -Wall -Wextra -pedantic")
-set(CMAKE_CXX_FLAGS_DEBUG   "${CMAKE_CXX_FLAGS_DEBUG}   -g -DDEBUG")
-set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -O2 -march=native -DNDEBUG")
+set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -march=native")
 set(CMAKE_EXE_LINKER_FLAGS  "${CMAKE_EXE_LINKER_FLAGS}  -Wl,-O1,--sort-common,--as-needed,-z,relro")
 
+# ai-server 関連のコードのコンパイラオプションの設定
+add_library(ai-server-common-flags INTERFACE)
+target_compile_options(ai-server-common-flags INTERFACE
+  # 警告を少し厳しめに
+  $<$<COMPILE_LANGUAGE:CXX>:-Wall -Wextra -pedantic>
+)
+target_compile_definitions(ai-server-common-flags INTERFACE
+  # Debug ビルド時に AI_SERVER_DEBUG を define
+  $<$<AND:$<COMPILE_LANGUAGE:CXX>,$<CONFIG:Debug>>:AI_SERVER_DEBUG>
+)
+
+# Ninja を使うとコンパイラのカラー表示が無効化されてしまうので有効にする
 if(CMAKE_GENERATOR STREQUAL "Ninja")
-  if(CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
-    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fdiagnostics-color=always")
-  elseif(CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
-    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fcolor-diagnostics")
-  endif()
+  set(color_diag_options
+    $<$<AND:$<COMPILE_LANGUAGE:CXX>,$<CXX_COMPILER_ID:GNU>>:-fdiagnostics-color=always>
+    $<$<AND:$<COMPILE_LANGUAGE:CXX>,$<CXX_COMPILER_ID:Clang>>:-fcolor-diagnostics>
+  )
+  target_compile_options(ai-server-common-flags INTERFACE ${color_diag_options})
+  target_link_options(ai-server-common-flags INTERFACE ${color_diag_options})
 endif()
 
 # Sanitizers
 if(ENABLE_SANITIZERS)
-  if(CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
-    message(STATUS "Enabling GCC's address sanitizer")
-    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fsanitize=address")
-  elseif(CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
-    message(STATUS "Enabling Clang's address sanitizer")
-    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fsanitize=address -fno-omit-frame-pointer")
-  endif()
+  set(sanitiser_options
+    $<$<AND:$<COMPILE_LANGUAGE:CXX>,$<CXX_COMPILER_ID:GNU>>:-fsanitize=address>
+    $<$<AND:$<COMPILE_LANGUAGE:CXX>,$<CXX_COMPILER_ID:Clang>>:-fsanitize=address -fno-omit-frame-pointer>
+  )
+  target_compile_options(ai-server-common-flags INTERFACE ${sanitiser_options})
+  target_link_options(ai-server-common-flags INTERFACE ${sanitiser_options})
 endif()
 
 # Code coverage
 if(ENABLE_CODE_COVERAGE)
-  if(CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
-    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fprofile-arcs -ftest-coverage")
-  elseif(CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
-    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fprofile-instr-generate -fcoverage-mapping")
-  endif()
+  set(coverage_options
+    $<$<AND:$<COMPILE_LANGUAGE:CXX>,$<CXX_COMPILER_ID:GNU>>:-fprofile-arcs -ftest-coverage>
+    $<$<AND:$<COMPILE_LANGUAGE:CXX>,$<CXX_COMPILER_ID:Clang>>:-fprofile-instr-generate -fcoverage-mapping>
+  )
+  target_compile_options(ai-server-common-flags INTERFACE ${coverage_options})
+  target_link_options(ai-server-common-flags INTERFACE ${coverage_options})
 endif()
 
 # Required libraries
