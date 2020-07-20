@@ -20,6 +20,11 @@
 
 #include <gtkmm.h>
 
+#ifdef AI_SERVER_HAS_NNABLA_EXT_CUDA
+#include <nbla/cuda/cudnn/init.hpp>
+#include <nbla/cuda/init.hpp>
+#endif
+
 #include "ai_server/controller/state_feedback.h"
 #include "ai_server/driver.h"
 #include "ai_server/filter/state_observer/ball.h"
@@ -100,6 +105,19 @@ static constexpr auto cycle =
 
 // stopgame時の速度制限
 static constexpr double velocity_limit_at_stopgame = 1400.0;
+
+// nnabla の設定
+std::vector<std::string> nnabla_backend() {
+#ifdef AI_SERVER_HAS_NNABLA_EXT_CUDA
+  return {"cudnn", "cuda", "cpu"};
+#else
+  return {"cpu"};
+#endif
+}
+
+std::string nnabla_device_id() {
+  return "0";
+}
 
 // .nnp ファイルの設定
 auto nnp_files(const std::filesystem::path& config_dir)
@@ -261,9 +279,8 @@ private:
     l_.info("game started!");
 
     game::context ctx{};
-    // TODO: パラメータを外から渡せるようにする
-    ctx.nnabla =
-        std::make_unique<game::nnabla>(std::vector{"cpu"s}, "0"s, nnp_files(config_dir_));
+    ctx.nnabla = std::make_unique<game::nnabla>(nnabla_backend(), nnabla_device_id(),
+                                                nnp_files(config_dir_));
 
     model::refbox refbox{};
     std::unique_ptr<game::formation::base> formation{};
@@ -715,6 +732,12 @@ auto main(int argc, char** argv) -> int {
   logger::logger l{"main()"};
 
   l.info("(⋈◍＞◡＜◍)。✧♡");
+
+#ifdef AI_SERVER_HAS_NNABLA_EXT_CUDA
+  nbla::init_cudnn();
+#endif
+  l.info(fmt::format("nnabla: backend = {}, device_id = {}", nnabla_backend(),
+                     nnabla_device_id()));
 
   try {
     // 設定ファイルのパスを決める

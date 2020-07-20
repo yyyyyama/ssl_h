@@ -10,6 +10,12 @@ target_link_libraries(standalone-gui
   PkgConfig::Gtkmm3
 )
 
+if(ENABLE_NNABLA_EXT_CUDA)
+  target_link_libraries(standalone-gui nnabla::nnabla_cuda)
+  # nnabla-ext-cuda が使えるときは AI_SERVER_HAS_NNABLA_EXT_CUDA を define する
+  target_compile_definitions(standalone-gui PRIVATE AI_SERVER_HAS_NNABLA_EXT_CUDA)
+endif()
+
 ai_server_create_symlink(standalone-gui)
 
 # 設定ファイルのディレクトリを求めやすくするため

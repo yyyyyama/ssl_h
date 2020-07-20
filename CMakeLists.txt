@@ -71,8 +71,15 @@ find_package(Protobuf 3.2 REQUIRED)
 find_package(Threads REQUIRED)
 
 option(USE_SYSTEM_NNABLA "try to use system installed nnabla" OFF)
+option(ENABLE_NNABLA_EXT_CUDA "enable cuda extension of nnabla" OFF)
 if(USE_SYSTEM_NNABLA)
   find_package(NNabla 1.4 COMPONENTS NNabla Utils)
+
+  # インストールされた nnabla が見つかったときは nnabla-ext-cuda もインストールされたものを使う
+  # (nnabla-ext-cuda のビルドには nnabla のソースコードが必要で、単体でのビルドが難しいため)
+  if(NNabla_FOUND AND ENABLE_NNABLA_EXT_CUDA)
+    find_package(NNablaExtCUDA 1.4 REQUIRED)
+  endif()
 endif()
 
 # Enable CTest
