@@ -1,9 +1,9 @@
 set(NNabla_FOUND 0)
 
 # nnabla と思われるライブラリとインクルードパスを求める
-find_library(libnnabla       NAMES nnabla libnnabla)
-find_library(libnnabla_utils NAMES nnabla_utils libnnabla_utils)
-find_library(libnnabla_cli   NAMES nnabla_cli libnnabla_cli)
+find_library(libnnabla       NAMES nnabla)
+find_library(libnnabla_utils NAMES nnabla_utils)
+find_library(libnnabla_cli   NAMES nnabla_cli nbla_cli)
 
 find_path(nbla_dir       nbla/version.hpp)
 find_path(nbla_utils_dir nbla_utils/nnp.hpp)
@@ -69,14 +69,14 @@ mark_as_advanced(
   NNabla_Utils_LIB
   NNabla_CLI_LIB)
 
-if(NNabla_NNabla_FOUND AND NOT TARGET nnabla::nnabla)
+if(NNabla_FOUND AND NNabla_NNabla_FOUND AND NOT TARGET nnabla::nnabla)
   add_library(nnabla::nnabla UNKNOWN IMPORTED)
   set_target_properties(nnabla::nnabla PROPERTIES
     IMPORTED_LOCATION "${NNabla_NNabla_LIB}"
     INTERFACE_INCLUDE_DIRECTORIES "${NNabla_INCLUDE_DIR}")
 endif()
 
-if(NNabla_Utils_FOUND AND NOT TARGET nnabla::nnabla_utils)
+if(NNabla_FOUND AND NNabla_Utils_FOUND AND NOT TARGET nnabla::nnabla_utils)
   add_library(nnabla::nnabla_utils UNKNOWN IMPORTED)
   set_target_properties(nnabla::nnabla_utils PROPERTIES
     IMPORTED_LOCATION "${NNabla_Utils_LIB}"
@@ -84,7 +84,7 @@ if(NNabla_Utils_FOUND AND NOT TARGET nnabla::nnabla_utils)
     INTERFACE_LINK_LIBRARIES nnabla::nnabla)
 endif()
 
-if(NNabla_CLI_FOUND AND NOT TARGET nnabla::nnabla_cli)
+if(NNabla_FOUND AND NNabla_CLI_FOUND AND NOT TARGET nnabla::nnabla_cli)
   add_library(nnabla::nnabla_cli UNKNOWN IMPORTED)
   set_target_properties(nnabla::nnabla_cli PROPERTIES
     IMPORTED_LOCATION "${NNabla_CLI_LIB}"
