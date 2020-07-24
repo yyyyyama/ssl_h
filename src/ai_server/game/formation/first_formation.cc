@@ -129,38 +129,19 @@ std::vector<std::shared_ptr<agent::base>> first_formation::execute() {
 
     case game_situation::penalty:
       if (is_attack) {
-        if (is_start) {
-          //定常状態に入る
-          if ((pk_ && pk_->finished()) || time_over(point, change_command_time_, 10)) {
-            exe.emplace_back(all());
-            break;
-          }
-          exe.emplace_back(pk(true, true, enemy_keeper));
-          exe.emplace_back(defense(agent::defense::defense_mode::normal_mode));
+        //定常状態に入る
+        if (is_start &&
+            ((pk_ && pk_->finished()) || time_over(point, change_command_time_, 10))) {
+          exe.emplace_back(all());
         } else {
-          exe.emplace_back(pk(false, true, enemy_keeper));
+          exe.emplace_back(pk(is_start, true, enemy_keeper));
           exe.emplace_back(defense(agent::defense::defense_mode::normal_mode));
         }
       } else {
-        if (is_start) {
-          exe.emplace_back(pk(false, false, enemy_keeper));
-          exe.emplace_back(defense(agent::defense::defense_mode::pk_normal_mode));
+        //定常状態に入る
+        if (is_start && kicked_flag_ && time_over(point, kicked_time_, 1)) {
+          exe.emplace_back(all());
         } else {
-          //定常状態に入る
-          if (kicked_flag_) {
-            if (time_over(point, kicked_time_, 1)) {
-              exe.emplace_back(all());
-              break;
-            } else {
-              exe.emplace_back(pk(false, false, enemy_keeper));
-              exe.emplace_back(defense(agent::defense::defense_mode::pk_normal_mode));
-              break;
-            }
-          }
-          kicked_flag_ = kicked(ball);
-          if (kicked_flag_) {
-            kicked_time_ = point;
-          }
           exe.emplace_back(pk(false, false, enemy_keeper));
           exe.emplace_back(defense(agent::defense::defense_mode::pk_normal_mode));
         }
