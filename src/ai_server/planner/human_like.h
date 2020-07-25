@@ -10,6 +10,10 @@ public:
   /// @param count            設定値
   void set_direction_count(int count);
 
+  /// @brief 障害物エリアからの脱出の際にロボットを進ませる最大距離
+  /// @param length           設定値
+  void set_max_exit_length(double length);
+
   /// @brief ロボットを最大限進ませるときの距離
   /// @param length           設定値
   void set_max_length(double length);
@@ -33,6 +37,8 @@ private:
   double max_length_ = 4000.0;
   // rayの最小長さ
   double min_length_ = 100.0;
+  // 障害物エリアから脱出するときの最大距離
+  double max_exit_length_ = 3000.0;
 };
 } // namespace ai_server::planner
 

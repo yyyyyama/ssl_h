@@ -67,24 +67,13 @@ inline std::vector<double> make_length_list(double l_min, double l_max, double l
 /// @param obstacles             障害物リスト
 /// @param area                  移動可能範囲
 /// @return 経路探索の結果
-inline Eigen::Vector2d exit_position(const Eigen::Vector2d& start,
-                                     const std::vector<Eigen::Vector2d>& dirs,
-                                     const std::vector<double>& lengths,
-                                     const obstacle_list::tree_type& obstacles,
-                                     const box_type& area) {
-  // フィールド内にいるか
-  const bool in_area = boost::geometry::within(start, area);
-
+inline std::optional<Eigen::Vector2d> exit_position(const Eigen::Vector2d& start,
+                                                    const std::vector<Eigen::Vector2d>& dirs,
+                                                    const std::vector<double>& lengths,
+                                                    const obstacle_list::tree_type& obstacles,
+                                                    const box_type& area) {
   // 候補がないとき
-  if (dirs.empty() || lengths.empty()) {
-    if (in_area) {
-      // その場にとどまる
-      return start;
-    }
-    // エリアの中心へ
-    const auto center = boost::geometry::return_centroid<Eigen::Vector2d>(area);
-    return start + (center - start);
-  }
+  if (dirs.empty() || lengths.empty()) return std::nullopt;
 
   // 脱出先までの距離
   auto exit_length = lengths.end();
@@ -134,14 +123,7 @@ inline Eigen::Vector2d exit_position(const Eigen::Vector2d& start,
   }
 
   // 脱出先がみつからない
-  if (exit_length == lengths.end()) {
-    if (in_area) {
-      return start + lengths.front() * dirs.front();
-    }
-    // エリアの中心へ
-    const auto center = boost::geometry::return_centroid<Eigen::Vector2d>(area);
-    return start + lengths.front() * (center - start).normalized();
-  }
+  if (exit_length == lengths.end()) return std::nullopt;
 
   // 脱出先からの距離リスト
   std::vector<double> line_lengths;
@@ -167,6 +149,24 @@ inline Eigen::Vector2d exit_position(const Eigen::Vector2d& start,
              ? exit_p
              // 障害物にぶつかる直前まで
              : exit_p + *std::prev(collied_l, 1) * exit_dir;
+}
+
+/// @brief  何もできないときに進む先を返す
+/// @param start                 初期位置
+/// @param dir                   進みたい方向
+/// @param length                進む距離
+/// @param area                  移動可能範囲
+/// @return 経路探索の結果
+inline Eigen::Vector2d default_position(const Eigen::Vector2d& start,
+                                        const Eigen::Vector2d& dir, double length,
+                                        const box_type& area) {
+  // フィールド内にいるか
+  if (boost::geometry::within(start, area)) {
+    return start + length * dir;
+  }
+  // エリアの中心へ
+  const auto center = boost::geometry::return_centroid<Eigen::Vector2d>(area);
+  return start + length * (center - start).normalized();
 }
 
 /// @brief  Human-Likeアルゴリズムを使って経路探索を行い，結果を返す

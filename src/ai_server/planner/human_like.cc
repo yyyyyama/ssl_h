@@ -8,6 +8,10 @@ void human_like::set_direction_count(int count) {
   direction_count_ = count;
 }
 
+void human_like::set_max_exit_length(double length) {
+  max_exit_length_ = length;
+}
+
 void human_like::set_max_length(double length) {
   max_length_ = length;
 }
@@ -36,7 +40,8 @@ base::planner_type human_like::planner() {
 
     // 方向と長さのリスト
     const auto lengths = impl::make_length_list(l_min, l_max, step_length_);
-    const auto dirs    = impl::make_directions(sg.normalized(), direction_count_);
+    const auto dirs    = impl::make_directions(
+        sg.norm() > 0.0 ? sg.normalized() : Eigen::Vector2d::UnitX(), direction_count_);
 
     // Human-Likeによる探索結果
     const auto plan_result = impl::planned_position(start, dirs, lengths, obstacles, area);
@@ -45,13 +50,14 @@ base::planner_type human_like::planner() {
     Eigen::Vector2d result;
     if (plan_result.has_value()) {
       result = plan_result.value();
-    } else if (l_min >= min_length_) {
-      // 脱出
-      result = impl::exit_position(start, dirs, lengths, obstacles, area);
     } else {
-      // 脱出する必要があるので，最低限min_length_は進む
-      const auto exit_lengths = impl::make_length_list(min_length_, min_length_, step_length_);
-      result                  = impl::exit_position(start, dirs, exit_lengths, obstacles, area);
+      // 脱出
+      const auto exit_lengths = impl::make_length_list(l_min, max_exit_length_, step_length_);
+      const auto exit_p       = impl::exit_position(start, dirs, exit_lengths, obstacles, area);
+
+      result = exit_p.value_or(
+          // 最低でも min_length_ は進ませる
+          impl::default_position(start, sg.normalized(), min_length_, area));
     }
 
     return std::make_pair(result, (result - start).norm());
