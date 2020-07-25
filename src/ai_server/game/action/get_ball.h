@@ -42,6 +42,11 @@ public:
   /// @param pow キックパワー
   void set_pow(int pow);
 
+  /// @brief キックパワーを設定する
+  /// @param line_pow line時のキックパワー
+  /// @param chio_pow chip時のキックパワー
+  void set_pow(int line_pow, int chip_pow);
+
   /// @brief チップするかを設定する
   /// @param chip チップするか
   void set_chip(bool chip);
@@ -49,6 +54,9 @@ public:
   /// @brief 許容する目標位置とボールとの距離を設定する(キック時)
   /// @param margin 距離
   void set_kick_margin(double margin);
+
+  /// @brief キックタイプを設定する
+  /// @param kick_type キックタイプ
   void set_kick_type(const model::command::kick_flag_t& kick_type);
 
   /// @brief 許容する目標位置とボールとの距離を設定する(終了判定時)
@@ -73,17 +81,18 @@ private:
   running_state state_;
   // 目標
   Eigen::Vector2d target_;
-  // ボール位置を一時的に保持
-  Eigen::Vector2d first_ball_;
   // 目標位置との許容誤差
   double kick_margin_;
   // キックの種類・パワー
   model::command::kick_flag_t kick_type_;
+  // chipを打つ判定をした場合のキックパワー
+  int chip_pow_;
   // agent指定のkick_typeをそのまま使うか
   bool manual_kick_flag_;
   // 許容誤差
   double allow_;
 };
+
 } // namespace action
 } // namespace game
 } // namespace ai_server

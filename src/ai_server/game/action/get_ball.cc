@@ -1,22 +1,16 @@
 #include <cmath>
+
 #include <boost/geometry/geometry.hpp>
-#include <boost/geometry/geometries/point_xy.hpp>
-#include <boost/geometry/geometries/polygon.hpp>
 #include <boost/geometry/geometries/segment.hpp>
 #include <boost/math/constants/constants.hpp>
 
-#include "ai_server/model/obstacle/field.h"
-#include "ai_server/planner/rrt_star.h"
 #include "ai_server/util/math/angle.h"
 #include "ai_server/util/math/geometry.h"
-#include "ai_server/util/math/geometry_traits.h"
 #include "ai_server/util/math/to_vector.h"
+
 #include "get_ball.h"
 
-namespace bg  = boost::geometry;
-using polygon = bg::model::polygon<Eigen::Vector2d>;
 using boost::math::constants::pi;
-using namespace std::chrono_literals;
 
 namespace ai_server {
 namespace game {
@@ -28,6 +22,7 @@ get_ball::get_ball(context& ctx, unsigned int id, const Eigen::Vector2d& target)
       target_(target),
       kick_margin_(200),
       kick_type_({model::command::kick_type_t::line, 45}),
+      chip_pow_(100),
       manual_kick_flag_(true),
       allow_(10) {}
 
@@ -62,6 +57,13 @@ Eigen::Vector2d get_ball::target() const {
 void get_ball::set_pow(int pow) {
   manual_kick_flag_       = false;
   std::get<1>(kick_type_) = pow;
+  chip_pow_               = pow;
+}
+
+void get_ball::set_pow(int line_pow, int chip_pow) {
+  manual_kick_flag_       = false;
+  std::get<1>(kick_type_) = line_pow;
+  chip_pow_               = chip_pow;
 }
 
 void get_ball::set_chip(bool chip) {
@@ -87,8 +89,6 @@ model::command get_ball::execute() {
 
   // ロボットとボールが十分近づいたと判定する距離
   constexpr double robot_rad = 125;
-  // 他ロボットからとる距離
-  constexpr double obs_robot_rad = 150.0;
   // ドリブルバーの回転速度
   constexpr int dribble_value = 5;
   // ロボットとボールの距離
@@ -96,55 +96,31 @@ model::command get_ball::execute() {
   // ロボットと目標の距離
   const double dist_r_to_t = (robot_pos - target_).norm();
 
-  // 敵とボールの奪い合いになるか
-  const bool battle_flag =
-      dist_b_to_r < 1000.0 &&
-      std::any_of(enemy_robots.cbegin(), enemy_robots.cend(), [&ball_pos](const auto& ene) {
-        return (util::math::position(ene.second) - ball_pos).norm() < 500.0;
-      });
+  // ボールを持っているか
+  const bool have_ball =
+      dist_b_to_r < robot_rad &&
+      std::abs(util::math::wrap_to_pi(
+          robot.theta() - std::atan2(ball_pos.y() - robot_pos.y(),
+                                     ball_pos.x() - robot_pos.x()))) < pi<double>() / 6.0;
 
-  // ボールの方を向くか
-  const bool to_ball_flag = battle_flag && dist_b_to_r > robot_rad;
-
-  const double theta =
-      to_ball_flag ? std::atan2(ball_pos.y() - robot_pos.y(), ball_pos.x() - robot_pos.x())
-                   : std::atan2(target_.y() - robot_pos.y(), target_.x() - robot_pos.x());
-  const double omega =
-      std::clamp(3.0 * util::math::wrap_to_pi(theta - robot.theta()), -3.0, 3.0);
+  // ロボットの目標角度
+  const double theta = std::atan2(target_.y() - robot_pos.y(), target_.x() - robot_pos.x());
 
   // 速度指令
   switch (state_) {
     // ボールを蹴る
     case running_state::dribble: {
-      if (!battle_flag || dist_b_to_r > 200.0) {
-        state_ = running_state::move;
-      }
+      if (!have_ball) state_ = running_state::move;
 
-      const Eigen::Vector2d vel = 2.0 * (ball_pos - robot_pos);
-      const Eigen::Vector2d tar = (ball_pos - robot_pos).norm() * vel.normalized() + robot_pos;
-
-      // 障害物設定
-      planner::rrt_star rrt{};
-      rrt.set_area(world().field(), 200.0);
-      planner::obstacle_list obstacles;
-      obstacles.add(model::obstacle::enemy_penalty_area(world().field(), 150.0));
-      obstacles.add(model::obstacle::our_penalty_area(world().field(), 150.0));
-      for (const auto& r : enemy_robots) {
-        obstacles.add(model::obstacle::point{util::math::position(r.second), obs_robot_rad});
-      }
-
-      const auto plan        = rrt.planner();
-      const auto plan_result = plan(robot_pos, tar, obstacles);
-
-      const Eigen::Vector2d final_vel =
-          vel.norm() * (std::get<0>(plan_result) - robot_pos).normalized();
-      command.set_velocity({final_vel.x(), final_vel.y(), omega});
+      const Eigen::Vector2d vel = 2.0 * (target_ - robot_pos);
+      command.set_velocity(vel);
+      command.set_angle(theta);
       break;
     }
 
     // 移動
     default: {
-      if (battle_flag && dist_b_to_r < 300.0) state_ = running_state::dribble;
+      if (have_ball) state_ = running_state::dribble;
 
       const double rad =
           std::abs(util::math::wrap_to_pi(
@@ -153,49 +129,24 @@ model::command get_ball::execute() {
               ? 90.0
               : 150.0;
       Eigen::Vector2d pos = ball_pos + rad * (ball_pos - target_).normalized();
-      if (to_ball_flag) {
-        pos = ball_pos + rad * (robot_pos - ball_pos).normalized();
-      } else if (std::abs(util::math::wrap_to_pi(
-                     std::atan2(robot_pos.y() - ball_pos.y(), robot_pos.x() - ball_pos.x()) -
-                     std::atan2(pos.y() - ball_pos.y(), pos.x() - ball_pos.x()))) >
-                 0.3 * pi<double>()) {
+      if (std::abs(util::math::wrap_to_pi(
+              std::atan2(robot_pos.y() - ball_pos.y(), robot_pos.x() - ball_pos.x()) -
+              std::atan2(pos.y() - ball_pos.y(), pos.x() - ball_pos.x()))) >
+          0.3 * pi<double>()) {
         const auto [p1, p2] = util::math::calc_isosceles_vertexes(robot_pos, ball_pos, rad);
         pos                 = ((p1 - pos).norm() < (p2 - pos).norm()) ? p1 : p2;
       }
       const Eigen::Vector2d vel =
-          3.5 * (pos - robot_pos) +
-          (dist_b_to_r > robot_rad ? ball_vel : Eigen::Vector2d::Zero());
-      const Eigen::Vector2d tar = (pos - robot_pos).norm() * vel.normalized() + robot_pos;
-
-      // 障害物設定
-      planner::rrt_star rrt{};
-      rrt.set_area(world().field(), 200.0);
-
-      planner::obstacle_list obstacles;
-      obstacles.add(model::obstacle::enemy_penalty_area(world().field(), 150.0));
-      obstacles.add(model::obstacle::our_penalty_area(world().field(), 150.0));
-      for (const auto& r : our_robots) {
-        if (r.first != id_)
-          obstacles.add(model::obstacle::point{util::math::position(r.second), obs_robot_rad});
-      }
-      for (const auto& r : enemy_robots) {
-        obstacles.add(model::obstacle::point{util::math::position(r.second),
-                                             battle_flag ? 80.0 : obs_robot_rad});
-      }
-
-      const auto plan        = rrt.planner();
-      const auto plan_result = plan(robot_pos, tar, obstacles);
-
-      const Eigen::Vector2d final_vel =
-          vel.norm() * (std::get<0>(plan_result) - robot_pos).normalized();
-      command.set_velocity({final_vel.x(), final_vel.y(), omega});
+          3.5 * (pos - robot_pos) + (have_ball ? Eigen::Vector2d::Zero() : ball_vel);
+      command.set_velocity(vel);
+      command.set_angle(theta);
     }
   }
 
   // キック・ドリブル
   {
-    const Eigen::Vector2d tmp(robot_pos.x() + dist_r_to_t * std::cos(robot.theta()),
-                              robot_pos.y() + dist_r_to_t * std::sin(robot.theta()));
+    const Eigen::Vector2d tmp = robot_pos + dist_r_to_t * (Eigen::Rotation2Dd(robot.theta()) *
+                                                           Eigen::Vector2d::UnitX());
     const boost::geometry::model::segment<Eigen::Vector2d> line =
         boost::geometry::model::segment(robot_pos, tmp);
     if (dist_b_to_r < robot_rad && boost::geometry::distance(line, target_) < kick_margin_)
@@ -213,10 +164,10 @@ void get_ball::kick(const Eigen::Vector2d& robot_pos,
     return;
   }
   // チップが有効そうな距離
-  constexpr double radius = 1000.0;
-  //自分から1000の位置と自分で三角形を作り,間に敵が1つでもあったらチップにする
+  const double radius = std::min((robot_pos - target_).norm(), 1000.0);
+  //自分からradiusの位置と自分で三角形を作り,間に敵が1つでもあったらチップにする
   const bool flag = std::any_of(
-      enemy_robots.cbegin(), enemy_robots.cend(), [this, &robot_pos](const auto& it) {
+      enemy_robots.cbegin(), enemy_robots.cend(), [this, &robot_pos, radius](const auto& it) {
         const Eigen::Vector2d ene_pos = util::math::position(it.second);
         return (ene_pos - robot_pos).norm() < radius &&
                std::abs(util::math::wrap_to_pi(std::abs(
@@ -225,7 +176,7 @@ void get_ball::kick(const Eigen::Vector2d& robot_pos,
                    1.0;
       });
   if (flag) {
-    command.set_kick_flag({model::command::kick_type_t::chip, std::get<1>(kick_type_)});
+    command.set_kick_flag({model::command::kick_type_t::chip, chip_pow_});
   } else {
     command.set_kick_flag(kick_type_);
   }
@@ -234,6 +185,7 @@ void get_ball::kick(const Eigen::Vector2d& robot_pos,
 bool get_ball::finished() const {
   return state_ == running_state::finished;
 }
+
 } // namespace action
 } // namespace game
 } // namespace ai_server

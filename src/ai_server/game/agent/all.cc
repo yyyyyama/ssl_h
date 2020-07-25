@@ -51,7 +51,7 @@ std::vector<std::shared_ptr<action::base>> all::execute() {
   // kick power(line)
   constexpr int line_pow = 40;
   // kick power(chip)
-  [[maybe_unused]] constexpr int chip_pow = 255;
+  constexpr int chip_pow = 255;
   // ロボット半径
   constexpr double robot_rad = 100.0;
   // 障害物としてのロボット半径
@@ -234,10 +234,9 @@ std::vector<std::shared_ptr<action::base>> all::execute() {
       get_ball_.at(id)->set_kick_type({kick_type, line_pow});
       get_ball_.at(id)->set_target(pass_target_.x(), pass_target_.y());
       // ボールを打つ目標がゴール外ならばget_ballにチップ判定してもらう
-      // TODO: get_ballにchip用のキックパワー設定関数を実装する
       if (!dribble_flag && (pass_target_.x() < wf.x_max() - wf.penalty_length() ||
                             std::abs(pass_target_.y()) > wf.penalty_width() / 2.0))
-        get_ball_.at(id)->set_pow(line_pow);
+        get_ball_.at(id)->set_pow(line_pow, chip_pow);
       baseaction.push_back(
           std::make_shared<action::with_planner>(get_ball_.at(id), std::move(hl), obstacles));
     }
