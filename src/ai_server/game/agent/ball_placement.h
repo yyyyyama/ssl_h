@@ -7,7 +7,7 @@
 
 #include <Eigen/Dense>
 
-#include "ai_server/game/action/autonomous_ball_place.h"
+#include "ai_server/game/action/ball_place.h"
 #include "ai_server/game/action/move.h"
 #include "ai_server/game/action/receive.h"
 
@@ -63,7 +63,7 @@ private:
   // 現在のreceiver
   unsigned int current_receiver_;
 
-  std::map<unsigned int, std::shared_ptr<action::autonomous_ball_place>> abp_;
+  std::map<unsigned int, std::shared_ptr<action::ball_place>> abp_;
   std::map<unsigned int, std::shared_ptr<action::receive>> receive_;
   std::map<unsigned int, std::shared_ptr<action::move>> move_;
 };

@@ -1,12 +1,14 @@
 #include <algorithm>
 #include <cmath>
+
 #include <boost/math/constants/constants.hpp>
 
 #include "ai_server/util/math/angle.h"
 #include "ai_server/util/math/to_vector.h"
 
-#include "autonomous_ball_place.h"
+#include "ball_place.h"
 
+using boost::math::constants::half_pi;
 using boost::math::constants::pi;
 using namespace std::chrono_literals;
 
@@ -14,34 +16,32 @@ namespace ai_server {
 namespace game {
 namespace action {
 
-autonomous_ball_place::autonomous_ball_place(context& ctx, unsigned int id,
-                                             Eigen::Vector2d target)
+ball_place::ball_place(context& ctx, unsigned int id, const Eigen::Vector2d& target)
     : base(ctx, id),
       state_(running_state::move),
       finished_(false),
       wait_flag_(true),
-      round_flag_(false),
       ball_visible_(true),
       target_(target),
       abp_target_(target),
       kick_type_({model::command::kick_type_t::none, 0}) {}
 
-autonomous_ball_place::running_state autonomous_ball_place::state() const {
+ball_place::running_state ball_place::state() const {
   return state_;
 }
 
-void autonomous_ball_place::set_kick_type(const model::command::kick_flag_t& kick_type) {
+void ball_place::set_kick_type(const model::command::kick_flag_t& kick_type) {
   kick_type_ = kick_type;
 }
 
-model::command autonomous_ball_place::execute() {
+model::command ball_place::execute() {
   model::command command{};
   const auto our_robots           = model::our_robots(world(), team_color());
   const auto& robot               = our_robots.at(id_);
   const auto ball                 = world().ball();
   const Eigen::Vector2d robot_pos = util::math::position(robot);
   const Eigen::Vector2d face_pos =
-      robot_pos + 100.0 * Eigen::Vector2d(std::cos(robot.theta()), std::sin(robot.theta()));
+      robot_pos + Eigen::Rotation2Dd(robot.theta()) * Eigen::Vector2d::UnitX() * 100.0;
   const Eigen::Vector2d ball_pos = util::math::position(ball);
   const Eigen::Vector2d ball_vel = util::math::velocity(ball);
   // 許容誤差(ルール上は10[cm]以内?)
@@ -61,11 +61,8 @@ model::command autonomous_ball_place::execute() {
       !((!ball_visible_ || dist_b_to_r < 120.0) &&
         std::abs(ball_pos.x() - first_ball_pos_.x()) < std::numeric_limits<double>::epsilon() &&
         std::abs(ball_pos.y() - first_ball_pos_.y()) < std::numeric_limits<double>::epsilon());
-  ball_visible_ = ball_visible;
-  const Eigen::Vector2d predicted_ball_pos =
-      ball_visible
-          ? ball_pos
-          : robot_pos + Eigen::Rotation2Dd(robot.theta()) * Eigen::Vector2d::Identity() * 100.0;
+  ball_visible_                  = ball_visible;
+  const auto& predicted_ball_pos = ball_visible ? ball_pos : face_pos;
   // b基準のaの符号
   auto sign = [](double a, double b) { return ((a > b) - (a < b)); };
 
@@ -112,10 +109,6 @@ model::command autonomous_ball_place::execute() {
           ? std::atan2(target_.y() - robot_pos.y(), target_.x() - robot_pos.x())
           : std::atan2(predicted_ball_pos.y() - target_.y(),
                        predicted_ball_pos.x() - target_.x());
-  constexpr double max_omega = pi<double>();
-  // 目標角速度
-  const double omega =
-      std::clamp(4.0 * util::math::wrap_to_pi(theta - robot.theta()), -max_omega, max_omega);
 
   finished_ = dist_b_to_at < 2.0 * xy_allow && dist_b_to_r > 600.0;
   if (finished_) state_ = running_state::finished;
@@ -128,7 +121,7 @@ model::command autonomous_ball_place::execute() {
       }
       finished_ = true;
       command.set_dribble(0);
-      command.set_velocity({0.0, 0.0, 0.0});
+      command.set_velocity(0.0, 0.0, 0.0);
     } break;
 
     // ボールから離れる
@@ -152,27 +145,22 @@ model::command autonomous_ball_place::execute() {
                    std::atan2(robot.y() - target_.y(), robot.x() - target_.x())) >
               pi<double>() / 4.0) {
         // 回り込み
-        const double vx =
+        const Eigen::Vector2d vel =
             1000.0 *
-            std::sin(std::atan2(robot_pos.y() - target_.y(), robot_pos.x() - target_.x())) *
-            sign(std::atan2(ball_pos.y(), ball_pos.x()),
-                 std::atan2(robot_pos.y(), robot_pos.x()));
-        const double vy =
-            -1000.0 *
-            std::cos(std::atan2(robot_pos.y() - target_.y(), robot_pos.x() - target_.x())) *
-            sign(std::atan2(ball_pos.y(), ball_pos.x()),
-                 std::atan2(robot_pos.y(), robot_pos.x()));
-        command.set_velocity({vx, vy, 0.0});
+            (Eigen::Rotation2Dd(half_pi<double>()) * (robot_pos - target_).normalized()) *
+            sign(std::atan2(robot_pos.y(), robot_pos.x()),
+                 std::atan2(ball_pos.y(), ball_pos.x()));
+        command.set_velocity(vel, 0.0);
       } else {
         const Eigen::Vector2d vel = 2000.0 * (robot_pos - target_).normalized();
-        command.set_velocity({vel.x(), vel.y(), 0.0});
+        command.set_velocity(vel, 0.0);
       }
     } break;
 
     // 待機
     case running_state::wait: {
       const auto now = std::chrono::steady_clock::now();
-      command.set_velocity({0.0, 0.0, 0.0});
+      command.set_velocity(0.0, 0.0, 0.0);
       command.set_dribble(0);
       if (wait_flag_) {
         begin_     = now;
@@ -186,10 +174,8 @@ model::command autonomous_ball_place::execute() {
 
     // 配置
     case running_state::place: {
-      if (dist_b_to_t < xy_allow ||
-          (state_ == running_state::place && !ball_visible &&
-           std::hypot(robot_pos.x() + 100.0 * std::cos(robot.theta()) - target_.x(),
-                      robot_pos.y() + 100.0 * std::sin(robot.theta()) - target_.y()) < 30.0)) {
+      if (dist_b_to_t < xy_allow || (state_ == running_state::place && !ball_visible &&
+                                     (face_pos - target_).norm() < 30.0)) {
         // 許容誤差以内にボールがあれば配置完了(ボールが見えていなければロボットの位置で判定)
         state_     = running_state::wait;
         wait_flag_ = true;
@@ -208,7 +194,7 @@ model::command autonomous_ball_place::execute() {
       const Eigen::Vector2d vel = coef * (target_ - face_pos).normalized();
       {
         const Eigen::Vector2d tmp(robot_pos + Eigen::Rotation2Dd(robot.theta()) *
-                                                  Eigen::Vector2d::Identity() *
+                                                  Eigen::Vector2d::UnitX() *
                                                   (abp_target_ - robot_pos).norm());
         if ((tmp - target_).norm() < 50.0) {
           command.set_kick_flag(kick_type_);
@@ -218,13 +204,18 @@ model::command autonomous_ball_place::execute() {
         }
       }
 
+      // pull -> pushでボールを離さないために角速度を制限
+      constexpr double max_omega = pi<double>();
+      const double omega = std::clamp(4.0 * util::math::wrap_to_pi(theta - robot.theta()),
+                                      -max_omega, max_omega);
       command.set_dribble(dribble_value);
-      command.set_velocity({vel.x(), vel.y(), omega});
+      command.set_velocity(vel, omega);
       first_ball_pos_ = ball_pos;
     } break;
 
     // ボールを持つ
     case running_state::hold: {
+      // ロボットがボールに触れた状態を判断するため、face_pos ではなく robot_pos を使用
       if ((first_ball_pos_ - robot_pos).norm() < 90.0) {
         // ロボットがボールの初期位置に来たら配置に移行する
         state_ = running_state::place;
@@ -232,7 +223,8 @@ model::command autonomous_ball_place::execute() {
       const double coef         = std::clamp(3.0 * (face_pos - robot_pos).norm(), 50.0, 1000.0);
       const Eigen::Vector2d vel = coef * (first_ball_pos_ - robot_pos).normalized();
       command.set_dribble(dribble_value);
-      command.set_velocity({vel.x(), vel.y(), omega});
+      command.set_velocity(vel);
+      command.set_angle(theta);
     } break;
 
     // 移動
@@ -257,32 +249,30 @@ model::command autonomous_ball_place::execute() {
                     std::atan2(ball_pos.y() - robot_pos.y(), ball_pos.x() - robot_pos.x())) /
                 pi<double>(),
             -1000.0, 1000.0);
-        const Eigen::Vector2d round_vel =
-            round_coef * Eigen::Vector2d(-std::sin(std::atan2(robot_pos.y() - ball_pos.y(),
-                                                              robot_pos.x() - ball_pos.x())),
-                                         std::cos(std::atan2(robot_pos.y() - ball_pos.y(),
-                                                             robot_pos.x() - ball_pos.x())));
+        const Eigen::Vector2d round_vel = round_coef * (Eigen::Rotation2Dd(half_pi<double>()) *
+                                                        (robot_pos - ball_pos).normalized());
         // ボールへ向かう速度
         const double to_ball_coef         = std::min(1000.0, 3.5 * (dist_b_to_r - 100.0));
         const Eigen::Vector2d to_ball_vel = to_ball_coef * (ball_pos - robot_pos).normalized();
-        const Eigen::Vector2d vel         = ball_vel + round_vel + to_ball_vel;
-        const double omega                = 4.0 * util::math::wrap_to_pi(theta - robot.theta());
-        command.set_velocity({vel.x(), vel.y(), omega});
+        command.set_velocity(ball_vel + round_vel + to_ball_vel);
+        command.set_angle(theta);
       } else {
-        const Eigen::Vector2d pos(ball_pos +
-                                  Eigen::Rotation2Dd(std::atan2(robot_pos.y() - ball_pos.y(),
-                                                                robot_pos.x() - ball_pos.x())) *
-                                      Eigen::Vector2d::Identity() * 300.0);
-        command.set_position({pos.x(), pos.y(), theta});
+        const Eigen::Vector2d pos(
+            ball_pos + Eigen::Rotation2Dd(
+                           (mode_ == place_mode::pull ? pi<double>() : 0.0) +
+                           std::atan2(ball_pos.y() - target_.y(), ball_pos.x() - target_.x())) *
+                           Eigen::Vector2d::UnitX() * 300.0);
+        command.set_position(pos, theta);
       }
     }
   }
   return command;
 }
 
-bool autonomous_ball_place::finished() const {
+bool ball_place::finished() const {
   return finished_;
 }
+
 } // namespace action
 } // namespace game
 } // namespace ai_server

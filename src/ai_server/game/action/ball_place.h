@@ -1,7 +1,8 @@
-#ifndef AI_SERVER_GAME_ACTION_AUTONOMOUS_BALL_PLACE_H
-#define AI_SERVER_GAME_ACTION_AUTONOMOUS_BALL_PLACE_H
+#ifndef AI_SERVER_GAME_ACTION_BALL_PLACE_H
+#define AI_SERVER_GAME_ACTION_BALL_PLACE_H
 
 #include <chrono>
+
 #include <Eigen/Dense>
 
 #include "base.h"
@@ -10,29 +11,31 @@ namespace ai_server {
 namespace game {
 namespace action {
 
-class autonomous_ball_place : public base {
+class ball_place : public base {
 public:
   /// @brief コンストラクタ
   /// @param world ボールやロボットの情報
   /// @param is_yellow チームカラー(黄色か?)
   /// @param id 使うロボットのid
   /// @param target 目標座標
-  autonomous_ball_place(context& ctx, unsigned int id, Eigen::Vector2d target);
+  ball_place(context& ctx, unsigned int id, const Eigen::Vector2d& target);
 
   /// @brief 動作の状態を表現する
-  /// @var move ボール前まで移動
-  /// @var hold ボールを持つ
-  /// @var place ボールを指定位置まで運ぶ
-  /// @var wait ボールの回転を止めるためドリブルバーを止めて停止
-  /// @var leave ボールから離れる
-  /// @var finished 動作終了(停止)
-  enum class running_state { move, hold, place, wait, leave, finished };
+  enum class running_state {
+    move,    ///< ボール前まで移動
+    hold,    ///< ボールを持つ
+    place,   ///< ボールを指定位置まで運ぶ
+    wait,    ///< ボールの回転を止めるためドリブルバーを止めて停止
+    leave,   ///< ボールから離れる
+    finished ///< 動作終了(停止)
+  };
 
   /// @brief 動作のモードを表現する
-  /// @var pull ボールを引く(未完成)
-  /// @var push ボールを押す
-  /// @var pass ボールを蹴る
-  enum class place_mode { pull, push, pass };
+  enum class place_mode {
+    pull, ///< ボールを引く
+    push, ///< ボールを押す
+    pass  ///< ボールを蹴る
+  };
 
   /// @brief 実行
   /// @return ロボットに送信するコマンド
@@ -59,8 +62,6 @@ private:
   bool finished_;
   // ボールを止めている状態か
   bool wait_flag_;
-  // 回り込みをしているか
-  bool round_flag_;
   // ボールが見えているか
   bool ball_visible_;
   // 待機を開始した時刻
@@ -74,6 +75,7 @@ private:
   // キックの種類，強さ
   model::command::kick_flag_t kick_type_;
 };
+
 } // namespace action
 } // namespace game
 } // namespace ai_server

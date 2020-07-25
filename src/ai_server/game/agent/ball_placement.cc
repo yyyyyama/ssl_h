@@ -24,7 +24,7 @@ ball_placement::ball_placement(context& ctx, const std::vector<unsigned int>& id
   const auto our_robots = model::our_robots(world(), team_color());
   const auto now        = std::chrono::steady_clock::now();
   for (auto id : ids_) {
-    abp_[id]       = make_action<action::autonomous_ball_place>(id, abp_target_);
+    abp_[id]       = make_action<action::ball_place>(id, abp_target_);
     receive_[id]   = make_action<action::receive>(id);
     move_[id]      = make_action<action::move>(id);
     robot_pos_[id] = our_robots.count(id) ? util::math::position(our_robots.at(id))
@@ -36,7 +36,7 @@ ball_placement::ball_placement(context& ctx, const std::vector<unsigned int>& id
 void ball_placement::set_target(const Eigen::Vector2d& target) {
   abp_target_ = target;
   for (auto id : ids_) {
-    abp_[id] = make_action<action::autonomous_ball_place>(id, abp_target_);
+    abp_[id] = make_action<action::ball_place>(id, abp_target_);
   }
 }
 
