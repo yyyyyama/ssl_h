@@ -4,14 +4,14 @@
 #include <map>
 #include <memory>
 #include <vector>
+
 #include <Eigen/Dense>
 
 #include "ai_server/game/action/autonomous_ball_place.h"
 #include "ai_server/game/action/move.h"
-#include "ai_server/game/action/vec.h"
 #include "ai_server/game/action/receive.h"
-#include "ai_server/game/agent/base.h"
-#include "ai_server/model/world.h"
+
+#include "base.h"
 
 namespace ai_server {
 namespace game {
@@ -26,8 +26,7 @@ public:
   /// @param target 目標座標
   /// @param is_active 自分のplacementか
   ball_placement(context& ctx, const std::vector<unsigned int>& ids,
-                 const Eigen::Vector2d target = Eigen::Vector2d(0, 0),
-                 const bool is_active         = true);
+                 const Eigen::Vector2d& target = Eigen::Vector2d(0, 0), bool is_active = true);
 
   /// @brief 実行
   /// @return ロボットに送信するコマンド
@@ -35,16 +34,14 @@ public:
 
   /// @brief 目標位置を設定する
   /// @param target 目標とする座標
-  void set_target(const Eigen::Vector2d target);
+  void set_target(const Eigen::Vector2d& target);
 
   /// @brief 自分のplacementかを設定する
   /// @param is_active 自分のplacementか
-  void set_active(const bool is_active);
+  void set_active(bool is_active);
 
 private:
   const std::vector<unsigned int> ids_;
-  // ids_の中で見えていると判定するもの
-  std::vector<unsigned int> visible_ids_;
 
   // ロボットが消えた時点
   std::unordered_map<unsigned int, std::chrono::steady_clock::time_point> lost_point_;
@@ -52,8 +49,6 @@ private:
   std::map<unsigned int, Eigen::Vector2d> robot_pos_;
   // ロボットの速度
   std::map<unsigned int, Eigen::Vector2d> robot_vel_;
-  // ロボットが消えたとするか?
-  std::map<unsigned int, bool> is_lost_;
   // これ以上消えていたらlostとみなす
   std::chrono::steady_clock::duration lost_count_;
   // target of abp
