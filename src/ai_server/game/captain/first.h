@@ -4,6 +4,8 @@
 #include <array>
 #include <set>
 
+#include <Eigen/Core>
+
 #include "ai_server/logger/logger.h"
 
 #include "base.h"
@@ -24,6 +26,8 @@ private:
   // 試合の状況に合わせて呼ばれる関数群
 
   void halt(situation_type situation, bool situation_changed);
+
+  void ball_placement(situation_type situation, bool situation_changed);
 
   /// デバッグ用
   /// 未実装の situation に入ったときに呼ばれ、warning を出す
@@ -52,7 +56,9 @@ private:
       return table.at(b).at(static_cast<std::size_t>(s));
     };
 
-    on(situation_type::halt, true) = &first::halt;
+    on(situation_type::halt, true)            = &first::halt;
+    on(situation_type::ball_placement, true)  = &first::ball_placement;
+    on(situation_type::ball_placement, false) = &first::ball_placement;
 
     return table;
   }();
@@ -62,6 +68,7 @@ private:
 
   detail::state state_;
   std::shared_ptr<formation::v2::base> current_formation_;
+  Eigen::Vector2d prev_abp_target_;
 
   logger::logger_for<first> logger_;
 };
