@@ -8,14 +8,14 @@
 #include <boost/asio.hpp>
 #include <boost/test/unit_test.hpp>
 
-#include "../asio_helper.h"
-#include "../util/slot_testing_helper.h"
-
 #include "ssl-protos/refbox/referee.pb.h"
 
 #include "ai_server/logger/sink/ostream.h"
 #include "ai_server/receiver/refbox.h"
 #include "ai_server/util/net/multicast/sender.h"
+
+#include "test_helpers/asio.h"
+#include "test_helpers/signal_slot.h"
 
 using namespace std::chrono_literals;
 using namespace std::string_literals;

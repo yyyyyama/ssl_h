@@ -1,7 +1,5 @@
-// TODO: テスト全体で使うファイル用のディレクトリを作成し、そこへ移動する
-
-#ifndef AI_SERVER_TEST_ASIO_HELPER_H
-#define AI_SERVER_TEST_ASIO_HELPER_H
+#ifndef AI_SERVER_TEST_TEST_HELPERS_ASIO_H
+#define AI_SERVER_TEST_TEST_HELPERS_ASIO_H
 
 #include <future>
 #include <thread>

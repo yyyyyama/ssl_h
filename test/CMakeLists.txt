@@ -7,6 +7,7 @@ foreach(TEST_SOURCE_FILE ${SOURCES})
 
   add_executable(${TEST_EXECUTABLE_NAME} ${TEST_SOURCE_FILE})
   target_compile_definitions(${TEST_EXECUTABLE_NAME} PRIVATE BOOST_TEST_MODULE=${TEST_MODULE_NAME})
+  target_include_directories(${TEST_EXECUTABLE_NAME} PRIVATE ${CMAKE_CURRENT_LIST_DIR})
   target_link_libraries(${TEST_EXECUTABLE_NAME}
     ai-server-common-flags
     ai-server-lib
@@ -17,5 +18,5 @@ foreach(TEST_SOURCE_FILE ${SOURCES})
     # TODO: Linux 環境以外に対応する...？
     util
   )
-  add_test(${TEST_MODULE_NAME} ${EXECUTABLE_OUTPUT_PATH}/${TEST_EXECUTABLE_NAME})
+  add_test(${TEST_MODULE_NAME} ${TEST_EXECUTABLE_NAME})
 endforeach()

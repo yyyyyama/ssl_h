@@ -55,13 +55,13 @@ test_format() {
 
 test_include_guard() {
   local f=$1
-  if [[ ! "$f" =~ ^src/.*\.h$ ]]; then
+  if [[ ! "$f" =~ ^(src|test)/.*\.h$ ]]; then
     return 0
   fi
 
   # ファイルパスから正しいインクルードガードの文字列を生成する
   local s1
-  s1=$(sed -r 's/^src\///; s/[\/\.-]+/_/g; s/^.*$/\U&/' <<< "$f")
+  s1=$(sed -r 's/^test\//ai_server\/\0/; s/^src\///; s/[\/\.-]+/_/g; s/^.*$/\U&/' <<< "$f")
 
   # ファイルからインクルードガードを読み込む
   local s2

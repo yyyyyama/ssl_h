@@ -9,7 +9,8 @@
 #include <boost/test/unit_test.hpp>
 
 #include "ai_server/radio/connection/udp.h"
-#include "../../asio_helper.h"
+
+#include "test_helpers/asio.h"
 
 namespace radio = ai_server::radio;
 

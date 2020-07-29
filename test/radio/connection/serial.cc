@@ -17,7 +17,8 @@ extern "C" {
 }
 
 #include "ai_server/radio/connection/serial.h"
-#include "../../asio_helper.h"
+
+#include "test_helpers/asio.h"
 
 namespace radio = ai_server::radio;
 
