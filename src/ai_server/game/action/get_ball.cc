@@ -21,9 +21,9 @@ get_ball::get_ball(context& ctx, unsigned int id, const Eigen::Vector2d& target)
       state_(running_state::move),
       target_(target),
       kick_margin_(200),
-      kick_type_({model::command::kick_type_t::line, 45}),
-      chip_pow_(100),
-      manual_kick_flag_(true),
+      manual_kick_flag_({model::command::kick_type_t::line, 45}),
+      auto_kick_pow_(45, 100),
+      kick_manually_(true),
       allow_(10) {}
 
 get_ball::get_ball(context& ctx, unsigned int id)
@@ -37,13 +37,12 @@ void get_ball::set_target(double x, double y) {
   target_ = Eigen::Vector2d{x, y};
 }
 
-void get_ball::set_kick_margin(double margin) {
-  kick_margin_ = margin;
+void get_ball::set_target(const Eigen::Vector2d& t) {
+  target_ = t;
 }
 
-void get_ball::set_kick_type(const model::command::kick_flag_t& kick_type) {
-  manual_kick_flag_ = true;
-  kick_type_        = kick_type;
+void get_ball::set_kick_margin(double margin) {
+  kick_margin_ = margin;
 }
 
 void get_ball::set_allow(double allow) {
@@ -54,22 +53,37 @@ Eigen::Vector2d get_ball::target() const {
   return target_;
 }
 
-void get_ball::set_pow(int pow) {
-  manual_kick_flag_       = false;
-  std::get<1>(kick_type_) = pow;
-  chip_pow_               = pow;
+void get_ball::kick_automatically() {
+  kick_manually_ = false;
 }
 
-void get_ball::set_pow(int line_pow, int chip_pow) {
-  manual_kick_flag_       = false;
-  std::get<1>(kick_type_) = line_pow;
-  chip_pow_               = chip_pow;
+void get_ball::kick_automatically(int pow) {
+  kick_manually_ = false;
+  auto_kick_pow_ = {pow, pow};
 }
 
-void get_ball::set_chip(bool chip) {
-  manual_kick_flag_ = false;
-  std::get<0>(kick_type_) =
-      chip ? model::command::kick_type_t::chip : model::command::kick_type_t::line;
+void get_ball::kick_automatically(int line_pow, int chip_pow) {
+  kick_manually_ = false;
+  auto_kick_pow_ = {line_pow, chip_pow};
+}
+
+void get_ball::kick_manually() {
+  kick_manually_ = true;
+}
+
+void get_ball::kick_manually(int pow) {
+  kick_manually_                 = true;
+  std::get<1>(manual_kick_flag_) = pow;
+}
+
+void get_ball::kick_manually(model::command::kick_type_t type) {
+  kick_manually_                 = true;
+  std::get<0>(manual_kick_flag_) = type;
+}
+
+void get_ball::kick_manually(const model::command::kick_flag_t& kick) {
+  kick_manually_    = true;
+  manual_kick_flag_ = kick;
 }
 
 model::command get_ball::execute() {
@@ -159,8 +173,8 @@ model::command get_ball::execute() {
 void get_ball::kick(const Eigen::Vector2d& robot_pos,
                     const std::unordered_map<unsigned int, model::robot>& enemy_robots,
                     model::command& command) {
-  if (manual_kick_flag_) {
-    command.set_kick_flag(kick_type_);
+  if (kick_manually_) {
+    command.set_kick_flag(manual_kick_flag_);
     return;
   }
   // チップが有効そうな距離
@@ -176,9 +190,9 @@ void get_ball::kick(const Eigen::Vector2d& robot_pos,
                    1.0;
       });
   if (flag) {
-    command.set_kick_flag({model::command::kick_type_t::chip, chip_pow_});
+    command.set_kick_flag({model::command::kick_type_t::chip, std::get<1>(auto_kick_pow_)});
   } else {
-    command.set_kick_flag(kick_type_);
+    command.set_kick_flag({model::command::kick_type_t::line, std::get<0>(auto_kick_pow_)});
   }
 }
 

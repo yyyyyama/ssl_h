@@ -168,7 +168,7 @@ std::vector<std::shared_ptr<action::base>> defense::execute() {
                     mode_ != defense_mode::stop_mode;
 
     if (get_flag) {
-      keeper_get_->set_chip(true);
+      keeper_get_->kick_manually(model::command::kick_type_t::chip);
       baseaction.push_back(keeper_get_); //配列を返すためにキーパーを統合する
     } else {
       baseaction.push_back(keeper_); //配列を返すためにキーパーを統合する

@@ -161,7 +161,7 @@ std::vector<std::shared_ptr<action::base>> regular::execute() {
           need_reset_chaser_ = false;
         }
         get_ball_->set_target(target_.x(), target_.y());
-        get_ball_->set_pow((target_.x() == world().field().x_max() ? 110 : 60));
+        get_ball_->kick_automatically((target_.x() == world().field().x_max() ? 110 : 60));
         actions.push_back(get_ball_);
       }
     }

@@ -419,8 +419,8 @@ std::vector<std::shared_ptr<action::base>> setplay::execute() {
       for (auto receiver_id : receiver_ids_) {
         if (receiver_id == shooter_id_ && !try_direct) {
           const double power = 255;
-          get_ball_->set_target(shoot_pos.x(), shoot_pos.y());
-          get_ball_->set_pow(power);
+          get_ball_->set_target(shoot_pos);
+          get_ball_->kick_automatically(power);
           baseaction.push_back(get_ball_);
         } else {
           if (free_robots_.size() < 2) free_robots_.push_back(receiver_id);

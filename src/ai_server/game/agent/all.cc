@@ -231,12 +231,12 @@ std::vector<std::shared_ptr<action::base>> all::execute() {
     } else {
       const auto kick_type =
           dribble_flag ? model::command::kick_type_t::none : model::command::kick_type_t::line;
-      get_ball_.at(id)->set_kick_type({kick_type, line_pow});
-      get_ball_.at(id)->set_target(pass_target_.x(), pass_target_.y());
+      get_ball_.at(id)->kick_manually({kick_type, line_pow});
+      get_ball_.at(id)->set_target(pass_target_);
       // ボールを打つ目標がゴール外ならばget_ballにチップ判定してもらう
       if (!dribble_flag && (pass_target_.x() < wf.x_max() - wf.penalty_length() ||
                             std::abs(pass_target_.y()) > wf.penalty_width() / 2.0))
-        get_ball_.at(id)->set_pow(line_pow, chip_pow);
+        get_ball_.at(id)->kick_automatically(line_pow, chip_pow);
       baseaction.push_back(
           std::make_shared<action::with_planner>(get_ball_.at(id), std::move(hl), obstacles));
     }
@@ -334,7 +334,7 @@ std::vector<std::shared_ptr<action::base>> all::execute() {
         ball_pos.x() < wf.x_min() + wf.penalty_length() - robot_rad &&
         std::abs(ball_pos.y()) < std::max(wf.penalty_length() - robot_rad, 0.0) &&
         ball_vel.norm() < 500.0) {
-      keeper_get_ball_->set_chip(true);
+      keeper_get_ball_->kick_manually({model::command::kick_type_t::chip, chip_pow});
       baseaction.push_back(keeper_get_ball_); //配列を返すためにキーパーを統合する
     } else {
       baseaction.push_back(goal_keep_); //配列を返すためにキーパーを統合する

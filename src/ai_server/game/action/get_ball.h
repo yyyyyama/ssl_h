@@ -1,6 +1,7 @@
 #ifndef AI_SERVER_GAME_ACTION_GET_BALL_H
 #define AI_SERVER_GAME_ACTION_GET_BALL_H
 
+#include <utility>
 #include <Eigen/Dense>
 
 #include "base.h"
@@ -35,29 +36,44 @@ public:
   enum class running_state { move, dribble, finished };
 
   /// @brief 目標位置を設定する
-  /// @param x, y 目標とする座標
+  /// @param x 目標位置のx座標
+  /// @param y 目標位置のy座標
   void set_target(double x, double y);
 
-  /// @brief キックパワーを設定する
-  /// @param pow キックパワー
-  void set_pow(int pow);
-
-  /// @brief キックパワーを設定する
-  /// @param line_pow line時のキックパワー
-  /// @param chio_pow chip時のキックパワー
-  void set_pow(int line_pow, int chip_pow);
-
-  /// @brief チップするかを設定する
-  /// @param chip チップするか
-  void set_chip(bool chip);
+  /// @brief 目標位置を設定する
+  /// @param t 目標位置の座標
+  void set_target(const Eigen::Vector2d& t);
 
   /// @brief 許容する目標位置とボールとの距離を設定する(キック時)
   /// @param margin 距離
   void set_kick_margin(double margin);
 
-  /// @brief キックタイプを設定する
+  /// @brief キックを自動モードに設定する．
+  void kick_automatically();
+
+  /// @brief キックを自動モードに設定し，同時にキックパワーを変更する．
+  /// @param pow キックパワー．この値はキックの種類に関係なく適用される．
+  void kick_automatically(int pow);
+
+  /// @brief キックを自動モードに設定し，同時にキックパワーを変更する．
+  /// @param line_pow kick_type_t::line時のキックパワー
+  /// @param chio_pow kick_type_t::chip時のキックパワー
+  void kick_automatically(int line_pow, int chip_pow);
+
+  /// @brief キックをマニュアルモードに設定する．
+  void kick_manually();
+
+  /// @brief キックをマニュアルモードに設定し，同時にキックパワーを変更する．
+  /// @param kick_type キックパワー
+  void kick_manually(int pow);
+
+  /// @brief キックをマニュアルモードに設定し，同時にキックタイプを変更する．
   /// @param kick_type キックタイプ
-  void set_kick_type(const model::command::kick_flag_t& kick_type);
+  void kick_manually(model::command::kick_type_t type);
+
+  /// @brief キックをマニュアルモードに設定し，同時にキックコマンドを変更する．
+  /// @param kick_type キックフラグ
+  void kick_manually(const model::command::kick_flag_t& kick);
 
   /// @brief 許容する目標位置とボールとの距離を設定する(終了判定時)
   /// @param allow 距離
@@ -83,12 +99,12 @@ private:
   Eigen::Vector2d target_;
   // 目標位置との許容誤差
   double kick_margin_;
-  // キックの種類・パワー
-  model::command::kick_flag_t kick_type_;
-  // chipを打つ判定をした場合のキックパワー
-  int chip_pow_;
-  // agent指定のkick_typeをそのまま使うか
-  bool manual_kick_flag_;
+  // マニュアルモードにおけるキックの種類・パワー
+  model::command::kick_flag_t manual_kick_flag_;
+  // 自動モードにおけるキックパワー (line時のキックパワー，chip時のキックパワー)
+  std::pair<int, int> auto_kick_pow_;
+  // キックをマニュアルモードにするか
+  bool kick_manually_;
   // 許容誤差
   double allow_;
 };
