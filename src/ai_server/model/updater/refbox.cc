@@ -10,6 +10,80 @@ namespace ai_server {
 namespace model {
 namespace updater {
 
+constexpr model::refbox::stage_name to_stage_name(ssl_protos::refbox::Referee_Stage s) {
+  switch (s) {
+    case ssl_protos::refbox::Referee_Stage_NORMAL_FIRST_HALF_PRE:
+      return model::refbox::stage_name::normal_first_half_pre;
+    case ssl_protos::refbox::Referee_Stage_NORMAL_FIRST_HALF:
+      return model::refbox::stage_name::normal_first_half;
+    case ssl_protos::refbox::Referee_Stage_NORMAL_HALF_TIME:
+      return model::refbox::stage_name::normal_half_time;
+    case ssl_protos::refbox::Referee_Stage_NORMAL_SECOND_HALF_PRE:
+      return model::refbox::stage_name::normal_second_half_pre;
+    case ssl_protos::refbox::Referee_Stage_NORMAL_SECOND_HALF:
+      return model::refbox::stage_name::normal_second_half;
+    case ssl_protos::refbox::Referee_Stage_EXTRA_TIME_BREAK:
+      return model::refbox::stage_name::extra_time_break;
+    case ssl_protos::refbox::Referee_Stage_EXTRA_FIRST_HALF_PRE:
+      return model::refbox::stage_name::extra_first_half_pre;
+    case ssl_protos::refbox::Referee_Stage_EXTRA_FIRST_HALF:
+      return model::refbox::stage_name::extra_first_half;
+    case ssl_protos::refbox::Referee_Stage_EXTRA_HALF_TIME:
+      return model::refbox::stage_name::extra_half_time;
+    case ssl_protos::refbox::Referee_Stage_EXTRA_SECOND_HALF_PRE:
+      return model::refbox::stage_name::extra_second_half_pre;
+    case ssl_protos::refbox::Referee_Stage_EXTRA_SECOND_HALF:
+      return model::refbox::stage_name::extra_second_half;
+    case ssl_protos::refbox::Referee_Stage_PENALTY_SHOOTOUT_BREAK:
+      return model::refbox::stage_name::penalty_shootout_break;
+    case ssl_protos::refbox::Referee_Stage_PENALTY_SHOOTOUT:
+      return model::refbox::stage_name::penalty_shootout;
+    case ssl_protos::refbox::Referee_Stage_POST_GAME:
+      return model::refbox::stage_name::post_game;
+  }
+}
+
+constexpr model::refbox::game_command to_game_command(ssl_protos::refbox::Referee_Command c) {
+  switch (c) {
+    case ssl_protos::refbox::Referee_Command_HALT:
+      return model::refbox::game_command::halt;
+    case ssl_protos::refbox::Referee_Command_STOP:
+      return model::refbox::game_command::stop;
+    case ssl_protos::refbox::Referee_Command_NORMAL_START:
+      return model::refbox::game_command::normal_start;
+    case ssl_protos::refbox::Referee_Command_FORCE_START:
+      return model::refbox::game_command::force_start;
+    case ssl_protos::refbox::Referee_Command_PREPARE_KICKOFF_YELLOW:
+      return model::refbox::game_command::prepare_kickoff_yellow;
+    case ssl_protos::refbox::Referee_Command_PREPARE_KICKOFF_BLUE:
+      return model::refbox::game_command::prepare_kickoff_blue;
+    case ssl_protos::refbox::Referee_Command_PREPARE_PENALTY_YELLOW:
+      return model::refbox::game_command::prepare_penalty_yellow;
+    case ssl_protos::refbox::Referee_Command_PREPARE_PENALTY_BLUE:
+      return model::refbox::game_command::prepare_penalty_blue;
+    case ssl_protos::refbox::Referee_Command_DIRECT_FREE_YELLOW:
+      return model::refbox::game_command::direct_free_yellow;
+    case ssl_protos::refbox::Referee_Command_DIRECT_FREE_BLUE:
+      return model::refbox::game_command::direct_free_blue;
+    case ssl_protos::refbox::Referee_Command_INDIRECT_FREE_YELLOW:
+      return model::refbox::game_command::indirect_free_yellow;
+    case ssl_protos::refbox::Referee_Command_INDIRECT_FREE_BLUE:
+      return model::refbox::game_command::indirect_free_blue;
+    case ssl_protos::refbox::Referee_Command_TIMEOUT_YELLOW:
+      return model::refbox::game_command::timeout_yellow;
+    case ssl_protos::refbox::Referee_Command_TIMEOUT_BLUE:
+      return model::refbox::game_command::timeout_blue;
+    case ssl_protos::refbox::Referee_Command_GOAL_YELLOW:
+      return model::refbox::game_command::goal_yellow;
+    case ssl_protos::refbox::Referee_Command_GOAL_BLUE:
+      return model::refbox::game_command::goal_blue;
+    case ssl_protos::refbox::Referee_Command_BALL_PLACEMENT_YELLOW:
+      return model::refbox::game_command::ball_placement_yellow;
+    case ssl_protos::refbox::Referee_Command_BALL_PLACEMENT_BLUE:
+      return model::refbox::game_command::ball_placement_blue;
+  }
+}
+
 refbox::refbox() : refbox_{}, affine_{Eigen::Translation3d{.0, .0, .0}} {}
 
 void refbox::update(const ssl_protos::refbox::Referee& referee) {
@@ -21,8 +95,8 @@ void refbox::update(const ssl_protos::refbox::Referee& referee) {
       referee.has_stage_time_left()
           ? referee.stage_time_left()
           : std::numeric_limits<decltype(refbox_.stage_time_left())>::max());
-  refbox_.set_stage(static_cast<model::refbox::stage_name>(referee.stage()));
-  refbox_.set_command(static_cast<model::refbox::game_command>(referee.command()));
+  refbox_.set_stage(to_stage_name(referee.stage()));
+  refbox_.set_command(to_game_command(referee.command()));
 
   auto to_team_info = [](auto&& team_info) {
     model::team_info result{team_info.name()};

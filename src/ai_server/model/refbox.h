@@ -2,12 +2,11 @@
 #define AI_SERVER_MODEL_REFBOX_H
 
 #include <chrono>
+#include <optional>
 #include <tuple>
 
 #include "team_info.h"
 #include "team_color.h"
-
-#include "ssl-protos/refbox/referee.pb.h"
 
 namespace ai_server {
 namespace model {
@@ -15,40 +14,40 @@ namespace model {
 class refbox {
 public:
   enum class stage_name {
-    normal_first_half_pre  = ssl_protos::refbox::Referee_Stage_NORMAL_FIRST_HALF_PRE,
-    normal_first_half      = ssl_protos::refbox::Referee_Stage_NORMAL_FIRST_HALF,
-    normal_half_time       = ssl_protos::refbox::Referee_Stage_NORMAL_HALF_TIME,
-    normal_second_half_pre = ssl_protos::refbox::Referee_Stage_NORMAL_SECOND_HALF_PRE,
-    normal_second_half     = ssl_protos::refbox::Referee_Stage_NORMAL_SECOND_HALF,
-    extra_time_break       = ssl_protos::refbox::Referee_Stage_EXTRA_TIME_BREAK,
-    extra_first_half_pre   = ssl_protos::refbox::Referee_Stage_EXTRA_FIRST_HALF_PRE,
-    extra_first_half       = ssl_protos::refbox::Referee_Stage_EXTRA_FIRST_HALF,
-    extra_half_time        = ssl_protos::refbox::Referee_Stage_EXTRA_HALF_TIME,
-    extra_second_half_pre  = ssl_protos::refbox::Referee_Stage_EXTRA_SECOND_HALF_PRE,
-    extra_second_half      = ssl_protos::refbox::Referee_Stage_EXTRA_SECOND_HALF,
-    penalty_shootout_break = ssl_protos::refbox::Referee_Stage_PENALTY_SHOOTOUT_BREAK,
-    penalty_shootout       = ssl_protos::refbox::Referee_Stage_PENALTY_SHOOTOUT,
-    post_game              = ssl_protos::refbox::Referee_Stage_POST_GAME,
+    normal_first_half_pre,
+    normal_first_half,
+    normal_half_time,
+    normal_second_half_pre,
+    normal_second_half,
+    extra_time_break,
+    extra_first_half_pre,
+    extra_first_half,
+    extra_half_time,
+    extra_second_half_pre,
+    extra_second_half,
+    penalty_shootout_break,
+    penalty_shootout,
+    post_game,
   };
   enum class game_command {
-    halt                   = ssl_protos::refbox::Referee_Command_HALT,
-    stop                   = ssl_protos::refbox::Referee_Command_STOP,
-    normal_start           = ssl_protos::refbox::Referee_Command_NORMAL_START,
-    force_start            = ssl_protos::refbox::Referee_Command_FORCE_START,
-    prepare_kickoff_yellow = ssl_protos::refbox::Referee_Command_PREPARE_KICKOFF_YELLOW,
-    prepare_kickoff_blue   = ssl_protos::refbox::Referee_Command_PREPARE_KICKOFF_BLUE,
-    prepare_penalty_yellow = ssl_protos::refbox::Referee_Command_PREPARE_PENALTY_YELLOW,
-    prepare_penalty_blue   = ssl_protos::refbox::Referee_Command_PREPARE_PENALTY_BLUE,
-    direct_free_yellow     = ssl_protos::refbox::Referee_Command_DIRECT_FREE_YELLOW,
-    direct_free_blue       = ssl_protos::refbox::Referee_Command_DIRECT_FREE_BLUE,
-    indirect_free_yellow   = ssl_protos::refbox::Referee_Command_INDIRECT_FREE_YELLOW,
-    indirect_free_blue     = ssl_protos::refbox::Referee_Command_INDIRECT_FREE_BLUE,
-    timeout_yellow         = ssl_protos::refbox::Referee_Command_TIMEOUT_YELLOW,
-    timeout_blue           = ssl_protos::refbox::Referee_Command_TIMEOUT_BLUE,
-    goal_yellow            = ssl_protos::refbox::Referee_Command_GOAL_YELLOW,
-    goal_blue              = ssl_protos::refbox::Referee_Command_GOAL_BLUE,
-    ball_placement_yellow  = ssl_protos::refbox::Referee_Command_BALL_PLACEMENT_YELLOW,
-    ball_placement_blue    = ssl_protos::refbox::Referee_Command_BALL_PLACEMENT_BLUE,
+    halt,
+    stop,
+    normal_start,
+    force_start,
+    prepare_kickoff_yellow,
+    prepare_kickoff_blue,
+    prepare_penalty_yellow,
+    prepare_penalty_blue,
+    direct_free_yellow,
+    direct_free_blue,
+    indirect_free_yellow,
+    indirect_free_blue,
+    timeout_yellow,
+    timeout_blue,
+    goal_yellow,
+    goal_blue,
+    ball_placement_yellow,
+    ball_placement_blue,
   };
   refbox();
   std::chrono::system_clock::time_point packet_timestamp() const;
