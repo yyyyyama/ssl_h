@@ -27,6 +27,8 @@ private:
 
   void halt(situation_type situation, bool situation_changed);
 
+  void stopgame(situation_type situation, bool situation_changed);
+
   void ball_placement(situation_type situation, bool situation_changed);
 
   /// デバッグ用
@@ -57,6 +59,8 @@ private:
     };
 
     on(situation_type::halt, true)            = &first::halt;
+    on(situation_type::stop, true)            = &first::stopgame;
+    on(situation_type::stop, false)           = &first::stopgame;
     on(situation_type::ball_placement, true)  = &first::ball_placement;
     on(situation_type::ball_placement, false) = &first::ball_placement;
 
