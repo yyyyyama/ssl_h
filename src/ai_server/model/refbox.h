@@ -28,6 +28,8 @@ public:
     penalty_shootout_break,
     penalty_shootout,
     post_game,
+
+    num_stages, //< stage_name の総数取得に使う
   };
   enum class game_command {
     halt,
@@ -48,6 +50,8 @@ public:
     goal_blue,
     ball_placement_yellow,
     ball_placement_blue,
+
+    num_commands, //< game_command の総数取得に使う
   };
   refbox();
   std::chrono::system_clock::time_point packet_timestamp() const;

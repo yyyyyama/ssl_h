@@ -35,6 +35,7 @@
 #include "ai_server/game/nnabla.h"
 #include "ai_server/logger/logger.h"
 #include "ai_server/logger/sink/ostream.h"
+#include "ai_server/model/refmessage_string.h"
 #include "ai_server/model/team_color.h"
 #include "ai_server/model/world.h"
 #include "ai_server/model/updater/refbox.h"
@@ -88,10 +89,8 @@ static constexpr short vision_port     = 10006;
 static constexpr int num_cameras       = 8;
 
 // Refboxの設定
-static constexpr char global_refbox_address[] = "224.5.23.1";
-static constexpr short global_refbox_port     = 10003;
-static constexpr char local_refbox_address[]  = "224.5.23.12";
-static constexpr short local_refbox_port      = 10012;
+static constexpr char refbox_address[] = "224.5.23.1";
+static constexpr short refbox_port     = 10003;
 
 // Radioの設定
 static constexpr bool is_grsim            = false;
@@ -149,22 +148,22 @@ public:
 
 // Gameを行うクラス
 // --------------------------------
+template <class UpdaterRefbox>
 class game_runner {
 public:
   game_runner(const std::filesystem::path& config_dir, model::updater::world& world,
-              model::updater::refbox& refbox1, model::updater::refbox& refbox2,
-              ai_server::driver& driver, std::shared_ptr<radio::base::command> radio)
+              UpdaterRefbox& refbox, ai_server::driver& driver,
+              std::shared_ptr<radio::base::command> radio)
       : running_{false},
-        is_global_refbox_{true},
         need_reset_{false},
         config_dir_{config_dir},
         team_color_{model::team_color::yellow},
         updater_world_{world},
-        updater_refbox1_{refbox1},
-        updater_refbox2_{refbox2},
+        updater_refbox_{refbox},
         active_robots_{0u, 1u, 2u, 3u, 4u, 5u, 6u, 7u},
         driver_{driver},
-        radio_{radio} {
+        radio_{radio},
+        l_{"game_runner"} {
     auto lock = driver_.lock();
     driver_.set_team_color(team_color_);
 
@@ -253,25 +252,11 @@ public:
     }
   }
 
-  bool is_global_refbox() const {
-    std::unique_lock lock{mutex_};
-    return is_global_refbox_;
-  }
-
-  void use_global_refbox(bool is_global) {
-    std::unique_lock lock{mutex_};
-    if (is_global_refbox_ != is_global) {
-      l_.info("switched to "s + (is_global ? "global"s : "local"s) + " refbox");
-      is_global_refbox_ = is_global;
-    }
-  }
-
   void set_transformation_matrix(double x, double y, double theta) {
     std::unique_lock lock{mutex_};
     const auto mat = util::math::make_transformation_matrix(x, y, theta);
     updater_world_.set_transformation_matrix(mat);
-    updater_refbox1_.set_transformation_matrix(mat);
-    updater_refbox2_.set_transformation_matrix(mat);
+    updater_refbox_.set_transformation_matrix(mat);
   }
 
 private:
@@ -301,7 +286,7 @@ private:
 
         ctx.team_color = team_color_;
         ctx.world      = updater_world_.value();
-        refbox         = (is_global_refbox_ ? updater_refbox1_ : updater_refbox2_).value();
+        refbox         = updater_refbox_.value();
 
         const auto current_cmd = refbox.command();
 
@@ -398,7 +383,6 @@ private:
   std::condition_variable cv_;
   std::atomic<bool> running_;
 
-  bool is_global_refbox_;
   // formation のリセットが必要か
   bool need_reset_;
 
@@ -406,8 +390,7 @@ private:
 
   model::team_color team_color_;
   model::updater::world& updater_world_;
-  model::updater::refbox& updater_refbox1_;
-  model::updater::refbox& updater_refbox2_;
+  UpdaterRefbox& updater_refbox_;
   std::vector<unsigned int> active_robots_;
 
   ai_server::driver& driver_;
@@ -419,15 +402,16 @@ private:
   boost::signals2::connection on_command_updated_connection_;
   std::array<std::weak_ptr<filter::state_observer::robot>, max_robots> state_observers_;
 
-  logger::logger_for<game_runner> l_;
+  logger::logger l_;
 };
 
 // game_runner などを設定するパネル
 // --------------------------------
+template <class Runner>
 class game_panel final : public Gtk::VBox {
 public:
-  game_panel(model::updater::world& world, game_runner& runner)
-      : updater_world_(world), runner_(runner) {
+  game_panel(model::updater::world& world, Runner& runner)
+      : updater_world_(world), runner_(runner), l_{"game_panel"} {
     {
       // left widgets
       color_.set_label("Team color");
@@ -477,16 +461,6 @@ public:
       camera_.add(camera_id_box_);
       this->pack_start(camera_, Gtk::PACK_SHRINK, 4);
 
-      refbox_.set_label("Refbox");
-      refbox_r1_.set_label("Global");
-      refbox_r2_.set_label("Local");
-      refbox_r2_.join_group(refbox_r1_);
-      refbox_box_.set_border_width(4);
-      refbox_box_.pack_start(refbox_r1_);
-      refbox_box_.pack_start(refbox_r2_);
-      refbox_.add(refbox_box_);
-      this->pack_start(refbox_, Gtk::PACK_SHRINK, 4);
-
       start_.set_label("start");
       start_.set_sensitive(false);
       start_.signal_clicked().connect(sigc::mem_fun(*this, &game_panel::handle_start_stop));
@@ -515,19 +489,6 @@ private:
         runner_.set_team_color(model::team_color::yellow);
       } else {
         runner_.set_team_color(model::team_color::blue);
-      }
-    });
-
-    if (runner_.is_global_refbox()) {
-      refbox_r1_.set_active(true);
-    } else {
-      refbox_r2_.set_active(true);
-    }
-    refbox_r1_.signal_toggled().connect([this] {
-      if (refbox_r1_.get_active()) {
-        runner_.use_global_refbox(true);
-      } else {
-        runner_.use_global_refbox(false);
       }
     });
   }
@@ -582,18 +543,196 @@ private:
     apply_.set_sensitive(false);
   }
 
-  Gtk::Frame color_, dir_, robots_, refbox_, camera_;
+  Gtk::Frame color_, dir_, robots_, camera_;
   Gtk::VBox robots_box_;
-  Gtk::HBox color_box_, dir_box_, refbox_box_;
-  Gtk::RadioButton color_r1_, color_r2_, dir_r1_, dir_r2_, refbox_r1_, refbox_r2_;
+  Gtk::HBox color_box_, dir_box_;
+  Gtk::RadioButton color_r1_, color_r2_, dir_r1_, dir_r2_;
   std::vector<Gtk::CheckButton> robots_cb_, camera_cb_;
   Gtk::FlowBox robots_id_box_, camera_id_box_;
   Gtk::Button apply_, start_;
 
   model::updater::world& updater_world_;
-  game_runner& runner_;
+  Runner& runner_;
 
-  logger::logger_for<game_panel> l_;
+  logger::logger l_;
+};
+
+// 2つのソースを切替可能な updater 的なもの
+template <class U1, class U2>
+class updater_selector {
+  std::atomic<bool> use_global_;
+  U1& global_;
+  U2& local_;
+
+public:
+  static_assert(std::is_same_v<decltype(std::declval<U1>().value()),
+                               decltype(std::declval<U2>().value())>);
+  using value_type = decltype(std::declval<U1>().value());
+
+  updater_selector(U1& global, U2& local) : use_global_{true}, global_{global}, local_{local} {}
+
+  value_type value() const {
+    return use_global_ ? global_.value() : local_.value();
+  }
+
+  void set_transformation_matrix(const Eigen::Affine3d& matrix) {
+    global_.set_transformation_matrix(matrix);
+    local_.set_transformation_matrix(matrix);
+  }
+
+  bool use_global() const {
+    return use_global_;
+  }
+  void use_global(bool b) {
+    use_global_ = b;
+  }
+
+  const U1& global() const {
+    return global_;
+  }
+  const U2& local() const {
+    return local_;
+  }
+};
+
+// global / local refbox の切り替えなどを行なうパネル
+class refbox_panel final : public Gtk::Frame {
+  using stage_type   = model::refbox::stage_name;
+  using command_type = model::refbox::game_command;
+
+public:
+  refbox_panel(model::updater::refbox& global)
+      : Gtk::Frame{"Refbox"},
+        l1_{"Local Refbox", Gtk::ALIGN_END},
+        l2_{"stage", Gtk::ALIGN_END},
+        l3_{"command", Gtk::ALIGN_END},
+        l4_{"abp_target x", Gtk::ALIGN_END},
+        l5_{"abp_target y", Gtk::ALIGN_END},
+        prev_button_state_{false},
+        updater_{global, refbox_} {
+    sw_.set_active(!updater_.use_global());
+    sw_.set_halign(Gtk::ALIGN_START);
+    sw_.property_active().signal_changed().connect(
+        sigc::mem_fun(*this, &refbox_panel::handle_switch));
+
+    for (int i = 0; i < static_cast<int>(stage_type::num_stages); ++i) {
+      stages_.append(stage_name_to_string(static_cast<stage_type>(i)).data());
+    }
+    stages_.set_active(static_cast<int>(refbox_.refbox.stage()));
+    stages_.signal_changed().connect(sigc::mem_fun(*this, &refbox_panel::handle_value_changed));
+
+    for (int i = 0; i < static_cast<int>(command_type::num_commands); ++i) {
+      commands_.append(game_command_to_string(static_cast<command_type>(i)).data());
+    }
+    commands_.set_active(static_cast<int>(refbox_.refbox.command()));
+    commands_.signal_changed().connect(
+        sigc::mem_fun(*this, &refbox_panel::handle_value_changed));
+
+    auto [x, y] = refbox_.refbox.ball_placement_position();
+    abp_x_.set_value(x);
+    abp_x_.set_range(-50000, 50000);
+    abp_x_.set_increments(100, 1000);
+    abp_x_.signal_changed().connect(sigc::mem_fun(*this, &refbox_panel::handle_value_changed));
+    abp_y_.set_value(y);
+    abp_y_.set_range(-50000, 50000);
+    abp_y_.set_increments(100, 1000);
+    abp_y_.signal_changed().connect(sigc::mem_fun(*this, &refbox_panel::handle_value_changed));
+
+    button_.set_label("Apply");
+    button_.set_sensitive(false);
+    button_.signal_clicked().connect(sigc::mem_fun(*this, &refbox_panel::handle_apply_button));
+
+    grid_.set_border_width(4);
+    grid_.set_row_spacing(4);
+    grid_.set_column_spacing(8);
+    grid_.set_column_homogeneous(true);
+
+    grid_.attach(l1_, 1, 1);
+    grid_.attach_next_to(l2_, l1_, Gtk::POS_BOTTOM);
+    grid_.attach_next_to(l3_, l2_, Gtk::POS_BOTTOM);
+    grid_.attach_next_to(l4_, l3_, Gtk::POS_BOTTOM);
+    grid_.attach_next_to(l5_, l4_, Gtk::POS_BOTTOM);
+
+    grid_.attach_next_to(sw_, l1_, Gtk::POS_RIGHT);
+    grid_.attach_next_to(stages_, l2_, Gtk::POS_RIGHT, 2, 1);
+    grid_.attach_next_to(commands_, l3_, Gtk::POS_RIGHT, 2, 1);
+    grid_.attach_next_to(abp_x_, l4_, Gtk::POS_RIGHT, 2, 1);
+    grid_.attach_next_to(abp_y_, l5_, Gtk::POS_RIGHT, 2, 1);
+    grid_.attach_next_to(button_, l5_, Gtk::POS_BOTTOM, 3, 1);
+
+    this->add(grid_);
+
+    handle_switch();
+  }
+
+  auto& updater() {
+    return updater_;
+  }
+
+private:
+  void handle_switch() {
+    const auto s = sw_.get_state();
+    stages_.set_sensitive(s);
+    commands_.set_sensitive(s);
+    abp_x_.set_sensitive(s);
+    abp_y_.set_sensitive(s);
+    updater_.use_global(!s);
+    if (s) {
+      button_.set_sensitive(prev_button_state_);
+    } else {
+      prev_button_state_ = button_.get_sensitive();
+      button_.set_sensitive(false);
+    }
+    l_.info(fmt::format("refbox source: {}", s ? "local" : "global"));
+  }
+
+  void handle_value_changed() {
+    button_.set_sensitive(true);
+  }
+
+  void handle_apply_button() {
+    std::lock_guard lock{refbox_.mutex};
+    if (const auto i = stages_.get_active_row_number(); i >= 0) {
+      refbox_.refbox.set_stage(static_cast<stage_type>(i));
+    }
+    if (const auto i = commands_.get_active_row_number(); i >= 0) {
+      refbox_.refbox.set_command(static_cast<command_type>(i));
+    }
+    auto& p = refbox_.abp_target;
+    p       = std::make_tuple(abp_x_.get_value(), abp_y_.get_value());
+    refbox_.refbox.set_ball_placement_position(util::math::transform(refbox_.matrix, p));
+    button_.set_sensitive(false);
+  }
+
+  Gtk::Grid grid_;
+  Gtk::Label l1_, l2_, l3_, l4_, l5_;
+  Gtk::Switch sw_;
+  Gtk::ComboBoxText stages_, commands_;
+  Gtk::SpinButton abp_x_, abp_y_;
+  Gtk::Button button_;
+
+  bool prev_button_state_;
+
+  struct refbox_wrapper {
+    mutable std::mutex mutex;
+    model::refbox refbox;
+    std::tuple<double, double> abp_target;
+    Eigen::Affine3d matrix;
+    refbox_wrapper() : abp_target{0, 0}, matrix{Eigen::Translation3d{0, 0, 0}} {}
+    model::refbox value() const {
+      std::lock_guard lock{mutex};
+      return refbox;
+    }
+    void set_transformation_matrix(const Eigen::Affine3d& m) {
+      std::lock_guard lock{mutex};
+      matrix = m;
+      refbox.set_ball_placement_position(util::math::transform(matrix, abp_target));
+    }
+  };
+  refbox_wrapper refbox_;
+  updater_selector<model::updater::refbox, refbox_wrapper> updater_;
+
+  logger::logger_for<refbox_panel> l_;
 };
 
 // 各種ステータスを表示するパネル
@@ -727,6 +866,32 @@ struct status_tree::handler<T<C>, std::void_t<decltype(std::declval<T<C>>().conn
   Gtk::TreeRow r1, r2, r3, r4;
 };
 
+template <class T>
+struct status_tree::handler<T, std::enable_if_t<std::is_same_v<
+                                   decltype(std::declval<const T>().value()), model::refbox>>> {
+  static constexpr auto category_name = "Updater";
+
+  template <class F>
+  handler(const status_tree::model& m, F add_row)
+      : model{m}, r1{add_row()}, r2{add_row()}, r3{add_row()} {
+    r1[model.name] = "stage";
+    r2[model.name] = "command";
+    r3[model.name] = "abp_target";
+  }
+
+  void update(const T& updater) const {
+    const auto v      = updater.value();
+    const auto [x, y] = v.ball_placement_position();
+
+    r1[model.value] = stage_name_to_string(v.stage()).data();
+    r2[model.value] = game_command_to_string(v.command()).data();
+    r3[model.value] = fmt::format("{}, {}", x, y);
+  }
+
+  const status_tree::model& model;
+  Gtk::TreeRow r1, r2, r3;
+};
+
 auto main(int argc, char** argv) -> int {
   logger::sink::ostream sink(std::cout, "{elapsed} {level:<5} {zone}: {message}");
   logger::logger l{"main()"};
@@ -789,32 +954,18 @@ auto main(int argc, char** argv) -> int {
 
     // Refbox receiverの設定
     std::atomic<bool> refbox1_received{false};
-    model::updater::refbox updater_refbox1_{};
-    receiver::refbox refbox1{receiver_io, "0.0.0.0", global_refbox_address, global_refbox_port};
-    refbox1.on_receive([&updater_refbox1_, &refbox1_received, &l](auto&& p) {
+    model::updater::refbox updater_refbox{};
+    receiver::refbox refbox{receiver_io, "0.0.0.0", refbox_address, refbox_port};
+    refbox.on_receive([&updater_refbox, &refbox1_received, &l](auto&& p) {
       if (!refbox1_received) {
         // 最初に受信したときにメッセージを表示する
-        l.info("refbox (global) packet received!");
+        l.info("refbox packet received!");
         refbox1_received = true;
       }
 
-      updater_refbox1_.update(std::forward<decltype(p)>(p));
+      updater_refbox.update(std::forward<decltype(p)>(p));
     });
-    l.info(fmt::format("global refbox: {}:{}", global_refbox_address, global_refbox_port));
-
-    std::atomic<bool> refbox2_received{false};
-    model::updater::refbox updater_refbox2_{};
-    receiver::refbox refbox2{receiver_io, "0.0.0.0", local_refbox_address, local_refbox_port};
-    refbox2.on_receive([&updater_refbox2_, &refbox2_received, &l](auto&& p) {
-      if (!refbox2_received) {
-        // 最初に受信したときにメッセージを表示する
-        l.info("refbox (local) packet received!");
-        refbox2_received = true;
-      }
-
-      updater_refbox2_.update(std::forward<decltype(p)>(p));
-    });
-    l.info(fmt::format("local refbox: {}:{}", local_refbox_address, local_refbox_port));
+    l.info(fmt::format("refbox: {}:{}", refbox_address, refbox_port));
 
     // receiver_ioに登録されたタスクを別スレッドで開始
     std::thread receiver_thread{[&receiver_io, &l] {
@@ -859,10 +1010,14 @@ auto main(int argc, char** argv) -> int {
 
     auto app = Gtk::Application::create(argc, argv);
 
-    game_runner runner{
-        config_dir, updater_world, updater_refbox1_, updater_refbox2_, driver, radio,
-    };
+    refbox_panel rp{updater_refbox};
+
+    game_runner runner{config_dir, updater_world, rp.updater(), driver, radio};
     game_panel gp{updater_world, runner};
+
+    // refbox_panel を game_panel 内に追加する
+    // TODO: game_panel を Frame 単位などに分割する？
+    gp.pack_start(rp, Gtk::PACK_SHRINK, 4);
 
     Glib::signal_timeout().connect(
         [&vision_received, &gp, &l] {
@@ -882,9 +1037,10 @@ auto main(int argc, char** argv) -> int {
 
     status_tree tree{};
     tree.add("Vision", vision);
-    tree.add("Global RefBox", refbox1);
-    tree.add("Local RefBox", refbox2);
+    tree.add("RefBox", refbox);
     tree.add(is_grsim ? "grSim" : "KIKS", *radio);
+    tree.add("Global Refbox", rp.updater().global(), 250);
+    tree.add("Local Refbox", rp.updater().local(), 250);
     tree.expand_all();
 
     auto win = Gtk::Window{};
