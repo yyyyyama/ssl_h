@@ -91,7 +91,7 @@ std::vector<std::shared_ptr<agent::base>> first_formation::execute() {
         exe.emplace_back(defense(agent::defense::defense_mode::pk_normal_mode));
       } else {
         stop_ = make_agent<agent::stopgame>(except_keeper_);
-        df_   = make_agent<agent::defense>(keeper_, wall_);
+        df_   = make_agent<agent::defense>(keeper_, id_vec{});
         exe.emplace_back(stop_);
         exe.emplace_back(df_);
       }
@@ -103,18 +103,14 @@ std::vector<std::shared_ptr<agent::base>> first_formation::execute() {
 
     case game_situation::kickoff:
       if (is_attack) {
-        if (is_start) {
-          //定常状態に入る
-          if ((kickoff_ && kickoff_->finished()) || time_over(point, change_command_time_, 8)) {
-            exe.emplace_back(all());
-            break;
-          }
-          exe.emplace_back(kickoff(true));
-          exe.emplace_back(defense(agent::defense::defense_mode::normal_mode));
-        } else {
-          exe.emplace_back(kickoff(false));
-          exe.emplace_back(defense(agent::defense::defense_mode::normal_mode));
+        //定常状態に入る
+        if (is_start &&
+            ((kickoff_ && kickoff_->finished()) || time_over(point, change_command_time_, 8))) {
+          exe.emplace_back(all());
+          break;
         }
+        exe.emplace_back(kickoff(is_start));
+        exe.emplace_back(defense(agent::defense::defense_mode::normal_mode));
       } else {
         //定常状態に入る
         if (kicked_flag_) {
@@ -163,21 +159,9 @@ std::vector<std::shared_ptr<agent::base>> first_formation::execute() {
         exe.emplace_back(defense(agent::defense::defense_mode::normal_mode));
       } else {
         //定常状態に入る
-        if (kicked_flag_) {
-          if (time_over(point, kicked_time_, 1)) {
-            exe.emplace_back(all());
-            break;
-          } else {
-            stop_ = make_agent<agent::stopgame>(except_keeper_);
-            df_   = make_agent<agent::defense>(keeper_, id_vec{});
-            exe.emplace_back(stop_);
-            exe.emplace_back(df_);
-            break;
-          }
-        }
-        kicked_flag_ = kicked(ball);
-        if (kicked_flag_) {
-          kicked_time_ = point;
+        if (kicked_flag_ && time_over(point, kicked_time_, 1)) {
+          exe.emplace_back(all());
+          break;
         }
         stop_ = make_agent<agent::stopgame>(except_keeper_);
         df_   = make_agent<agent::defense>(keeper_, id_vec{});
