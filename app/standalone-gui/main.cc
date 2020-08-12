@@ -10,6 +10,7 @@
 #include <stdexcept>
 #include <sstream>
 #include <thread>
+#include <type_traits>
 
 #include <boost/asio.hpp>
 #include <boost/math/constants/constants.hpp>
@@ -47,6 +48,7 @@
 #include "ai_server/receiver/refbox.h"
 #include "ai_server/receiver/vision.h"
 #include "ai_server/util/math/affine.h"
+#include "ai_server/util/math/angle.h"
 #include "ai_server/util/thread.h"
 #include "ai_server/util/time.h"
 
@@ -405,6 +407,285 @@ private:
   logger::logger l_;
 };
 
+// vision の設定を行うパネル
+class vision_panel final : public Gtk::Frame {
+public:
+  using signal_switch_changed_type = sigc::signal<void(bool)>;
+
+  signal_switch_changed_type signal_switch_changed() {
+    return signal_switch_changed_;
+  }
+
+  vision_panel() : Gtk::Frame{"Vision"}, l1_{"Viewer", Gtk::ALIGN_END} {
+    sw_.set_active(true);
+    sw_.set_halign(Gtk::ALIGN_START);
+    sw_.property_active().signal_changed().connect(
+        [this] { signal_switch_changed_.emit(sw_.get_state()); });
+
+    grid_.set_border_width(4);
+    grid_.set_row_spacing(4);
+    grid_.set_column_spacing(8);
+    grid_.set_column_homogeneous(true);
+
+    grid_.attach(l1_, 1, 1);
+
+    grid_.attach_next_to(sw_, l1_, Gtk::POS_RIGHT, 2, 1);
+
+    this->add(grid_);
+  }
+
+private:
+  Gtk::Grid grid_;
+  Gtk::Label l1_;
+  Gtk::Switch sw_;
+  signal_switch_changed_type signal_switch_changed_;
+};
+
+// vision からの位置情報を描画するエリア
+class vision_area final : public Gtk::DrawingArea {
+public:
+  using signal_ball_position_changed_type = sigc::signal<void, double /* x */, double /* y */>;
+  using signal_abp_target_changed_type    = sigc::signal<void, double /* x */, double /* y */>;
+  using signal_robot_position_changed_type =
+      sigc::signal<void, model::team_color, unsigned int /* id */, double /* x */,
+                   double /* y */, double /* theta */>;
+
+  signal_ball_position_changed_type signal_ball_position_changed() {
+    return signal_ball_position_changed_;
+  }
+
+  signal_abp_target_changed_type signal_abp_target_changed() {
+    return signal_abp_target_changed_;
+  }
+
+  signal_robot_position_changed_type signal_robot_position_changed() {
+    return signal_robot_position_changed_;
+  }
+
+  vision_area(model::updater::world& world)
+      : updater_world_(world),
+        i1_("Locate ball here"),
+        i2_("Set abp_target here"),
+        i3_("Locate yellow robot here"),
+        i4_("Locate blue robot here") {
+    this->add_tick_callback([this](const Glib::RefPtr<Gdk::FrameClock>&) {
+      this->queue_draw();
+      return true;
+    });
+
+    this->add_events(Gdk::BUTTON_PRESS_MASK);
+    this->signal_button_press_event().connect(
+        sigc::mem_fun(*this, &vision_area::handle_set_position));
+
+    i1_.signal_activate().connect([this] {
+      // signal_ball_position_changed を発火する
+      const auto [x, y] = position_to_set_;
+      signal_ball_position_changed_.emit(x, y);
+    });
+    i2_.signal_activate().connect([this] {
+      // signal_abp_target_changed を発火させる
+      const auto [x, y] = position_to_set_;
+      signal_abp_target_changed_.emit(x, y);
+    });
+    i3_.set_submenu(yellow_menu_);
+    i4_.set_submenu(blue_menu_);
+
+    for (std::size_t i = 0; i < yellow_items_.size(); ++i) {
+      yellow_items_.at(i).signal_activate().connect([this, i] {
+        // signal_robot_position_changed を発火させる
+        const auto [x, y] = position_to_set_;
+        signal_robot_position_changed_.emit(model::team_color::yellow, i, x, y, 0.0);
+      });
+      yellow_items_.at(i).set_label(std::to_string(i));
+      yellow_menu_.append(yellow_items_.at(i));
+    }
+    for (std::size_t i = 0; i < blue_items_.size(); ++i) {
+      blue_items_.at(i).signal_activate().connect([this, i] {
+        // signal_robot_position_changed を発火させる
+        const auto [x, y] = position_to_set_;
+        signal_robot_position_changed_.emit(model::team_color::blue, i, x, y, 0.0);
+      });
+      blue_items_.at(i).set_label(std::to_string(i));
+      blue_menu_.append(blue_items_.at(i));
+    }
+
+    menu_.append(i1_);
+    menu_.append(i2_);
+    menu_.append(i3_);
+    menu_.append(i4_);
+    menu_.attach_to_widget(*this);
+    menu_.show_all();
+  }
+
+private:
+  bool on_draw(const Cairo::RefPtr<Cairo::Context>& cr) override {
+    const auto allocation = get_allocation();
+    const auto width      = allocation.get_width();
+    const auto height     = allocation.get_height();
+    const auto world      = updater_world_.value();
+    const auto wf         = world.field();
+
+    constexpr auto line_width   = 10.0;
+    constexpr auto field_margin = 400.0;
+    const auto game_width       = 2.0 * wf.x_max();
+    const auto game_height      = 2.0 * wf.y_max();
+    const auto field_width      = game_width + 2.0 * field_margin;
+    const auto field_height     = game_height + 2.0 * field_margin;
+    const auto penalty_width    = wf.penalty_length();
+    const auto penalty_height   = wf.penalty_width();
+    constexpr auto goal_width   = 200.0;
+    const auto goal_height      = wf.goal_width();
+    constexpr auto robot_rad    = 90.0;
+    constexpr auto ball_rad     = 21.0;
+
+    // フィールドを縦に表示するか
+    const bool is_vertical = width < height;
+    if (is_vertical) {
+      // エリアが縦長なら90度回転
+      const auto coef = std::min(height / field_width, width / field_height);
+      matrix_         = Cairo::Matrix{
+          0, -coef, -coef, 0, coef * field_height / 2.0, coef * field_width / 2.0};
+    } else {
+      const auto coef = std::min(height / field_height, width / field_width);
+      matrix_ =
+          Cairo::Matrix{coef, 0, 0, -coef, coef * field_width / 2.0, coef * field_height / 2.0};
+    }
+    cr->transform(matrix_);
+
+    // フィールド
+    {
+      // フィールド全体
+      cr->rectangle(-field_width / 2.0, -field_height / 2.0, field_width, field_height);
+      cr->set_source_rgb(0.4, 0.4, 0.4);
+      cr->fill();
+
+      // ラインの幅と色をまとめて設定
+      cr->set_source_rgb(1.0, 1.0, 1.0);
+      cr->set_line_width(line_width);
+
+      // ゲームエリアの枠
+      cr->rectangle(-game_width / 2.0, -game_height / 2.0, game_width, game_height);
+      cr->stroke();
+      // センターライン
+      cr->move_to(0.0, game_height / 2.0);
+      cr->line_to(0.0, -game_height / 2.0);
+      cr->stroke();
+      // センターサークル
+      cr->arc(0.0, 0.0, wf.center_radius(), 0.0, boost::math::double_constants::two_pi);
+      cr->stroke();
+      // 左ペナルティエリア
+      cr->rectangle(-game_width / 2.0, -penalty_height / 2.0, penalty_width, penalty_height);
+      cr->stroke();
+      // 右ペナルティエリア
+      cr->rectangle(game_width / 2.0 - penalty_width, -penalty_height / 2.0, penalty_width,
+                    penalty_height);
+      cr->stroke();
+      // ペナルティマーク
+      cr->arc(wf.back_penalty_mark().x, wf.back_penalty_mark().y, ball_rad, 0.0,
+              boost::math::double_constants::two_pi);
+      cr->stroke();
+      // ペナルティマーク
+      cr->arc(wf.front_penalty_mark().x, wf.front_penalty_mark().y, ball_rad, 0.0,
+              boost::math::double_constants::two_pi);
+      cr->stroke();
+      // 左ゴール
+      cr->rectangle(-game_width / 2.0 - goal_width, -goal_height / 2.0, goal_width,
+                    goal_height);
+      cr->stroke();
+      // 右ゴール
+      cr->rectangle(game_width / 2.0, -goal_height / 2.0, goal_width, goal_height);
+      cr->stroke();
+    }
+
+    // ロボット
+    auto draw_robots = [&cr, is_vertical](const model::world::robots_list& robots,
+                                          model::team_color color) {
+      if (color == model::team_color::yellow) {
+        cr->set_source_rgb(1.0, 1.0, 0.0);
+      } else if (color == model::team_color::blue) {
+        cr->set_source_rgb(0.0, 0.0, 1.0);
+      } else {
+        cr->set_source_rgb(1.0, 1.0, 1.0);
+      }
+      for (const auto& [id, robot] : robots) {
+        cr->arc(robot.x(), robot.y(), robot_rad, util::math::wrap_to_2pi(robot.theta() + 0.5),
+                util::math::wrap_to_2pi(robot.theta() - 0.5));
+        cr->close_path();
+        cr->fill();
+      }
+
+      cr->set_source_rgb(1.0, 1.0, 1.0);
+      constexpr auto font_size = 2.0 * robot_rad;
+      if (is_vertical) {
+        cr->set_font_matrix(
+            Cairo::Matrix{0.0, -font_size, -font_size, 0.0, font_size, font_size / 4.0});
+      } else {
+        cr->set_font_matrix(
+            Cairo::Matrix{font_size, 0.0, 0.0, -font_size, -font_size / 4.0, font_size});
+      }
+      for (const auto& [id, robot] : robots) {
+        cr->move_to(robot.x(), robot.y());
+        cr->set_line_width(0.5);
+        cr->text_path(std::to_string(id));
+        cr->fill();
+      }
+    };
+    draw_robots(world.robots_yellow(), model::team_color::yellow);
+    draw_robots(world.robots_blue(), model::team_color::blue);
+
+    // ボール
+    {
+      const auto ball = world.ball();
+      cr->set_source_rgb(1.0, 0.65, 0.0);
+      cr->arc(ball.x(), ball.y(), ball_rad, 0.0, boost::math::double_constants::two_pi);
+      cr->fill();
+    }
+
+    return true;
+  }
+
+  bool handle_set_position(GdkEventButton* event) {
+    // 右クリックならメニュー表示
+    if (event->button != 3) return false;
+
+    // マウス座標取得
+    int mouse_x, mouse_y;
+    this->get_pointer(mouse_x, mouse_y);
+
+    // 自チーム用に変換された座標をもとに戻す
+    const auto x = (matrix_.yy * mouse_x - matrix_.xy * mouse_y - matrix_.yy * matrix_.x0 +
+                    matrix_.xy * matrix_.y0) /
+                   (matrix_.xx * matrix_.yy - matrix_.xy * matrix_.yx);
+    const auto y = (-matrix_.yx * mouse_x + matrix_.xx * mouse_y + matrix_.yx * matrix_.x0 -
+                    matrix_.xx * matrix_.y0) /
+                   (matrix_.xx * matrix_.yy - matrix_.xy * matrix_.yx);
+
+    // 位置をメンバに保持しておく
+    position_to_set_ = util::math::transform(updater_world_.transformation_matrix().inverse(),
+                                             std::make_tuple(x, y));
+
+    i1_.set_sensitive(!signal_ball_position_changed_.empty());
+    i2_.set_sensitive(!signal_abp_target_changed_.empty());
+    i3_.set_sensitive(!signal_robot_position_changed_.empty());
+    i4_.set_sensitive(!signal_robot_position_changed_.empty());
+    menu_.popup(event->button, event->time);
+
+    return true;
+  }
+
+  model::updater::world& updater_world_;
+  Cairo::Matrix matrix_;
+  signal_ball_position_changed_type signal_ball_position_changed_;
+  signal_abp_target_changed_type signal_abp_target_changed_;
+  signal_robot_position_changed_type signal_robot_position_changed_;
+  std::tuple<double, double> position_to_set_;
+
+  std::array<Gtk::MenuItem, 16> yellow_items_, blue_items_;
+  Gtk::MenuItem i1_, i2_, i3_, i4_;
+  Gtk::Menu yellow_menu_, blue_menu_;
+  Gtk::Menu menu_;
+};
+
 // game_runner などを設定するパネル
 // --------------------------------
 template <class Runner>
@@ -608,7 +889,6 @@ public:
         l3_{"command", Gtk::ALIGN_END},
         l4_{"abp_target x", Gtk::ALIGN_END},
         l5_{"abp_target y", Gtk::ALIGN_END},
-        prev_button_state_{false},
         updater_{global, refbox_} {
     sw_.set_active(!updater_.use_global());
     sw_.set_halign(Gtk::ALIGN_START);
@@ -665,6 +945,11 @@ public:
     handle_switch();
   }
 
+  void set_abp_target(double x, double y) {
+    abp_x_.set_value(x);
+    abp_y_.set_value(y);
+  }
+
   auto& updater() {
     return updater_;
   }
@@ -672,17 +957,7 @@ public:
 private:
   void handle_switch() {
     const auto s = sw_.get_state();
-    stages_.set_sensitive(s);
-    commands_.set_sensitive(s);
-    abp_x_.set_sensitive(s);
-    abp_y_.set_sensitive(s);
     updater_.use_global(!s);
-    if (s) {
-      button_.set_sensitive(prev_button_state_);
-    } else {
-      prev_button_state_ = button_.get_sensitive();
-      button_.set_sensitive(false);
-    }
     l_.info(fmt::format("refbox source: {}", s ? "local" : "global"));
   }
 
@@ -710,8 +985,6 @@ private:
   Gtk::ComboBoxText stages_, commands_;
   Gtk::SpinButton abp_x_, abp_y_;
   Gtk::Button button_;
-
-  bool prev_button_state_;
 
   struct refbox_wrapper {
     mutable std::mutex mutex;
@@ -1015,6 +1288,32 @@ auto main(int argc, char** argv) -> int {
     game_runner runner{config_dir, updater_world, rp.updater(), driver, radio};
     game_panel gp{updater_world, runner};
 
+    vision_panel vp{};
+    vision_area va{updater_world};
+
+    // vision_area と refbox_panel をつなげる
+    va.signal_abp_target_changed().connect(sigc::mem_fun(rp, &refbox_panel::set_abp_target));
+
+    // simulator の radio ならシグナル発火でボール, ロボット配置
+    // generic lambda は template 相当のもので実現されるので constexpr if が使える
+    [&va](auto& radio) {
+      if constexpr (std::is_base_of_v<
+                        radio::base::simulator,
+                        typename std::remove_reference_t<decltype(radio)>::element_type>) {
+        va.signal_ball_position_changed().connect(
+            [radio](auto x, auto y) { radio->set_ball_position(x, y); });
+        va.signal_robot_position_changed().connect(
+            [radio](auto color, auto id, auto x, auto y, auto theta) {
+              radio->set_robot_position(color, id, x, y, theta);
+            });
+      }
+    }(radio);
+
+    // スイッチによって vision_area の表示/非表示を切り替え
+    vp.signal_switch_changed().connect(sigc::mem_fun(va, &vision_area::set_visible));
+
+    gp.pack_start(vp, Gtk::PACK_SHRINK, 4);
+
     // refbox_panel を game_panel 内に追加する
     // TODO: game_panel を Frame 単位などに分割する？
     gp.pack_start(rp, Gtk::PACK_SHRINK, 4);
@@ -1043,15 +1342,20 @@ auto main(int argc, char** argv) -> int {
     tree.add("Local Refbox", rp.updater().local(), 250);
     tree.expand_all();
 
-    auto win = Gtk::Window{};
-    auto box = Gtk::HBox{};
+    auto win      = Gtk::Window{};
+    auto tree_win = Gtk::ScrolledWindow{};
+    auto box      = Gtk::HBox{};
     {
       win.set_border_width(10);
-      win.set_default_size(800, 500);
+      win.set_default_size(1280, -1);
       win.set_title("Game configurations");
 
-      box.pack_start(gp, Gtk::PACK_SHRINK, 10);
-      box.pack_end(tree, Gtk::PACK_EXPAND_WIDGET, 10);
+      tree_win.add(tree);
+      tree_win.set_min_content_width(350);
+
+      box.pack_end(tree_win, Gtk::PACK_SHRINK, 10);
+      box.pack_end(gp, Gtk::PACK_SHRINK, 10);
+      box.pack_end(va, Gtk::PACK_EXPAND_WIDGET, 10);
 
       win.add(box);
       win.show_all_children();

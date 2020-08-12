@@ -29,13 +29,19 @@ model::world world::value() const {
 }
 
 void world::set_transformation_matrix(const Eigen::Affine3d& matrix) {
+  matrix_ = matrix;
   ball_.set_transformation_matrix(matrix);
   robots_blue_.set_transformation_matrix(matrix);
   robots_yellow_.set_transformation_matrix(matrix);
 }
 
 void world::set_transformation_matrix(double x, double y, double theta) {
-  set_transformation_matrix(util::math::make_transformation_matrix(x, y, theta));
+  matrix_ = util::math::make_transformation_matrix(x, y, theta);
+  set_transformation_matrix(matrix_);
+}
+
+Eigen::Affine3d world::transformation_matrix() {
+  return matrix_;
 }
 
 void world::disable_camera(unsigned int id) {

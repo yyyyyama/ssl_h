@@ -36,6 +36,8 @@ class world {
   /// 無効化されたカメラID
   std::set<unsigned int> disabled_camera_;
 
+  Eigen::Affine3d matrix_ = Eigen::Affine3d::Identity();
+
 public:
   world()             = default;
   world(const world&) = delete;
@@ -56,6 +58,9 @@ public:
   /// @param y         y軸方向に平行移動する量
   /// @param theta     z軸を中心に回転する量
   void set_transformation_matrix(double x, double y, double theta);
+
+  /// @brief    変換行列を取得する
+  Eigen::Affine3d transformation_matrix();
 
   /// @brief                  指定したIDのカメラで更新しないようにする
   /// @param id               カメラID
