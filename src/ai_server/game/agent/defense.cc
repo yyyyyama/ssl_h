@@ -2,15 +2,16 @@
 #include <map>
 
 #include "ai_server/game/action/move.h"
+#include "ai_server/game/action/with_planner.h"
 #include "ai_server/game/agent/defense.h"
 #include "ai_server/model/command.h"
+#include "ai_server/model/obstacle/field.h"
+#include "ai_server/planner/human_like.h"
 #include "ai_server/util/math/angle.h"
 #include "ai_server/util/math/geometry.h"
 #include "ai_server/util/math/to_vector.h"
 
-namespace ai_server {
-namespace game {
-namespace agent {
+namespace ai_server::game::agent {
 
 defense::defense(context& ctx, unsigned int keeper_id,
                  const std::vector<unsigned int>& wall_ids)
@@ -48,15 +49,29 @@ std::vector<std::shared_ptr<action::base>> defense::execute() {
   const Eigen::Vector2d ball(ball_pos + ball_k);
 
   //状態を遷移させるためのボールの位置
-  if (ball_vel.norm() < 150.0) {
-    ball_ = ball_pos;
-  }
+  if (ball_vel.norm() < 150.0) ball_ = ball_pos;
 
   //ゴールの座標
   const Eigen::Vector2d goal(world().field().x_min(), 0.0);
 
   const auto ally_robots  = model::our_robots(world(), team_color());
   const auto enemy_robots = model::enemy_robots(world(), team_color());
+
+  // 障害物としてのロボット半径
+  constexpr double obs_robot_rad = 300.0;
+  // フィールドから出られる距離
+  constexpr double field_margin = 200.0;
+  // ペナルティエリアから余裕を持たせる距離
+  constexpr double penalty_margin = 150.0;
+  // 一般障害物設定
+  planner::obstacle_list common_obstacles;
+  {
+    for (const auto& robot : enemy_robots) {
+      common_obstacles.add(
+          model::obstacle::point{util::math::position(robot.second), obs_robot_rad});
+    }
+    common_obstacles.add(model::obstacle::enemy_penalty_area(world().field(), penalty_margin));
+  }
 
   //ここから壁の処理
   if (!wall_ids_.empty()) {
@@ -89,11 +104,11 @@ std::vector<std::shared_ptr<action::base>> defense::execute() {
       });
     }
 
-    wall_pairs_.clear();
+    std::map<unsigned int, Eigen::Vector2d> wall_pairs;
     for (const auto& target_it : target_pos) {
       const auto itr = std::min_element(
           active_walls.cbegin(), active_walls.cend(),
-          [&target_it, &ally_robots, &goal](const auto& a, const auto& b) {
+          [&target_it, &ally_robots, &goal](auto a, auto b) {
             return std::abs(util::math::wrap_to_pi(
                        std::atan2(ally_robots.at(a).y() - goal.y(),
                                   ally_robots.at(a).x() - goal.x()) -
@@ -103,17 +118,25 @@ std::vector<std::shared_ptr<action::base>> defense::execute() {
                                   ally_robots.at(b).x() - goal.x()) -
                        std::atan2(target_it.y() - goal.y(), target_it.x() - goal.x())));
           });
-      if (itr == active_walls.end()) {
-        break;
-      }
+      if (itr == active_walls.end()) break;
 
-      wall_pairs_[*itr] = target_it;
+      wall_pairs[*itr] = target_it;
       active_walls.erase(itr);
     }
 
     Eigen::Vector2d last_pos{0.0, 0.0};
-    for (auto wall_it = wall_pairs_.begin(); wall_it != wall_pairs_.end(); ++wall_it) {
-      int i          = static_cast<int>(std::distance(wall_pairs_.begin(), wall_it));
+    for (auto wall_it = wall_pairs.begin(); wall_it != wall_pairs.end(); ++wall_it) {
+      // 自チームロボットを障害物設定
+      planner::obstacle_list obstacles = common_obstacles;
+      for (const auto& robot : ally_robots) {
+        if (robot.first == wall_it->first) continue;
+        obstacles.add(
+            model::obstacle::point{util::math::position(robot.second), obs_robot_rad});
+      }
+      // planner::human_likeを使用
+      std::unique_ptr<planner::human_like> hl = std::make_unique<planner::human_like>();
+      hl->set_area(world().field(), field_margin);
+      const int i    = static_cast<int>(std::distance(wall_pairs.begin(), wall_it));
       auto guard     = make_action<action::guard>((*wall_it).first);
       const auto pos = (*wall_it).second;
       if (i == 0) last_pos = pos;
@@ -124,7 +147,8 @@ std::vector<std::shared_ptr<action::base>> defense::execute() {
                                       pi<double>() / 12;
       guard->move_on(shift_flag);
       guard->move_to(pos.x(), pos.y());
-      baseaction.push_back(guard);
+      baseaction.push_back(
+          std::make_shared<action::with_planner>(guard, std::move(hl), obstacles));
     }
 
     if (!active_walls.empty()) {
@@ -150,7 +174,18 @@ std::vector<std::shared_ptr<action::base>> defense::execute() {
                              });
         auto move = make_action<action::move>(id);
         move->move_to(*itr, 0.0);
-        baseaction.push_back(move);
+        // 自チームロボットを障害物設定
+        planner::obstacle_list obstacles = common_obstacles;
+        for (const auto& robot : ally_robots) {
+          if (robot.first == id) continue;
+          obstacles.add(
+              model::obstacle::point{util::math::position(robot.second), obs_robot_rad});
+        }
+        // planner::human_likeを使用
+        std::unique_ptr<planner::human_like> hl = std::make_unique<planner::human_like>();
+        hl->set_area(world().field(), field_margin);
+        baseaction.push_back(
+            std::make_shared<action::with_planner>(move, std::move(hl), obstacles));
         pos_candidates.erase(itr);
       }
     }
@@ -176,6 +211,5 @@ std::vector<std::shared_ptr<action::base>> defense::execute() {
   }
   return baseaction;
 }
-} // namespace agent
-} // namespace game
-} // namespace ai_server
+
+} // namespace ai_server::game::agent
