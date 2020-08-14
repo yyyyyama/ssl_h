@@ -6,7 +6,10 @@
 
 #include "ai_server/game/action/move.h"
 #include "ai_server/game/action/no_operation.h"
+#include "ai_server/game/action/with_planner.h"
 #include "ai_server/model/command.h"
+#include "ai_server/model/obstacle/field.h"
+#include "ai_server/planner/human_like.h"
 #include "ai_server/util/math/angle.h"
 #include "ai_server/util/math/to_vector.h"
 
@@ -68,6 +71,31 @@ std::vector<std::shared_ptr<action::base>> setplay::execute() {
   const Eigen::Vector2d ball_pos   = util::math::position(ball);
   const Eigen::Vector2d ball_vel   = util::math::velocity(ball);
   double enemygoal_x               = world().field().x_max();
+
+  // 障害物としてのロボット半径
+  constexpr double robot_rad = 300.0;
+  // フィールドから出られる距離
+  constexpr double field_margin = 200.0;
+  // ペナルティエリアから余裕を持たせる距離
+  constexpr double penalty_margin = 150.0;
+
+  // 一般障害物設定
+  planner::obstacle_list common_obstacles;
+  {
+    for (const auto& robot : enemy_robots) {
+      common_obstacles.add(
+          model::obstacle::point{util::math::position(robot.second), robot_rad});
+    }
+    common_obstacles.add(model::obstacle::enemy_penalty_area(world().field(), penalty_margin));
+    common_obstacles.add(model::obstacle::our_penalty_area(world().field(), penalty_margin));
+  }
+  // kicker用障害物設定
+  planner::obstacle_list kicker_obstacles = common_obstacles;
+  // 自分以外のロボットを障害物設定
+  for (const auto& robot : our_robots) {
+    if (robot.first == kicker_id_) continue;
+    kicker_obstacles.add(model::obstacle::point{util::math::position(robot.second), robot_rad});
+  }
 
   // パス以降の処理でボールの軌道が大きく変わったら的に取られたと判定し、agent終了
   if (state_ >= state::receive) {
@@ -285,11 +313,29 @@ std::vector<std::shared_ptr<action::base>> setplay::execute() {
       for (auto receiver_id : receiver_ids_) {
         const auto receiver_pos = util::math::position(our_robots.at(receiver_id));
         if (receiver_id != shooter_id_) {
+          planner::obstacle_list obstacles = common_obstacles;
+          // 自分以外のロボットを障害物設定
+          for (const auto& robot : our_robots) {
+            if (robot.first == receiver_id) continue;
+            obstacles.add(
+                model::obstacle::point{util::math::position(robot.second), robot_rad});
+          }
+          // planner::human_likeを使用
+          auto hl = std::make_unique<planner::human_like>();
+          hl->set_area(world().field(), field_margin);
           auto move = make_action<action::move>(receiver_id);
           move->move_to(positions_[i].x(), positions_[i].y(),
                         vectorangle(ball_pos - receiver_pos));
-          baseaction.push_back(move);
+          baseaction.push_back(
+              std::make_shared<action::with_planner>(move, std::move(hl), obstacles));
         } else {
+          planner::obstacle_list obstacles = common_obstacles;
+          // 自分以外のロボットを障害物設定
+          for (const auto& robot : our_robots) {
+            if (robot.first == shooter_id_) continue;
+            obstacles.add(
+                model::obstacle::point{util::math::position(robot.second), robot_rad});
+          }
           if (kick_->state() == action::kick::running_state::kick && mode_ == 1 &&
               pos_ == pos::far && receive_flag_) {
             receive_->set_passer(kicker_id_);
@@ -297,7 +343,11 @@ std::vector<std::shared_ptr<action::base>> setplay::execute() {
             receive_->set_shoot({enemygoal_x, ballysign * 400});
             const double power = 255;
             receive_->set_kick_type({model::command::kick_type_t::line, power});
-            baseaction.push_back(receive_);
+            // planner::human_likeを使用
+            auto hl = std::make_unique<planner::human_like>();
+            hl->set_area(world().field(), field_margin);
+            baseaction.push_back(
+                std::make_shared<action::with_planner>(receive_, std::move(hl), obstacles));
           } else if (try_direct) {
             const Eigen::Vector2d target = {positions_[receiver_id].x(),
                                             positions_[receiver_id].y()};
@@ -309,7 +359,11 @@ std::vector<std::shared_ptr<action::base>> setplay::execute() {
                 positions_[receiver_id].x() + (close_flag ? 0 : dist * std::cos(to_target)),
                 positions_[receiver_id].y() + (close_flag ? 0 : dist * std::sin(to_target)),
                 vectorangle(ball_pos - receiver_pos));
-            baseaction.push_back(move);
+            // planner::human_likeを使用
+            auto hl = std::make_unique<planner::human_like>();
+            hl->set_area(world().field(), field_margin);
+            baseaction.push_back(
+                std::make_shared<action::with_planner>(move, std::move(hl), obstacles));
 
           } else if (kick_->state() == action::kick::running_state::kick && movedflag &&
                      mode_ == 0) {
@@ -321,7 +375,11 @@ std::vector<std::shared_ptr<action::base>> setplay::execute() {
               const double power = 255;
               receive_->set_kick_type({model::command::kick_type_t::line, power});
             }
-            baseaction.push_back(receive_);
+            // planner::human_likeを使用
+            auto hl = std::make_unique<planner::human_like>();
+            hl->set_area(world().field(), field_margin);
+            baseaction.push_back(
+                std::make_shared<action::with_planner>(receive_, std::move(hl), obstacles));
           } else {
             const Eigen::Vector2d target = {passpos_.x(), passpos_.y()};
             auto move                    = make_action<action::move>(shooter_id_);
@@ -331,7 +389,11 @@ std::vector<std::shared_ptr<action::base>> setplay::execute() {
             move->move_to(passpos_.x() + (close_flag ? 0 : dist * std::cos(to_target)),
                           passpos_.y() + (close_flag ? 0 : dist * std::sin(to_target)),
                           vectorangle(ball_pos - receiver_pos));
-            baseaction.push_back(move);
+            // planner::human_likeを使用
+            auto hl = std::make_unique<planner::human_like>();
+            hl->set_area(world().field(), field_margin);
+            baseaction.push_back(
+                std::make_shared<action::with_planner>(move, std::move(hl), obstacles));
           }
         }
         i++;
@@ -352,7 +414,18 @@ std::vector<std::shared_ptr<action::base>> setplay::execute() {
               const double power = 255;
               receive_->set_kick_type({model::command::kick_type_t::line, power});
             }
-            baseaction.push_back(receive_);
+            planner::obstacle_list obstacles = common_obstacles;
+            // 自分以外のロボットを障害物設定
+            for (const auto& robot : our_robots) {
+              if (robot.first == shooter_id_) continue;
+              obstacles.add(
+                  model::obstacle::point{util::math::position(robot.second), robot_rad});
+            }
+            // planner::human_likeを使用
+            auto hl = std::make_unique<planner::human_like>();
+            hl->set_area(world().field(), field_margin);
+            baseaction.push_back(
+                std::make_shared<action::with_planner>(receive_, std::move(hl), obstacles));
           } else {
             const Eigen::Vector2d shooter_pos =
                 util::math::position(our_robots.at(shooter_id_));
@@ -412,16 +485,31 @@ std::vector<std::shared_ptr<action::base>> setplay::execute() {
         kick_->set_mode(action::kick::mode::ball);
         kick_->set_angle_margin(0.15);
         kick_->set_kick_type({model::command::kick_type_t::line, power});
-        baseaction.push_back(kick_);
+        // planner::human_likeを使用
+        auto hl = std::make_unique<planner::human_like>();
+        hl->set_area(world().field(), field_margin);
+        baseaction.push_back(
+            std::make_shared<action::with_planner>(kick_, std::move(hl), kicker_obstacles));
       } else {
         free_robots_.push_back(kicker_id_);
       }
       for (auto receiver_id : receiver_ids_) {
         if (receiver_id == shooter_id_ && !try_direct) {
+          planner::obstacle_list obstacles = common_obstacles;
+          // 自分以外のロボットを障害物設定
+          for (const auto& robot : our_robots) {
+            if (robot.first == shooter_id_) continue;
+            obstacles.add(
+                model::obstacle::point{util::math::position(robot.second), robot_rad});
+          }
+          // planner::human_likeを使用
+          auto hl = std::make_unique<planner::human_like>();
+          hl->set_area(world().field(), field_margin);
           const double power = 255;
           get_ball_->set_target(shoot_pos);
           get_ball_->kick_automatically(power);
-          baseaction.push_back(get_ball_);
+          baseaction.push_back(
+              std::make_shared<action::with_planner>(get_ball_, std::move(hl), obstacles));
         } else {
           if (free_robots_.size() < 2) free_robots_.push_back(receiver_id);
         }
