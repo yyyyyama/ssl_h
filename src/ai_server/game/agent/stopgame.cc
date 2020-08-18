@@ -3,8 +3,9 @@
 #include <boost/math/constants/constants.hpp>
 
 #include "ai_server/game/action/move.h"
+#include "ai_server/game/action/with_planner.h"
 #include "ai_server/model/obstacle/field.h"
-#include "ai_server/planner/rrt_star.h"
+#include "ai_server/planner/human_like.h"
 #include "ai_server/util/math/angle.h"
 #include "ai_server/util/math/to_vector.h"
 
@@ -77,35 +78,46 @@ std::vector<std::shared_ptr<action::base>> stopgame::execute() {
   }
 
   // path_planner, action設定
+  // 障害物としてのロボット半径
+  constexpr double obs_robot_rad = 300.0;
+  // フィールドから出られる距離
+  constexpr double field_margin = 200.0;
+  // ペナルティエリアから余裕を持たせる距離
+  constexpr double penalty_margin = 150.0;
+
   planner::obstacle_list common_obstacles;
   {
     for (const auto& ene : ene_robots) {
-      common_obstacles.add(model::obstacle::point{util::math::position(ene.second), 300.0});
+      common_obstacles.add(
+          model::obstacle::point{util::math::position(ene.second), obs_robot_rad});
     }
     common_obstacles.add(model::obstacle::point{ball_pos, margin});
-    common_obstacles.add(model::obstacle::enemy_penalty_area(world().field(), 150.0));
-    common_obstacles.add(model::obstacle::our_penalty_area(world().field(), 150.0));
+    common_obstacles.add(model::obstacle::enemy_penalty_area(world().field(), penalty_margin));
+    common_obstacles.add(model::obstacle::our_penalty_area(world().field(), penalty_margin));
   }
   for (auto id : visible_ids) {
     const Eigen::Vector2d robot_pos = util::math::position(our_robots.at(id));
     const double theta = std::atan2(ball_pos.y() - robot_pos.y(), ball_pos.x() - robot_pos.x());
-    std::unique_ptr<planner::rrt_star> rrt = std::make_unique<planner::rrt_star>();
-    rrt->set_area(world().field(), 200.0);
     {
       auto obstacles = common_obstacles;
       for (const auto& our : our_robots) {
         if (our.first != id)
           obstacles.add(model::obstacle::point{util::math::position(our.second), 300.0});
       }
-      rrt->set_node_count(10);
-      rrt->set_max_branch_length(50.0);
     }
     auto move = make_action<action::move>(id);
-    // TODO: move で planner を使う
-    // move->set_path_planner(std::move(rrt));
-    // TODO: actionに障害物リストを渡す
     move->move_to(target_pos[id], theta);
-    baseaction.push_back(move);
+    // 自チームロボットを障害物設定
+    planner::obstacle_list obstacles = common_obstacles;
+    for (const auto& our : our_robots) {
+      if (our.first == id) continue;
+      obstacles.add(model::obstacle::point{util::math::position(our.second), obs_robot_rad});
+    }
+    // planner::human_likeを使用
+    std::unique_ptr<planner::human_like> hl = std::make_unique<planner::human_like>();
+    hl->set_area(world().field(), field_margin);
+    baseaction.push_back(
+        std::make_shared<action::with_planner>(move, std::move(hl), obstacles));
   }
   return baseaction;
 }
