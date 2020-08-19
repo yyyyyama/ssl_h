@@ -31,6 +31,13 @@ model::robot transform(const Eigen::Affine3d& matrix, const model::robot& robot)
   return result;
 }
 
+Eigen::Vector2d transform(const Eigen::Affine3d& matrix, const Eigen::Vector2d& v) {
+  // 回転方向は必要ないので
+  Eigen::Vector3d p{.0, .0, .0};
+  p.head<2>() = v;
+
+  return (matrix * p).head<2>();
+}
 } // namespace math
 } // namespace util
 } // namespace ai_server

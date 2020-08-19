@@ -3,7 +3,7 @@
 
 #include <chrono>
 #include <optional>
-#include <tuple>
+#include <Eigen/Geometry>
 
 #include "team_info.h"
 #include "team_color.h"
@@ -60,7 +60,7 @@ public:
   game_command command() const;
   team_info team_yellow() const;
   team_info team_blue() const;
-  std::tuple<double, double> ball_placement_position() const;
+  Eigen::Vector2d ball_placement_position() const;
   std::optional<model::team_color> bot_substitution_by_team() const;
   void set_packet_timestamp(std::chrono::system_clock::time_point value);
   void set_stage_time_left(int value);
@@ -68,7 +68,7 @@ public:
   void set_command(game_command value);
   void set_team_yellow(const team_info& value);
   void set_team_blue(const team_info& value);
-  void set_ball_placement_position(std::tuple<double, double> value);
+  void set_ball_placement_position(const Eigen::Vector2d& value);
   void set_bot_substitution_by_team(std::optional<model::team_color> value);
 
 private:
@@ -78,7 +78,7 @@ private:
   game_command command_;
   team_info team_yellow_;
   team_info team_blue_;
-  std::tuple<double, double> ball_placement_position_;
+  Eigen::Vector2d ball_placement_position_;
   std::optional<model::team_color> bot_substitution_by_team_;
 };
 } // namespace model

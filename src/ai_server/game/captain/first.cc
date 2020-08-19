@@ -48,8 +48,7 @@ void first::stopgame([[maybe_unused]] situation_type situation,
 
 void first::ball_placement(situation_type situation, bool situation_changed) {
   logger_.debug("ball_placement");
-  const Eigen::Vector2d abp_target(std::get<0>(refbox().ball_placement_position()),
-                                   std::get<1>(refbox().ball_placement_position()));
+  const auto abp_target(refbox().ball_placement_position());
   if (!current_formation_ || situation_changed || abp_target != prev_abp_target_)
     current_formation_ = make_formation<formation::ball_placement>(
         std::vector(ids_.cbegin(), ids_.cend()), abp_target,

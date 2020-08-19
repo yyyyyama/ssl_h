@@ -479,13 +479,13 @@ public:
 
     i1_.signal_activate().connect([this] {
       // signal_ball_position_changed を発火する
-      const auto [x, y] = position_to_set_;
-      signal_ball_position_changed_.emit(x, y);
+      const auto& p = position_to_set_;
+      signal_ball_position_changed_.emit(p.x(), p.y());
     });
     i2_.signal_activate().connect([this] {
       // signal_abp_target_changed を発火させる
-      const auto [x, y] = position_to_set_;
-      signal_abp_target_changed_.emit(x, y);
+      const auto& p = position_to_set_;
+      signal_abp_target_changed_.emit(p.x(), p.y());
     });
     i3_.set_submenu(yellow_menu_);
     i4_.set_submenu(blue_menu_);
@@ -493,8 +493,8 @@ public:
     for (std::size_t i = 0; i < yellow_items_.size(); ++i) {
       yellow_items_.at(i).signal_activate().connect([this, i] {
         // signal_robot_position_changed を発火させる
-        const auto [x, y] = position_to_set_;
-        signal_robot_position_changed_.emit(model::team_color::yellow, i, x, y, 0.0);
+        const auto& p = position_to_set_;
+        signal_robot_position_changed_.emit(model::team_color::yellow, i, p.x(), p.y(), 0.0);
       });
       yellow_items_.at(i).set_label(std::to_string(i));
       yellow_menu_.append(yellow_items_.at(i));
@@ -502,8 +502,8 @@ public:
     for (std::size_t i = 0; i < blue_items_.size(); ++i) {
       blue_items_.at(i).signal_activate().connect([this, i] {
         // signal_robot_position_changed を発火させる
-        const auto [x, y] = position_to_set_;
-        signal_robot_position_changed_.emit(model::team_color::blue, i, x, y, 0.0);
+        const auto& p = position_to_set_;
+        signal_robot_position_changed_.emit(model::team_color::blue, i, p.x(), p.y(), 0.0);
       });
       blue_items_.at(i).set_label(std::to_string(i));
       blue_menu_.append(blue_items_.at(i));
@@ -662,7 +662,7 @@ private:
 
     // 位置をメンバに保持しておく
     position_to_set_ = util::math::transform(updater_world_.transformation_matrix().inverse(),
-                                             std::make_tuple(x, y));
+                                             Eigen::Vector2d{x, y});
 
     i1_.set_sensitive(!signal_ball_position_changed_.empty());
     i2_.set_sensitive(!signal_abp_target_changed_.empty());
@@ -678,7 +678,7 @@ private:
   signal_ball_position_changed_type signal_ball_position_changed_;
   signal_abp_target_changed_type signal_abp_target_changed_;
   signal_robot_position_changed_type signal_robot_position_changed_;
-  std::tuple<double, double> position_to_set_;
+  Eigen::Vector2d position_to_set_;
 
   std::array<Gtk::MenuItem, 16> yellow_items_, blue_items_;
   Gtk::MenuItem i1_, i2_, i3_, i4_;
@@ -908,12 +908,12 @@ public:
     commands_.signal_changed().connect(
         sigc::mem_fun(*this, &refbox_panel::handle_value_changed));
 
-    auto [x, y] = refbox_.refbox.ball_placement_position();
-    abp_x_.set_value(x);
+    const auto bpp(refbox_.refbox.ball_placement_position());
+    abp_x_.set_value(bpp.x());
     abp_x_.set_range(-50000, 50000);
     abp_x_.set_increments(100, 1000);
     abp_x_.signal_changed().connect(sigc::mem_fun(*this, &refbox_panel::handle_value_changed));
-    abp_y_.set_value(y);
+    abp_y_.set_value(bpp.y());
     abp_y_.set_range(-50000, 50000);
     abp_y_.set_increments(100, 1000);
     abp_y_.signal_changed().connect(sigc::mem_fun(*this, &refbox_panel::handle_value_changed));
@@ -974,7 +974,7 @@ private:
       refbox_.refbox.set_command(static_cast<command_type>(i));
     }
     auto& p = refbox_.abp_target;
-    p       = std::make_tuple(abp_x_.get_value(), abp_y_.get_value());
+    p       = Eigen::Vector2d(abp_x_.get_value(), abp_y_.get_value());
     refbox_.refbox.set_ball_placement_position(util::math::transform(refbox_.matrix, p));
     button_.set_sensitive(false);
   }
@@ -989,9 +989,10 @@ private:
   struct refbox_wrapper {
     mutable std::mutex mutex;
     model::refbox refbox;
-    std::tuple<double, double> abp_target;
+    Eigen::Vector2d abp_target;
     Eigen::Affine3d matrix;
-    refbox_wrapper() : abp_target{0, 0}, matrix{Eigen::Translation3d{0, 0, 0}} {}
+    refbox_wrapper()
+        : abp_target{Eigen::Vector2d::Zero()}, matrix{Eigen::Translation3d{0, 0, 0}} {}
     model::refbox value() const {
       std::lock_guard lock{mutex};
       return refbox;
@@ -1153,12 +1154,12 @@ struct status_tree::handler<T, std::enable_if_t<std::is_same_v<
   }
 
   void update(const T& updater) const {
-    const auto v      = updater.value();
-    const auto [x, y] = v.ball_placement_position();
+    const auto v = updater.value();
+    const auto bpp(v.ball_placement_position());
 
     r1[model.value] = stage_name_to_string(v.stage()).data();
     r2[model.value] = game_command_to_string(v.command()).data();
-    r3[model.value] = fmt::format("{}, {}", x, y);
+    r3[model.value] = fmt::format("{}, {}", bpp.x(), bpp.y());
   }
 
   const status_tree::model& model;

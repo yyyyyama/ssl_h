@@ -3,7 +3,10 @@
 namespace ai_server {
 namespace model {
 
-refbox::refbox() : team_yellow_("yellow"), team_blue_("blue"), ball_placement_position_{} {
+refbox::refbox()
+    : team_yellow_("yellow"),
+      team_blue_("blue"),
+      ball_placement_position_{Eigen::Vector2d::Zero()} {
   stage_time_left_ = 0;
   stage_           = refbox::stage_name::normal_first_half_pre;
   command_         = refbox::game_command::halt;
@@ -33,7 +36,7 @@ team_info refbox::team_blue() const {
   return team_blue_;
 }
 
-std::tuple<double, double> refbox::ball_placement_position() const {
+Eigen::Vector2d refbox::ball_placement_position() const {
   return ball_placement_position_;
 }
 
@@ -65,8 +68,8 @@ void refbox::set_team_blue(const team_info& value) {
   team_blue_ = value;
 }
 
-void refbox::set_ball_placement_position(std::tuple<double, double> value) {
-  ball_placement_position_ = std::move(value);
+void refbox::set_ball_placement_position(const Eigen::Vector2d& value) {
+  ball_placement_position_ = value;
 }
 
 void refbox::set_bot_substitution_by_team(std::optional<model::team_color> value) {

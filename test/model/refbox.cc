@@ -50,8 +50,8 @@ BOOST_AUTO_TEST_CASE(test03) {
   BOOST_TEST(ref.command() == ai_server::model::refbox::game_command::halt);
   BOOST_TEST(ref.team_yellow().name() == "yellow");
   BOOST_TEST(ref.team_blue().name() == "blue");
-  BOOST_TEST(std::get<0>(ref.ball_placement_position()) == 0.0);
-  BOOST_TEST(std::get<1>(ref.ball_placement_position()) == 0.0);
+  BOOST_TEST(ref.ball_placement_position().x() == 0.0);
+  BOOST_TEST(ref.ball_placement_position().y() == 0.0);
 }
 
 // refbox setter check
@@ -77,8 +77,8 @@ BOOST_AUTO_TEST_CASE(test04) {
   BOOST_TEST(ref.team_blue().name() == test_blue.name());
 
   ref.set_ball_placement_position({1.23, 4.56});
-  BOOST_TEST(std::get<0>(ref.ball_placement_position()) == 1.23);
-  BOOST_TEST(std::get<1>(ref.ball_placement_position()) == 4.56);
+  BOOST_TEST(ref.ball_placement_position().x() == 1.23);
+  BOOST_TEST(ref.ball_placement_position().y() == 4.56);
 }
 
 BOOST_AUTO_TEST_CASE(bot_substitution) {

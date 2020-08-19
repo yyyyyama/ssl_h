@@ -113,7 +113,7 @@ BOOST_AUTO_TEST_CASE(normal) {
   BOOST_TEST(ru.value().stage_time_left() == 123);
 }
 
-BOOST_AUTO_TEST_CASE(abp) {
+BOOST_AUTO_TEST_CASE(abp, *boost::unit_test::tolerance(0.0000001)) {
   ssl_protos::refbox::Referee referee{};
   {
     referee.set_packet_timestamp(1513688793680551);
@@ -155,8 +155,8 @@ BOOST_AUTO_TEST_CASE(abp) {
     ru.update(referee);
 
     const auto& r = ru.value();
-    BOOST_TEST(std::get<0>(r.ball_placement_position()) = 100.0);
-    BOOST_TEST(std::get<1>(r.ball_placement_position()) = 200.0);
+    BOOST_TEST(r.ball_placement_position().x() == 100.0);
+    BOOST_TEST(r.ball_placement_position().y() == 200.0);
   }
 
   {
@@ -169,8 +169,8 @@ BOOST_AUTO_TEST_CASE(abp) {
     ru.update(referee);
 
     const auto& r = ru.value();
-    BOOST_TEST(std::get<0>(r.ball_placement_position()) = 200.0 + 10);
-    BOOST_TEST(std::get<1>(r.ball_placement_position()) = 100.0 + 20);
+    BOOST_TEST(r.ball_placement_position().x() == -200.0 + 10);
+    BOOST_TEST(r.ball_placement_position().y() == 100.0 + 20);
   }
 }
 

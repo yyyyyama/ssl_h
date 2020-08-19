@@ -242,8 +242,7 @@ void first_formation::reset_agent() {
 }
 
 Eigen::Vector2d first_formation::abp_target() {
-  return Eigen::Vector2d(std::get<0>(refcommand_.ball_placement_position()),
-                         std::get<1>(refcommand_.ball_placement_position()));
+  return refcommand_.ball_placement_position();
 }
 
 ///////////////////////////////////////////////////////

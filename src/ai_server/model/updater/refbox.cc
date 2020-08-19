@@ -1,6 +1,5 @@
 #include <chrono>
 #include <limits>
-#include <tuple>
 
 #include "ai_server/util/math/affine.h"
 #include "refbox.h"
@@ -115,7 +114,7 @@ void refbox::update(const ssl_protos::refbox::Referee& referee) {
 
   if (referee.has_designated_position()) {
     const auto& dp = referee.designated_position();
-    const auto p   = std::make_tuple(static_cast<double>(dp.x()), static_cast<double>(dp.y()));
+    const Eigen::Vector2d p(dp.x(), dp.y());
     refbox_.set_ball_placement_position(util::math::transform(affine_, p));
   }
 
