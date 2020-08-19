@@ -26,7 +26,6 @@ private:
   unsigned int receiver_id_;
   const std::vector<unsigned int> waiter_;
   bool start_flag_;
-  bool evacuate_finished_;
   bool move_finished_;
   bool kick_finished_;
   bool receive_finished_;
@@ -37,8 +36,6 @@ private:
   double move_to_theta_;
 
   double ball_goal_theta_; //ボール上を軸としてゴール上を通る直線の角度 (rad)
-  double move_to_robot_theta_; //最終的な移動先の地点を軸としてロボット上を通る直線の角度 (rad)
-  double theta_min_; //ロボットが移動中にボールに当たらないかを判定するための値
 
   // action
   std::shared_ptr<action::move> move_;

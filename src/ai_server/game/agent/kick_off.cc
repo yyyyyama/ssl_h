@@ -1,6 +1,9 @@
 #include <cmath>
 #include <tuple>
+#include "ai_server/game/action/with_planner.h"
+#include "ai_server/model/obstacle/field.h"
 #include "ai_server/util/math/to_vector.h"
+#include "ai_server/planner/human_like.h"
 #include "kick_off.h"
 
 namespace ai_server {
@@ -13,7 +16,6 @@ kick_off::kick_off(context& ctx, unsigned int kicker_id,
       kicker_id_(kicker_id),
       waiter_(waiter),
       start_flag_(false),
-      evacuate_finished_(false),
       move_finished_(false),
       kick_finished_(false),
       receive_finished_(false),
@@ -25,7 +27,6 @@ kick_off::kick_off(context& ctx, unsigned int kicker_id)
     : base(ctx),
       kicker_id_(kicker_id),
       start_flag_(false),
-      evacuate_finished_(false),
       move_finished_(false),
       kick_finished_(false),
       receive_finished_(true),
@@ -47,6 +48,27 @@ bool kick_off::finished() const {
 
 std::vector<std::shared_ptr<action::base>> kick_off::execute() {
   std::vector<std::shared_ptr<action::base>> actions;
+
+  const auto enemy_robots = model::enemy_robots(world(), team_color());
+  // 障害物としての敵のロボット半径
+  constexpr double enemy_robot_rad = 300.0;
+  // 障害物としてのロボット半径
+  constexpr double obs_robot_rad = 150.0;
+  // フィールドから出られる距離
+  constexpr double field_margin = 200.0;
+  // ペナルティエリアから余裕を持たせる距離
+  constexpr double penalty_margin = 150.0;
+  // 一般障害物設定
+  planner::obstacle_list common_obstacles;
+  {
+    for (const auto& robot : enemy_robots) {
+      common_obstacles.add(
+          model::obstacle::point{util::math::position(robot.second), enemy_robot_rad});
+    }
+    common_obstacles.add(model::obstacle::enemy_penalty_area(world().field(), penalty_margin));
+    common_obstacles.add(model::obstacle::our_penalty_area(world().field(), penalty_margin));
+  }
+
   const auto ball = world().ball();
 
   //見えないときの処理
@@ -108,15 +130,23 @@ std::vector<std::shared_ptr<action::base>> kick_off::execute() {
       kick_->set_kick_type(kick_type);
       kick_->set_mode(kick_mode);
       kick_finished_ = kick_->finished();
-      actions.push_back(kick_);
+      // 自チームロボットを障害物設定
+      planner::obstacle_list obstacles = common_obstacles;
+      for (const auto& robot : our_robots) {
+        if (robot.first == kicker_id_) continue;
+        obstacles.add(
+            model::obstacle::point{util::math::position(robot.second), obs_robot_rad});
+      }
+      // planner::human_likeを使用
+      auto hl = std::make_unique<planner::human_like>();
+      hl->set_area(world().field(), field_margin);
+      actions.push_back(
+          std::make_shared<action::with_planner>(kick_, std::move(hl), obstacles));
     } else {
       // StartGameが指定されていない、または所定の位置に移動していない時
       const auto this_robot_team = model::our_robots(world(), team_color());
       const auto& this_robot     = this_robot_team.at(kicker_id_);
-      ball_goal_theta_         = std::atan2(0.0 - ball.y(), world().field().x_max() - ball.x());
-      theta_min_               = std::asin(1); //移動中にロボットがボールに近づけないようにするための値
-      const double hypot_allow = std::hypot(
-          10, 10); //ボールとの衝突回避に用いられる、指定位置と実際の位置のズレの許容値
+      ball_goal_theta_        = std::atan2(0.0 - ball.y(), world().field().x_max() - ball.x());
       const double keep_out_r = 500.0; //キックオフ時の立ち入り禁止区域の半径
       const double robot_r    = 90.0;  //ロボットの半径
 
@@ -126,39 +156,31 @@ std::vector<std::shared_ptr<action::base>> kick_off::execute() {
       move_to_theta_ = ball_goal_theta_;
 
       //-- ロボットがボールにぶつからないようにするための処理 --
-
-      move_to_robot_theta_ =
-          std::atan2(this_robot.y() - move_to_y_, this_robot.x() - move_to_x_);
-
-      if (std::hypot(this_robot.x() - move_to_x_, this_robot.y() - move_to_y_) >
-              keep_out_r + robot_r + hypot_allow &&
-          this_robot.x() > move_to_x_ &&
-          (std::abs(move_to_robot_theta_ - ball_goal_theta_) < evacuate_finished_
-               ? theta_min_ - std::atan2(keep_out_r, 30.0)
-               : theta_min_)) {
-        //ロボットがボールにぶつかる可能性がある時
-
-        if (move_to_robot_theta_ < ball_goal_theta_) {
-          //移動経路が短いほうを選択させる
-          theta_min_ = -1.0 * theta_min_;
-        }
-
-        //ボールをよけるための位置を指定
-        move_to_x_ += (keep_out_r + robot_r) * std::cos(ball_goal_theta_ + theta_min_);
-        move_to_y_ += (keep_out_r + robot_r) * std::sin(ball_goal_theta_ + theta_min_);
-        evacuate_finished_ = move_->finished();
-
-      } else {
-        move_finished_ =
-            std::hypot(this_robot.x() - move_to_x_, this_robot.y() - move_to_y_) < 250.0;
-      }
+      move_finished_ =
+          std::hypot(this_robot.x() - move_to_x_, this_robot.y() - move_to_y_) < 250.0;
       move_->move_to(move_to_x_, move_to_y_, move_to_theta_);
-      actions.push_back(move_);
+      // 自チームロボットを障害物設定
+      planner::obstacle_list obstacles = common_obstacles;
+      for (const auto& robot : our_robots) {
+        if (robot.first == kicker_id_) continue;
+        obstacles.add(
+            model::obstacle::point{util::math::position(robot.second), obs_robot_rad});
+      }
+      obstacles.add(model::obstacle::point{util::math::position(ball), 650.0});
+      // planner::human_likeを使用
+      auto hl = std::make_unique<planner::human_like>();
+      hl->set_area(world().field(), field_margin);
+      actions.push_back(
+          std::make_shared<action::with_planner>(move_, std::move(hl), obstacles));
     }
   }
 
   // waiterの処理
   if (!visible_waiter.empty()) {
+    common_obstacles.add(model::obstacle::point{Eigen::Vector2d::Zero(),
+                                                world().field().center_radius() + 150.0});
+    if (!start_flag_)
+      common_obstacles.add(model::obstacle::point{util::math::position(ball), 650.0});
     if (!kick_finished_) {
       //蹴られるまではkickoff waiterと同じ処理
       int count_a           = 2; //何番目のロボットか判別
@@ -194,7 +216,18 @@ std::vector<std::shared_ptr<action::base>> kick_off::execute() {
             x_line, y,
             std::atan2(ball.y() - our_robots.at(it).y(), ball.x() - our_robots.at(it).x()));
         move_y.push_back(y);
-        actions.push_back(move);
+        // 自チームロボットを障害物設定
+        planner::obstacle_list obstacles = common_obstacles;
+        for (const auto& robot : our_robots) {
+          if (robot.first == it) continue;
+          obstacles.add(
+              model::obstacle::point{util::math::position(robot.second), obs_robot_rad});
+        }
+        // planner::human_likeを使用
+        auto hl = std::make_unique<planner::human_like>();
+        hl->set_area(world().field(), field_margin);
+        actions.push_back(
+            std::make_shared<action::with_planner>(move, std::move(hl), obstacles));
       }
     } else {
       for (auto tmp : visible_waiter) {
@@ -208,7 +241,18 @@ std::vector<std::shared_ptr<action::base>> kick_off::execute() {
           receive_->set_passer(kicker_id_);
           receive_->set_dribble(9);
           receive_->set_kick_type(std::make_tuple(model::command::kick_type_t::none, 0.0));
-          actions.push_back(receive_);
+          // 自チームロボットを障害物設定
+          planner::obstacle_list obstacles = common_obstacles;
+          for (const auto& robot : our_robots) {
+            if (robot.first == tmp) continue;
+            obstacles.add(
+                model::obstacle::point{util::math::position(robot.second), obs_robot_rad});
+          }
+          // planner::human_likeを使用
+          auto hl = std::make_unique<planner::human_like>();
+          hl->set_area(world().field(), field_margin);
+          actions.push_back(
+              std::make_shared<action::with_planner>(receive_, std::move(hl), obstacles));
         }
       }
     }
