@@ -1,11 +1,15 @@
 #include <algorithm>
 #include <cmath>
-#include "regular.h"
-#include "ai_server/util/algorithm.h"
 
-namespace ai_server {
-namespace game {
-namespace agent {
+#include "ai_server/game/action/with_planner.h"
+#include "ai_server/model/obstacle/field.h"
+#include "ai_server/planner/human_like.h"
+#include "ai_server/util/algorithm.h"
+#include "ai_server/util/math/to_vector.h"
+
+#include "regular.h"
+
+namespace ai_server::game::agent {
 
 using ai_server::util::pop_each;
 
@@ -60,6 +64,22 @@ std::vector<std::shared_ptr<action::base>> regular::execute() {
   const auto penalty_width  = world().field().penalty_width();
   const auto penalty_length = world().field().penalty_length();
   const double margin       = 200;
+  // 障害物としてのロボット半径
+  constexpr double obs_robot_rad = 300.0;
+  // フィールドから出られる距離
+  constexpr double field_margin = 200.0;
+  // ペナルティエリアから余裕を持たせる距離
+  constexpr double penalty_margin = 150.0;
+  // 一般障害物設定
+  planner::obstacle_list common_obstacles;
+  {
+    for (const auto& robot : model::enemy_robots(world(), team_color())) {
+      common_obstacles.add(
+          model::obstacle::point{util::math::position(robot.second), obs_robot_rad});
+    }
+    common_obstacles.add(model::obstacle::enemy_penalty_area(world().field(), penalty_margin));
+    common_obstacles.add(model::obstacle::our_penalty_area(world().field(), penalty_margin));
+  }
 
   // chaserを使う時
   if (has_chaser_) {
@@ -162,7 +182,16 @@ std::vector<std::shared_ptr<action::base>> regular::execute() {
         }
         get_ball_->set_target(target_.x(), target_.y());
         get_ball_->kick_automatically((target_.x() == world().field().x_max() ? 110 : 60));
-        actions.push_back(get_ball_);
+        planner::obstacle_list obstacles = common_obstacles;
+        for (const auto& robot : our_team) {
+          if (robot.first == chaser_id_) continue;
+          obstacles.add(
+              model::obstacle::point{util::math::position(robot.second), obs_robot_rad});
+        }
+        auto hl = std::make_unique<planner::human_like>();
+        hl->set_area(world().field(), field_margin);
+        actions.push_back(
+            std::make_shared<action::with_planner>(get_ball_, std::move(hl), obstacles));
       }
     }
   }
@@ -188,19 +217,51 @@ std::vector<std::shared_ptr<action::base>> regular::execute() {
 
   // 1枚目のマーキング
   for (const auto& m : first_marking_) {
-    actions.push_back(m.second);
+    auto hl = std::make_unique<planner::human_like>();
+    hl->set_area(world().field(), field_margin);
+    planner::obstacle_list obstacles = common_obstacles;
+    for (const auto& robot : our_team) {
+      if (robot.first == m.first) continue;
+      obstacles.add(model::obstacle::point{util::math::position(robot.second), obs_robot_rad});
+    }
+    actions.push_back(std::make_shared<action::with_planner>(first_marking_[m.first],
+                                                             std::move(hl), obstacles));
   }
   // 2枚目のマーキング
   for (const auto& m : second_marking_) {
-    actions.push_back(m.second);
+    auto hl = std::make_unique<planner::human_like>();
+    hl->set_area(world().field(), field_margin);
+    planner::obstacle_list obstacles = common_obstacles;
+    for (const auto& robot : our_team) {
+      if (robot.first == m.first) continue;
+      obstacles.add(model::obstacle::point{util::math::position(robot.second), obs_robot_rad});
+    }
+    actions.push_back(std::make_shared<action::with_planner>(second_marking_[m.first],
+                                                             std::move(hl), obstacles));
   }
   // パス受け取り
   for (const auto& r : receive_) {
-    actions.push_back(r.second);
+    auto hl = std::make_unique<planner::human_like>();
+    hl->set_area(world().field(), field_margin);
+    planner::obstacle_list obstacles = common_obstacles;
+    for (const auto& robot : our_team) {
+      if (robot.first == r.first) continue;
+      obstacles.add(model::obstacle::point{util::math::position(robot.second), obs_robot_rad});
+    }
+    actions.push_back(
+        std::make_shared<action::with_planner>(receive_[r.first], std::move(hl), obstacles));
   }
   // 余ったロボット
   for (const auto& m : move_) {
-    actions.push_back(m.second);
+    auto hl = std::make_unique<planner::human_like>();
+    hl->set_area(world().field(), field_margin);
+    planner::obstacle_list obstacles = common_obstacles;
+    for (const auto& robot : our_team) {
+      if (robot.first == m.first) continue;
+      obstacles.add(model::obstacle::point{util::math::position(robot.second), obs_robot_rad});
+    }
+    actions.push_back(
+        std::make_shared<action::with_planner>(move_[m.first], std::move(hl), obstacles));
   }
 
   return actions;
@@ -912,6 +973,4 @@ bool regular::id_importance::operator<(const id_importance& next) const {
   return importance < next.importance;
 }
 
-} // namespace agent
-} // namespace game
-} // namespace ai_server
+} // namespace ai_server::game::agent

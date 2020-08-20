@@ -5,15 +5,14 @@
 #include <unordered_map>
 #include <boost/geometry/geometry.hpp>
 #include <boost/geometry/geometries/point_xy.hpp>
-#include "base.h"
+
 #include "ai_server/game/action/get_ball.h"
 #include "ai_server/game/action/marking.h"
 #include "ai_server/game/action/move.h"
 #include "ai_server/game/action/receive.h"
+#include "base.h"
 
-namespace ai_server {
-namespace game {
-namespace agent {
+namespace ai_server::game::agent {
 
 class regular : public base {
 public:
@@ -106,8 +105,6 @@ private:
   bool in_area(double x, double y, const regular::area& area);
 };
 
-} // namespace agent
-} // namespace game
-} // namespace ai_server
+} // namespace ai_server::game::agent
 
 #endif
