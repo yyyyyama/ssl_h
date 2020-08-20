@@ -7,6 +7,9 @@
 #include <Eigen/Geometry>
 
 #include "ai_server/game/action/vec.h"
+#include "ai_server/game/action/with_planner.h"
+#include "ai_server/model/obstacle/field.h"
+#include "ai_server/planner/human_like.h"
 #include "ai_server/util/math/angle.h"
 #include "ai_server/util/math/to_vector.h"
 
@@ -55,6 +58,23 @@ std::vector<std::shared_ptr<action::base>> performance::execute() {
   }
   if (visible_ids.empty()) return baseaction;
 
+  // 障害物としてのロボット半径
+  constexpr double obs_robot_rad = 300.0;
+  // フィールドから出られる距離
+  constexpr double field_margin = 200.0;
+  // ペナルティエリアから余裕を持たせる距離
+  constexpr double penalty_margin = 150.0;
+  // 一般障害物設定
+  planner::obstacle_list common_obstacles;
+  {
+    for (const auto& robot : model::enemy_robots(world(), team_color())) {
+      common_obstacles.add(
+          model::obstacle::point{util::math::position(robot.second), obs_robot_rad});
+    }
+    common_obstacles.add(model::obstacle::enemy_penalty_area(world().field(), penalty_margin));
+    common_obstacles.add(model::obstacle::our_penalty_area(world().field(), penalty_margin));
+  }
+
   ///////////////////////////////////////////
   // 目標位置を算出 /////////////////////////
   std::unordered_map<unsigned int, Eigen::Vector2d> targets;
@@ -80,7 +100,18 @@ std::vector<std::shared_ptr<action::base>> performance::execute() {
       const Eigen::Vector2d vel =
           (pos - robot_pos).normalized() * (1.0 * (pos - robot_pos).norm() + rad * omega0);
       action->move_at(vel, 0.0);
-      baseaction.push_back(action);
+      // 自チームロボットを障害物設定
+      planner::obstacle_list obstacles = common_obstacles;
+      for (const auto& robot : our_robots) {
+        if (robot.first == id) continue;
+        obstacles.add(
+            model::obstacle::point{util::math::position(robot.second), obs_robot_rad});
+      }
+      // planner::human_likeを使用
+      auto hl = std::make_unique<planner::human_like>();
+      hl->set_area(world().field(), field_margin);
+      baseaction.push_back(
+          std::make_shared<action::with_planner>(action, std::move(hl), obstacles));
     }
   }
   return baseaction;
