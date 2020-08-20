@@ -2,6 +2,7 @@
 
 #include "ai_server/game/formation/ball_placement.h"
 #include "ai_server/game/formation/halt.h"
+#include "ai_server/game/formation/steady.h"
 #include "ai_server/game/formation/stopgame.h"
 
 #include "detail/situation_string.h"
@@ -41,6 +42,15 @@ void first::stopgame([[maybe_unused]] situation_type situation,
                      [[maybe_unused]] bool situation_changed) {
   logger_.debug("stopgame");
   current_formation_ = make_formation<formation::stopgame>(
+      std::vector(ids_.cbegin(), ids_.cend()), team_color() == model::team_color::yellow
+                                                   ? refbox().team_yellow().goalie()
+                                                   : refbox().team_blue().goalie());
+}
+
+void first::steady([[maybe_unused]] situation_type situation,
+                   [[maybe_unused]] bool situation_changed) {
+  logger_.debug("steady");
+  current_formation_ = make_formation<formation::steady>(
       std::vector(ids_.cbegin(), ids_.cend()), team_color() == model::team_color::yellow
                                                    ? refbox().team_yellow().goalie()
                                                    : refbox().team_blue().goalie());
