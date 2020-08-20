@@ -5,7 +5,11 @@
 #include "ai_server/game/action/marking.h"
 #include "ai_server/game/action/move.h"
 #include "ai_server/game/action/vec.h"
+#include "ai_server/game/action/with_planner.h"
+#include "ai_server/model/obstacle/field.h"
+#include "ai_server/planner/human_like.h"
 #include "ai_server/util/math/angle.h"
+#include "ai_server/util/math/to_vector.h"
 
 #include "marking.h"
 
@@ -81,6 +85,24 @@ std::vector<std::shared_ptr<action::base>> marking::execute() {
   const auto our_robots   = model::our_robots(world(), team_color());
   const auto enemy_robots = model::enemy_robots(world(), team_color());
   const auto ball         = world().ball();
+  // 障害物としてのロボット半径
+  constexpr double obs_robot_rad = 300.0;
+  // 障害物としての敵ロボットの半径
+  constexpr double obs_enemy_rad = 150.0;
+  // フィールドから出られる距離
+  constexpr double field_margin = 200.0;
+  // ペナルティエリアから余裕を持たせる距離
+  constexpr double penalty_margin = 150.0;
+  // 一般障害物設定
+  planner::obstacle_list common_obstacles;
+  {
+    for (const auto& robot : enemy_robots) {
+      common_obstacles.add(
+          model::obstacle::point{util::math::position(robot.second), obs_enemy_rad});
+    }
+    common_obstacles.add(model::obstacle::enemy_penalty_area(world().field(), penalty_margin));
+    common_obstacles.add(model::obstacle::our_penalty_area(world().field(), penalty_margin));
+  }
 
   using boost::math::constants::pi;
 
@@ -214,6 +236,15 @@ std::vector<std::shared_ptr<action::base>> marking::execute() {
     const auto id     = itr->first;
     const auto eid    = itr->second;
     const auto& robot = our_robots.at(id);
+    // 自チームロボットを障害物設定
+    planner::obstacle_list obstacles = common_obstacles;
+    for (const auto& robot : our_robots) {
+      if (robot.first == id) continue;
+      obstacles.add(model::obstacle::point{util::math::position(robot.second), obs_robot_rad});
+    }
+    // planner::human_likeを使用
+    auto hl = std::make_unique<planner::human_like>();
+    hl->set_area(world().field(), field_margin);
 
     // 基本的にはkick_block、同一対象に複数台のマーカーがいる場合、最も近いロボット以外はshoot_block
     auto mark_mode =
@@ -231,7 +262,8 @@ std::vector<std::shared_ptr<action::base>> marking::execute() {
       // 停止
       auto vec = make_action<action::vec>(id);
       vec->move_at(0.0, 0.0, 0.0);
-      baseaction.push_back(vec);
+      baseaction.push_back(
+          std::make_shared<action::with_planner>(vec, std::move(hl), obstacles));
     } else if (std::abs(robot.x()) > world().field().x_max() - 1300.0 &&
                std::abs(robot.y()) < 1300.0) {
       // ゴールエリアから出る
@@ -241,7 +273,8 @@ std::vector<std::shared_ptr<action::base>> marking::execute() {
       vy       = 500.0 * (robot.y() - 0.0) / std::hypot(robot.x() - goal_x, robot.y() - 0.0);
       auto vec = make_action<action::vec>(id);
       vec->move_at(vx, vy, 0.0);
-      baseaction.push_back(vec);
+      baseaction.push_back(
+          std::make_shared<action::with_planner>(vec, std::move(hl), obstacles));
     } else if (setplay_flag_) {
       // 敵チームセットプレイ時
       if (id == nid && enemy_robots.count(eid)) {
@@ -259,7 +292,8 @@ std::vector<std::shared_ptr<action::base>> marking::execute() {
             util::math::wrap_to_2pi(std::atan2(ball.y() - y, ball.x() - x));
         auto move = make_action<action::move>(id);
         move->move_to(x, y, to_ball_theta);
-        baseaction.push_back(move);
+        baseaction.push_back(
+            std::make_shared<action::with_planner>(move, std::move(hl), obstacles));
       } else if (std::hypot(robot.x() - ball.x(), robot.y() - ball.y()) < 600.0) {
         // ボールから離れる
         double vx, vy;
@@ -282,7 +316,8 @@ std::vector<std::shared_ptr<action::base>> marking::execute() {
         }
         auto vec = make_action<action::vec>(id);
         vec->move_at(vx, vy, 0.0);
-        baseaction.push_back(vec);
+        baseaction.push_back(
+            std::make_shared<action::with_planner>(vec, std::move(hl), obstacles));
       } else {
         if (enemy_robots.count(eid) != 0) {
           // 対象が見えればマーク
@@ -290,12 +325,14 @@ std::vector<std::shared_ptr<action::base>> marking::execute() {
           mark->mark_robot(eid);
           mark->set_mode(mark_mode);
           mark->set_radius(300.0);
-          baseaction.push_back(mark);
+          baseaction.push_back(
+              std::make_shared<action::with_planner>(mark, std::move(hl), obstacles));
         } else {
           // 停止
           auto vec = make_action<action::vec>(id);
           vec->move_at(0.0, 0.0, 0.0);
-          baseaction.push_back(vec);
+          baseaction.push_back(
+              std::make_shared<action::with_planner>(vec, std::move(hl), obstacles));
         }
       }
     } else {
@@ -314,7 +351,8 @@ std::vector<std::shared_ptr<action::base>> marking::execute() {
         // ボールに近く、ボールの近くに味方ロボットがいない場合、ボールを相手ゴール方向に蹴る
         auto get_ball = make_action<action::get_ball>(id);
         get_ball->set_target(world().field().x_max(), 0.0);
-        baseaction.push_back(get_ball);
+        baseaction.push_back(
+            std::make_shared<action::with_planner>(get_ball, std::move(hl), obstacles));
       } else {
         if (enemy_robots.count(eid) != 0) {
           // マーク
@@ -335,12 +373,14 @@ std::vector<std::shared_ptr<action::base>> marking::execute() {
           mark->mark_robot(eid);
           mark->set_mode(mark_mode);
           mark->set_radius(300.0);
-          baseaction.push_back(mark);
+          baseaction.push_back(
+              std::make_shared<action::with_planner>(mark, std::move(hl), obstacles));
         } else {
           // 停止
           auto vec = make_action<action::vec>(id);
           vec->move_at(0.0, 0.0, 0.0);
-          baseaction.push_back(vec);
+          baseaction.push_back(
+              std::make_shared<action::with_planner>(vec, std::move(hl), obstacles));
         }
       }
     }
