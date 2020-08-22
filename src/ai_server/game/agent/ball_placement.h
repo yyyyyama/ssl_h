@@ -13,9 +13,7 @@
 
 #include "base.h"
 
-namespace ai_server {
-namespace game {
-namespace agent {
+namespace ai_server::game::agent {
 
 class ball_placement : public base {
 public:
@@ -68,7 +66,6 @@ private:
   std::map<unsigned int, std::shared_ptr<action::move>> move_;
 };
 
-} // namespace agent
-} // namespace game
-} // namespace ai_server
+} // namespace ai_server::game::agent
+
 #endif

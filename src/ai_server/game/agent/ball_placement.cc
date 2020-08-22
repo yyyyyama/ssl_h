@@ -14,9 +14,7 @@
 using boost::math::constants::pi;
 using namespace std::chrono_literals;
 
-namespace ai_server {
-namespace game {
-namespace agent {
+namespace ai_server::game::agent {
 
 ball_placement::ball_placement(context& ctx, const std::vector<unsigned int>& ids,
                                const Eigen::Vector2d& target, bool is_active)
@@ -35,9 +33,7 @@ ball_placement::ball_placement(context& ctx, const std::vector<unsigned int>& id
 
 void ball_placement::set_target(const Eigen::Vector2d& target) {
   abp_target_ = target;
-  for (auto id : ids_) {
-    abp_[id] = make_action<action::ball_place>(id, abp_target_);
-  }
+  for (auto id : ids_) abp_[id] = make_action<action::ball_place>(id, abp_target_);
 }
 
 void ball_placement::set_active(bool is_active) {
@@ -114,13 +110,12 @@ std::vector<std::shared_ptr<action::base>> ball_placement::execute() {
     // receiver /////////////////////////////
     if (is_active_ && !tmp_ids.empty() && pass_flag) {
       const auto receiver_itr =
-          std::min_element(tmp_ids.cbegin(), tmp_ids.cend(), [this](auto& a, auto& b) {
+          std::min_element(tmp_ids.cbegin(), tmp_ids.cend(), [this](auto a, auto b) {
             return (robot_pos_.at(a) - abp_target_).norm() <
                    (robot_pos_.at(b) - abp_target_).norm();
           });
       current_receiver_ = *receiver_itr;
-      const auto end    = std::remove_if(tmp_ids.begin(), tmp_ids.end(),
-                                      [this](const auto& i) { return i == current_receiver_; });
+      const auto end    = std::remove(tmp_ids.begin(), tmp_ids.end(), current_receiver_);
       tmp_ids.erase(end, tmp_ids.end());
       tmp_ids.shrink_to_fit();
     }
@@ -141,8 +136,8 @@ std::vector<std::shared_ptr<action::base>> ball_placement::execute() {
       const Eigen::Vector2d& robot_pos = robot_pos_.at(id);
       // 待機位置からの許容距離
       constexpr double receiver_margin = 200.0;
-      if (ball_vel.dot((robot_pos - ball_pos).normalized()) > 500.0) {
-        chaser_receiving = true;
+      if (ball_vel.dot((robot_pos - ball_pos).normalized()) > 1000.0) {
+        chaser_receiving = pass_flag;
         receive_.at(id)->set_dribble(5);
         baseaction.push_back(receive_.at(id));
       } else if (std::abs(ball_pos.x()) > wf.x_max() || std::abs(ball_pos.y()) > wf.y_max() ||
@@ -155,7 +150,8 @@ std::vector<std::shared_ptr<action::base>> ball_placement::execute() {
         abp_.at(id)->set_kick_type({model::command::kick_type_t::line, 50});
         baseaction.push_back(abp_.at(id));
       } else {
-        waiters_.push_back(id);
+        abp_.at(id)->set_kick_type({model::command::kick_type_t::none, 0});
+        baseaction.push_back(abp_.at(id));
       }
     }
 
@@ -206,6 +202,4 @@ std::vector<std::shared_ptr<action::base>> ball_placement::execute() {
   return baseaction;
 }
 
-} // namespace agent
-} // namespace game
-} // namespace ai_server
+} // namespace ai_server::game::agent

@@ -7,9 +7,7 @@
 
 #include "base.h"
 
-namespace ai_server {
-namespace game {
-namespace action {
+namespace ai_server::game::action {
 
 class ball_place : public base {
 public:
@@ -76,8 +74,6 @@ private:
   model::command::kick_flag_t kick_type_;
 };
 
-} // namespace action
-} // namespace game
-} // namespace ai_server
+} // namespace ai_server::game::action
 
 #endif

@@ -12,9 +12,7 @@ using boost::math::constants::half_pi;
 using boost::math::constants::pi;
 using namespace std::chrono_literals;
 
-namespace ai_server {
-namespace game {
-namespace action {
+namespace ai_server::game::action {
 
 ball_place::ball_place(context& ctx, unsigned int id, const Eigen::Vector2d& target)
     : base(ctx, id),
@@ -57,10 +55,11 @@ model::command ball_place::execute() {
   // ロボットと目標の距離
   const double dist_r_to_t = (robot_pos - target_).norm();
   // ボールが見えているか?(ロスト時には座標が更新されない)
-  const bool ball_visible =
-      !((!ball_visible_ || dist_b_to_r < 120.0) &&
-        std::abs(ball_pos.x() - first_ball_pos_.x()) < std::numeric_limits<double>::epsilon() &&
-        std::abs(ball_pos.y() - first_ball_pos_.y()) < std::numeric_limits<double>::epsilon());
+  const bool ball_visible = !(
+      dist_b_to_r < 90.0 ||
+      ((!ball_visible_ || dist_b_to_r < 120.0) &&
+       std::abs(ball_pos.x() - first_ball_pos_.x()) < std::numeric_limits<double>::epsilon() &&
+       std::abs(ball_pos.y() - first_ball_pos_.y()) < std::numeric_limits<double>::epsilon()));
   ball_visible_                  = ball_visible;
   const auto& predicted_ball_pos = ball_visible ? ball_pos : face_pos;
   // b基準のaの符号
@@ -110,18 +109,19 @@ model::command ball_place::execute() {
           : std::atan2(predicted_ball_pos.y() - target_.y(),
                        predicted_ball_pos.x() - target_.x());
 
-  finished_ = dist_b_to_at < 2.0 * xy_allow && dist_b_to_r > 600.0;
+  finished_ = dist_b_to_at < 1.5 * xy_allow && dist_b_to_r > 650.0;
   if (finished_) state_ = running_state::finished;
 
   switch (state_) {
     // 終了
     case running_state::finished: {
-      if (dist_b_to_at > 2.0 * xy_allow || dist_b_to_r < 650.0) {
+      if (dist_b_to_at > 2.0 * xy_allow || dist_b_to_r < 600.0) {
         state_ = running_state::move;
       }
       finished_ = true;
       command.set_dribble(0);
-      command.set_velocity(0.0, 0.0, 0.0);
+      command.set_velocity(0.0, 0.0);
+      command.set_angle(theta);
     } break;
 
     // ボールから離れる
@@ -150,7 +150,8 @@ model::command ball_place::execute() {
             (Eigen::Rotation2Dd(half_pi<double>()) * (robot_pos - target_).normalized()) *
             sign(std::atan2(robot_pos.y(), robot_pos.x()),
                  std::atan2(ball_pos.y(), ball_pos.x()));
-        command.set_velocity(vel, 0.0);
+        command.set_velocity(vel);
+        command.set_angle(theta);
       } else {
         const Eigen::Vector2d vel = 2000.0 * (robot_pos - target_).normalized();
         command.set_velocity(vel, 0.0);
@@ -174,8 +175,7 @@ model::command ball_place::execute() {
 
     // 配置
     case running_state::place: {
-      if (dist_b_to_t < xy_allow || (state_ == running_state::place && !ball_visible &&
-                                     (face_pos - target_).norm() < 30.0)) {
+      if (dist_b_to_t < xy_allow || (face_pos - target_).norm() < 30.0) {
         // 許容誤差以内にボールがあれば配置完了(ボールが見えていなければロボットの位置で判定)
         state_     = running_state::wait;
         wait_flag_ = true;
@@ -220,7 +220,12 @@ model::command ball_place::execute() {
         // ロボットがボールの初期位置に来たら配置に移行する
         state_ = running_state::place;
       }
-      const double coef         = std::clamp(3.0 * (face_pos - robot_pos).norm(), 50.0, 1000.0);
+      // first_ball_pos_ で判定できない場合のために時間でも判定
+      const auto now = std::chrono::steady_clock::now();
+      if ((ball_pos - robot_pos).norm() > 100.0) begin_ = now;
+      if (now - begin_ >= 1s) state_ = running_state::place;
+
+      const double coef         = std::clamp(3.0 * (face_pos - ball_pos).norm(), 50.0, 1000.0);
       const Eigen::Vector2d vel = coef * (first_ball_pos_ - robot_pos).normalized();
       command.set_dribble(dribble_value);
       command.set_velocity(vel);
@@ -230,8 +235,7 @@ model::command ball_place::execute() {
     // 移動
     default: {
       if (std::abs(util::math::wrap_to_pi(
-              robot.theta() -
-              std::atan2(ball_pos.y() - robot_pos.y(), ball_pos.x() - robot_pos.x()))) <
+              theta - std::atan2(ball_pos.y() - robot_pos.y(), ball_pos.x() - robot_pos.x()))) <
               pi<double>() / 20.0 &&
           dist_b_to_r < 400.0) {
         state_          = running_state::hold;
@@ -273,6 +277,4 @@ bool ball_place::finished() const {
   return finished_;
 }
 
-} // namespace action
-} // namespace game
-} // namespace ai_server
+} // namespace ai_server::game::action
