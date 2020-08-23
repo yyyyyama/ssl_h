@@ -4,6 +4,7 @@
 #include "ai_server/game/formation/halt.h"
 #include "ai_server/game/formation/steady.h"
 #include "ai_server/game/formation/stopgame.h"
+#include "ai_server/game/formation/timeout.h"
 
 #include "detail/situation_string.h"
 #include "first.h"
@@ -64,6 +65,13 @@ void first::ball_placement(situation_type situation, bool situation_changed) {
         std::vector(ids_.cbegin(), ids_.cend()), abp_target,
         situation == situation_type::ball_placement);
   prev_abp_target_ = abp_target;
+}
+
+void first::timeout([[maybe_unused]] situation_type situation,
+                    [[maybe_unused]] bool situation_changed) {
+  logger_.debug("timeout");
+  current_formation_ =
+      make_formation<formation::timeout>(std::vector(ids_.cbegin(), ids_.cend()));
 }
 
 void first::undefined_event(situation_type situation, bool situation_changed) {

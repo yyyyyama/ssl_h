@@ -33,6 +33,8 @@ private:
 
   void ball_placement(situation_type situation, bool situation_changed);
 
+  void timeout(situation_type situation, bool situation_changed);
+
   /// デバッグ用
   /// 未実装の situation に入ったときに呼ばれ、warning を出す
   /// formation には halt が割り当てられる
@@ -66,6 +68,7 @@ private:
     on(situation_type::force_start, true)     = &first::steady;
     on(situation_type::ball_placement, true)  = &first::ball_placement;
     on(situation_type::ball_placement, false) = &first::ball_placement;
+    on(situation_type::timeout, true)         = &first::timeout;
 
     return table;
   }();
