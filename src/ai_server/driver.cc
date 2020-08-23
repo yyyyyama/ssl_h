@@ -1,4 +1,5 @@
 #include <algorithm>
+#include <cmath>
 #include <stdexcept>
 #include <variant>
 #include <boost/format.hpp>
@@ -112,7 +113,12 @@ void driver::process(unsigned int id, metadata_type& metadata, const model::worl
     radio->send(team_color_, id, command.kick_flag(), command.dribble(), vx, vy, omega);
 
     // 登録された関数があればそれを呼び出す
-    command_updated_(team_color_, id, command.kick_flag(), command.dribble(), vx, vy, omega);
+    // controller はロボット基準の速度を返すのでフィールド基準にもどす
+    const auto st  = std::sin(robot.theta());
+    const auto ct  = std::cos(robot.theta());
+    const auto vxf = ct * vx - st * vy;
+    const auto vyf = st * vx + ct * vy;
+    command_updated_(team_color_, id, command.kick_flag(), command.dribble(), vxf, vyf, omega);
   }
 }
 

@@ -5,6 +5,7 @@
 #include <stdexcept>
 #include <vector>
 #include <boost/asio.hpp>
+#include <boost/math/constants/constants.hpp>
 #include <boost/test/unit_test.hpp>
 
 #include "ai_server/controller/base.h"
@@ -493,6 +494,54 @@ BOOST_AUTO_TEST_CASE(main_loop2) {
 
     c1.executed_ = false;
     s1.commands_.clear();
+  }
+}
+
+BOOST_AUTO_TEST_CASE(main_loop3, *boost::unit_test::tolerance(0.0000001)) {
+  namespace bmc = boost::math::constants;
+
+  boost::asio::io_context ctx{};
+  ai_server::model::updater::world wu{};
+  ai_server::driver d{ctx, 100us, wu, model::team_color::blue};
+
+  d.register_robot(1, std::make_unique<mock_controller>(), std::make_unique<mock_radio>());
+
+  command_updated_handler handler{};
+  d.on_command_updated(std::ref(handler));
+
+  {
+    ssl_protos::vision::Packet p{};
+    auto md = p.mutable_detection();
+    md->set_camera_id(0);
+
+    auto r = md->add_robots_blue();
+    r->set_robot_id(1);
+    r->set_x(0);
+    r->set_y(0);
+    r->set_orientation(bmc::half_pi<float>());
+    r->set_confidence(100);
+
+    wu.update(p);
+  }
+
+  {
+    model::command c{};
+    c.set_velocity(1, 2, 3);
+    d.update_command(1, c);
+  }
+
+  ctx.run_one();
+  {
+    BOOST_TEST(handler.commands.size() == 1);
+    const auto& [id, vx, vy, omega] = handler.commands.back();
+    // on_command_updated() に渡される速度は、controller が出力するロボット基準の値を
+    // フィールド基準にもどすためにロボットの角度だけ回転される
+    BOOST_TEST(id == 1);
+    BOOST_TEST(vx == -2.0);
+    BOOST_TEST(vy == 1.0);
+    BOOST_TEST(omega == 3.0);
+    BOOST_TEST(handler.color == model::team_color::blue);
+    handler.commands.clear();
   }
 }
 
