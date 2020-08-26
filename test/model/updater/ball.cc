@@ -357,8 +357,6 @@ BOOST_AUTO_TEST_CASE(filter_same2) {
 }
 
 struct mock_filter3 : public filter::base<model::ball, filter::timing::manual> {
-  using own_type = filter::base<model::ball, filter::timing::manual>;
-
   // コンストラクタの引数に渡された値
   int arg1;
   int arg2;
@@ -367,7 +365,8 @@ struct mock_filter3 : public filter::base<model::ball, filter::timing::manual> {
   std::optional<model::ball> value;
   std::chrono::system_clock::time_point time;
 
-  mock_filter3(own_type::writer_func_type wf, int a1, int a2) : base(wf), arg1(a1), arg2(a2) {}
+  mock_filter3(mock_filter3::writer_func_type wf, int a1, int a2)
+      : base(wf), arg1(a1), arg2(a2) {}
 
   void set_raw_value(std::optional<model::ball> v,
                      std::chrono::system_clock::time_point t) override {
@@ -483,9 +482,7 @@ BOOST_AUTO_TEST_CASE(clear_filter) {
 
 // set_raw_value() で write() を呼ぶ filter
 struct mock_filter4 : public filter::base<model::ball, filter::timing::manual> {
-  using own_type = filter::base<model::ball, filter::timing::manual>;
-
-  mock_filter4(own_type::writer_func_type wf) : base(wf) {}
+  mock_filter4(mock_filter4::writer_func_type wf) : base(wf) {}
 
   void set_raw_value(std::optional<model::ball> v,
                      std::chrono::system_clock::time_point) override {

@@ -45,9 +45,6 @@ BOOST_AUTO_TEST_CASE(same) {
 // filter::base<任意の型, filter::timing::manual>を継承し,
 // 更新を行うpublicメンバ関数を実装すれば良い.
 class test_filter2 : public filter::base<std::string, filter::timing::manual> {
-  // 型が長いので型エイリアスを作っておくと良いかも
-  using own_type = filter::base<std::string, filter::timing::manual>;
-
   std::string prefix_;
   std::optional<std::string> value_;
 
@@ -55,7 +52,7 @@ public:
   // コンストラクタで値を受け取る必要がなければ
   // using filter::base<std::string, filter::timing::manual>::base;
   // コンストラクタで値を受け取る必要がある場合は次のようにする
-  test_filter2(own_type::writer_func_type wf, const std::string& prefix)
+  test_filter2(test_filter2::writer_func_type wf, const std::string& prefix)
       : base(wf), prefix_(prefix) {}
 
   // 観測値を受け取るメンバ関数

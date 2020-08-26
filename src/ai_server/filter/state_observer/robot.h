@@ -25,13 +25,11 @@ private:
   std::optional<model::robot> raw_value_; //観測した情報
   model::robot prev_state_;
 
-  using own_type = filter::base<model::robot, timing::manual>; // 自分の型へのエイリアシング
-
 public:
   /// @brief       コンストラクタ
   /// @param wf    値を書き込むための関数
   /// @param time  lost_duration_に設定する時間
-  explicit robot(own_type::writer_func_type wf, std::chrono::system_clock::duration time);
+  explicit robot(robot::writer_func_type wf, std::chrono::system_clock::duration time);
 
   /// @brief       オブザーバの状態更新
   /// @param vx    制御入力 (x 軸方向の速度)

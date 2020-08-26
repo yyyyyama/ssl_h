@@ -10,7 +10,7 @@ constexpr double robot::lambda_robot_observer_;
 constexpr double robot::decay_vel_;
 constexpr double robot::decay_acc_;
 
-robot::robot(own_type::writer_func_type wf, std::chrono::system_clock::duration time)
+robot::robot(robot::writer_func_type wf, std::chrono::system_clock::duration time)
     : base(wf),
       prev_time_(std::chrono::system_clock::time_point::min()),
       capture_time_(std::chrono::system_clock::time_point::min()),
