@@ -39,9 +39,8 @@ void first::halt([[maybe_unused]] situation_type situation,
   current_formation_ = make_formation<formation::halt>(std::vector(ids_.cbegin(), ids_.cend()));
 }
 
-void first::stopgame([[maybe_unused]] situation_type situation,
-                     [[maybe_unused]] bool situation_changed) {
-  logger_.debug("stopgame");
+void first::stopgame([[maybe_unused]] situation_type situation, bool situation_changed) {
+  if (situation_changed) logger_.debug("stopgame");
   current_formation_ = make_formation<formation::stopgame>(
       std::vector(ids_.cbegin(), ids_.cend()), team_color() == model::team_color::yellow
                                                    ? refbox().team_yellow().goalie()
