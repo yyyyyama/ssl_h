@@ -33,7 +33,8 @@ BOOST_AUTO_TEST_CASE(rest, *boost::unit_test::tolerance(0.1)) {
   // 結果書き込み用の式
   auto wr = [&r](std::optional<model::robot> robot_) { r = *robot_; };
 
-  filter::state_observer::robot obs{wr, 1s};
+  std::recursive_mutex mutex{};
+  filter::state_observer::robot obs{mutex, wr, 1s};
 
   for (const auto& robot : robot_positions) {
     // 状態オブザーバを20ms * 500回更新する
@@ -63,7 +64,8 @@ BOOST_AUTO_TEST_CASE(move, *boost::unit_test::tolerance(5.0)) {
   // 結果書き込み用の式
   auto wr = [&r2](std::optional<model::robot> robot_) { r2 = *robot_; };
 
-  filter::state_observer::robot obs{wr, 1s};
+  std::recursive_mutex mutex{};
+  filter::state_observer::robot obs{mutex, wr, 1s};
 
   for (auto vel : robot_velocities) {
     r.set_vx(vel.x());

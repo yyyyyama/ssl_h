@@ -52,18 +52,21 @@ public:
   // コンストラクタで値を受け取る必要がなければ
   // using filter::base<std::string, filter::timing::manual>::base;
   // コンストラクタで値を受け取る必要がある場合は次のようにする
-  test_filter2(test_filter2::writer_func_type wf, const std::string& prefix)
-      : base(wf), prefix_(prefix) {}
+  test_filter2(std::recursive_mutex& mutex, test_filter2::writer_func_type wf,
+               const std::string& prefix)
+      : base(mutex, wf), prefix_(prefix) {}
 
   // 観測値を受け取るメンバ関数
   void set_raw_value(std::optional<std::string> value,
                      std::chrono::system_clock::time_point) override {
+    std::unique_lock lock{mutex()};
     value_ = std::move(value);
   }
 
   // 更新を行うメンバ関数
   // 名前は適当で良い
   void add_prefix() {
+    std::unique_lock lock{mutex()};
     if (value_) {
       // 値の更新はwrite()を使う
       write(prefix_ + *value_);
@@ -75,12 +78,14 @@ public:
 };
 
 BOOST_AUTO_TEST_CASE(manual) {
+  std::recursive_mutex mutex{};
+
   // 更新対象のデータ
   std::optional<std::string> target{};
   // 値を更新するための関数
   auto writer = [&target](std::optional<std::string> new_value) { target = new_value; };
 
-  test_filter2 f{writer, "すごい"};
+  test_filter2 f{mutex, writer, "すごい"};
 
   // filterを初期化するだけでは値は変化しない
   BOOST_TEST(!target.has_value());
@@ -94,7 +99,7 @@ BOOST_AUTO_TEST_CASE(manual) {
   BOOST_TEST(*target == "すごいHaskell");
 
   // 関数が登録されていなくても例外で落ちない
-  test_filter2 bad_filter{{}, ""};
+  test_filter2 bad_filter{mutex, {}, ""};
   BOOST_CHECK_NO_THROW(bad_filter.add_prefix());
 }
 

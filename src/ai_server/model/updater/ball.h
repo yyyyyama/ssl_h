@@ -67,6 +67,7 @@ public:
     std::unique_lock lock(mutex_);
     filter_same_.reset();
     auto p = std::make_shared<Filter>(
+        mutex_,
         // 値を更新する関数オブジェクト
         [this](std::optional<model::ball> value) {
           // 現時点ではボールが存在しない場合を想定していないので,

@@ -10,8 +10,9 @@ constexpr double robot::lambda_robot_observer_;
 constexpr double robot::decay_vel_;
 constexpr double robot::decay_acc_;
 
-robot::robot(robot::writer_func_type wf, std::chrono::system_clock::duration time)
-    : base(wf),
+robot::robot(std::recursive_mutex& mutex, robot::writer_func_type wf,
+             std::chrono::system_clock::duration time)
+    : base(mutex, wf),
       prev_time_(std::chrono::system_clock::time_point::min()),
       capture_time_(std::chrono::system_clock::time_point::min()),
       lost_duration_(time) {
@@ -19,6 +20,8 @@ robot::robot(robot::writer_func_type wf, std::chrono::system_clock::duration tim
 }
 
 void robot::observe(double vx, double vy) {
+  std::unique_lock lock{mutex()};
+
   const auto A = (Eigen::Matrix<double, 3, 3>{} << 0, 1, 0, // a11, a12, a13
                   0, 0, 1,                                  // a21, a22, a23
                   0, -decay_vel_, -decay_acc_               // a31, a32, a33
@@ -92,6 +95,8 @@ void robot::observe(double vx, double vy) {
 
 void robot::set_raw_value(std::optional<model::robot> value,
                           std::chrono::system_clock::time_point time) {
+  std::unique_lock lock{mutex()};
+
   if (value.has_value()) {
     if (capture_time_ == std::chrono::system_clock::time_point::min()) {
       model::robot r = *value;

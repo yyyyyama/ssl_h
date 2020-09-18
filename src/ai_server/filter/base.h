@@ -3,6 +3,7 @@
 
 #include <chrono>
 #include <functional>
+#include <mutex>
 #include <optional>
 
 namespace ai_server {
@@ -43,7 +44,8 @@ public:
   using writer_func_type = std::function<void(std::optional<T>)>;
 
   /// @param writer_func      対象の値を更新する関数オブジェクト
-  base(writer_func_type writer_func) : writer_func_(writer_func) {}
+  base(std::recursive_mutex& mutex, writer_func_type writer_func)
+      : mutex_{mutex}, writer_func_(writer_func) {}
 
   virtual ~base() = default;
 
@@ -63,7 +65,13 @@ protected:
     }
   }
 
+  std::recursive_mutex& mutex() {
+    return mutex_;
+  }
+
 private:
+  std::recursive_mutex& mutex_;
+
   /// 対象の値を更新する関数オブジェクト
   writer_func_type writer_func_;
 };

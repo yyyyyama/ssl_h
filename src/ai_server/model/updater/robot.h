@@ -93,6 +93,7 @@ public:
     std::unique_lock lock(mutex_);
     filters_same_.erase(id);
     auto p = std::make_shared<Filter>(
+        mutex_,
         // 値を更新する関数オブジェクト
         [id, this](std::optional<model::robot> value) {
           std::unique_lock lock(mutex_);
