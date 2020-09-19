@@ -81,6 +81,27 @@ private:
   Eigen::Vector2d ball_placement_position_;
   std::optional<model::team_color> bot_substitution_by_team_;
 };
+
+// @brief \p r から \p color の情報を取得する
+inline auto our_team_info(const refbox& r, team_color color) {
+  switch (color) {
+    case team_color::blue:
+      return r.team_blue();
+    case team_color::yellow:
+      return r.team_yellow();
+  }
+}
+
+// @brief \p r から \p color の情報を取得する
+inline auto enemy_team_info(const refbox& r, team_color color) {
+  switch (color) {
+    case team_color::blue:
+      return r.team_yellow();
+    case team_color::yellow:
+      return r.team_blue();
+  }
+}
+
 } // namespace model
 } // namespace ai_server
 

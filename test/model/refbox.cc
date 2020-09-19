@@ -96,4 +96,27 @@ BOOST_AUTO_TEST_CASE(bot_substitution) {
   BOOST_TEST(!ref.bot_substitution_by_team().has_value());
 }
 
+BOOST_AUTO_TEST_CASE(team_info_heplers) {
+  ai_server::model::refbox ref{};
+  ref.set_team_yellow({"yellow team name"});
+  ref.set_team_blue({"blue team name"});
+
+  // our_team_info(ref, yellow) で黄チームの情報が取得できる
+  BOOST_TEST(
+      ai_server::model::our_team_info(ref, ai_server::model::team_color::yellow).name() ==
+      "yellow team name");
+  // our_team_info(ref, bluw) で青チームの情報が取得できる
+  BOOST_TEST(ai_server::model::our_team_info(ref, ai_server::model::team_color::blue).name() ==
+             "blue team name");
+
+  // enemy_team_info(ref, yellow) で青チームの情報が取得できる
+  BOOST_TEST(
+      ai_server::model::enemy_team_info(ref, ai_server::model::team_color::yellow).name() ==
+      "blue team name");
+  // enemy_team_info(ref, bluw) で黄チームの情報が取得できる
+  BOOST_TEST(
+      ai_server::model::enemy_team_info(ref, ai_server::model::team_color::blue).name() ==
+      "yellow team name");
+}
+
 BOOST_AUTO_TEST_SUITE_END()
