@@ -3,6 +3,7 @@
 
 #include <chrono>
 #include <iosfwd>
+#include <string>
 #include <string_view>
 #include <thread>
 
@@ -20,8 +21,8 @@ enum class log_level {
 /// ログ1項目を表現する型
 struct log_item {
   log_level level;
-  std::string_view zone_name;
-  std::string_view message;
+  std::string zone_name;
+  std::string message;
   std::chrono::steady_clock::time_point time_stamp;
   std::size_t thread_id;
 };

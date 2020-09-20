@@ -21,27 +21,32 @@ public:
   logger(std::string zone_name);
 
   // 各 log_level に対する log(...) へのエイリアス
-  inline void error(std::string_view msg) const {
-    log(log_level::error, msg);
+  template <class String>
+  inline void error(String&& msg) const {
+    log(log_level::error, std::forward<String>(msg));
   }
 
-  inline void warn(std::string_view msg) const {
-    log(log_level::warn, msg);
+  template <class String>
+  inline void warn(String&& msg) const {
+    log(log_level::warn, std::forward<String>(msg));
   }
 
-  inline void info(std::string_view msg) const {
-    log(log_level::info, msg);
+  template <class String>
+  inline void info(String&& msg) const {
+    log(log_level::info, std::forward<String>(msg));
   }
 
-  inline void debug([[maybe_unused]] std::string_view msg) const {
+  template <class String>
+  inline void debug([[maybe_unused]] String&& msg) const {
 #ifdef AI_SERVER_DEBUG
-    log(log_level::debug, msg);
+    log(log_level::debug, std::forward<String>(msg));
 #endif
   }
 
-  inline void trace([[maybe_unused]] std::string_view msg) const {
+  template <class String>
+  inline void trace([[maybe_unused]] String&& msg) const {
 #ifdef AI_SERVER_DEBUG
-    log(log_level::trace, msg);
+    log(log_level::trace, std::forward<String>(msg));
 #endif
   }
 
@@ -49,11 +54,11 @@ private:
   /// @brief          ログを出力する
   /// @param level    ログの重要度
   /// @param msg      ログメッセージ
-  inline void log(log_level level, std::string_view msg) const {
+  inline void log(log_level level, std::string msg) const {
     log_item item{};
     item.level      = level;
     item.zone_name  = zone_name_;
-    item.message    = msg;
+    item.message    = std::move(msg);
     item.time_stamp = std::chrono::steady_clock::now();
     item.thread_id =
         static_cast<std::size_t>(std::hash<std::thread::id>{}(std::this_thread::get_id()));
