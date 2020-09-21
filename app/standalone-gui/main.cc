@@ -34,7 +34,9 @@
 #include "ai_server/game/context.h"
 #include "ai_server/game/formation/first_formation.h"
 #include "ai_server/game/nnabla.h"
+#include "ai_server/logger/formatter.h"
 #include "ai_server/logger/logger.h"
+#include "ai_server/logger/sink/function.h"
 #include "ai_server/logger/sink/ostream.h"
 #include "ai_server/model/refmessage_string.h"
 #include "ai_server/model/team_color.h"
@@ -686,6 +688,44 @@ private:
   Gtk::Menu menu_;
 };
 
+// logger の出力を表示するパネル
+class log_area : public Gtk::TreeView {
+public:
+  log_area() : tree_model_(Gtk::ListStore::create(col_)) {
+    this->set_model(tree_model_);
+    this->append_column("elapsed", col_.elapsed);
+    this->append_column("level", col_.level);
+    this->append_column("zone", col_.zone);
+    this->append_column("message", col_.message);
+  }
+
+  void write(const logger::log_item& item) {
+    Gtk::TreeModel::Row row = *(tree_model_->append());
+    row[col_.elapsed]       = logger::format("{elapsed}", item);
+    row[col_.level]         = logger::format("{level}", item);
+    row[col_.zone]          = item.zone_name;
+    row[col_.message]       = item.message;
+  }
+
+private:
+  struct column : public Gtk::TreeModel::ColumnRecord {
+    column() {
+      this->add(elapsed);
+      this->add(level);
+      this->add(zone);
+      this->add(message);
+    }
+
+    Gtk::TreeModelColumn<Glib::ustring> elapsed;
+    Gtk::TreeModelColumn<Glib::ustring> level;
+    Gtk::TreeModelColumn<Glib::ustring> zone;
+    Gtk::TreeModelColumn<Glib::ustring> message;
+  };
+
+  column col_;
+  Glib::RefPtr<Gtk::ListStore> tree_model_;
+};
+
 // game_runner などを設定するパネル
 // --------------------------------
 template <class Runner>
@@ -1167,9 +1207,16 @@ struct status_tree::handler<T, std::enable_if_t<std::is_same_v<
 };
 
 auto main(int argc, char** argv) -> int {
-  logger::sink::ostream sink(std::cout, "{elapsed} {level:<5} {zone}: {message}");
-  logger::logger l{"main()"};
+  auto app = Gtk::Application::create(argc, argv);
 
+  logger::sink::ostream sink(std::cout, "{elapsed} {level:<5} {zone}: {message}");
+
+  log_area la{};
+  logger::sink::function sink_log_area([&la](auto&& item) {
+    Glib::signal_idle().connect_once([&la, item]() { la.write(item); });
+  });
+
+  logger::logger l{"main()"};
   l.info("(⋈◍＞◡＜◍)。✧♡");
 
 #ifdef AI_SERVER_HAS_NNABLA_EXT_CUDA
@@ -1282,8 +1329,6 @@ auto main(int argc, char** argv) -> int {
     util::set_thread_name(driver_thread, "driver_thread");
     stop_and_join_at_exit driver_io_and_thread{driver_io, std::move(driver_thread)};
 
-    auto app = Gtk::Application::create(argc, argv);
-
     refbox_panel rp{updater_refbox};
 
     game_runner runner{config_dir, updater_world, rp.updater(), driver, radio};
@@ -1345,7 +1390,10 @@ auto main(int argc, char** argv) -> int {
 
     auto win      = Gtk::Window{};
     auto tree_win = Gtk::ScrolledWindow{};
-    auto box      = Gtk::HBox{};
+    auto log_win  = Gtk::ScrolledWindow{};
+    auto box0     = Gtk::HBox{};
+    auto box1     = Gtk::VPaned{};
+    auto box2     = Gtk::HBox{};
     {
       win.set_border_width(10);
       win.set_default_size(1280, -1);
@@ -1354,11 +1402,23 @@ auto main(int argc, char** argv) -> int {
       tree_win.add(tree);
       tree_win.set_min_content_width(350);
 
-      box.pack_end(tree_win, Gtk::PACK_SHRINK, 10);
-      box.pack_end(gp, Gtk::PACK_SHRINK, 10);
-      box.pack_end(va, Gtk::PACK_EXPAND_WIDGET, 10);
+      box2.pack_end(tree_win, Gtk::PACK_SHRINK, 10);
+      box2.pack_end(gp, Gtk::PACK_SHRINK, 10);
 
-      win.add(box);
+      log_win.add(la);
+      la.signal_size_allocate().connect([&log_win]([[maybe_unused]] Gtk::Allocation& allloc) {
+        auto adj = log_win.get_vadjustment();
+        adj->set_value(adj->get_upper());
+      });
+
+      box1.set_wide_handle(true);
+      box1.pack1(box2, Gtk::FILL);
+      box1.pack2(log_win, Gtk::EXPAND);
+
+      box0.pack_end(box1, Gtk::PACK_SHRINK, 0);
+      box0.pack_end(va, Gtk::PACK_EXPAND_WIDGET, 10);
+
+      win.add(box0);
       win.show_all_children();
     }
     app->run(win);
