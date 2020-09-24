@@ -558,7 +558,7 @@ private:
     {
       // フィールド全体
       cr->rectangle(-field_width / 2.0, -field_height / 2.0, field_width, field_height);
-      cr->set_source_rgb(0.4, 0.4, 0.4);
+      cr->set_source_rgb(0.17, 0.17, 0.18);
       cr->fill();
 
       // ラインの幅と色をまとめて設定
@@ -603,9 +603,9 @@ private:
     auto draw_robots = [&cr, is_vertical](const model::world::robots_list& robots,
                                           model::team_color color) {
       if (color == model::team_color::yellow) {
-        cr->set_source_rgb(1.0, 1.0, 0.0);
+        cr->set_source_rgb(1.0, 0.84, 0.04);
       } else if (color == model::team_color::blue) {
-        cr->set_source_rgb(0.0, 0.0, 1.0);
+        cr->set_source_rgb(0.04, 0.52, 1.0);
       } else {
         cr->set_source_rgb(1.0, 1.0, 1.0);
       }
@@ -626,10 +626,17 @@ private:
             Cairo::Matrix{font_size, 0.0, 0.0, -font_size, -font_size / 4.0, font_size});
       }
       for (const auto& [id, robot] : robots) {
+        cr->set_source_rgb(1.0, 1.0, 1.0);
         cr->move_to(robot.x(), robot.y());
-        cr->set_line_width(0.5);
         cr->text_path(std::to_string(id));
         cr->fill();
+
+        cr->set_line_width(20.0);
+        cr->set_source_rgb(0.17, 0.17, 0.18);
+        cr->move_to(robot.x(), robot.y());
+        cr->line_to(robot.x() + robot_rad * std::cos(robot.theta()),
+                    robot.y() + robot_rad * std::sin(robot.theta()));
+        cr->stroke();
       }
     };
     draw_robots(world.robots_yellow(), model::team_color::yellow);
@@ -638,9 +645,15 @@ private:
     // ボール
     {
       const auto ball = world.ball();
-      cr->set_source_rgb(1.0, 0.65, 0.0);
+      cr->set_source_rgb(1.0, 0.62, 0.04);
       cr->arc(ball.x(), ball.y(), ball_rad, 0.0, boost::math::double_constants::two_pi);
       cr->fill();
+
+      // 半径 500 [mm] のサークル
+      cr->set_line_width(10.0);
+      cr->set_source_rgb(1.0, 0.27, 0.23);
+      cr->arc(ball.x(), ball.y(), 500.0, 0.0, boost::math::double_constants::two_pi);
+      cr->stroke();
     }
 
     return true;
