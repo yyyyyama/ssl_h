@@ -1,5 +1,4 @@
 codecov:
-  branch: develop
   strict_yaml_branch: develop
   notify:
     require_ci_to_pass: no
@@ -14,3 +13,6 @@ ignore:
   - "test/**/*"
 
 comment: false
+
+github_checks:
+  annotations: false
