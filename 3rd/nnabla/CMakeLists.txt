@@ -19,12 +19,12 @@ find_package(Patch REQUIRED)
 # https://cmake.org/cmake/help/v3.13/module/FetchContent.html
 include(FetchContent)
 FetchContent_Declare(nnabla
-  URL      https://github.com/sony/nnabla/archive/v1.7.0.tar.gz
-  URL_HASH SHA256=7602b95a547a0c593cbc040cfc771ea60619c5128748722533ac2fb48a150c9d
+  URL      https://github.com/sony/nnabla/archive/v1.11.0.tar.gz
+  URL_HASH SHA256=adadfc7dd561efe3a533189f377939c05a182aad8740dd793c713aac723111e1
 
-  # nnabla の CMakeLists.txt 内では CMAKE_SOURCE_DIR などが使われていて
-  # add_subdirectory/FetchContent_MakeAvailable したときに問題となるためパッチを当てる
-  PATCH_COMMAND ${Patch_EXECUTABLE} -p1 < ${CMAKE_CURRENT_SOURCE_DIR}/use-correct-variables.patch
+  # - CMAKE_{SOURCE,BINARY}_DIR を PROJECT_{SOURCE,BINARY}_DIR に変更
+  # - Eigen をダウンロードしてくるのをやめる
+  PATCH_COMMAND ${Patch_EXECUTABLE} -p1 < ${CMAKE_CURRENT_SOURCE_DIR}/nnabla-v1.11.0.patch
 )
 FetchContent_GetProperties(nnabla)
 if(NOT nnabla_POPULATED)
@@ -61,13 +61,13 @@ if(ENABLE_NNABLA_EXT_CUDA)
   set(NBLA_CLI_LIBRARY_NAME nnabla::nnabla_cli)
 
   FetchContent_Declare(nnabla_ext_cuda
-    URL      https://github.com/sony/nnabla-ext-cuda/archive/v1.7.0.tar.gz
-    URL_HASH SHA256=b722012eecc783509da822c301af6e7129b2dd714d3a2b3f174a15b72d7075d8
+    URL      https://github.com/sony/nnabla-ext-cuda/archive/v1.11.0.tar.gz
+    URL_HASH SHA256=3b3f2bdde1e7803a97cc46e07f4cf9bc25aa2fde66430658612821f522b69253
 
-    # - CMAKE_SOURCE_DIR を PROJECT_SOURCE_DIR に変更
+    # - CMAKE_{SOURCE,BINARY}_DIR を PROJECT_{SOURCE,BINARY}_DIR に変更
     # - "存在する" libnnabla.so などのパスを要求してきて不便なのを修正
     # - Eigen をダウンロードしてくるのをやめる
-    PATCH_COMMAND ${Patch_EXECUTABLE} -p1 < ${CMAKE_CURRENT_SOURCE_DIR}/nnabla-ext-cuda-v1.7.0.patch
+    PATCH_COMMAND ${Patch_EXECUTABLE} -p1 < ${CMAKE_CURRENT_SOURCE_DIR}/nnabla-ext-cuda-v1.11.0.patch
   )
   FetchContent_GetProperties(nnabla_ext_cuda)
   if(NOT nnabla_ext_cuda_POPULATED)
