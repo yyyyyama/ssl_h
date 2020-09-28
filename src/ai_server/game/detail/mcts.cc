@@ -26,8 +26,6 @@ private:
   std::shared_ptr<nbla::utils::nnp::Executor> executor_;
 
   const model::field& field_;
-  const model::world::robots_list& our_robots_;
-  const model::world::robots_list& ene_robots_;
   const Eigen::Vector2d& our_goal_pos_;
   const Eigen::Vector2d& ene_goal_pos_;
 
@@ -48,9 +46,7 @@ private:
 
 public:
   worker(nbla::utils::nnp::Nnp& nnp, const model::field& field,
-         const model::world::robots_list& our_robots,
-         const model::world::robots_list& ene_robots, const Eigen::Vector2d& our_goal_pos,
-         const Eigen::Vector2d& ene_goal_pos);
+         const Eigen::Vector2d& our_goal_pos, const Eigen::Vector2d& ene_goal_pos);
 
   void run(node& root_node, const std::chrono::steady_clock::duration& duration);
 
@@ -70,16 +66,14 @@ evaluator::evaluator(const game::nnabla& nnabla) {
   }
 }
 
-void evaluator::execute(const model::field& field, const model::world::robots_list& our_robots,
-                        const model::world::robots_list& ene_robots,
-                        const Eigen::Vector2d& our_goal_pos,
+void evaluator::execute(const model::field& field, const Eigen::Vector2d& our_goal_pos,
                         const Eigen::Vector2d& ene_goal_pos, node& root_node) {
   using namespace std::chrono_literals;
   // スレッド数分の worker オブジェクトを作る
   std::vector<worker> workers;
   workers.reserve(nnp_ptrs_.size());
   for (auto& nnp_ptr : nnp_ptrs_)
-    workers.emplace_back(*nnp_ptr, field, our_robots, ene_robots, our_goal_pos, ene_goal_pos);
+    workers.emplace_back(*nnp_ptr, field, our_goal_pos, ene_goal_pos);
 
   // 初回の expand
   workers.begin()->expand(root_node);
@@ -92,14 +86,10 @@ void evaluator::execute(const model::field& field, const model::world::robots_li
 }
 
 worker::worker(nbla::utils::nnp::Nnp& nnp, const model::field& field,
-               const model::world::robots_list& our_robots,
-               const model::world::robots_list& ene_robots, const Eigen::Vector2d& our_goal_pos,
-               const Eigen::Vector2d& ene_goal_pos)
+               const Eigen::Vector2d& our_goal_pos, const Eigen::Vector2d& ene_goal_pos)
     : mt_(std::random_device{}()),
       executor_(nnp.get_executor("Executor")),
       field_(field),
-      our_robots_(our_robots),
-      ene_robots_(ene_robots),
       our_goal_pos_(our_goal_pos),
       ene_goal_pos_(ene_goal_pos) {}
 
@@ -161,12 +151,12 @@ double worker::evaluate(node& node) {
 void worker::expand(node& node) {
   std::unique_lock lock(node.mtx);
   const auto state = node.state;
-  if (end(state)) return;
   lock.unlock();
+  if (end(state)) return;
   double max_score = 0.0;
   std::vector<std::pair<behavior, double>> behavior_probability;
   for (const auto& b : legal_behaviors(state)) {
-    const double p = probability(state.ball_pos, b.target_pos, ene_robots_);
+    const double p = probability(state.ball_pos, b.target_pos, state.ene_robots);
     const double s = p * score(next_state(state, b));
     if (max_score < s) max_score = s;
     behavior_probability.emplace_back(b, p);
@@ -181,11 +171,11 @@ void worker::expand(node& node) {
 double worker::playout(const state& state, double p) {
   if (end(state)) return p * score(state);
 
-  const double p_to_goal = probability(state.ball_pos, ene_goal_pos_, ene_robots_);
+  const double p_to_goal = probability(state.ball_pos, ene_goal_pos_, state.ene_robots);
   const auto behaviors   = legal_behaviors(state);
   std::uniform_int_distribution<std::size_t> dist(0, behaviors.size() - 1);
   const behavior selected_b = behaviors.at(dist(mt_));
-  const double next_p       = probability(state.ball_pos, selected_b.target_pos, ene_robots_);
+  const double next_p = probability(state.ball_pos, selected_b.target_pos, state.ene_robots);
   if (next_p > p_to_goal)
     return playout(next_state(state, selected_b), p * next_p);
   else
@@ -196,7 +186,7 @@ double worker::probability(const Eigen::Vector2d& pos, const Eigen::Vector2d& ta
                            const model::world::robots_list& ene_robots) {
   using boost::math::constants::half_pi;
   using boost::math::constants::pi;
-  constexpr double ball_speed = 5000.0;
+  constexpr double ball_speed = 2000.0;
   const double dist_p_t       = (pos - target).norm();
   if (dist_p_t > 10000.0) return 0;
   // ゴールへのキックか?
@@ -287,30 +277,30 @@ double worker::score(const state& state) {
 
 std::vector<behavior> worker::legal_behaviors(const state& state) {
   using boost::math::constants::half_pi;
-  using boost::math::constants::pi;
-  const double x_max          = field_.x_max();
-  const double y_max          = field_.y_max();
-  const double penalty_length = field_.penalty_length();
-  const double penalty_width  = field_.penalty_width();
-  constexpr double dist       = 500.0;
+  using boost::math::constants::two_pi;
+  const double x_max           = field_.x_max();
+  const double y_max           = field_.y_max();
+  const double front_penalty_x = field_.front_penalty_x();
+  const double penalty_y_max   = field_.penalty_y_max();
+  constexpr double dist        = 500.0;
   std::vector<behavior> behaviors;
-  behaviors.emplace_back(state.chaser, ene_goal_pos_);
-  behaviors.emplace_back(state.chaser, Eigen::Vector2d(ene_goal_pos_.x(), 200.0));
-  behaviors.emplace_back(state.chaser, Eigen::Vector2d(ene_goal_pos_.x(), -200.0));
-  for (const auto& r : our_robots_) {
+  for (const auto& r : state.our_robots) {
     const auto id       = r.first;
     const auto base_pos = util::math::position(r.second);
     if (id != state.chaser) behaviors.emplace_back(id, base_pos);
-    for (double theta = 0; theta < pi<double>(); theta += half_pi<double>()) {
+    for (double theta = 0; theta < two_pi<double>(); theta += half_pi<double>()) {
       const Eigen::Vector2d pos =
           base_pos + dist * (Eigen::Rotation2Dd(theta) * Eigen::Vector2d::UnitX());
-      if ((id == state.chaser || (state.ball_pos - pos).norm() > 500.0) &&
+      if ((id == state.chaser || (state.ball_pos - pos).norm() > 1500.0) &&
           std::abs(pos.x()) < x_max && std::abs(pos.y()) < y_max &&
-          (std::abs(pos.x()) < x_max - penalty_length - 200.0 ||
-           std::abs(pos.y()) > penalty_width / 2.0 + 200.0))
+          (std::abs(pos.x()) < front_penalty_x - 200.0 ||
+           std::abs(pos.y()) > penalty_y_max + 200.0))
         behaviors.emplace_back(id, pos);
     }
   }
+  behaviors.emplace_back(state.chaser, Eigen::Vector2d(ene_goal_pos_.x(), 200.0));
+  behaviors.emplace_back(state.chaser, Eigen::Vector2d(ene_goal_pos_.x(), -200.0));
+  behaviors.emplace_back(state.chaser, ene_goal_pos_);
   return behaviors;
 }
 
@@ -318,12 +308,22 @@ state worker::next_state(const state& current_state, const behavior& b) {
   constexpr double ball_speed = 6000.0;
   const double t =
       current_state.t + (current_state.ball_pos - b.target_pos).norm() / ball_speed;
-  return {b.target_pos, b.target_id, t};
+  auto our_robots        = current_state.our_robots;
+  const state next_state = {b.target_pos, b.target_id, our_robots, current_state.ene_robots, t};
+  if (!end(next_state)) {
+    our_robots.at(b.target_id).set_x(b.target_pos.x());
+    our_robots.at(b.target_id).set_y(b.target_pos.y());
+  }
+  return {b.target_pos, b.target_id, our_robots, current_state.ene_robots, t};
 }
 
 bool worker::end(const state& state) {
   return (state.ball_pos - our_goal_pos_).norm() < 500.0 ||
-         (state.ball_pos - ene_goal_pos_).norm() < 500.0;
+         (state.ball_pos - ene_goal_pos_).norm() < 500.0 ||
+         std::abs(state.ball_pos.x()) > field_.x_max() ||
+         std::abs(state.ball_pos.y()) > field_.y_max() ||
+         (std::abs(state.ball_pos.x()) > field_.front_penalty_x() &&
+          std::abs(state.ball_pos.y()) < field_.penalty_y_max());
 }
 
 } // namespace ai_server::game::detail::mcts

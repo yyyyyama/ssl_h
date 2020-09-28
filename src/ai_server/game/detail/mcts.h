@@ -23,6 +23,9 @@ struct state {
   Eigen::Vector2d ball_pos;
   // ボールを持つロボット
   unsigned int chaser;
+  // ロボット
+  model::world::robots_list our_robots;
+  model::world::robots_list ene_robots;
   // 到達までの時間
   double t = 0.0;
 };
@@ -60,13 +63,10 @@ public:
 
   /// @brief MCTSを実行する
   /// @param field フィールド情報
-  /// @param our_robots 味方とするロボット
-  /// @param ene_robots 敵とするロボット
   /// @param our_goal_pos 自陣ゴール
   /// @param ene_goal_pos 敵陣ゴール
   /// @param root_node 開始時の状態を表すノード
-  void execute(const model::field& field, const model::world::robots_list& our_robots,
-               const model::world::robots_list& ene_robots, const Eigen::Vector2d& our_goal_pos,
+  void execute(const model::field& field, const Eigen::Vector2d& our_goal_pos,
                const Eigen::Vector2d& ene_goal_pos, node& root_node);
 };
 
