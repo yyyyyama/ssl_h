@@ -14,6 +14,7 @@ class team_info {
   int yellow_card_times_;
   int timeouts_;
   int timeout_time_;
+  int max_allowed_bots_;
 
 public:
   team_info(std::string name);
@@ -25,6 +26,7 @@ public:
   int yellow_card_times() const;
   int timeouts() const;
   int timeout_time() const;
+  int max_allowed_bots() const;
   void set_score(int value);
   void set_goalie(unsigned int value);
   void set_red_cards(int value);
@@ -32,6 +34,7 @@ public:
   void set_yellow_card_times(int value);
   void set_timeouts(int value);
   void set_timeout_time(int value);
+  void set_max_allowed_bots(int value);
 };
 
 } // namespace ai_server::model

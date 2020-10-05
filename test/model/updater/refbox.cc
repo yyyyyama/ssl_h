@@ -52,6 +52,7 @@ BOOST_AUTO_TEST_CASE(normal) {
     // blue.add_yellow_card_times(14);
     blue.set_timeouts(15);
     blue.set_timeout_time(16);
+    blue.set_max_allowed_bots(17);
     referee.mutable_blue()->CopyFrom(blue);
 
     ssl_protos::refbox::Referee_TeamInfo yellow{};
@@ -66,6 +67,7 @@ BOOST_AUTO_TEST_CASE(normal) {
     yellow.add_yellow_card_times(27);
     yellow.set_timeouts(28);
     yellow.set_timeout_time(29);
+    yellow.set_max_allowed_bots(30);
     referee.mutable_yellow()->CopyFrom(yellow);
   }
   BOOST_REQUIRE_NO_THROW(ru.update(referee));
@@ -94,6 +96,7 @@ BOOST_AUTO_TEST_CASE(normal) {
     BOOST_TEST(b.yellow_card_times() == 0);
     BOOST_TEST(b.timeouts() == referee.blue().timeouts());
     BOOST_TEST(b.timeout_time() == referee.blue().timeout_time());
+    BOOST_TEST(b.max_allowed_bots() == referee.blue().max_allowed_bots());
 
     const auto y = r.team_yellow();
     BOOST_TEST(y.name() == referee.yellow().name());
@@ -105,6 +108,7 @@ BOOST_AUTO_TEST_CASE(normal) {
     BOOST_TEST(y.yellow_card_times() == referee.yellow().yellow_card_times(0));
     BOOST_TEST(y.timeouts() == referee.yellow().timeouts());
     BOOST_TEST(y.timeout_time() == referee.yellow().timeout_time());
+    BOOST_TEST(y.max_allowed_bots() == referee.yellow().max_allowed_bots());
   }
 
   // stage_time_leftを設定してみる
@@ -131,6 +135,7 @@ BOOST_AUTO_TEST_CASE(abp, *boost::unit_test::tolerance(0.0000001)) {
     blue.set_yellow_cards(13);
     blue.set_timeouts(15);
     blue.set_timeout_time(16);
+    blue.set_max_allowed_bots(17);
     referee.mutable_blue()->CopyFrom(blue);
 
     ssl_protos::refbox::Referee_TeamInfo yellow{};
@@ -141,6 +146,7 @@ BOOST_AUTO_TEST_CASE(abp, *boost::unit_test::tolerance(0.0000001)) {
     yellow.set_yellow_cards(24);
     yellow.set_timeouts(28);
     yellow.set_timeout_time(29);
+    yellow.set_max_allowed_bots(30);
     referee.mutable_yellow()->CopyFrom(yellow);
 
     ssl_protos::refbox::Referee_Point point{};
@@ -191,6 +197,7 @@ BOOST_AUTO_TEST_CASE(bot_substitution) {
     blue->set_yellow_cards(13);
     blue->set_timeouts(15);
     blue->set_timeout_time(16);
+    blue->set_max_allowed_bots(17);
 
     auto yellow = referee.mutable_yellow();
     yellow->set_name("yellow");
@@ -200,6 +207,7 @@ BOOST_AUTO_TEST_CASE(bot_substitution) {
     yellow->set_yellow_cards(24);
     yellow->set_timeouts(28);
     yellow->set_timeout_time(29);
+    yellow->set_max_allowed_bots(30);
   }
 
   ai_server::model::updater::refbox ru{};

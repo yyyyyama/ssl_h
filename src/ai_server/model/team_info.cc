@@ -11,6 +11,7 @@ team_info::team_info(std::string name) {
   yellow_card_times_ = 0;
   timeouts_          = 0;
   timeout_time_      = 0;
+  max_allowed_bots_  = 11;
 }
 
 std::string team_info::name() const {
@@ -45,6 +46,10 @@ int team_info::timeout_time() const {
   return timeout_time_;
 }
 
+int team_info::max_allowed_bots() const {
+  return max_allowed_bots_;
+}
+
 void team_info::set_score(int value) {
   score_ = value;
 }
@@ -71,6 +76,10 @@ void team_info::set_timeouts(int value) {
 
 void team_info::set_timeout_time(int value) {
   timeout_time_ = value;
+}
+
+void team_info::set_max_allowed_bots(int value) {
+  max_allowed_bots_ = value;
 }
 
 } // namespace ai_server::model

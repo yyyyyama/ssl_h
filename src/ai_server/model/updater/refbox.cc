@@ -107,6 +107,7 @@ void refbox::update(const ssl_protos::refbox::Referee& referee) {
         team_info.yellow_card_times_size() > 0 ? team_info.yellow_card_times(0) : 0);
     result.set_timeouts(team_info.timeouts());
     result.set_timeout_time(team_info.timeout_time());
+    result.set_max_allowed_bots(team_info.max_allowed_bots());
     return result;
   };
   refbox_.set_team_blue(to_team_info(referee.blue()));

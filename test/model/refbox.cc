@@ -18,6 +18,7 @@ BOOST_AUTO_TEST_CASE(test01) {
   BOOST_TEST(team_test.yellow_card_times() == 0);
   BOOST_TEST(team_test.timeouts() == 0);
   BOOST_TEST(team_test.timeout_time() == 0);
+  BOOST_TEST(team_test.max_allowed_bots() == 11);
 }
 
 // team_info setter check
@@ -38,6 +39,8 @@ BOOST_AUTO_TEST_CASE(test02) {
   BOOST_TEST(team_test.timeouts() == 6);
   team_test.set_timeout_time(7);
   BOOST_TEST(team_test.timeout_time() == 7);
+  team_test.set_max_allowed_bots(8);
+  BOOST_TEST(team_test.max_allowed_bots() == 8);
 }
 
 // refbox getter and initialization check

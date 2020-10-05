@@ -942,6 +942,7 @@ public:
         l3_{"command", Gtk::ALIGN_END},
         l4_{"abp_target x", Gtk::ALIGN_END},
         l5_{"abp_target y", Gtk::ALIGN_END},
+        l6_{"goalie Yel | Blu", Gtk::ALIGN_END},
         updater_{global, refbox_} {
     sw_.set_active(!updater_.use_global());
     sw_.set_halign(Gtk::ALIGN_START);
@@ -959,6 +960,20 @@ public:
     }
     commands_.set_active(static_cast<int>(refbox_.refbox.command()));
     commands_.signal_changed().connect(
+        sigc::mem_fun(*this, &refbox_panel::handle_value_changed));
+
+    for (int i = 0; i < 16; ++i) {
+      yellow_ids_.append(std::to_string(i));
+    }
+    yellow_ids_.set_active(static_cast<int>(refbox_.refbox.stage()));
+    yellow_ids_.signal_changed().connect(
+        sigc::mem_fun(*this, &refbox_panel::handle_value_changed));
+
+    for (int i = 0; i < 16; ++i) {
+      blue_ids_.append(std::to_string(i));
+    }
+    blue_ids_.set_active(static_cast<int>(refbox_.refbox.stage()));
+    blue_ids_.signal_changed().connect(
         sigc::mem_fun(*this, &refbox_panel::handle_value_changed));
 
     const auto bpp(refbox_.refbox.ball_placement_position());
@@ -985,13 +1000,15 @@ public:
     grid_.attach_next_to(l3_, l2_, Gtk::POS_BOTTOM);
     grid_.attach_next_to(l4_, l3_, Gtk::POS_BOTTOM);
     grid_.attach_next_to(l5_, l4_, Gtk::POS_BOTTOM);
-
+    grid_.attach_next_to(l6_, l5_, Gtk::POS_BOTTOM);
     grid_.attach_next_to(sw_, l1_, Gtk::POS_RIGHT);
     grid_.attach_next_to(stages_, l2_, Gtk::POS_RIGHT, 2, 1);
     grid_.attach_next_to(commands_, l3_, Gtk::POS_RIGHT, 2, 1);
     grid_.attach_next_to(abp_x_, l4_, Gtk::POS_RIGHT, 2, 1);
     grid_.attach_next_to(abp_y_, l5_, Gtk::POS_RIGHT, 2, 1);
-    grid_.attach_next_to(button_, l5_, Gtk::POS_BOTTOM, 3, 1);
+    grid_.attach_next_to(yellow_ids_, l6_, Gtk::POS_RIGHT, 1, 1);
+    grid_.attach_next_to(blue_ids_, yellow_ids_, Gtk::POS_RIGHT, 1, 1);
+    grid_.attach_next_to(button_, l6_, Gtk::POS_BOTTOM, 3, 1);
 
     this->add(grid_);
 
@@ -1026,6 +1043,16 @@ private:
     if (const auto i = commands_.get_active_row_number(); i >= 0) {
       refbox_.refbox.set_command(static_cast<command_type>(i));
     }
+    if (const auto i = yellow_ids_.get_active_row_number(); i >= 0) {
+      auto team_info = refbox_.refbox.team_yellow();
+      team_info.set_goalie(i);
+      refbox_.refbox.set_team_yellow(team_info);
+    }
+    if (const auto i = blue_ids_.get_active_row_number(); i >= 0) {
+      auto team_info = refbox_.refbox.team_blue();
+      team_info.set_goalie(i);
+      refbox_.refbox.set_team_blue(team_info);
+    }
     auto& p = refbox_.abp_target;
     p       = Eigen::Vector2d(abp_x_.get_value(), abp_y_.get_value());
     refbox_.refbox.set_ball_placement_position(util::math::transform(refbox_.matrix, p));
@@ -1033,9 +1060,9 @@ private:
   }
 
   Gtk::Grid grid_;
-  Gtk::Label l1_, l2_, l3_, l4_, l5_;
+  Gtk::Label l1_, l2_, l3_, l4_, l5_, l6_;
   Gtk::Switch sw_;
-  Gtk::ComboBoxText stages_, commands_;
+  Gtk::ComboBoxText stages_, commands_, yellow_ids_, blue_ids_;
   Gtk::SpinButton abp_x_, abp_y_;
   Gtk::Button button_;
 
@@ -1200,10 +1227,19 @@ struct status_tree::handler<T, std::enable_if_t<std::is_same_v<
 
   template <class F>
   handler(const status_tree::model& m, F add_row)
-      : model{m}, r1{add_row()}, r2{add_row()}, r3{add_row()} {
+      : model{m},
+        r1{add_row()},
+        r2{add_row()},
+        r3{add_row()},
+        r4{add_row()},
+        r5{add_row()},
+        r6{add_row()} {
     r1[model.name] = "stage";
     r2[model.name] = "command";
     r3[model.name] = "abp_target";
+    r4[model.name] = "goalie";
+    r5[model.name] = "max allowed bots";
+    r6[model.name] = "timeout";
   }
 
   void update(const T& updater) const {
@@ -1212,11 +1248,19 @@ struct status_tree::handler<T, std::enable_if_t<std::is_same_v<
 
     r1[model.value] = stage_name_to_string(v.stage()).data();
     r2[model.value] = game_command_to_string(v.command()).data();
-    r3[model.value] = fmt::format("{}, {}", bpp.x(), bpp.y());
+    r3[model.value] = fmt::format("{}, {}", std::floor(bpp.x()), std::floor(bpp.y()));
+    r4[model.value] =
+        fmt::format("Yel:{}, Blu:{}", v.team_yellow().goalie(), v.team_blue().goalie());
+    r5[model.value] = fmt::format("Yel:{}, Blu:{}", v.team_yellow().max_allowed_bots(),
+                                  v.team_blue().max_allowed_bots());
+    r6[model.value] =
+        fmt::format("Yel:{}|{}, Blu:{}|{}", v.team_yellow().timeouts(),
+                    v.team_yellow().timeout_time() / 1000000, v.team_blue().timeouts(),
+                    v.team_blue().timeout_time() / 1000000);
   }
 
   const status_tree::model& model;
-  Gtk::TreeRow r1, r2, r3;
+  Gtk::TreeRow r1, r2, r3, r4, r5, r6;
 };
 
 auto main(int argc, char** argv) -> int {
