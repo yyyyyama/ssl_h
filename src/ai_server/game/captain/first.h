@@ -31,6 +31,10 @@ private:
 
   void steady(situation_type situation, bool situation_changed);
 
+  void setplay_defense(situation_type situation, bool situation_changed);
+
+  void setplay_defense_to_steady(situation_type situation, bool situation_changed);
+
   void ball_placement(situation_type situation, bool situation_changed);
 
   void timeout(situation_type situation, bool situation_changed);
@@ -62,13 +66,15 @@ private:
       return table.at(b).at(static_cast<std::size_t>(s));
     };
 
-    on(situation_type::halt, true)            = &first::halt;
-    on(situation_type::stop, true)            = &first::stopgame;
-    on(situation_type::stop, false)           = &first::stopgame;
-    on(situation_type::force_start, true)     = &first::steady;
-    on(situation_type::ball_placement, true)  = &first::ball_placement;
-    on(situation_type::ball_placement, false) = &first::ball_placement;
-    on(situation_type::timeout, true)         = &first::timeout;
+    on(situation_type::halt, true)             = &first::halt;
+    on(situation_type::stop, true)             = &first::stopgame;
+    on(situation_type::stop, false)            = &first::stopgame;
+    on(situation_type::force_start, true)      = &first::steady;
+    on(situation_type::setplay_defense, true)  = &first::setplay_defense;
+    on(situation_type::setplay_defense, false) = &first::setplay_defense_to_steady;
+    on(situation_type::ball_placement, true)   = &first::ball_placement;
+    on(situation_type::ball_placement, false)  = &first::ball_placement;
+    on(situation_type::timeout, true)          = &first::timeout;
 
     return table;
   }();

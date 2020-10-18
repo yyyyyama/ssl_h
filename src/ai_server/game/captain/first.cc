@@ -2,6 +2,7 @@
 
 #include "ai_server/game/formation/ball_placement.h"
 #include "ai_server/game/formation/halt.h"
+#include "ai_server/game/formation/setplay_defense.h"
 #include "ai_server/game/formation/steady.h"
 #include "ai_server/game/formation/stopgame.h"
 #include "ai_server/game/formation/timeout.h"
@@ -54,6 +55,25 @@ void first::steady([[maybe_unused]] situation_type situation,
       std::vector(ids_.cbegin(), ids_.cend()), team_color() == model::team_color::yellow
                                                    ? refbox().team_yellow().goalie()
                                                    : refbox().team_blue().goalie());
+}
+
+void first::setplay_defense([[maybe_unused]] situation_type situation,
+                            [[maybe_unused]] bool situation_changed) {
+  logger_.debug("setplay_defense");
+  current_formation_ = make_formation<formation::setplay_defense>(
+      std::vector(ids_.cbegin(), ids_.cend()), team_color() == model::team_color::yellow
+                                                   ? refbox().team_yellow().goalie()
+                                                   : refbox().team_blue().goalie());
+}
+
+void first::setplay_defense_to_steady([[maybe_unused]] situation_type situation,
+                                      [[maybe_unused]] bool situation_changed) {
+  if (auto f = std::dynamic_pointer_cast<formation::setplay_defense>(current_formation_)) {
+    if (f->finished()) {
+      logger_.debug("setplay_defense_to_steady");
+      steady(situation, situation_changed);
+    }
+  }
 }
 
 void first::ball_placement(situation_type situation, bool situation_changed) {
