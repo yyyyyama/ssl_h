@@ -31,6 +31,10 @@ private:
 
   void steady(situation_type situation, bool situation_changed);
 
+  void setplay_attack(situation_type situation, bool situation_changed);
+
+  void setplay_attack_to_steady(situation_type situation, bool situation_changed);
+
   void setplay_defense(situation_type situation, bool situation_changed);
 
   void setplay_defense_to_steady(situation_type situation, bool situation_changed);
@@ -70,6 +74,8 @@ private:
     on(situation_type::stop, true)             = &first::stopgame;
     on(situation_type::stop, false)            = &first::stopgame;
     on(situation_type::force_start, true)      = &first::steady;
+    on(situation_type::setplay_attack, true)   = &first::setplay_attack;
+    on(situation_type::setplay_attack, false)  = &first::setplay_attack_to_steady;
     on(situation_type::setplay_defense, true)  = &first::setplay_defense;
     on(situation_type::setplay_defense, false) = &first::setplay_defense_to_steady;
     on(situation_type::ball_placement, true)   = &first::ball_placement;
@@ -83,6 +89,7 @@ private:
   const std::set<unsigned int> ids_;
 
   detail::state state_;
+  std::chrono::steady_clock::time_point situation_changed_time_;
   std::shared_ptr<formation::v2::base> current_formation_;
   Eigen::Vector2d prev_abp_target_;
 

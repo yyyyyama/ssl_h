@@ -2,6 +2,7 @@
 
 #include "ai_server/game/formation/ball_placement.h"
 #include "ai_server/game/formation/halt.h"
+#include "ai_server/game/formation/setplay_attack.h"
 #include "ai_server/game/formation/setplay_defense.h"
 #include "ai_server/game/formation/steady.h"
 #include "ai_server/game/formation/stopgame.h"
@@ -11,9 +12,13 @@
 #include "first.h"
 
 namespace ai_server::game::captain {
+using namespace std::chrono_literals;
 
 first::first(context& ctx, const model::refbox& refbox, const std::set<unsigned int>& ids)
-    : base{ctx, refbox}, ids_{ids}, state_{team_color()} {}
+    : base{ctx, refbox},
+      ids_{ids},
+      state_{team_color()},
+      situation_changed_time_{std::chrono::steady_clock::time_point::min()} {}
 
 std::shared_ptr<formation::v2::base> first::execute() {
   // situation の更新
@@ -24,6 +29,7 @@ std::shared_ptr<formation::v2::base> first::execute() {
   if (situation_changed) {
     logger_.debug(fmt::format("{} -> {}", situation_to_string(prev_situation),
                               situation_to_string(current_situation)));
+    situation_changed_time_ = std::chrono::steady_clock::now();
   }
 
   // 状況に応じたメンバ関数を呼び出して formation を更新する
@@ -55,6 +61,24 @@ void first::steady([[maybe_unused]] situation_type situation,
       std::vector(ids_.cbegin(), ids_.cend()), team_color() == model::team_color::yellow
                                                    ? refbox().team_yellow().goalie()
                                                    : refbox().team_blue().goalie());
+}
+
+void first::setplay_attack([[maybe_unused]] situation_type situation,
+                           [[maybe_unused]] bool situation_changed) {
+  logger_.debug("setplay_attack");
+  current_formation_ = make_formation<formation::setplay_attack>(
+      std::vector(ids_.cbegin(), ids_.cend()), team_color() == model::team_color::yellow
+                                                   ? refbox().team_yellow().goalie()
+                                                   : refbox().team_blue().goalie());
+}
+
+void first::setplay_attack_to_steady(situation_type situation, bool situation_changed) {
+  if (auto f = std::dynamic_pointer_cast<formation::setplay_attack>(current_formation_)) {
+    if (f->finished() || std::chrono::steady_clock::now() - situation_changed_time_ > 15s) {
+      logger_.debug("setplay_attack -> steady");
+      steady(situation, situation_changed);
+    }
+  }
 }
 
 void first::setplay_defense([[maybe_unused]] situation_type situation,
