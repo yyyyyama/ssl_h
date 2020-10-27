@@ -1,6 +1,7 @@
 #ifndef AI_SERVER_GAME_AGENT_SETPLAY_H
 #define AI_SERVER_GAME_AGENT_SETPLAY_H
 
+#include <chrono>
 #include <memory>
 #include <vector>
 #include <Eigen/Core>
@@ -36,6 +37,7 @@ private:
   unsigned int kicker_id_;
   unsigned int shooter_id_;
   const std::vector<unsigned int> receiver_ids_;
+  std::chrono::steady_clock::time_point start_point_;
   Eigen::Vector2d prev_ball_vel_;
   std::shared_ptr<action::kick> kick_;
   std::shared_ptr<action::get_ball> get_ball_;

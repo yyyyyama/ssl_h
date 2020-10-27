@@ -21,7 +21,10 @@ namespace agent {
 
 setplay::setplay(context& ctx, unsigned int kicker_id,
                  const std::vector<unsigned int>& receiver_ids)
-    : base(ctx), kicker_id_(kicker_id), receiver_ids_(receiver_ids) {
+    : base(ctx),
+      kicker_id_(kicker_id),
+      receiver_ids_(receiver_ids),
+      start_point_(std::chrono::steady_clock::now()) {
   kick_                            = make_action<action::kick>(kicker_id_);
   shooter_id_                      = 0;
   shooter_num_                     = 0;
@@ -54,6 +57,7 @@ std::vector<std::shared_ptr<action::base>> setplay::execute() {
   const auto enemy_robots = model::enemy_robots(world(), team_color());
   std::vector<std::shared_ptr<action::base>> baseaction;
 
+  // 渡されてきたロボットがすべて見えないとき
   // kicker_idが見えない
   if (!our_robots.count(kicker_id_)
       // またはreceiver_idsのロボットが見えない時
@@ -140,7 +144,9 @@ std::vector<std::shared_ptr<action::base>> setplay::execute() {
     state_      = state::shoot;
     shooter_id_ = kicker_id_;
   }
-  constexpr int run_dist = 3000;
+  const int run_dist = world().field().x_max() / 2;
+  const auto x_max   = world().field().x_max();
+  const auto y_max   = world().field().y_max();
   switch (state_) {
     case setplay::state::setup: {
       // ロボットを指定位置へ移動させる
@@ -150,18 +156,18 @@ std::vector<std::shared_ptr<action::base>> setplay::execute() {
         for (int i = 0; i < static_cast<int>(receiver_ids_.size()); ++i) {
           const double kick_off_coe = ball_pos.norm() > 250 ? 1.0 : -1.0;
           const double dy =
-              6000 / (receiver_ids_.size() + 1) / (std::abs(ball_pos.y()) > 1500 ? 1 : 2);
-          const double dx = 2000;
+              x_max / (receiver_ids_.size() + 1) / (std::abs(ball_pos.y()) > y_max / 3 ? 1 : 2);
+          const double dx = x_max / 3;
           // コーナー
           constexpr int far_max[] = {3000, 4000};
-          if (ball_pos.x() > 2000) {
+          if (ball_pos.x() > x_max / 3) {
             pos_ = pos::far;
             switch (mode_) {
               case (1): {
                 const Eigen::Vector2d tmp_pos = {ball_pos.x() - (i + 1) * dx - run_dist,
-                                                 -ballysign * (3000 - (i + 1) * dy)};
+                                                 -ballysign * (y_max / 3 * 2 - (i + 1) * dy)};
                 double mid_add                = 1;
-                if (std::abs(ball_pos.y()) < 1500) {
+                if (std::abs(ball_pos.y()) < y_max / 3) {
                   mid_add = i % 2 ? -1 : 1;
                 }
                 positions_.push_back({tmp_pos.x() < ball_pos.x() - far_max[mode_]
@@ -172,9 +178,9 @@ std::vector<std::shared_ptr<action::base>> setplay::execute() {
               }
               default: {
                 const Eigen::Vector2d tmp_pos = {ball_pos.x() - (i + 1) * dx,
-                                                 -ballysign * (3000 - (i + 1) * dy)};
+                                                 -ballysign * (y_max / 3 * 2 - (i + 1) * dy)};
                 double mid_add                = 1;
-                if (std::abs(ball_pos.y()) < 1500) {
+                if (std::abs(ball_pos.y()) < y_max / 3) {
                   mid_add = i % 2 ? -1 : 1;
                 }
                 positions_.push_back({tmp_pos.x() < ball_pos.x() - far_max[mode_]
@@ -184,31 +190,31 @@ std::vector<std::shared_ptr<action::base>> setplay::execute() {
                 break;
               }
             }
-          } else if (ball_pos.x() < -3000) {
+          } else if (ball_pos.x() < -x_max / 2) {
             pos_                          = pos::near;
-            const Eigen::Vector2d tmp_pos = {ball_pos.x() + (i + 2) * 2000,
-                                             -ballysign * (3000 - (i + 1) * dy)};
+            const Eigen::Vector2d tmp_pos = {ball_pos.x() + (i + 2) * (x_max / 3),
+                                             -ballysign * (y_max / 3 * 2 - (i + 1) * dy)};
             double mid_add                = 1;
-            if (std::abs(ball_pos.y()) < 1500) {
+            if (std::abs(ball_pos.y()) < y_max / 3) {
               mid_add = i % 2 ? -1 : 1;
             }
             positions_.push_back({tmp_pos.x(), tmp_pos.y() * mid_add});
           } else {
             pos_                          = pos::mid;
-            const Eigen::Vector2d tmp_pos = {ball_pos.x() + (i + 1) * 2000 * kick_off_coe,
-                                             -ballysign * (3000 - (i + 1) * dy)};
-            double mid_add                = 1;
-            if (std::abs(ball_pos.y()) < 1500) {
+            const Eigen::Vector2d tmp_pos = {
+                ball_pos.x() + (i + 1) * (x_max / 3) * kick_off_coe,
+                -ballysign * (y_max / 3 * 2 - (i + 1) * dy)};
+            double mid_add = 1;
+            if (std::abs(ball_pos.y()) < y_max / 3) {
               mid_add = i % 2 ? -1 : 1;
             }
-            positions_.push_back(
-                {tmp_pos.x() > 3000 ? 3000 : tmp_pos.x(), tmp_pos.y() * mid_add});
+            positions_.push_back({std::min(x_max / 2, tmp_pos.x()), tmp_pos.y() * mid_add});
           }
           if (positions_[i].x() > enemygoal_x - 500) {
             positions_[i].x() = enemygoal_x - 500;
           }
-          if (std::hypot(enemygoal_x - positions_[i].x(), positions_[i].y()) < 1500) {
-            positions_[i].x() = enemygoal_x - 1500;
+          if (std::hypot(enemygoal_x - positions_[i].x(), positions_[i].y()) < y_max / 3) {
+            positions_[i].x() = enemygoal_x - x_max / 2;
           }
         } // }}}
       }
@@ -216,6 +222,8 @@ std::vector<std::shared_ptr<action::base>> setplay::execute() {
       shooter_id_ = receiver_ids_[shooter_num_];
       passpos_    = {positions_[shooter_num_].x(), positions_[shooter_num_].y()};
       receive_    = make_action<action::receive>(shooter_id_);
+
+      break;
     }
     case state::pass: {
       if ((shoot_pos - ball_pos).norm() > 200 && change_count_ < 5 &&
@@ -249,12 +257,17 @@ std::vector<std::shared_ptr<action::base>> setplay::execute() {
         line_flag   = false;
       }
 
-      bool movedflag = true;
+      bool movedflag   = true;
+      const auto point = std::chrono::steady_clock::now();
       // ロボットたちが指定位置に移動したか
       if ((positions_[shooter_num_] - util::math::position(our_robots.at(shooter_id_))).norm() >
               500 &&
           !receive_flag_) {
-        movedflag = false;
+        // 開始から４秒たっていたら指定位置ではなくロボットの位置へパス
+        if (point - start_point_ < std::chrono::seconds(4))
+          movedflag = false;
+        else
+          passpos_ = util::math::position(our_robots.at(shooter_id_));
       }
 
       if (mode_ == 1 && !receive_flag_) {
@@ -442,6 +455,8 @@ std::vector<std::shared_ptr<action::base>> setplay::execute() {
                 min_dist        = distance;
                 to_keeper_theta = std::atan2(enemy_robot.y() - shooter_pos.y(),
                                              enemy_robot.x() - shooter_pos.x());
+              } else {
+                to_keeper_theta = std::atan2(-shooter_pos.y(), enemygoal_x - shooter_pos.x());
               }
             }
             if (min_dist != std::numeric_limits<double>::max()) {
@@ -478,8 +493,7 @@ std::vector<std::shared_ptr<action::base>> setplay::execute() {
     case state::shoot: {
       // シュートを撃つ
       if (receiver_ids_.size() == 0) {
-        Eigen::Vector2d target = {enemygoal_x, 0 * ballysign};
-        const double power     = 255;
+        const double power = 255;
         kick_->kick_to(shoot_pos.x(), shoot_pos.y());
         kick_->set_dribble(0);
         kick_->set_mode(action::kick::mode::ball);
