@@ -91,7 +91,7 @@ static constexpr auto lost_duration = 1s; // ロスト判定するまでの時�
 
 // Visionの設定
 static constexpr char vision_address[] = "224.5.23.2";
-static constexpr short vision_port     = 10020;
+static constexpr short vision_port     = 10006;
 static constexpr int num_cameras       = 8;
 
 // Refboxの設定
@@ -103,7 +103,8 @@ static constexpr char robot_address[] = "224.5.23.2";
 static constexpr short robot_port     = 10004;
 
 // Radioの設定
-static constexpr bool is_grsim            = true;
+static constexpr bool is_grsim            = false;
+static constexpr bool use_udp             = true;
 static constexpr char xbee_path[]         = "/dev/ttyUSB0";
 static constexpr char grsim_address[]     = "127.0.0.1";
 static constexpr short grsim_command_port = 20011;
@@ -1381,23 +1382,24 @@ auto main(int argc, char** argv) -> int {
     // Radioの設定
     auto radio = [&] {
       if constexpr (is_grsim) {
-        /*
         auto con = std::make_unique<radio::connection::udp>(
             driver_io, boost::asio::ip::udp::endpoint{
                            boost::asio::ip::make_address(grsim_address), grsim_command_port});
         l.info(fmt::format("radio: grSim ({}:{})", grsim_address, grsim_command_port));
         return std::make_shared<radio::grsim<radio::connection::udp>>(std::move(con));
-        */
-        auto con = std::make_unique<radio::connection::udp>(
-            driver_io, boost::asio::ip::udp::endpoint{
-                           boost::asio::ip::make_address(robot_address), robot_port});
-        l.info(fmt::format("radio: robot ({}:{})", robot_address, robot_port));
-        return std::make_shared<radio::kiks<radio::connection::udp>>(std::move(con));
       } else {
-        auto con = std::make_unique<radio::connection::serial>(
-            driver_io, xbee_path, radio::connection::serial::baud_rate(57600));
-        l.info(fmt::format("radio: kiks ({})", xbee_path));
-        return std::make_shared<radio::kiks<radio::connection::serial>>(std::move(con));
+        if constexpr (use_udp) {
+          auto con = std::make_unique<radio::connection::udp>(
+              driver_io, boost::asio::ip::udp::endpoint{
+                             boost::asio::ip::make_address(robot_address), robot_port});
+          l.info(fmt::format("radio: kiks ({}:{})", robot_address, robot_port));
+          return std::make_shared<radio::kiks<radio::connection::udp>>(std::move(con));
+        } else {
+          auto con = std::make_unique<radio::connection::serial>(
+              driver_io, xbee_path, radio::connection::serial::baud_rate(57600));
+          l.info(fmt::format("radio: kiks ({})", xbee_path));
+          return std::make_shared<radio::kiks<radio::connection::serial>>(std::move(con));
+        }
       }
     }();
 
