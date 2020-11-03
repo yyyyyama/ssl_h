@@ -48,6 +48,7 @@
 #include "ai_server/radio/grsim.h"
 #include "ai_server/radio/kiks.h"
 #include "ai_server/receiver/refbox.h"
+#include "ai_server/receiver/robot.h"
 #include "ai_server/receiver/vision.h"
 #include "ai_server/util/math/affine.h"
 #include "ai_server/util/math/angle.h"
@@ -89,15 +90,19 @@ static constexpr auto lost_duration = 1s; // ロスト判定するまでの時�
 
 // Visionの設定
 static constexpr char vision_address[] = "224.5.23.2";
-static constexpr short vision_port     = 10006;
+static constexpr short vision_port     = 10020;
 static constexpr int num_cameras       = 8;
 
 // Refboxの設定
 static constexpr char refbox_address[] = "224.5.23.1";
 static constexpr short refbox_port     = 10003;
 
+// Robotの設定
+static constexpr char robot_address[] = "224.5.23.2";
+static constexpr short robot_port     = 10004;
+
 // Radioの設定
-static constexpr bool is_grsim            = false;
+static constexpr bool is_grsim            = true;
 static constexpr char xbee_path[]         = "/dev/ttyUSB0";
 static constexpr char grsim_address[]     = "127.0.0.1";
 static constexpr short grsim_command_port = 20011;
@@ -1345,6 +1350,20 @@ auto main(int argc, char** argv) -> int {
     });
     l.info(fmt::format("refbox: {}:{}", refbox_address, refbox_port));
 
+    // Robot receiverの設定
+    std::atomic<bool> robot_received{false};
+    receiver::robot robot{receiver_io, "0.0.0.0", robot_address, robot_port};
+    robot.on_receive([&robot_received, &l](auto&& p) {
+      if (!robot_received) {
+        // 最初に受信したときにメッセージを表示する
+        l.info("robot packet received!");
+        robot_received = true;
+      }
+      for (auto msg : p) std::cout << static_cast<int>(msg);
+      std::cout << "\n";
+    });
+    l.info(fmt::format("robot: {}:{}", robot_address, robot_port));
+
     // receiver_ioに登録されたタスクを別スレッドで開始
     std::thread receiver_thread{[&receiver_io, &l] {
       try {
@@ -1361,11 +1380,18 @@ auto main(int argc, char** argv) -> int {
     // Radioの設定
     auto radio = [&] {
       if constexpr (is_grsim) {
+        /*
         auto con = std::make_unique<radio::connection::udp>(
             driver_io, boost::asio::ip::udp::endpoint{
                            boost::asio::ip::make_address(grsim_address), grsim_command_port});
         l.info(fmt::format("radio: grSim ({}:{})", grsim_address, grsim_command_port));
         return std::make_shared<radio::grsim<radio::connection::udp>>(std::move(con));
+        */
+        auto con = std::make_unique<radio::connection::udp>(
+            driver_io, boost::asio::ip::udp::endpoint{
+                           boost::asio::ip::make_address(robot_address), robot_port});
+        l.info(fmt::format("radio: robot ({}:{})", robot_address, robot_port));
+        return std::make_shared<radio::kiks<radio::connection::udp>>(std::move(con));
       } else {
         auto con = std::make_unique<radio::connection::serial>(
             driver_io, xbee_path, radio::connection::serial::baud_rate(57600));
