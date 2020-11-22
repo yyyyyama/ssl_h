@@ -157,7 +157,8 @@ void state_feedback::calculate_regulator(const model::robot& robot) {
   u_[0] = up_[0] + ui_[0] + ud_[0];
 }
 
-Eigen::Vector3d state_feedback::convert(const Eigen::Vector3d& raw, const double robot_theta) {
+Eigen::Vector3d state_feedback::convert(const Eigen::Vector3d& raw,
+                                        const double robot_theta) const {
   Eigen::Vector3d target = Eigen::AngleAxisd(-robot_theta, Eigen::Vector3d::UnitZ()) * raw;
   return target;
 }
@@ -231,7 +232,7 @@ void state_feedback::calculate_output(const model::field& field, Eigen::Vector3d
 }
 
 double state_feedback::find_cross_point(const double x_1, const double y_2,
-                                        const double angle) {
+                                        const double angle) const {
   // 2点から直線の式を求め,交点を求める
   // (y_1,x_2はゼロ)
   double x;

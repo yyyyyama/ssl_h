@@ -9,7 +9,7 @@ namespace detail {
 /// @brief  速度生成器
 class velocity_generator {
 private:
-  double cycle_;                    // 周期
+  const double cycle_;              // 周期
   static const double v_max_;       // 最大速度
   static const double a_max_;       // 最大加速度
   static const double a_min_;       // 最小加速度

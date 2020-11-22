@@ -84,7 +84,7 @@ private:
   std::shared_ptr<action::get_ball> get_ball_;
 
   // chase id_の候補を取得
-  unsigned int select_chaser();
+  unsigned int select_chaser() const;
   // 1枚目のマーキングの再構成
   void update_first_marking();
   // 2枚目のマーキングの再構成
@@ -92,17 +92,17 @@ private:
   //　余ったロボットへの割当て
   void update_recievers();
   // 敵リストの作成
-  std::priority_queue<id_importance> make_enemy_list();
+  std::priority_queue<id_importance> make_enemy_list() const;
   // パス経路を生成してポイントを返す
-  point select_target();
+  point select_target() const;
   // ターゲットに最も近いロボットID
   std::vector<unsigned int>::const_iterator nearest_id(const std::vector<unsigned int>& can_ids,
                                                        double target_x, double target_y) const;
   // 空いているエリアを返す
   area empty_area(const area& area, unsigned int my_id,
-                  const std::vector<unsigned int>& our_ids);
+                  const std::vector<unsigned int>& our_ids) const;
   // 指定位置がエリア上にあるかどうか
-  bool in_area(double x, double y, const regular::area& area);
+  bool in_area(double x, double y, const regular::area& area) const;
 };
 
 } // namespace ai_server::game::agent

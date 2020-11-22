@@ -25,13 +25,13 @@ receive::receive(context& ctx, unsigned int id)
 void receive::set_dribble(int dribble) {
   dribble_ = dribble;
 }
-int receive::dribble() {
+int receive::dribble() const {
   return dribble_;
 }
 void receive::set_passer(unsigned int passer_id) {
   passer_id_ = passer_id;
 }
-unsigned int receive::passer() {
+unsigned int receive::passer() const {
   return passer_id_;
 }
 void receive::set_shoot(const Eigen::Vector2d& shoot_pos) {

@@ -74,17 +74,17 @@ private:
   std::chrono::steady_clock::time_point change_command_time_;
   std::chrono::steady_clock::time_point kicked_time_;
   bool time_over(const std::chrono::steady_clock::time_point& point,
-                 const std::chrono::steady_clock::time_point& time, int count);
+                 const std::chrono::steady_clock::time_point& time, int count) const;
 
   void reset_agent();
   void role_reset(const id_vec& visible_robots);
-  Eigen::Vector2d abp_target();
+  Eigen::Vector2d abp_target() const;
   Eigen::Vector2d prev_abp_target_;
 
   game_command_type previous_command_;
   game_command_type current_command_;
   //前回のgame_command_typeから変化したか判定する
-  bool is_command_changed();
+  bool is_command_changed() const;
 
   Eigen::Vector2d previous_ball_;
   std::array<Eigen::Vector2d, 5> past_ball_;

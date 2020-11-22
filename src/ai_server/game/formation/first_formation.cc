@@ -220,12 +220,13 @@ bool first_formation::kicked(const Eigen::Vector2d& ball) {
   }
 }
 
-bool first_formation::is_command_changed() {
+bool first_formation::is_command_changed() const {
   return current_command_ != previous_command_;
 }
 
 bool first_formation::time_over(const std::chrono::steady_clock::time_point& point,
-                                const std::chrono::steady_clock::time_point& time, int count) {
+                                const std::chrono::steady_clock::time_point& time,
+                                int count) const {
   return (point - time) > std::chrono::seconds(count);
 }
 
@@ -241,7 +242,7 @@ void first_formation::reset_agent() {
   setplay_.reset();
 }
 
-Eigen::Vector2d first_formation::abp_target() {
+Eigen::Vector2d first_formation::abp_target() const {
   return refcommand_.ball_placement_position();
 }
 
