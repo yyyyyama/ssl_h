@@ -2,6 +2,7 @@
 
 #include "ai_server/game/formation/ball_placement.h"
 #include "ai_server/game/formation/halt.h"
+#include "ai_server/game/formation/penalty_defense.h"
 #include "ai_server/game/formation/setplay_attack.h"
 #include "ai_server/game/formation/setplay_defense.h"
 #include "ai_server/game/formation/steady.h"
@@ -61,6 +62,24 @@ void first::steady([[maybe_unused]] situation_type situation,
       std::vector(ids_.cbegin(), ids_.cend()), team_color() == model::team_color::yellow
                                                    ? refbox().team_yellow().goalie()
                                                    : refbox().team_blue().goalie());
+}
+
+void first::penalty_defense([[maybe_unused]] situation_type situation,
+                            [[maybe_unused]] bool situation_changed) {
+  logger_.debug("penalty_defense");
+  current_formation_ = make_formation<formation::penalty_defense>(
+      std::vector(ids_.cbegin(), ids_.cend()),
+      model::our_team_info(refbox(), team_color()).goalie(),
+      model::enemy_team_info(refbox(), team_color()).goalie());
+}
+
+void first::penalty_defense_to_steady(situation_type situation, bool situation_changed) {
+  if (auto f = std::dynamic_pointer_cast<formation::penalty_defense>(current_formation_)) {
+    if (f->finished()) {
+      logger_.debug("penalty_defense -> steady");
+      steady(situation, situation_changed);
+    }
+  }
 }
 
 void first::setplay_attack([[maybe_unused]] situation_type situation,
