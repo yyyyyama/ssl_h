@@ -16,6 +16,7 @@ const double state_feedback::zeta_      = 1.0;
 const double state_feedback::omega_     = 49.17;
 const double state_feedback::v_max_     = 10000.0;
 const double state_feedback::omega_max_ = 10.0;
+const double state_feedback::alpha_max_ = 2.0 * pi<double>();
 
 state_feedback::state_feedback(const double cycle)
     : base(v_max_),
@@ -61,6 +62,11 @@ base::result_type state_feedback::update(const model::robot& robot, const model:
     target.x() = vel.x();
     target.y() = vel.y();
     target.z() = std::clamp(4.0 * util::math::wrap_to_pi(delta_p.z()), -omega_max_, omega_max_);
+    if (std::abs(u_[1].z()) < std::abs(target.z()) ||
+        std::signbit(u_[1].z()) != std::signbit(target.z())) {
+      target.z() = std::clamp(target.z(), u_[1].z() - alpha_max_ * cycle_,
+                              u_[1].z() + alpha_max_ * cycle_);
+    }
   }
 
   calculate_output(field, target);
@@ -85,6 +91,11 @@ base::result_type state_feedback::update(const model::robot& robot, const model:
     target.x() = vel.x();
     target.y() = vel.y();
     target.z() = std::clamp(std::get<0>(velangular), -omega_max_, omega_max_);
+    if (std::abs(u_[1].z()) < std::abs(target.z()) ||
+        std::signbit(u_[1].z()) != std::signbit(target.z())) {
+      target.z() = std::clamp(target.z(), u_[1].z() - alpha_max_ * cycle_,
+                              u_[1].z() + alpha_max_ * cycle_);
+    }
   }
 
   calculate_output(field, target);
@@ -109,6 +120,11 @@ base::result_type state_feedback::update(const model::robot& robot, const model:
   target.x() = vel.x();
   target.y() = vel.y();
   target.z() = std::clamp(4.0 * util::math::wrap_to_pi(delta_p_z), -omega_max_, omega_max_);
+  if (std::abs(u_[1].z()) < std::abs(target.z()) ||
+      std::signbit(u_[1].z()) != std::signbit(target.z())) {
+    target.z() = std::clamp(target.z(), u_[1].z() - alpha_max_ * cycle_,
+                            u_[1].z() + alpha_max_ * cycle_);
+  }
 
   calculate_output(field, target);
 
@@ -130,6 +146,11 @@ base::result_type state_feedback::update(const model::robot& robot, const model:
   target.x() = vel.x();
   target.y() = vel.y();
   target.z() = std::clamp(set.z(), -omega_max_, omega_max_);
+  if (std::abs(u_[1].z()) < std::abs(target.z()) ||
+      std::signbit(u_[1].z()) != std::signbit(target.z())) {
+    target.z() = std::clamp(target.z(), u_[1].z() - alpha_max_ * cycle_,
+                            u_[1].z() + alpha_max_ * cycle_);
+  }
 
   calculate_output(field, target);
 

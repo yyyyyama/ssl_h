@@ -30,7 +30,8 @@ private:
   static const double zeta_;        // モデルパラメータζ
   static const double omega_;       // モデルパラメータω
   static const double v_max_;       // 最大速度
-  static const double omega_max_;   // 最大加速度
+  static const double omega_max_;   // 最大角速度
+  static const double alpha_max_;   // 最大角加速度
   Eigen::Vector3d kp_;              // 比例ゲイン(x,y,rotate)
   Eigen::Vector3d ki_;              // 積分ゲイン(x,y,rotate)
   Eigen::Vector3d kd_;              // 微分ゲイン(x,y,rotate)
