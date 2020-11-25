@@ -51,18 +51,16 @@ void first::halt([[maybe_unused]] situation_type situation,
 void first::stopgame([[maybe_unused]] situation_type situation, bool situation_changed) {
   if (situation_changed) logger_.debug("stopgame");
   current_formation_ = make_formation<formation::stopgame>(
-      std::vector(ids_.cbegin(), ids_.cend()), team_color() == model::team_color::yellow
-                                                   ? refbox().team_yellow().goalie()
-                                                   : refbox().team_blue().goalie());
+      std::vector(ids_.cbegin(), ids_.cend()),
+      model::our_team_info(refbox(), team_color()).goalie());
 }
 
 void first::steady([[maybe_unused]] situation_type situation,
                    [[maybe_unused]] bool situation_changed) {
   logger_.debug("steady");
-  current_formation_ = make_formation<formation::steady>(
-      std::vector(ids_.cbegin(), ids_.cend()), team_color() == model::team_color::yellow
-                                                   ? refbox().team_yellow().goalie()
-                                                   : refbox().team_blue().goalie());
+  current_formation_ =
+      make_formation<formation::steady>(std::vector(ids_.cbegin(), ids_.cend()),
+                                        model::our_team_info(refbox(), team_color()).goalie());
 }
 
 void first::penalty_attack([[maybe_unused]] situation_type situation,
@@ -83,8 +81,7 @@ void first::penalty_attack_start([[maybe_unused]] situation_type situation,
       model::enemy_team_info(refbox(), team_color()).goalie(), true);
 }
 
-void first::penalty_attack_start_to_steady([[maybe_unused]] situation_type situation,
-                                           [[maybe_unused]] bool situation_changed) {
+void first::penalty_attack_start_to_steady(situation_type situation, bool situation_changed) {
   if (auto f = std::dynamic_pointer_cast<formation::penalty_attack>(current_formation_)) {
     if (f->finished() || std::chrono::steady_clock::now() - situation_changed_time_ > 10s) {
       logger_.debug("penalty_attack_start -> steady");
@@ -115,9 +112,8 @@ void first::setplay_attack([[maybe_unused]] situation_type situation,
                            [[maybe_unused]] bool situation_changed) {
   logger_.debug("setplay_attack");
   current_formation_ = make_formation<formation::setplay_attack>(
-      std::vector(ids_.cbegin(), ids_.cend()), team_color() == model::team_color::yellow
-                                                   ? refbox().team_yellow().goalie()
-                                                   : refbox().team_blue().goalie());
+      std::vector(ids_.cbegin(), ids_.cend()),
+      model::our_team_info(refbox(), team_color()).goalie());
 }
 
 void first::setplay_attack_to_steady(situation_type situation, bool situation_changed) {
@@ -133,13 +129,11 @@ void first::setplay_defense([[maybe_unused]] situation_type situation,
                             [[maybe_unused]] bool situation_changed) {
   logger_.debug("setplay_defense");
   current_formation_ = make_formation<formation::setplay_defense>(
-      std::vector(ids_.cbegin(), ids_.cend()), team_color() == model::team_color::yellow
-                                                   ? refbox().team_yellow().goalie()
-                                                   : refbox().team_blue().goalie());
+      std::vector(ids_.cbegin(), ids_.cend()),
+      model::our_team_info(refbox(), team_color()).goalie());
 }
 
-void first::setplay_defense_to_steady([[maybe_unused]] situation_type situation,
-                                      [[maybe_unused]] bool situation_changed) {
+void first::setplay_defense_to_steady(situation_type situation, bool situation_changed) {
   if (auto f = std::dynamic_pointer_cast<formation::setplay_defense>(current_formation_)) {
     if (f->finished()) {
       logger_.debug("setplay_defense_to_steady");

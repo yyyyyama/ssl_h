@@ -62,7 +62,7 @@ public:
 
   virtual ~base() = default;
 
-  /// @brief        呼び出されたループでのAgentを取得する
+  /// @brief        呼び出されたループでのActionを取得する
   virtual std::vector<std::shared_ptr<action::base>> execute() = 0;
 
 protected:
