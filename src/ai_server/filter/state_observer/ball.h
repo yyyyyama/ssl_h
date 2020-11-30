@@ -13,7 +13,7 @@ namespace state_observer {
 class ball : public base<model::ball, timing::same> {
 private:
   // 係数群
-  static constexpr double fric_coef_     = 0.004;        // 床とボールの摩擦係数
+  static constexpr double fric_coef_     = 0.04;         // 床とボールの摩擦係数
   static constexpr double ball_weight_   = 45.93 / 1000; // ボールの重さ[kg]
   static constexpr double ball_radius_   = 42.67 / 2000; // ボールの半径[m]
   static constexpr double air_viscosity_ = 1.822e-5;     // 空気の粘度[Pa・s]
