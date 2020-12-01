@@ -22,6 +22,18 @@ model::ball transform(const Eigen::Affine3d& matrix, const model::ball& ball);
 /// @return          変換後の値
 model::robot transform(const Eigen::Affine3d& matrix, const model::robot& robot);
 
+/// @brief           ボールの座標，速度，加速度の変換を行う
+/// @param matrix    変換行列
+/// @param ball      変換する値
+/// @return          変換後の値
+model::ball transform_all(const Eigen::Affine3d& matrix, const model::ball& ball);
+
+/// @brief           ロボットの座標，速度，加速度の変換を行う
+/// @param matrix    変換行列
+/// @param robot     変換する値
+/// @return          変換後の値
+model::robot transform_all(const Eigen::Affine3d& matrix, const model::robot& robot);
+
 /// @brief           Vector2dの座標変換を行う
 /// @param matrix    変換行列
 /// @param v         変換する値
