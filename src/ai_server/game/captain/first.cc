@@ -2,6 +2,7 @@
 
 #include "ai_server/game/formation/ball_placement.h"
 #include "ai_server/game/formation/halt.h"
+#include "ai_server/game/formation/kickoff_defense.h"
 #include "ai_server/game/formation/penalty_attack.h"
 #include "ai_server/game/formation/penalty_defense.h"
 #include "ai_server/game/formation/setplay_attack.h"
@@ -61,6 +62,21 @@ void first::steady([[maybe_unused]] situation_type situation,
   current_formation_ =
       make_formation<formation::steady>(std::vector(ids_.cbegin(), ids_.cend()),
                                         model::our_team_info(refbox(), team_color()).goalie());
+}
+
+void first::kickoff_defense([[maybe_unused]] situation_type situation,
+                            [[maybe_unused]] bool situation_changed) {
+  logger_.debug("kickoff_defense");
+  current_formation_ = make_formation<formation::kickoff_defense>(
+      std::vector(ids_.cbegin(), ids_.cend()),
+      model::our_team_info(refbox(), team_color()).goalie());
+}
+
+void first::kickoff_defense_to_steady(situation_type situation, bool situation_changed) {
+  if (auto f = std::dynamic_pointer_cast<formation::kickoff_defense>(current_formation_)) {
+    logger_.debug("kickoff_defense_to_steady");
+    steady(situation, situation_changed);
+  }
 }
 
 void first::penalty_attack([[maybe_unused]] situation_type situation,
