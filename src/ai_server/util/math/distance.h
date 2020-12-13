@@ -3,40 +3,9 @@
 
 #include <cmath>
 
+#include "detail/xyz.h"
+
 namespace ai_server::util::math {
-
-namespace detail {
-
-template <class T>
-inline auto x(const T& v) -> decltype(v.x) {
-  return v.x;
-}
-
-template <class T>
-inline auto x(const T& v) -> decltype(v.x()) {
-  return v.x();
-}
-
-template <class T>
-inline auto y(const T& v) -> decltype(v.y) {
-  return v.y;
-}
-
-template <class T>
-inline auto y(const T& v) -> decltype(v.y()) {
-  return v.y();
-}
-
-template <class T>
-inline auto z(const T& v) -> decltype(v.z) {
-  return v.z;
-}
-
-template <class T>
-inline auto z(const T& v) -> decltype(v.z()) {
-  return v.z();
-}
-} // namespace detail
 
 /// @brief   xy平面における2点の距離を求める
 /// @param a 点1の座標
