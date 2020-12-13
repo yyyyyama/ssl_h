@@ -74,8 +74,10 @@ void first::kickoff_defense([[maybe_unused]] situation_type situation,
 
 void first::kickoff_defense_to_steady(situation_type situation, bool situation_changed) {
   if (auto f = std::dynamic_pointer_cast<formation::kickoff_defense>(current_formation_)) {
-    logger_.debug("kickoff_defense_to_steady");
-    steady(situation, situation_changed);
+    if (f->finished()) {
+      logger_.debug("kickoff_defense_to_steady");
+      steady(situation, situation_changed);
+    }
   }
 }
 
