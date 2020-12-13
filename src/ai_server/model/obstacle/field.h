@@ -3,8 +3,16 @@
 
 #include "ai_server/model/field.h"
 #include "box.h"
+#include "point.h"
 
 namespace ai_server::model::obstacle {
+
+/// @brief センターサークルを障害物として取得する
+/// @param field フィールドの情報
+/// @param margin センターサークルのマージン
+static inline obstacle::point center_circle(const model::field& field, double margin) {
+  return {Eigen::Vector2d::Zero(), field.center_radius() + margin};
+}
 
 /// @brief 自陣側ペナルティエリアを障害物として取得する
 /// @param field フィールドの情報

@@ -35,11 +35,10 @@ std::vector<std::shared_ptr<action::base>> kick_off_waiter::execute() {
   const double area_margin = 200.0;
   // 障害物設定
   planner::obstacle_list common_obstacles;
+  common_obstacles.add(model::obstacle::center_circle(wf, 150.0));
   common_obstacles.add(model::obstacle::enemy_penalty_area(wf, 150.0));
   common_obstacles.add(model::obstacle::our_penalty_area(wf, 150.0));
   common_obstacles.add(model::obstacle::point{ball_pos, 650.0});
-  common_obstacles.add(
-      model::obstacle::point{Eigen::Vector2d::Zero(), wf.center_radius() + 150.0});
   for (const auto& robot : ene_robots) {
     common_obstacles.add(
         model::obstacle::point{util::math::position(robot.second), obs_robot_rad});
