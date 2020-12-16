@@ -40,12 +40,14 @@ struct node {
   double p;
   // 価値
   double w;
+  // 最大報酬
+  double max_v;
   // 訪問回数
   int n;
   // 子ノード
   std::forward_list<node> child_nodes;
 
-  node(const struct state& s, double p = 1.0) : state(s), p(p), w(0.0), n(0) {}
+  node(const struct state& s, double p = 1.0) : state(s), p(p), w(0.0), max_v(0.0), n(0) {}
 };
 
 // MCTSによってノードの評価を行う

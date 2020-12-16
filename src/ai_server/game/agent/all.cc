@@ -181,7 +181,7 @@ std::vector<std::shared_ptr<action::base>> all::execute() {
     } else {
       const auto& selected_node =
           *std::max_element(child_nodes.cbegin(), child_nodes.cend(),
-                            [](const auto& a, const auto& b) { return a.n < b.n; });
+                            [](const auto& a, const auto& b) { return a.max_v < b.max_v; });
       pass_target_ = selected_node.state.ball_pos;
       target_id_   = selected_node.state.chaser;
       dribble_flag = target_id_ == chaser_ && (ene_goal_pos - pass_target_).norm() > 500.0;
