@@ -39,6 +39,11 @@ public:
     buffer_.emplace_back(std::move(env), std::move(o));
   }
 
+  /// @brief 内部データを取得する
+  const std::vector<element_type>& buffer() const {
+    return buffer_;
+  }
+
   /// @brief RTreeを構築して返す
   tree_type to_tree() const {
     return {buffer_.begin(), buffer_.end()};
