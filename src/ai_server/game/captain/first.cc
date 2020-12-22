@@ -2,6 +2,7 @@
 
 #include "ai_server/game/formation/ball_placement.h"
 #include "ai_server/game/formation/halt.h"
+#include "ai_server/game/formation/kickoff_attack.h"
 #include "ai_server/game/formation/kickoff_defense.h"
 #include "ai_server/game/formation/penalty_attack.h"
 #include "ai_server/game/formation/penalty_defense.h"
@@ -62,6 +63,31 @@ void first::steady([[maybe_unused]] situation_type situation,
   current_formation_ =
       make_formation<formation::steady>(std::vector(ids_.cbegin(), ids_.cend()),
                                         model::our_team_info(refbox(), team_color()).goalie());
+}
+
+void first::kickoff_attack([[maybe_unused]] situation_type situation,
+                           [[maybe_unused]] bool situation_changed) {
+  logger_.debug("kickoff_attack");
+  current_formation_ = make_formation<formation::kickoff_attack>(
+      std::vector(ids_.cbegin(), ids_.cend()),
+      model::our_team_info(refbox(), team_color()).goalie(), false);
+}
+
+void first::kickoff_attack_start([[maybe_unused]] situation_type situation,
+                                 [[maybe_unused]] bool situation_changed) {
+  logger_.debug("kickoff_attack_start");
+  current_formation_ = make_formation<formation::kickoff_attack>(
+      std::vector(ids_.cbegin(), ids_.cend()),
+      model::our_team_info(refbox(), team_color()).goalie(), true);
+}
+
+void first::kickoff_attack_start_to_steady(situation_type situation, bool situation_changed) {
+  if (auto f = std::dynamic_pointer_cast<formation::kickoff_attack>(current_formation_)) {
+    if (f->finished() || std::chrono::steady_clock::now() - situation_changed_time_ > 8s) {
+      logger_.debug("kickoff_attack_start -> steady");
+      steady(situation, situation_changed);
+    }
+  }
 }
 
 void first::kickoff_defense([[maybe_unused]] situation_type situation,

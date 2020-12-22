@@ -31,6 +31,12 @@ private:
 
   void steady(situation_type situation, bool situation_changed);
 
+  void kickoff_attack(situation_type situation, bool situation_changed);
+
+  void kickoff_attack_start(situation_type situation, bool situation_changed);
+
+  void kickoff_attack_start_to_steady(situation_type situation, bool situation_changed);
+
   void kickoff_defense(situation_type situation, bool siuation_changed);
 
   void kickoff_defense_to_steady(situation_type situation, bool situation_changed);
@@ -88,6 +94,9 @@ private:
     on(situation_type::stop, true)                  = &first::stopgame;
     on(situation_type::stop, false)                 = &first::stopgame;
     on(situation_type::force_start, true)           = &first::steady;
+    on(situation_type::kickoff_attack, true)        = &first::kickoff_attack;
+    on(situation_type::kickoff_attack_start, true)  = &first::kickoff_attack_start;
+    on(situation_type::kickoff_attack_start, false) = &first::kickoff_attack_start_to_steady;
     on(situation_type::kickoff_defense, true)       = &first::kickoff_defense;
     on(situation_type::kickoff_defense, false)      = &first::kickoff_defense_to_steady;
     on(situation_type::penalty_attack, true)        = &first::penalty_attack;
