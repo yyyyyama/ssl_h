@@ -27,6 +27,7 @@ private:
   double vy_;
   double ax_;
   double ay_;
+  bool is_lost_;
 
   estimator_type estimator_;
 
@@ -40,6 +41,7 @@ public:
   double vy() const;
   double ax() const;
   double ay() const;
+  bool is_lost() const;
 
   void set_x(double x);
   void set_y(double y);
@@ -48,6 +50,7 @@ public:
   void set_vy(double vy);
   void set_ax(double ax);
   void set_ay(double ay);
+  void set_is_lost(bool is_lost);
 
   /// 状態推定を行う関数オブジェクトが設定されているか
   bool has_estimator() const;

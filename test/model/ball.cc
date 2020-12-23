@@ -24,6 +24,7 @@ BOOST_AUTO_TEST_CASE(test02) {
   BOOST_TEST(b.x() == 0.0);
   BOOST_TEST(b.y() == 0.0);
   BOOST_TEST(b.z() == 0.0);
+  BOOST_TEST(b.is_lost() == true);
 
   // set x
   b.set_x(4.0);
@@ -46,6 +47,9 @@ BOOST_AUTO_TEST_CASE(test02) {
   // set ay
   b.set_ay(10.0);
   BOOST_TEST(b.ay() == 10.0);
+  // set is_lost
+  b.set_is_lost(false);
+  BOOST_TEST(b.is_lost() == false);
 }
 
 BOOST_AUTO_TEST_CASE(estimator) {

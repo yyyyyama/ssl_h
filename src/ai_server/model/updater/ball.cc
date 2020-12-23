@@ -51,6 +51,7 @@ void ball::update(const ssl_protos::vision::Frame& detection) {
       });
 
   if (reliable != raw_balls_.cend()) {
+    ball_.set_is_lost(false);
     // 選択された値のカメラIDとdetectionのカメラIDが一致していたらデータを更新する
     if (std::get<0>(*reliable) == camera_id) {
       const auto value = util::math::transform(affine_, [reliable] {
@@ -74,6 +75,7 @@ void ball::update(const ssl_protos::vision::Frame& detection) {
       }
     }
   } else {
+    ball_.set_is_lost(true);
     // Filter が設定されていたらロストしたことを通知する
     if (filter_same_) {
       if (auto v = filter_same_->update(std::nullopt, captured_time); v.has_value()) {

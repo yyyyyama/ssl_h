@@ -2,7 +2,7 @@
 namespace ai_server {
 namespace model {
 
-ball::ball() : x_(0), y_(0), z_(0) {}
+ball::ball() : x_(0), y_(0), z_(0), is_lost_(true) {}
 
 ball::ball(double x, double y, double z) : x_(x), y_(y), z_(z) {}
 
@@ -34,6 +34,10 @@ double ball::ay() const {
   return ay_;
 }
 
+bool ball::is_lost() const {
+  return is_lost_;
+}
+
 void ball::set_x(double x) {
   x_ = x;
 }
@@ -60,6 +64,10 @@ void ball::set_ax(double ax) {
 
 void ball::set_ay(double ay) {
   ay_ = ay;
+}
+
+void ball::set_is_lost(bool is_lost) {
+  is_lost_ = is_lost;
 }
 
 bool ball::has_estimator() const {
