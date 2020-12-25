@@ -51,7 +51,7 @@ BOOST_AUTO_TEST_CASE(execute) {
   game::context ctx{};
   {
     ctx.team_color = model::team_color::yellow;
-    ctx.world.set_robots_yellow(std::unordered_map<unsigned int, model::robot>{
+    ctx.world.set_robots_yellow({
         {123, {100, 200, 300}},
     });
   }

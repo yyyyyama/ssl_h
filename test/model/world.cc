@@ -92,7 +92,7 @@ BOOST_AUTO_TEST_CASE(nyan) {
 
     // コピーなのでwを変更してもw2, w3は変化しない
     const auto prev_ball = w.ball();
-    w.set_ball(ai_server::model::ball{12, 34, 56});
+    w.set_ball({12, 34, 56});
     BOOST_TEST(w2.ball().x() = 123);
     BOOST_TEST(w3.ball().x() = 123);
     w.set_ball(prev_ball);
@@ -111,9 +111,9 @@ BOOST_AUTO_TEST_CASE(nyan) {
 BOOST_AUTO_TEST_CASE(helper_functions) {
   ai_server::model::world w{};
   // blue には ID1 が1台
-  w.set_robots_blue(ai_server::model::world::robots_list{{1, {}}});
+  w.set_robots_blue({{1, {}}});
   // yellow には ID2,ID4 が1台ずつ
-  w.set_robots_yellow(ai_server::model::world::robots_list{{2, {}}, {4, {}}});
+  w.set_robots_yellow({{2, {}}, {4, {}}});
 
   const auto rb = w.robots_blue();
   const auto ry = w.robots_yellow();
