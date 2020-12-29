@@ -279,11 +279,11 @@ std::vector<std::pair<const behavior&, double>> worker::probability(
   for (const auto& i : inputs) {
     // 一番危険なロボットからの危険度のみ考慮する
     // 何も妨害されない状態で，ゴールへのシュートは100%，パスは80%の確率でできるとする
-    const auto p =
-        is_shoot(i.second)
-            ? (*std::min_element(out_data + offset, out_data + offset + i.first.size()))
-            : 0.8 * (*std::min_element(out_data + offset, out_data + offset + i.first.size()));
-    outputs.emplace_back(std::ref(i.second), p);
+    const auto p1 = is_shoot(i.second) ? 1.0 : 0.8;
+    const auto p2 = i.first.empty() ? 1.0
+                                    : *std::min_element(out_data + offset,
+                                                        out_data + offset + i.first.size());
+    outputs.emplace_back(std::ref(i.second), p1 * p2);
     offset += i.first.size();
   }
   return outputs;
