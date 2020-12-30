@@ -8,6 +8,7 @@
 #include "ai_server/game/formation/penalty_defense.h"
 #include "ai_server/game/formation/setplay_attack.h"
 #include "ai_server/game/formation/setplay_defense.h"
+#include "ai_server/game/formation/shootout_attack.h"
 #include "ai_server/game/formation/steady.h"
 #include "ai_server/game/formation/stopgame.h"
 #include "ai_server/game/formation/timeout.h"
@@ -150,6 +151,14 @@ void first::penalty_defense_to_steady(situation_type situation, bool situation_c
       steady(situation, situation_changed);
     }
   }
+}
+
+void first::shootout_attack_start([[maybe_unused]] situation_type situation,
+                                  [[maybe_unused]] bool situation_changed) {
+  logger_.debug("shootout_attack_start");
+  current_formation_ = make_formation<formation::shootout_attack>(
+      std::vector(ids_.cbegin(), ids_.cend()),
+      model::our_team_info(refbox(), team_color()).goalie());
 }
 
 void first::setplay_attack([[maybe_unused]] situation_type situation,

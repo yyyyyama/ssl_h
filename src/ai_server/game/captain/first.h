@@ -51,6 +51,8 @@ private:
 
   void penalty_defense_to_steady(situation_type situation, bool situation_changed);
 
+  void shootout_attack_start(situation_type situation, bool situation_changed);
+
   void setplay_attack(situation_type situation, bool situation_changed);
 
   void setplay_attack_to_steady(situation_type situation, bool situation_changed);
@@ -104,6 +106,9 @@ private:
     on(situation_type::penalty_attack_start, false) = &first::penalty_attack_start_to_steady;
     on(situation_type::penalty_defense, true)       = &first::penalty_defense;
     on(situation_type::penalty_defense, false)      = &first::penalty_defense_to_steady;
+    on(situation_type::shootout_attack, true)       = &first::stopgame;
+    on(situation_type::shootout_attack, false)      = &first::stopgame;
+    on(situation_type::shootout_attack_start, true) = &first::shootout_attack_start;
     on(situation_type::setplay_attack, true)        = &first::setplay_attack;
     on(situation_type::setplay_attack, false)       = &first::setplay_attack_to_steady;
     on(situation_type::setplay_defense, true)       = &first::setplay_defense;
