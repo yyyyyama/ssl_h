@@ -372,12 +372,13 @@ node& worker::next_child_node(std::forward_list<node>::iterator begin,
 }
 
 double worker::score(const state& state) {
-  if ((state.ball_pos - ene_goal_pos_).norm() < 500.0)
-    return 1.0;
-  else if ((state.ball_pos - our_goal_pos_).norm() < 500.0)
-    return -1.0;
-  else
-    return 0.0;
+  if (std::abs(state.ball_pos.y()) < field_.penalty_y_max()) {
+    if (std::abs(state.ball_pos.x() - ene_goal_pos_.x()) < 10.0)
+      return 1.0;
+    else if (std::abs(state.ball_pos.x() - our_goal_pos_.x()) < 10.0)
+      return -1.0;
+  }
+  return 0.0;
 }
 
 std::vector<behavior> worker::legal_behaviors(const state& state) {
