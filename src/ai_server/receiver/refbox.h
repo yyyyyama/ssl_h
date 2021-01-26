@@ -29,18 +29,31 @@ public:
   /// データ受信時に発火する signalの型
   using receive_signal_type = boost::signals2::signal<void(const ssl_protos::refbox::Referee&)>;
   /// receive_signal_type に登録する slot の型
-  using receive_slot_type = typename receive_signal_type::slot_type;
+  using receive_slot_type          = typename receive_signal_type::slot_type;
+  using receive_extended_slot_type = typename receive_signal_type::extended_slot_type;
 
   /// エラー時に発火する signal の型
   using error_signal_type = boost::signals2::signal<void(void)>;
   /// error_signal_type に登録する slot の型
-  using error_slot_type = typename error_signal_type::slot_type;
+  using error_slot_type          = typename error_signal_type::slot_type;
+  using error_extedned_slot_type = typename error_signal_type::extended_slot_type;
 
   refbox(boost::asio::io_context& io_context, const std::string& listen_addr,
          const std::string& multicast_addr, unsigned short port);
 
+  /// @brief                  データ受信時に slot が呼ばれるようにする
+  /// @param slot             データ受信時に呼びたい関数オブジェクト
   boost::signals2::connection on_receive(const receive_slot_type& slot);
+  /// @brief                  データ受信時に slot が呼ばれるようにする
+  /// @param slot             データ受信時に呼びたい関数オブジェクト
+  boost::signals2::connection on_receive_extended(const receive_extended_slot_type& slot);
+
+  /// @brief                  エラー時に slot が呼ばれるようにする
+  /// @param slot             エラー時に呼びたい関数オブジェクト
   boost::signals2::connection on_error(const error_slot_type& slot);
+  /// @brief                  エラー時に slot が呼ばれるようにする
+  /// @param slot             エラー時に呼びたい関数オブジェクト
+  boost::signals2::connection on_error_extended(const error_extedned_slot_type& slot);
 
   /// @brief 受信した総メッセージ数を取得する
   std::uint64_t total_messages() const;
