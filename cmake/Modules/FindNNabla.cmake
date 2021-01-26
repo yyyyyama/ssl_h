@@ -91,3 +91,46 @@ if(NNabla_FOUND AND NNabla_CLI_FOUND AND NOT TARGET nnabla::nnabla_cli)
     INTERFACE_INCLUDE_DIRECTORIES "${NNabla_INCLUDE_DIR}"
     INTERFACE_LINK_LIBRARIES "nnabla::nnabla;nnabla::nnabla_utils")
 endif()
+
+# 見つかった nnabla_utils が HDF5 をサポートされているか確認する
+if(TARGET nnabla::nnabla_utils)
+  set(hdf5_supported 0)
+
+  # 空の .h5 ファイルを Nnp に追加したときにそれっぽい例外が飛んだら HDF5 未対応とする
+  set(test_h5_file "${bindir}/check_hdf5_support.h5")
+  file(WRITE "${test_h5_file}" "")
+  set(test_file "${bindir}/check_hdf5_support.cc")
+  file(WRITE "${test_file}"
+    "#include <cstring>\n"
+    "#include <stdexcept>\n"
+    "#include <nbla/context.hpp>\n"
+    "#include <nbla_utils/nnp.hpp>\n"
+    "auto main() -> int {\n"
+    "  const nbla::Context ctx{{\"cpu:float\"}, \"CpuCachedArray\", \"0\"};\n"
+    "  nbla::utils::nnp::Nnp nnp{ctx};\n"
+    "  try {\n"
+    "    nnp.add(\"${test_h5_file}\");\n"
+    "  } catch (const std::exception& e) {\n"
+    "    if (std::strstr(e.what(), \"HDF5\") && std::strstr(e.what(), \"not enabled\")) {\n"
+    "      return 1;\n"
+    "    }\n"
+    "  }\n"
+    "}")
+  try_compile(build_success "${bindir}" "${test_file}"
+    COPY_FILE       ${bindir}/check_hdf5_support
+    LINK_LIBRARIES  nnabla::nnabla_utils)
+  if(build_success)
+    execute_process(COMMAND ${bindir}/check_hdf5_support
+      WORKING_DIRECTORY "${bindir}"
+      OUTPUT_VARIABLE chs_output
+      ERROR_VARIABLE  chs_error
+      RESULT_VARIABLE chs_result)
+    if(${chs_result} EQUAL 0)
+      set(hdf5_supported 1)
+    endif()
+  endif()
+
+  if(NOT hdf5_supported)
+    message(WARNING "HDF5 support is disabled. Runtime errors might be caused when loading newer nnp files.")
+  endif()
+endif()
