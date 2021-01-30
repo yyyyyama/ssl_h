@@ -61,7 +61,8 @@ class evaluator {
 public:
   /// @brief コンストラクタ
   /// @param nnabla 使用するnnpの情報が格納されたgame::nnabla
-  evaluator(const game::nnabla& nnabla);
+  evaluator(const game::nnabla& nnabla,
+            unsigned int num = std::thread::hardware_concurrency() - 1);
 
   /// @brief MCTSを実行する
   /// @param field フィールド情報

@@ -65,8 +65,8 @@ public:
   void expand(node& node);
 };
 
-evaluator::evaluator(const game::nnabla& nnabla) {
-  const auto num_threads = std::max(std::thread::hardware_concurrency() - 1, 1);
+evaluator::evaluator(const game::nnabla& nnabla, unsigned int num) {
+  const auto num_threads = std::max(num, 1);
   nnp_ptrs_.reserve(num_threads);
   const bool probability_cached = num_threads < 2;
   const auto [ctx, path] =
