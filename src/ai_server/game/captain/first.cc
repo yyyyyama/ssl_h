@@ -9,6 +9,7 @@
 #include "ai_server/game/formation/setplay_attack.h"
 #include "ai_server/game/formation/setplay_defense.h"
 #include "ai_server/game/formation/shootout_attack.h"
+#include "ai_server/game/formation/shootout_defense.h"
 #include "ai_server/game/formation/steady.h"
 #include "ai_server/game/formation/stopgame.h"
 #include "ai_server/game/formation/timeout.h"
@@ -159,6 +160,23 @@ void first::shootout_attack_start([[maybe_unused]] situation_type situation,
   current_formation_ = make_formation<formation::shootout_attack>(
       std::vector(ids_.cbegin(), ids_.cend()),
       model::our_team_info(refbox(), team_color()).goalie());
+}
+
+void first::shootout_defense([[maybe_unused]] situation_type situation,
+                             [[maybe_unused]] bool situation_changed) {
+  logger_.debug("shootout_defense");
+  current_formation_ = make_formation<formation::shootout_defense>(
+      std::vector(ids_.cbegin(), ids_.cend()),
+      model::our_team_info(refbox(), team_color()).goalie(),
+      model::enemy_team_info(refbox(), team_color()).goalie());
+}
+
+void first::shootout_defense_start([[maybe_unused]] situation_type situation,
+                                   [[maybe_unused]] bool situation_changed) {
+  if (auto f = std::dynamic_pointer_cast<formation::shootout_defense>(current_formation_)) {
+    logger_.debug("shootout_defense_start");
+    f->start();
+  }
 }
 
 void first::setplay_attack([[maybe_unused]] situation_type situation,

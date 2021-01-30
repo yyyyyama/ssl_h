@@ -53,6 +53,10 @@ private:
 
   void shootout_attack_start(situation_type situation, bool situation_changed);
 
+  void shootout_defense(situation_type situation, bool situation_changed);
+
+  void shootout_defense_start(situation_type situation, bool situation_changed);
+
   void setplay_attack(situation_type situation, bool situation_changed);
 
   void setplay_attack_to_steady(situation_type situation, bool situation_changed);
@@ -92,30 +96,34 @@ private:
       return table.at(b).at(static_cast<std::size_t>(s));
     };
 
-    on(situation_type::halt, true)                  = &first::halt;
-    on(situation_type::stop, true)                  = &first::stopgame;
-    on(situation_type::stop, false)                 = &first::stopgame;
-    on(situation_type::force_start, true)           = &first::steady;
-    on(situation_type::kickoff_attack, true)        = &first::kickoff_attack;
-    on(situation_type::kickoff_attack_start, true)  = &first::kickoff_attack_start;
-    on(situation_type::kickoff_attack_start, false) = &first::kickoff_attack_start_to_steady;
-    on(situation_type::kickoff_defense, true)       = &first::kickoff_defense;
-    on(situation_type::kickoff_defense, false)      = &first::kickoff_defense_to_steady;
-    on(situation_type::penalty_attack, true)        = &first::penalty_attack;
-    on(situation_type::penalty_attack_start, true)  = &first::penalty_attack_start;
-    on(situation_type::penalty_attack_start, false) = &first::penalty_attack_start_to_steady;
-    on(situation_type::penalty_defense, true)       = &first::penalty_defense;
-    on(situation_type::penalty_defense, false)      = &first::penalty_defense_to_steady;
-    on(situation_type::shootout_attack, true)       = &first::stopgame;
-    on(situation_type::shootout_attack, false)      = &first::stopgame;
-    on(situation_type::shootout_attack_start, true) = &first::shootout_attack_start;
-    on(situation_type::setplay_attack, true)        = &first::setplay_attack;
-    on(situation_type::setplay_attack, false)       = &first::setplay_attack_to_steady;
-    on(situation_type::setplay_defense, true)       = &first::setplay_defense;
-    on(situation_type::setplay_defense, false)      = &first::setplay_defense_to_steady;
-    on(situation_type::ball_placement, true)        = &first::ball_placement;
-    on(situation_type::ball_placement, false)       = &first::ball_placement;
-    on(situation_type::timeout, true)               = &first::timeout;
+    on(situation_type::halt, true)                    = &first::halt;
+    on(situation_type::stop, true)                    = &first::stopgame;
+    on(situation_type::stop, false)                   = &first::stopgame;
+    on(situation_type::force_start, true)             = &first::steady;
+    on(situation_type::kickoff_attack, true)          = &first::kickoff_attack;
+    on(situation_type::kickoff_attack_start, true)    = &first::kickoff_attack_start;
+    on(situation_type::kickoff_attack_start, false)   = &first::kickoff_attack_start_to_steady;
+    on(situation_type::kickoff_defense, true)         = &first::kickoff_defense;
+    on(situation_type::kickoff_defense, false)        = &first::kickoff_defense_to_steady;
+    on(situation_type::penalty_attack, true)          = &first::penalty_attack;
+    on(situation_type::penalty_attack_start, true)    = &first::penalty_attack_start;
+    on(situation_type::penalty_attack_start, false)   = &first::penalty_attack_start_to_steady;
+    on(situation_type::penalty_defense, true)         = &first::penalty_defense;
+    on(situation_type::penalty_defense, false)        = &first::penalty_defense_to_steady;
+    on(situation_type::shootout_attack, true)         = &first::stopgame;
+    on(situation_type::shootout_attack, false)        = &first::stopgame;
+    on(situation_type::shootout_attack_start, true)   = &first::shootout_attack_start;
+    on(situation_type::shootout_defense, true)        = &first::shootout_defense;
+    on(situation_type::shootout_defense, false)       = &first::shootout_defense;
+    on(situation_type::shootout_defense_start, true)  = &first::shootout_defense_start;
+    on(situation_type::shootout_defense_start, false) = &first::shootout_defense_start;
+    on(situation_type::setplay_attack, true)          = &first::setplay_attack;
+    on(situation_type::setplay_attack, false)         = &first::setplay_attack_to_steady;
+    on(situation_type::setplay_defense, true)         = &first::setplay_defense;
+    on(situation_type::setplay_defense, false)        = &first::setplay_defense_to_steady;
+    on(situation_type::ball_placement, true)          = &first::ball_placement;
+    on(situation_type::ball_placement, false)         = &first::ball_placement;
+    on(situation_type::timeout, true)                 = &first::timeout;
 
     return table;
   }();
