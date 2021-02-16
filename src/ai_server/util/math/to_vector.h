@@ -63,6 +63,15 @@ inline auto acceleration3d(const T& obj) -> Eigen::Matrix<
   return {obj.ax(), obj.ay(), obj.alpha()};
 }
 
+/// @brief 2次元ベクトルを極形式で指定して作る
+/// @param   rho    ベクトルの長さ
+/// @param   theta  偏角
+/// @return 直行形式で表された2次元ベクトル
+template <class T>
+inline auto vector_from_polar(T rho, T theta) -> Eigen::Matrix<T, 2, 1> {
+  return rho * (Eigen::Rotation2D<T>(theta) * Eigen::Matrix<T, 2, 1>::UnitX());
+}
+
 } // namespace math
 } // namespace util
 } // namespace ai_server

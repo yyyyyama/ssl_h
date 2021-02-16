@@ -1,5 +1,8 @@
 #define BOOST_TEST_DYN_LINK
 
+#include <complex>
+#include <boost/math/constants/constants.hpp>
+#include <boost/test/data/test_case.hpp>
 #include <boost/test/unit_test.hpp>
 
 #include "ai_server/model/ball.h"
@@ -30,6 +33,29 @@ BOOST_AUTO_TEST_CASE(to_vector) {
 
   BOOST_TEST(util::math::acceleration(r) == Eigen::Vector2d(7, 8));
   BOOST_TEST(util::math::acceleration3d(r) == Eigen::Vector3d(7, 8, 9));
+}
+
+BOOST_TEST_DECORATOR(*boost::unit_test::tolerance(0.0000001))
+BOOST_DATA_TEST_CASE(from_polar,
+                     boost::unit_test::data::make({1.0, 100.0}) *
+                         boost::unit_test::data::make({-2, 0, 2}),
+                     r, cycle) {
+  using namespace boost::math::double_constants;
+
+  for (int rot = 0; rot < 4; rot++) {
+    // 偏角
+    const double arg = (cycle + rot / 4.0) * two_pi + sixth_pi;
+
+    BOOST_TEST_CONTEXT("arg " << arg) {
+      // 正しい値
+      const auto correct = std::polar(r, arg);
+      // 結果
+      const auto result = util::math::vector_from_polar(r, arg);
+
+      BOOST_TEST(result.x() == correct.real());
+      BOOST_TEST(result.y() == correct.imag());
+    }
+  }
 }
 
 BOOST_AUTO_TEST_SUITE_END()
