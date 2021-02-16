@@ -2,6 +2,7 @@
 
 #include <vector>
 #include <boost/math/constants/constants.hpp>
+#include <boost/test/data/test_case.hpp>
 #include <boost/test/unit_test.hpp>
 
 #include "ai_server/util/math/angle.h"
@@ -98,6 +99,28 @@ BOOST_AUTO_TEST_CASE(theta_ave, *boost::unit_test::tolerance(0.0000001)) {
 
   vec_t v5{-pi, pi, 3.0 * pi};
   BOOST_TEST(util::math::theta_average(v5.begin(), v5.end()) == pi);
+}
+
+BOOST_DATA_TEST_CASE(complare_arg,
+                     boost::unit_test::data::make({-5, 0, 5}) *
+                         boost::unit_test::data::make({-2, -1, 0, 2}),
+                     common_cycle, cycle) {
+  using namespace boost::math::double_constants;
+
+  const double from   = (common_cycle + cycle) * two_pi + sixth_pi;
+  const double offset = common_cycle * two_pi + third_pi;
+
+  BOOST_CHECK(util::math::left_of(offset, from));
+  BOOST_CHECK(!util::math::right_of(offset, from));
+
+  BOOST_CHECK(util::math::left_of(offset + half_pi, from));
+  BOOST_CHECK(!util::math::right_of(offset + half_pi, from));
+
+  BOOST_CHECK(!util::math::left_of(offset + pi, from));
+  BOOST_CHECK(util::math::right_of(offset + pi, from));
+
+  BOOST_CHECK(!util::math::left_of(offset + pi + half_pi, from));
+  BOOST_CHECK(util::math::right_of(offset + pi + half_pi, from));
 }
 
 BOOST_AUTO_TEST_SUITE_END()

@@ -72,6 +72,25 @@ inline auto theta_average(Iterator first, Iterator last) {
   // 平均 = 総和ベクトルの角度
   return std::arg(sum);
 }
+
+/// @brief 偏角xが偏角yの左側に見えるか
+/// @param   x 偏角
+/// @param   y 基準となる偏角
+/// @return wrap_to_pi(x-y) > 0
+template <class T, std::enable_if_t<std::is_floating_point<T>::value, std::nullptr_t> = nullptr>
+inline bool left_of(T x, T y) {
+  return wrap_to_pi(x - y) > T();
+}
+
+/// @brief 偏角xが偏角yの右側に見えるか
+/// @param   x 偏角
+/// @param   y 基準となる偏角
+/// @return wrap_to_pi(x-y) < 0
+template <class T, std::enable_if_t<std::is_floating_point<T>::value, std::nullptr_t> = nullptr>
+inline bool right_of(T x, T y) {
+  return wrap_to_pi(x - y) < T();
+}
+
 } // namespace math
 } // namespace util
 } // namespace ai_server
