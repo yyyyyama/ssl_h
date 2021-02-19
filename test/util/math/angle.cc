@@ -101,6 +101,18 @@ BOOST_AUTO_TEST_CASE(theta_ave, *boost::unit_test::tolerance(0.0000001)) {
   BOOST_TEST(util::math::theta_average(v5.begin(), v5.end()) == pi);
 }
 
+BOOST_TEST_DECORATOR(*boost::unit_test::tolerance(0.0000001))
+BOOST_DATA_TEST_CASE(inverse_angle_arg, boost::unit_test::data::make({-5, -1, 0, 5}), cycle) {
+  using namespace boost::math::double_constants;
+
+  const double offset = cycle * two_pi;
+
+  BOOST_TEST(util::math::inverse(offset + sixth_pi) == -pi + sixth_pi);
+  BOOST_TEST(util::math::inverse(offset + half_pi + sixth_pi) == -half_pi + sixth_pi);
+  BOOST_TEST(util::math::inverse(offset + pi + sixth_pi) == sixth_pi);
+  BOOST_TEST(util::math::inverse(offset + pi + half_pi + sixth_pi) == half_pi + sixth_pi);
+}
+
 BOOST_DATA_TEST_CASE(complare_arg,
                      boost::unit_test::data::make({-5, 0, 5}) *
                          boost::unit_test::data::make({-2, -1, 0, 2}),

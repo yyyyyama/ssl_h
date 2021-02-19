@@ -53,6 +53,14 @@ inline auto delta_theta(T from, T to) {
   return std::atan2(rot_z, dot);
 }
 
+/// @brief 180度回転させた角度を返す
+/// @param    theta   角度
+/// @return  180度回転させた角度。値の範囲は [-pi, pi]
+template <class T, std::enable_if_t<std::is_floating_point_v<T>, std::nullptr_t> = nullptr>
+inline auto inverse(T theta) {
+  return wrap_to_pi(theta + boost::math::constants::pi<T>());
+}
+
 //  @brief  角度の平均を求める
 /// @param    first 対象とする角度集合の範囲
 /// @param    last  対象とする角度集合の範囲
