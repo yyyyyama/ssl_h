@@ -4,6 +4,7 @@
 #include <boost/math/constants/constants.hpp>
 #include <boost/test/data/test_case.hpp>
 #include <boost/test/unit_test.hpp>
+#include <Eigen/Core>
 
 #include "ai_server/util/math/angle.h"
 
@@ -99,6 +100,32 @@ BOOST_AUTO_TEST_CASE(theta_ave, *boost::unit_test::tolerance(0.0000001)) {
 
   vec_t v5{-pi, pi, 3.0 * pi};
   BOOST_TEST(util::math::theta_average(v5.begin(), v5.end()) == pi);
+}
+
+BOOST_TEST_DECORATOR(*boost::unit_test::tolerance(0.0000001))
+BOOST_DATA_TEST_CASE(direction_vec,
+                     boost::unit_test::data::make({1.0, 100.0}) *
+                         boost::unit_test::data::make({-1.0, 2.0}) *
+                         boost::unit_test::data::make({-3.0, 4.0}),
+                     r, x, y) {
+  using namespace boost::math::double_constants;
+
+  // 単位方向ベクトル
+  const Eigen::Vector2d unit_30deg{0.5 * std::sqrt(3), 0.5};
+  const Eigen::Vector2d unit_120deg{-0.5, 0.5 * std::sqrt(3)};
+
+  // ベクトル単体
+  BOOST_TEST(util::math::direction(r * unit_30deg) == sixth_pi);
+  BOOST_TEST(util::math::direction(r * unit_120deg) == half_pi + sixth_pi);
+  BOOST_TEST(util::math::direction(-r * unit_30deg) == -pi + sixth_pi);
+  BOOST_TEST(util::math::direction(-r * unit_120deg) == -half_pi + sixth_pi);
+
+  // ベクトルの終点、始点
+  const Eigen::Vector2d offset{x, y};
+  BOOST_TEST(util::math::direction(offset + r * unit_30deg, offset) == sixth_pi);
+  BOOST_TEST(util::math::direction(offset + r * unit_120deg, offset) == half_pi + sixth_pi);
+  BOOST_TEST(util::math::direction(offset - r * unit_30deg, offset) == -pi + sixth_pi);
+  BOOST_TEST(util::math::direction(offset - r * unit_120deg, offset) == -half_pi + sixth_pi);
 }
 
 BOOST_TEST_DECORATOR(*boost::unit_test::tolerance(0.0000001))

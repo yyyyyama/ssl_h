@@ -7,6 +7,8 @@
 #include <iterator>
 #include <numeric>
 
+#include "detail/xyz.h"
+
 namespace ai_server {
 namespace util {
 namespace math {
@@ -51,6 +53,25 @@ inline auto delta_theta(T from, T to) {
   const auto rot_z = std::sin(to - from);
   // 外積で角度差の符号を，内積で角度差の絶対値を導出し，atan2をとる。
   return std::atan2(rot_z, dot);
+}
+
+/// @brief   2次元ベクトルの方向を返す
+/// @param v   2次元ベクトル
+/// @return  2次元ベクトルの方向。値の範囲は [-pi, pi]
+template <class T>
+inline auto direction(const T& v) -> decltype(std::atan2(detail::y(v), detail::x(v))) {
+  return std::atan2(detail::y(v), detail::x(v));
+}
+
+/// @brief   2次元ベクトルにおいて、始点からみた終点の方向を返す
+/// @param v_end    2次元ベクトルの終点
+/// @param v_init   2次元ベクトルの始点
+/// @return  始点からみた終点の方向。値の範囲は [-pi, pi]
+template <class T, class U>
+inline auto direction(const T& v_end, const U& v_init)
+    -> decltype(std::atan2(detail::y(v_end) - detail::y(v_init),
+                           detail::x(v_end) - detail::x(v_init))) {
+  return std::atan2(detail::y(v_end) - detail::y(v_init), detail::x(v_end) - detail::x(v_init));
 }
 
 /// @brief 180度回転させた角度を返す
