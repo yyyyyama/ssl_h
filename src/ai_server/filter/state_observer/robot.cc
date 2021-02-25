@@ -46,8 +46,7 @@ void robot::observe(double vx, double vy) {
     return;
   }
 
-  auto robot = raw_value_.value_or(
-      model::robot{x_hat_[0](0), x_hat_[1](0), std::atan2(x_hat_[1](0), x_hat_[0](0))});
+  auto robot = raw_value_.value_or(prev_state_);
 
   // 前回値読み込み時からの経過時刻[s]
   const auto passed_time = std::chrono::duration<double>(capture_time_ - prev_time_).count();
