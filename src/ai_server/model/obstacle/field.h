@@ -3,8 +3,16 @@
 
 #include "ai_server/model/field.h"
 #include "box.h"
+#include "point.h"
 
 namespace ai_server::model::obstacle {
+
+/// @brief センターサークルを障害物として取得する
+/// @param field フィールドの情報
+/// @param margin センターサークルのマージン
+static inline obstacle::point center_circle(const model::field& field, double margin) {
+  return {Eigen::Vector2d::Zero(), field.center_radius() + margin};
+}
 
 /// @brief 自陣側ペナルティエリアを障害物として取得する
 /// @param field フィールドの情報
@@ -14,11 +22,8 @@ static inline obstacle::box our_penalty_area(const model::field& field, double m
   // 移動可能領域からはみ出させるために伸ばす量 (大きめの値を指定)
   constexpr double over_length = 100000.0;
 
-  const double field_bottom = field.x_min();
-  const double half_width   = field.penalty_width() * 0.5;
-  const double length       = field.penalty_length();
-
-  return {{{field_bottom - over_length, -half_width}, {field_bottom + length, half_width}},
+  return {{{field.x_min() - over_length, field.penalty_y_min()},
+           {field.back_penalty_x(), field.penalty_y_max()}},
           margin};
 }
 
@@ -30,11 +35,9 @@ static inline obstacle::box enemy_penalty_area(const model::field& field, double
   // 移動可能領域からはみ出させるために伸ばす量 (大きめの値を指定)
   constexpr double over_length = 100000.0;
 
-  const double field_top  = field.x_max();
-  const double half_width = field.penalty_width() * 0.5;
-  const double length     = field.penalty_length();
-
-  return {{{field_top - length, -half_width}, {field_top + over_length, half_width}}, margin};
+  return {{{field.front_penalty_x(), field.penalty_y_min()},
+           {field.x_max() + over_length, field.penalty_y_max()}},
+          margin};
 }
 } // namespace ai_server::model::obstacle
 

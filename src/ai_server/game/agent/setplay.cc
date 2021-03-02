@@ -541,7 +541,7 @@ std::vector<std::shared_ptr<action::base>> setplay::execute() {
   }
   return baseaction;
 }
-bool setplay::finished() {
+bool setplay::finished() const {
   return state_ == state::finished;
 }
 // レシーバを選ぶ関数{{{
@@ -578,7 +578,7 @@ int setplay::chose_location(std::vector<Eigen::Vector2d> targets,
   return result;
 } // }}}
 // ベクトルを渡すと角度を返してくれるもの{{{
-double setplay::vectorangle(Eigen::Vector2d vec) {
+double setplay::vectorangle(Eigen::Vector2d vec) const {
   return std::atan2(vec.y(), vec.x());
 } // }}}
 } // namespace agent

@@ -28,24 +28,20 @@ public:
   robots_list robots_blue() const;
   robots_list robots_yellow() const;
 
-  template <class T>
-  void set_field(T&& field) {
-    field_ = std::forward<T>(field);
+  void set_field(const model::field& field) {
+    field_ = field;
   }
 
-  template <class T>
-  void set_ball(T&& ball) {
-    ball_ = std::forward<T>(ball);
+  void set_ball(const model::ball& ball) {
+    ball_ = ball;
   }
 
-  template <class T>
-  void set_robots_blue(T&& robots_blue) {
-    robots_blue_ = std::forward<T>(robots_blue);
+  void set_robots_blue(robots_list robots_blue) {
+    robots_blue_ = std::move(robots_blue);
   }
 
-  template <class T>
-  void set_robots_yellow(T&& robots_yellow) {
-    robots_yellow_ = std::forward<T>(robots_yellow);
+  void set_robots_yellow(robots_list robots_yellow) {
+    robots_yellow_ = std::move(robots_yellow);
   }
 
 private:

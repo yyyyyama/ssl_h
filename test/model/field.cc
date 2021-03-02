@@ -12,9 +12,9 @@ BOOST_AUTO_TEST_CASE(test001) {
   BOOST_TEST(f.length() == 12000);
   BOOST_TEST(f.width() == 9000);
   BOOST_TEST(f.center_radius() == 500);
-  BOOST_TEST(f.goal_width() == 1200);
-  BOOST_TEST(f.penalty_length() == 1200);
-  BOOST_TEST(f.penalty_width() == 2400);
+  BOOST_TEST(f.goal_width() == 1800);
+  BOOST_TEST(f.penalty_length() == 1800);
+  BOOST_TEST(f.penalty_width() == 3600);
 }
 BOOST_AUTO_TEST_CASE(test002) {
   ai_server::model::field f{};

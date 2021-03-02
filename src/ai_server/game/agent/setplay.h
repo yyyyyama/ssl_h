@@ -29,7 +29,7 @@ public:
   void set_mode(int mode_num);
   void set_direct(bool is_direct);
 
-  bool finished();
+  bool finished() const;
 
 private:
   pos pos_;
@@ -59,7 +59,7 @@ private:
 
   int chose_location(std::vector<Eigen::Vector2d> targets,
                      model::world::robots_list enemy_robots, int dist = -1);
-  double vectorangle(Eigen::Vector2d vec);
+  double vectorangle(Eigen::Vector2d vec) const;
 };
 } // namespace agent
 } // namespace game

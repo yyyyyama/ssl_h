@@ -23,8 +23,17 @@ boost::signals2::connection refbox::on_receive(const receive_slot_type& slot) {
   return receive_signal_.connect(slot);
 }
 
+boost::signals2::connection refbox::on_receive_extended(
+    const receive_extended_slot_type& slot) {
+  return receive_signal_.connect_extended(slot);
+}
+
 boost::signals2::connection refbox::on_error(const error_slot_type& slot) {
   return error_signal_.connect(slot);
+}
+
+boost::signals2::connection refbox::on_error_extended(const error_extedned_slot_type& slot) {
+  return error_signal_.connect_extended(slot);
 }
 
 std::uint64_t refbox::total_messages() const {

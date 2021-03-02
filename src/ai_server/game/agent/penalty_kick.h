@@ -44,7 +44,7 @@ public:
 
   /// @brief penalty_kickの動作が終了したか取得する
   /// @return 終了していたらtrue
-  bool finished();
+  bool finished() const;
 
 private:
   enum class attack_state { wait, check, kick };

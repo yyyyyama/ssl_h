@@ -1,84 +1,16 @@
 #define BOOST_TEST_DYN_LINK
 
+#include <vector>
 #include <boost/math/constants/constants.hpp>
+#include <boost/test/data/test_case.hpp>
 #include <boost/test/unit_test.hpp>
+#include <Eigen/Core>
 
-#include "ai_server/model/ball.h"
-#include "ai_server/model/robot.h"
-#include "ai_server/util/math/affine.h"
 #include "ai_server/util/math/angle.h"
-#include "ai_server/util/math/to_vector.h"
 
 using namespace ai_server;
 
-BOOST_AUTO_TEST_SUITE(math)
-
-BOOST_AUTO_TEST_CASE(affine, *boost::unit_test::tolerance(0.0000001)) {
-  // テスト用のオブジェクト
-  model::ball b{100, 200, 0};
-  model::robot r{300, 400, 0};
-
-  Eigen::Vector2d v2d(100.0, 200.0);
-
-  {
-    // 何もしない変換
-    const auto mat = util::math::make_transformation_matrix(.0, .0, .0);
-
-    const auto b2 = util::math::transform(mat, b);
-    BOOST_TEST(b2.x() == b.x());
-    BOOST_TEST(b2.y() == b.y());
-
-    const auto r2 = util::math::transform(mat, r);
-    BOOST_TEST(r2.x() == r.x());
-    BOOST_TEST(r2.y() == r.y());
-    BOOST_TEST(r2.theta() == r.theta());
-
-    const Eigen::Vector2d v1 = util::math::transform(mat, v2d);
-    BOOST_TEST(v1.x() == v2d.x());
-    BOOST_TEST(v1.y() == v2d.y());
-  }
-
-  {
-    // 90度回転, x軸方向に10, y軸方向に20平行移動
-    using namespace boost::math::double_constants;
-    const auto mat = util::math::make_transformation_matrix(10.0, 20.0, half_pi);
-
-    const auto b2 = util::math::transform(mat, b);
-    BOOST_TEST(b2.x() == -b.y() + 10);
-    BOOST_TEST(b2.y() == b.x() + 20);
-
-    const auto r2 = util::math::transform(mat, r);
-    BOOST_TEST(r2.x() == -r.y() + 10);
-    BOOST_TEST(r2.y() == r.x() + 20);
-    BOOST_TEST(r2.theta() == 3 * half_pi);
-
-    const Eigen::Vector2d v1 = util::math::transform(mat, v2d);
-    BOOST_TEST(v1.x() == -v2d.y() + 10);
-    BOOST_TEST(v1.y() == v2d.x() + 20);
-  }
-}
-
-BOOST_AUTO_TEST_CASE(to_vector) {
-  model::robot r{};
-  r.set_x(1);
-  r.set_y(2);
-  r.set_theta(3);
-  r.set_vx(4);
-  r.set_vy(5);
-  r.set_omega(6);
-  r.set_ax(7);
-  r.set_ay(8);
-  r.set_alpha(9);
-
-  BOOST_TEST(util::math::position(r) == Eigen::Vector2d(1, 2));
-  BOOST_TEST(util::math::position3d(r) == Eigen::Vector3d(1, 2, 3));
-
-  BOOST_TEST(util::math::velocity(r) == Eigen::Vector2d(4, 5));
-  BOOST_TEST(util::math::velocity3d(r) == Eigen::Vector3d(4, 5, 6));
-
-  BOOST_TEST(util::math::acceleration(r) == Eigen::Vector2d(7, 8));
-  BOOST_TEST(util::math::acceleration3d(r) == Eigen::Vector3d(7, 8, 9));
-}
+BOOST_AUTO_TEST_SUITE(angle)
 
 BOOST_AUTO_TEST_CASE(wrap_to_2pi, *boost::unit_test::tolerance(0.0000001)) {
   using namespace boost::math::double_constants;
@@ -168,6 +100,66 @@ BOOST_AUTO_TEST_CASE(theta_ave, *boost::unit_test::tolerance(0.0000001)) {
 
   vec_t v5{-pi, pi, 3.0 * pi};
   BOOST_TEST(util::math::theta_average(v5.begin(), v5.end()) == pi);
+}
+
+BOOST_TEST_DECORATOR(*boost::unit_test::tolerance(0.0000001))
+BOOST_DATA_TEST_CASE(direction_vec,
+                     boost::unit_test::data::make({1.0, 100.0}) *
+                         boost::unit_test::data::make({-1.0, 2.0}) *
+                         boost::unit_test::data::make({-3.0, 4.0}),
+                     r, x, y) {
+  using namespace boost::math::double_constants;
+
+  // 単位方向ベクトル
+  const Eigen::Vector2d unit_30deg{0.5 * std::sqrt(3), 0.5};
+  const Eigen::Vector2d unit_120deg{-0.5, 0.5 * std::sqrt(3)};
+
+  // ベクトル単体
+  BOOST_TEST(util::math::direction(r * unit_30deg) == sixth_pi);
+  BOOST_TEST(util::math::direction(r * unit_120deg) == half_pi + sixth_pi);
+  BOOST_TEST(util::math::direction(-r * unit_30deg) == -pi + sixth_pi);
+  BOOST_TEST(util::math::direction(-r * unit_120deg) == -half_pi + sixth_pi);
+
+  // ベクトルの終点、始点
+  const Eigen::Vector2d offset{x, y};
+  BOOST_TEST(util::math::direction(offset + r * unit_30deg, offset) == sixth_pi);
+  BOOST_TEST(util::math::direction(offset + r * unit_120deg, offset) == half_pi + sixth_pi);
+  BOOST_TEST(util::math::direction(offset - r * unit_30deg, offset) == -pi + sixth_pi);
+  BOOST_TEST(util::math::direction(offset - r * unit_120deg, offset) == -half_pi + sixth_pi);
+}
+
+BOOST_TEST_DECORATOR(*boost::unit_test::tolerance(0.0000001))
+BOOST_DATA_TEST_CASE(inverse_angle_arg, boost::unit_test::data::make({-5, -1, 0, 5}), cycle) {
+  using namespace boost::math::double_constants;
+
+  const double offset = cycle * two_pi;
+
+  BOOST_TEST(util::math::inverse(offset + sixth_pi) == -pi + sixth_pi);
+  BOOST_TEST(util::math::inverse(offset + half_pi + sixth_pi) == -half_pi + sixth_pi);
+  BOOST_TEST(util::math::inverse(offset + pi + sixth_pi) == sixth_pi);
+  BOOST_TEST(util::math::inverse(offset + pi + half_pi + sixth_pi) == half_pi + sixth_pi);
+}
+
+BOOST_DATA_TEST_CASE(complare_arg,
+                     boost::unit_test::data::make({-5, 0, 5}) *
+                         boost::unit_test::data::make({-2, -1, 0, 2}),
+                     common_cycle, cycle) {
+  using namespace boost::math::double_constants;
+
+  const double from   = (common_cycle + cycle) * two_pi + sixth_pi;
+  const double offset = common_cycle * two_pi + third_pi;
+
+  BOOST_CHECK(util::math::left_of(offset, from));
+  BOOST_CHECK(!util::math::right_of(offset, from));
+
+  BOOST_CHECK(util::math::left_of(offset + half_pi, from));
+  BOOST_CHECK(!util::math::right_of(offset + half_pi, from));
+
+  BOOST_CHECK(!util::math::left_of(offset + pi, from));
+  BOOST_CHECK(util::math::right_of(offset + pi, from));
+
+  BOOST_CHECK(!util::math::left_of(offset + pi + half_pi, from));
+  BOOST_CHECK(util::math::right_of(offset + pi + half_pi, from));
 }
 
 BOOST_AUTO_TEST_SUITE_END()

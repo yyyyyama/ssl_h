@@ -98,7 +98,8 @@ std::vector<std::shared_ptr<action::base>> all::execute() {
 
   // guardしたいリスト
   std::vector<Eigen::Vector2d> guard_list;
-  guard_list.push_back(ball_pos);
+  if (wf.penalty_y_max() < std::abs(ball_pos.y()) || wf.back_penalty_x() < ball_pos.x())
+    guard_list.push_back(ball_pos);
   for (const auto& robot : ene_robots) {
     const Eigen::Vector2d ene_pos = util::math::position(robot.second);
     if ((ene_pos - our_goal_pos).norm() < 5000.0 && (ene_pos - ball_pos).norm() > 500.0 &&
@@ -135,10 +136,10 @@ std::vector<std::shared_ptr<action::base>> all::execute() {
         score_list.reserve(tmp_ids.size());
         for (auto id : tmp_ids) {
           const Eigen::Vector2d br = robot_pos_.at(id) - ball_pos;
-          score_list[id] = br.norm() / (std::max(ball_vel.dot(br.normalized()), 0.0) + 2000.0);
+          score_list[id]           = (ball_vel.dot(br.normalized()) + 2000.0) / br.norm();
         }
         chaser_ =
-            std::min_element(score_list.cbegin(), score_list.cend(),
+            std::max_element(score_list.cbegin(), score_list.cend(),
                              [](const auto& a, const auto& b) { return a.second < b.second; })
                 ->first;
       } else {
@@ -181,10 +182,12 @@ std::vector<std::shared_ptr<action::base>> all::execute() {
     } else {
       const auto& selected_node =
           *std::max_element(child_nodes.cbegin(), child_nodes.cend(),
-                            [](const auto& a, const auto& b) { return a.n < b.n; });
+                            [](const auto& a, const auto& b) { return a.max_v < b.max_v; });
       pass_target_ = selected_node.state.ball_pos;
       target_id_   = selected_node.state.chaser;
-      dribble_flag = target_id_ == chaser_ && (ene_goal_pos - pass_target_).norm() > 500.0;
+      dribble_flag =
+          target_id_ == chaser_ && (wf.penalty_y_max() < std::abs(pass_target_.y()) ||
+                                    pass_target_.x() < wf.front_penalty_x());
     }
 
     // 自チームロボットを障害物設定

@@ -16,6 +16,7 @@ const double state_feedback::zeta_      = 1.0;
 const double state_feedback::omega_     = 49.17;
 const double state_feedback::v_max_     = 10000.0;
 const double state_feedback::omega_max_ = 10.0;
+const double state_feedback::alpha_max_ = 2.0 * pi<double>();
 
 state_feedback::state_feedback(const double cycle)
     : base(v_max_),
@@ -61,6 +62,11 @@ base::result_type state_feedback::update(const model::robot& robot, const model:
     target.x() = vel.x();
     target.y() = vel.y();
     target.z() = std::clamp(4.0 * util::math::wrap_to_pi(delta_p.z()), -omega_max_, omega_max_);
+    if (std::abs(u_[1].z()) < std::abs(target.z()) ||
+        std::signbit(u_[1].z()) != std::signbit(target.z())) {
+      target.z() = std::clamp(target.z(), u_[1].z() - alpha_max_ * cycle_,
+                              u_[1].z() + alpha_max_ * cycle_);
+    }
   }
 
   calculate_output(field, target);
@@ -85,6 +91,11 @@ base::result_type state_feedback::update(const model::robot& robot, const model:
     target.x() = vel.x();
     target.y() = vel.y();
     target.z() = std::clamp(std::get<0>(velangular), -omega_max_, omega_max_);
+    if (std::abs(u_[1].z()) < std::abs(target.z()) ||
+        std::signbit(u_[1].z()) != std::signbit(target.z())) {
+      target.z() = std::clamp(target.z(), u_[1].z() - alpha_max_ * cycle_,
+                              u_[1].z() + alpha_max_ * cycle_);
+    }
   }
 
   calculate_output(field, target);
@@ -109,6 +120,11 @@ base::result_type state_feedback::update(const model::robot& robot, const model:
   target.x() = vel.x();
   target.y() = vel.y();
   target.z() = std::clamp(4.0 * util::math::wrap_to_pi(delta_p_z), -omega_max_, omega_max_);
+  if (std::abs(u_[1].z()) < std::abs(target.z()) ||
+      std::signbit(u_[1].z()) != std::signbit(target.z())) {
+    target.z() = std::clamp(target.z(), u_[1].z() - alpha_max_ * cycle_,
+                            u_[1].z() + alpha_max_ * cycle_);
+  }
 
   calculate_output(field, target);
 
@@ -130,6 +146,11 @@ base::result_type state_feedback::update(const model::robot& robot, const model:
   target.x() = vel.x();
   target.y() = vel.y();
   target.z() = std::clamp(set.z(), -omega_max_, omega_max_);
+  if (std::abs(u_[1].z()) < std::abs(target.z()) ||
+      std::signbit(u_[1].z()) != std::signbit(target.z())) {
+    target.z() = std::clamp(target.z(), u_[1].z() - alpha_max_ * cycle_,
+                            u_[1].z() + alpha_max_ * cycle_);
+  }
 
   calculate_output(field, target);
 
@@ -157,7 +178,8 @@ void state_feedback::calculate_regulator(const model::robot& robot) {
   u_[0] = up_[0] + ui_[0] + ud_[0];
 }
 
-Eigen::Vector3d state_feedback::convert(const Eigen::Vector3d& raw, const double robot_theta) {
+Eigen::Vector3d state_feedback::convert(const Eigen::Vector3d& raw,
+                                        const double robot_theta) const {
   Eigen::Vector3d target = Eigen::AngleAxisd(-robot_theta, Eigen::Vector3d::UnitZ()) * raw;
   return target;
 }
@@ -231,7 +253,7 @@ void state_feedback::calculate_output(const model::field& field, Eigen::Vector3d
 }
 
 double state_feedback::find_cross_point(const double x_1, const double y_2,
-                                        const double angle) {
+                                        const double angle) const {
   // 2点から直線の式を求め,交点を求める
   // (y_1,x_2はゼロ)
   double x;

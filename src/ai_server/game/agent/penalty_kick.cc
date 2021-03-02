@@ -31,7 +31,7 @@ void penalty_kick::set_start_flag(bool start_flag) {
   start_flag_ = start_flag;
 }
 
-bool penalty_kick::finished() {
+bool penalty_kick::finished() const {
   return turn_kick_->finished();
 }
 

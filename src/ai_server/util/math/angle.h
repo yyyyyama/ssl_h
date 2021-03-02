@@ -7,6 +7,8 @@
 #include <iterator>
 #include <numeric>
 
+#include "detail/xyz.h"
+
 namespace ai_server {
 namespace util {
 namespace math {
@@ -53,6 +55,33 @@ inline auto delta_theta(T from, T to) {
   return std::atan2(rot_z, dot);
 }
 
+/// @brief   2次元ベクトルの方向を返す
+/// @param v   2次元ベクトル
+/// @return  2次元ベクトルの方向。値の範囲は [-pi, pi]
+template <class T>
+inline auto direction(const T& v) -> decltype(std::atan2(detail::y(v), detail::x(v))) {
+  return std::atan2(detail::y(v), detail::x(v));
+}
+
+/// @brief   2次元ベクトルにおいて、始点からみた終点の方向を返す
+/// @param v_end    2次元ベクトルの終点
+/// @param v_init   2次元ベクトルの始点
+/// @return  始点からみた終点の方向。値の範囲は [-pi, pi]
+template <class T, class U>
+inline auto direction(const T& v_end, const U& v_init)
+    -> decltype(std::atan2(detail::y(v_end) - detail::y(v_init),
+                           detail::x(v_end) - detail::x(v_init))) {
+  return std::atan2(detail::y(v_end) - detail::y(v_init), detail::x(v_end) - detail::x(v_init));
+}
+
+/// @brief 180度回転させた角度を返す
+/// @param    theta   角度
+/// @return  180度回転させた角度。値の範囲は [-pi, pi]
+template <class T, std::enable_if_t<std::is_floating_point_v<T>, std::nullptr_t> = nullptr>
+inline auto inverse(T theta) {
+  return wrap_to_pi(theta + boost::math::constants::pi<T>());
+}
+
 //  @brief  角度の平均を求める
 /// @param    first 対象とする角度集合の範囲
 /// @param    last  対象とする角度集合の範囲
@@ -72,6 +101,25 @@ inline auto theta_average(Iterator first, Iterator last) {
   // 平均 = 総和ベクトルの角度
   return std::arg(sum);
 }
+
+/// @brief 偏角xが偏角yの左側に見えるか
+/// @param   x 偏角
+/// @param   y 基準となる偏角
+/// @return wrap_to_pi(x-y) > 0
+template <class T, std::enable_if_t<std::is_floating_point<T>::value, std::nullptr_t> = nullptr>
+inline bool left_of(T x, T y) {
+  return wrap_to_pi(x - y) > T();
+}
+
+/// @brief 偏角xが偏角yの右側に見えるか
+/// @param   x 偏角
+/// @param   y 基準となる偏角
+/// @return wrap_to_pi(x-y) < 0
+template <class T, std::enable_if_t<std::is_floating_point<T>::value, std::nullptr_t> = nullptr>
+inline bool right_of(T x, T y) {
+  return wrap_to_pi(x - y) < T();
+}
+
 } // namespace math
 } // namespace util
 } // namespace ai_server

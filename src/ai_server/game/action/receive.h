@@ -21,7 +21,7 @@ public:
 
   /// @brief ドリブルパワーを取得する
   /// @return ドリブルパワー
-  int dribble();
+  int dribble() const;
 
   /// @brief パスしてくる相手を設定する
   /// @param passer_id パスしてくる相手のID
@@ -29,7 +29,7 @@ public:
 
   /// @brief パスしてくる相手を取得する
   /// @return パスしてくる相手のID
-  unsigned int passer();
+  unsigned int passer() const;
 
   /// @brief 実行
   /// @return ロボットに送信するコマンド

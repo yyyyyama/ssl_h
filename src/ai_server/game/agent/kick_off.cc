@@ -177,8 +177,7 @@ std::vector<std::shared_ptr<action::base>> kick_off::execute() {
 
   // waiterの処理
   if (!visible_waiter.empty()) {
-    common_obstacles.add(model::obstacle::point{Eigen::Vector2d::Zero(),
-                                                world().field().center_radius() + 150.0});
+    common_obstacles.add(model::obstacle::center_circle(world().field(), 150.0));
     if (!start_flag_)
       common_obstacles.add(model::obstacle::point{util::math::position(ball), 650.0});
     if (!kick_finished_) {

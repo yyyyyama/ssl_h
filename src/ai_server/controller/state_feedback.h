@@ -25,12 +25,13 @@ class state_feedback : public base {
   ------------------------------------ */
 
 private:
-  double cycle_;                    // 制御周期
+  const double cycle_;              // 制御周期
   const static double k_;           // 極,収束の速さ
   static const double zeta_;        // モデルパラメータζ
   static const double omega_;       // モデルパラメータω
   static const double v_max_;       // 最大速度
-  static const double omega_max_;   // 最大加速度
+  static const double omega_max_;   // 最大角速度
+  static const double alpha_max_;   // 最大角加速度
   Eigen::Vector3d kp_;              // 比例ゲイン(x,y,rotate)
   Eigen::Vector3d ki_;              // 積分ゲイン(x,y,rotate)
   Eigen::Vector3d kd_;              // 微分ゲイン(x,y,rotate)
@@ -47,14 +48,14 @@ private:
   void calculate_regulator(const model::robot& robot);
 
   // フィールド基準座標系からロボット基準座標系に変換
-  Eigen::Vector3d convert(const Eigen::Vector3d& raw, double robot_theta);
+  Eigen::Vector3d convert(const Eigen::Vector3d& raw, double robot_theta) const;
 
   // 出力計算及び後処理
   void calculate_output(const model::field& field, Eigen::Vector3d target);
 
   // 2点と角度から,2点を通る直線と原点を通る指定角度の直線との交点を求め
   // 原点から交点までの距離を返す
-  double find_cross_point(double x_1, double y_2, double angle);
+  double find_cross_point(double x_1, double y_2, double angle) const;
 
 public:
   // コンストラクタ

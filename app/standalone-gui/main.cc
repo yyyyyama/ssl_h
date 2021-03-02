@@ -79,7 +79,7 @@ enum class dir { right, left };
 // --------------------------------
 
 // チームの最大のロボット数 (ID 0 ~ ID max_robots - 1 の機体を使う)
-static constexpr std::size_t max_robots = 12;
+static constexpr std::size_t max_robots = 16;
 
 // WorldModelの設定
 static constexpr auto use_va_filter = true; // ロボットの速度/加速度を計算する

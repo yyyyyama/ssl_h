@@ -30,6 +30,7 @@ BOOST_AUTO_TEST_CASE(normal) {
     BOOST_TEST(b1.x() == b2.x());
     BOOST_TEST(b1.y() == b2.y());
     BOOST_TEST(b1.z() == b2.z());
+    BOOST_TEST(b1.is_lost() == b2.is_lost());
   }
 
   {
@@ -57,6 +58,7 @@ BOOST_AUTO_TEST_CASE(normal) {
     BOOST_TEST(b.x() == 4);
     BOOST_TEST(b.y() == 5);
     BOOST_TEST(b.z() == 6);
+    BOOST_TEST(b.is_lost() == false);
   }
 
   {
@@ -78,6 +80,7 @@ BOOST_AUTO_TEST_CASE(normal) {
     BOOST_TEST(b.x() == 10);
     BOOST_TEST(b.y() == 20);
     BOOST_TEST(b.z() == 30);
+    BOOST_TEST(b.is_lost() == false);
   }
 
   {
@@ -99,6 +102,7 @@ BOOST_AUTO_TEST_CASE(normal) {
     BOOST_TEST(b.x() == 10);
     BOOST_TEST(b.y() == 20);
     BOOST_TEST(b.z() == 30);
+    BOOST_TEST(b.is_lost() == false);
   }
 
   {
@@ -114,6 +118,7 @@ BOOST_AUTO_TEST_CASE(normal) {
     BOOST_TEST(b.x() == 10);
     BOOST_TEST(b.y() == 20);
     BOOST_TEST(b.z() == 30);
+    BOOST_TEST(b.is_lost() == false);
   }
 
   {
@@ -127,10 +132,12 @@ BOOST_AUTO_TEST_CASE(normal) {
 
   {
     const auto b = bu.value();
-    // 候補リストが空になったら何もしない (最後に選択された値になる)
+    // 候補リストが空になったら最後に選択された値になる
+    // is_lost が true になる
     BOOST_TEST(b.x() == 10);
     BOOST_TEST(b.y() == 20);
     BOOST_TEST(b.z() == 30);
+    BOOST_TEST(b.is_lost() == true);
   }
 }
 

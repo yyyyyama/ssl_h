@@ -9,6 +9,9 @@ set(BUILD_CPP_UTILS ON CACHE BOOL "Build C++ API and utilities")
 # C++ のライブラリをビルドする (nnabla-cuda-ext)
 set(BUILD_CPP_LIB ON CACHE BOOL "Build C++ Library")
 
+# HDF5 形式のデータを使う
+set(NNABLA_UTILS_WITH_HDF5 ON CACHE BOOL "Enable HDF5 in C++ utils.")
+
 # Python インターフェースはビルドしない (nnabla, nnabla-cuda-ext)
 set(BUILD_PYTHON_PACKAGE OFF CACHE BOOL "Build python package")
 
@@ -19,12 +22,12 @@ find_package(Patch REQUIRED)
 # https://cmake.org/cmake/help/v3.13/module/FetchContent.html
 include(FetchContent)
 FetchContent_Declare(nnabla
-  URL      https://github.com/sony/nnabla/archive/v1.11.0.tar.gz
-  URL_HASH SHA256=adadfc7dd561efe3a533189f377939c05a182aad8740dd793c713aac723111e1
+  URL      https://github.com/sony/nnabla/archive/v1.15.0.tar.gz
+  URL_HASH SHA256=0ba01b6805c4707e2e9209e9cbfe9f90c4ef83b91dfddf9a7b5576d0f38bae39
 
   # - CMAKE_{SOURCE,BINARY}_DIR を PROJECT_{SOURCE,BINARY}_DIR に変更
   # - Eigen をダウンロードしてくるのをやめる
-  PATCH_COMMAND ${Patch_EXECUTABLE} -p1 < ${CMAKE_CURRENT_SOURCE_DIR}/nnabla-v1.11.0.patch
+  PATCH_COMMAND ${Patch_EXECUTABLE} -p1 < ${CMAKE_CURRENT_SOURCE_DIR}/nnabla-v1.15.0.patch
 )
 FetchContent_GetProperties(nnabla)
 if(NOT nnabla_POPULATED)
@@ -61,13 +64,13 @@ if(ENABLE_NNABLA_EXT_CUDA)
   set(NBLA_CLI_LIBRARY_NAME nnabla::nnabla_cli)
 
   FetchContent_Declare(nnabla_ext_cuda
-    URL      https://github.com/sony/nnabla-ext-cuda/archive/v1.11.0.tar.gz
-    URL_HASH SHA256=3b3f2bdde1e7803a97cc46e07f4cf9bc25aa2fde66430658612821f522b69253
+    URL      https://github.com/sony/nnabla-ext-cuda/archive/v1.15.0.tar.gz
+    URL_HASH SHA256=62804f1eb2e282dd61efd96abb8f2437ec3a8e6a0be2b58c1472265e068834d1
 
     # - CMAKE_{SOURCE,BINARY}_DIR を PROJECT_{SOURCE,BINARY}_DIR に変更
     # - "存在する" libnnabla.so などのパスを要求してきて不便なのを修正
     # - Eigen をダウンロードしてくるのをやめる
-    PATCH_COMMAND ${Patch_EXECUTABLE} -p1 < ${CMAKE_CURRENT_SOURCE_DIR}/nnabla-ext-cuda-v1.11.0.patch
+    PATCH_COMMAND ${Patch_EXECUTABLE} -p1 < ${CMAKE_CURRENT_SOURCE_DIR}/nnabla-ext-cuda-v1.15.0.patch
   )
   FetchContent_GetProperties(nnabla_ext_cuda)
   if(NOT nnabla_ext_cuda_POPULATED)

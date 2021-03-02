@@ -268,7 +268,7 @@ std::vector<std::shared_ptr<action::base>> regular::execute() {
 }
 
 // chase id_の候補を取得
-unsigned int regular::select_chaser() {
+unsigned int regular::select_chaser() const {
   const auto ball     = world().ball();
   const auto our_team = model::our_robots(world(), team_color());
   std::vector<unsigned int> ids;
@@ -492,7 +492,7 @@ void regular::update_recievers() {
 }
 
 // 敵リストの作成
-std::priority_queue<regular::id_importance> regular::make_enemy_list() {
+std::priority_queue<regular::id_importance> regular::make_enemy_list() const {
   // 一時的なリスト
   std::priority_queue<regular::id_importance> tmp_enemies;
   // 味方
@@ -615,7 +615,7 @@ std::priority_queue<regular::id_importance> regular::make_enemy_list() {
 }
 
 // パス経路を生成してポイントを返す
-regular::point regular::select_target() {
+regular::point regular::select_target() const {
   // ゴール幅
   const auto goal_width = world().field().goal_width();
   // 敵ゴールの左端
@@ -830,7 +830,7 @@ std::vector<unsigned int>::const_iterator regular::nearest_id(
 
 // 空いているエリアを返す
 regular::area regular::empty_area(const regular::area& area, unsigned int my_id,
-                                  const std::vector<unsigned int>& our_ids) {
+                                  const std::vector<unsigned int>& our_ids) const {
   // X方向の分割数
   const int split_x = 3;
   // Y方向の分割数
@@ -946,7 +946,7 @@ regular::area regular::empty_area(const regular::area& area, unsigned int my_id,
 }
 
 // 指定位置がエリア上にあるかどうか
-bool regular::in_area(double x, double y, const regular::area& area) {
+bool regular::in_area(double x, double y, const regular::area& area) const {
   // 左上の頂点
   regular::point top_left;
   //右下の頂点

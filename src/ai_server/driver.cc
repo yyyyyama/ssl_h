@@ -30,6 +30,11 @@ boost::signals2::connection driver::on_command_updated(
   return command_updated_.connect(slot);
 }
 
+boost::signals2::connection driver::on_command_updated_extended(
+    const updated_signal_type::extended_slot_type& slot) {
+  return command_updated_.connect_extended(slot);
+}
+
 void driver::set_velocity_limit(double limit) {
   std::unique_lock lock(mutex_);
   for (auto&& meta : robots_metadata_) std::get<1>(meta.second)->set_velocity_limit(limit);

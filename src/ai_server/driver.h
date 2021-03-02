@@ -67,6 +67,11 @@ public:
   /// @param slot             commandが更新されたときに呼びたい関数
   boost::signals2::connection on_command_updated(const updated_signal_type::slot_type& slot);
 
+  /// @brief                  commandが更新されたときに呼ばれる関数を登録する
+  /// @param slot             commandが更新されたときに呼びたい関数
+  boost::signals2::connection on_command_updated_extended(
+      const updated_signal_type::extended_slot_type& slot);
+
   /// @brief                  登録されているロボットのControllerに速度制限をかける
   /// @param limit            速度の制限値
   void set_velocity_limit(double limit);

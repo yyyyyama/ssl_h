@@ -6,9 +6,9 @@ field::field()
     : length_(12000),
       width_(9000),
       center_radius_(500),
-      goal_width_(1200),
-      penalty_length_(1200),
-      penalty_width_(2400) {}
+      goal_width_(1800),
+      penalty_length_(1800),
+      penalty_width_(3600) {}
 int field::length() const {
   return length_;
 }
