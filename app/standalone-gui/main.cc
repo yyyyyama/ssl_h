@@ -1361,8 +1361,6 @@ auto main(int argc, char** argv) -> int {
         l.info("robot packet received!");
         robot_received = true;
       }
-      for (auto msg : p) std::cout << std::bitset<8>(static_cast<int>(msg)) << " ";
-      std::cout << "\n";
     });
     l.info(fmt::format("robot: {}:{}", robot_address, robot_port));
 
