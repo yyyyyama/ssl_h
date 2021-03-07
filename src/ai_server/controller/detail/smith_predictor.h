@@ -11,23 +11,20 @@ namespace controller {
 namespace detail {
 
 /// @class  smith_predictor
-/// @brief  無駄時間補間,visionからのデータが7フレーム遅れるとし,その分を補間
+/// @brief  無駄時間補間,visionからのデータが遅延するのでその分を補間
 class smith_predictor {
 private:
+  // 遅延時間 [s]
+  static const double delay_;
   // 制御周期
   const double cycle_;
-  // 二次遅れモデルパラメータ
-  const double zeta_;
-  const double omega_;
-  // 7フレーム分の制御入力
+  // 制御入力 (遅延時間分の補完用)
   std::deque<Eigen::Vector3d> u_;
 
 public:
   /// @brief  コンストラクタ
   /// @param  cycle 制御周期
-  /// @param  zeta  ロボット二次遅れモデルのパラメータζ
-  /// @param  omega ロボット二次遅れモデルのパラメータω
-  smith_predictor(double cycle, double zeta, double omega);
+  smith_predictor(double cycle);
 
   /// @brief  現在状態の推定
   /// @param  robot ロボット

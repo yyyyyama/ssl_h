@@ -19,10 +19,7 @@ const double state_feedback::omega_max_ = 10.0;
 const double state_feedback::alpha_max_ = 2.0 * pi<double>();
 
 state_feedback::state_feedback(const double cycle)
-    : base(v_max_),
-      cycle_(cycle),
-      velocity_generator_(cycle_),
-      smith_predictor_(cycle_, zeta_, omega_) {
+    : base(v_max_), cycle_(cycle), velocity_generator_(cycle_), smith_predictor_(cycle_) {
   // 状態フィードバックゲイン
   // (s+k)^2=s^2+2ks+k^2=0
   // |sI-A|=s^2+(2ζω-k2ω^2)s+ω^2-k1ω^2
@@ -159,8 +156,7 @@ base::result_type state_feedback::update(const model::robot& robot, const model:
 
 void state_feedback::calculate_regulator(const model::robot& robot) {
   // 前回制御入力をフィールド基準に座標変換
-  double u_direction    = std::atan2(u_[1].y(), u_[1].x());
-  Eigen::Vector3d pre_u = Eigen::AngleAxisd(u_direction, Eigen::Vector3d::UnitZ()) * u_[1];
+  const Eigen::Vector3d pre_u = convert(u_[1], -estimated_robot_(2, 0));
 
   // smith_predictorでvisionの遅れ時間の補間
   estimated_robot_ = smith_predictor_.interpolate(robot, pre_u);
