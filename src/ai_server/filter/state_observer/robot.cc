@@ -15,6 +15,7 @@ robot::robot(std::recursive_mutex& mutex, robot::writer_func_type wf,
     : base(mutex, wf),
       prev_time_(std::chrono::system_clock::time_point::min()),
       capture_time_(std::chrono::system_clock::time_point::min()),
+      receive_time_(std::chrono::system_clock::time_point::min()),
       lost_duration_(time) {
   x_hat_.fill(decltype(x_hat_)::value_type::Zero());
 }
@@ -49,13 +50,13 @@ void robot::observe(double vx, double vy) {
   auto robot = raw_value_.value_or(prev_state_);
 
   // 前回値読み込み時からの経過時刻[s]
-  const auto passed_time = std::chrono::duration<double>(capture_time_ - prev_time_).count();
+  const auto passed_time = std::chrono::duration<double>(receive_time_ - prev_time_).count();
   // 非常に短い間隔で呼び出されたら直前の値を返す
   if (std::abs(passed_time) < std::numeric_limits<double>::epsilon()) {
     write(prev_state_);
     return;
   }
-  prev_time_ = capture_time_;
+  prev_time_ = receive_time_;
 
   // オイラー法を用いて状態更新を行う
   // 状態方程式：d(x_hat)/dt = (A * x_hat) + (B * u) + h * (y - y_hat)
@@ -105,7 +106,8 @@ void robot::set_raw_value(std::optional<model::robot> value,
     }
     capture_time_ = time;
   }
-  raw_value_ = value;
+  raw_value_    = value;
+  receive_time_ = time;
 }
 } // namespace state_observer
 } // namespace filter

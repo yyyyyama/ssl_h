@@ -20,6 +20,7 @@ private:
 
   std::chrono::system_clock::time_point prev_time_; // 前回呼び出しのシステム時刻
   std::chrono::system_clock::time_point capture_time_; // カメラがロボットをキャプチャした時刻
+  std::chrono::system_clock::time_point receive_time_; // Visionからの信号を受信した時刻
   std::chrono::system_clock::duration
       lost_duration_; // 見えなくなってからロストさせるまでの時間
   std::optional<model::robot> raw_value_; //観測した情報
