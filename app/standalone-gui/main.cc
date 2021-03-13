@@ -294,7 +294,7 @@ private:
 
         const auto current_cmd = refbox.command();
 
-        if (current_cmd != prev_cmd) {
+        if (current_cmd != prev_cmd || need_reset_) {
           if (current_cmd == model::refbox::game_command::stop) {
             driver_.set_velocity_limit(velocity_limit_at_stopgame);
           } else {
