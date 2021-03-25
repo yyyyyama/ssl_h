@@ -164,7 +164,7 @@ public:
         team_color_{model::team_color::yellow},
         updater_world_{world},
         updater_refbox_{refbox},
-        active_robots_{0u, 1u, 2u, 3u, 4u, 5u, 6u, 7u},
+        active_robots_{0u, 1u, 2u, 3u, 4u, 5u, 6u, 7u, 8u, 9u, 10u},
         driver_{driver},
         radio_{radio},
         l_{"game_runner"} {
