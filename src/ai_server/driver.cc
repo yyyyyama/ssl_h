@@ -1,6 +1,7 @@
 #include <algorithm>
 #include <cmath>
 #include <stdexcept>
+#include <type_traits>
 #include <variant>
 #include <boost/format.hpp>
 
@@ -115,7 +116,12 @@ void driver::process(unsigned int id, metadata_type& metadata, const model::worl
     const auto [vx, vy, omega] = std::visit(c, sp, sp_rot);
 
     // 命令の送信
-    radio->send(team_color_, id, command.kick_flag(), command.dribble(), vx, vy, omega);
+    if (std::is_base_of_v<radio::base::simulator,
+                          typename std::remove_reference_t<decltype(radio)>::element_type>) {
+      radio->send(team_color_, id, command.kick_flag(), command.dribble(), vx, vy, omega);
+    } else {
+      radio->send(team_color_, id, command.motion());
+    }
 
     // 登録された関数があればそれを呼び出す
     // controller はロボット基準の速度を返すのでフィールド基準にもどす

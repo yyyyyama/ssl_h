@@ -3,6 +3,7 @@
 
 #include <cmath>
 #include <cstdint>
+#include <iostream>
 #include <memory>
 #include <vector>
 
@@ -64,6 +65,11 @@ public:
     data[10] = '\n';
 
     connection_->send(std::move(data));
+  }
+
+  void send([[maybe_unused]] model::team_color color, unsigned int id,
+            std::shared_ptr<model::motion::base> motion) override {
+    if (motion) std::cout << id << ": " << motion->name() << std::endl;
   }
 
 protected:

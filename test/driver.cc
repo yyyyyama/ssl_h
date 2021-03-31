@@ -122,23 +122,34 @@ protected:
 };
 
 struct mock_radio : public radio::base::command {
-  std::vector<std::tuple<unsigned int, double, double, double>> commands_;
+  std::vector<
+      std::tuple<unsigned int, double, double, double, std::shared_ptr<model::motion::base>>>
+      commands_;
   model::team_color color_;
 
   void send(model::team_color color, unsigned int id, const model::command::kick_flag_t&, int,
             double vx, double vy, double omega) {
-    commands_.emplace_back(id, vx, vy, omega);
+    commands_.emplace_back(id, vx, vy, omega, nullptr);
+    color_ = color;
+  }
+
+  void send(model::team_color color, unsigned int id,
+            std::shared_ptr<model::motion::base> motion) {
+    commands_.emplace_back(id, 0.0, 0.0, 0.0, motion);
     color_ = color;
   }
 };
 
 struct command_updated_handler {
-  std::vector<std::tuple<unsigned int, double, double, double>> commands;
+  std::vector<
+      std::tuple<unsigned int, double, double, double, std::shared_ptr<model::motion::base>>>
+      commands;
   model::team_color color;
 
   void operator()(model::team_color c, unsigned int id, const model::command::kick_flag_t&, int,
-                  double vx, double vy, double omega) {
-    commands.emplace_back(id, vx, vy, omega);
+                  double vx, double vy, double omega,
+                  std::shared_ptr<model::motion::base> motion = nullptr) {
+    commands.emplace_back(id, vx, vy, omega, motion);
     color = c;
   }
 };
@@ -250,7 +261,7 @@ BOOST_AUTO_TEST_CASE(main_loop) {
   {
     BOOST_TEST(c1.executed_);
     BOOST_TEST(s1.commands_.size() == 1);
-    const auto& [id, vx, vy, omega] = s1.commands_.back();
+    const auto& [id, vx, vy, omega, motion] = s1.commands_.back();
     BOOST_TEST(id == 1);
     BOOST_TEST(vx == 0);
     BOOST_TEST(vy == 0);
@@ -264,7 +275,7 @@ BOOST_AUTO_TEST_CASE(main_loop) {
   BOOST_TEST(s2.commands_.empty());
   {
     BOOST_TEST(handler.commands.size() == 1);
-    const auto& [id, vx, vy, omega] = handler.commands.back();
+    const auto& [id, vx, vy, omega, motion] = handler.commands.back();
     BOOST_TEST(id == 1);
     BOOST_TEST(vx == 0);
     BOOST_TEST(vy == 0);
@@ -306,7 +317,7 @@ BOOST_AUTO_TEST_CASE(main_loop) {
   {
     BOOST_TEST(c1.executed_);
     BOOST_TEST(s1.commands_.size() == 1);
-    const auto& [id, vx, vy, omega] = s1.commands_.back();
+    const auto& [id, vx, vy, omega, motion] = s1.commands_.back();
     BOOST_TEST(id == 1);
     BOOST_TEST(vx == 0);
     BOOST_TEST(vy == 0);
@@ -320,7 +331,7 @@ BOOST_AUTO_TEST_CASE(main_loop) {
   BOOST_TEST(s2.commands_.empty());
   {
     BOOST_TEST(handler.commands.size() == 1);
-    const auto& [id, vx, vy, omega] = handler.commands.back();
+    const auto& [id, vx, vy, omega, motion] = handler.commands.back();
     BOOST_TEST(id == 1);
     BOOST_TEST(vx == 0);
     BOOST_TEST(vy == 0);
@@ -341,11 +352,11 @@ BOOST_AUTO_TEST_CASE(main_loop) {
   {
     BOOST_TEST(c1.executed_);
     BOOST_TEST(s1.commands_.size() == 1);
-    const auto& [id, vx, vy, omega] = s1.commands_.back();
+    const auto& [id, vx, vy, omega, motion] = s1.commands_.back();
     BOOST_TEST(id == 1);
-    BOOST_TEST(vx == 1);
-    BOOST_TEST(vy == 2);
-    BOOST_TEST(omega == 3);
+    BOOST_TEST(vx == 0);
+    BOOST_TEST(vy == 0);
+    BOOST_TEST(omega == 0);
     c1.executed_ = false;
     s1.commands_.clear();
   }
@@ -353,7 +364,7 @@ BOOST_AUTO_TEST_CASE(main_loop) {
   BOOST_TEST(s2.commands_.empty());
   {
     BOOST_TEST(handler.commands.size() == 1);
-    const auto& [id, vx, vy, omega] = handler.commands.back();
+    const auto& [id, vx, vy, omega, motion] = handler.commands.back();
     BOOST_TEST(id == 1);
     BOOST_TEST(vx == 1);
     BOOST_TEST(vy == 2);
@@ -384,18 +395,18 @@ BOOST_AUTO_TEST_CASE(main_loop) {
   {
     BOOST_TEST(c1.executed_);
     BOOST_TEST(s1.commands_.size() == 1);
-    const auto& [id, vx, vy, omega] = s1.commands_.back();
+    const auto& [id, vx, vy, omega, motion] = s1.commands_.back();
     BOOST_TEST(id == 1);
-    BOOST_TEST(vx == 1);
-    BOOST_TEST(vy == 2);
-    BOOST_TEST(omega == 3);
+    BOOST_TEST(vx == 0);
+    BOOST_TEST(vy == 0);
+    BOOST_TEST(omega == 0);
     c1.executed_ = false;
     s1.commands_.clear();
   }
   {
     BOOST_TEST(c2.executed_);
     BOOST_TEST(s2.commands_.size() == 1);
-    const auto& [id, vx, vy, omega] = s2.commands_.back();
+    const auto& [id, vx, vy, omega, motion] = s2.commands_.back();
     BOOST_TEST(id == 2);
     BOOST_TEST(vx == 0);
     BOOST_TEST(vy == 0);
@@ -533,7 +544,7 @@ BOOST_AUTO_TEST_CASE(main_loop3, *boost::unit_test::tolerance(0.0000001)) {
   ctx.run_one();
   {
     BOOST_TEST(handler.commands.size() == 1);
-    const auto& [id, vx, vy, omega] = handler.commands.back();
+    const auto& [id, vx, vy, omega, motion] = handler.commands.back();
     // on_command_updated() に渡される速度は、controller が出力するロボット基準の値を
     // フィールド基準にもどすためにロボットの角度だけ回転される
     BOOST_TEST(id == 1);

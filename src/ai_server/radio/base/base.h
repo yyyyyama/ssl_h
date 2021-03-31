@@ -22,6 +22,9 @@ public:
   virtual void send(model::team_color color, unsigned int id,
                     const model::command::kick_flag_t& kick_flag, int dribble, double vx,
                     double vy, double omega) = 0;
+
+  virtual void send(model::team_color color, unsigned int id,
+                    std::shared_ptr<model::motion::base> motion) = 0;
 };
 
 /// シミュレータの制御コマンドの送信

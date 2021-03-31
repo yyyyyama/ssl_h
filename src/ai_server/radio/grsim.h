@@ -35,6 +35,11 @@ public:
     connection_->send(packet.SerializeAsString());
   }
 
+  void send([[maybe_unused]] model::team_color color, unsigned int id,
+            std::shared_ptr<model::motion::base> motion) override {
+    if (motion) std::cout << id << ": " << motion->name() << std::endl;
+  }
+
   void set_ball_position(double x, double y) override {
     ssl_protos::grsim::Packet packet{};
 
