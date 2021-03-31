@@ -10,6 +10,8 @@ class base {
 public:
   base(const std::string& name);
 
+  std::string name();
+
 private:
   std::string name_;
 };
