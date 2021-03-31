@@ -3,12 +3,12 @@
 namespace ai_server {
 namespace model {
 field::field()
-    : length_(12000),
-      width_(9000),
+    : length_(4050),
+      width_(3025),
       center_radius_(500),
-      goal_width_(1800),
-      penalty_length_(1800),
-      penalty_width_(3600) {}
+      goal_width_(1000),
+      penalty_length_(600),
+      penalty_width_(1600) {}
 int field::length() const {
   return length_;
 }
@@ -106,18 +106,10 @@ field::point field::front_right_corner() const {
   return point{x_max(), y_min()};
 }
 field::point field::back_penalty_mark() const {
-  // ペナルティマークの座標は
-  //   - division Aのとき [12.0 / 2.0 - 8.0, 0.0]
-  //   - division Bのとき [ 9.0 / 2.0 - 6.0, 0.0]
-  // なので，以下のようにして対応させる．
-  return {x_max() - 2.0 / 3.0 * length_, 0.0};
+  return {x_max() - 700.0, 0.0};
 }
 field::point field::front_penalty_mark() const {
-  // ペナルティマークの座標は
-  //   - division Aのとき [-12.0 / 2.0 + 8.0, 0.0]
-  //   - division Bのとき [ -9.0 / 2.0 + 6.0, 0.0]
-  // なので，以下のようにして対応させる．
-  return {x_min() + 2.0 / 3.0 * length_, 0.0};
+  return {x_min() + 700.0, 0.0};
 }
 field::box field::back_penalty_area() const {
   return box{point{x_min(), penalty_y_min()}, point{back_penalty_x(), penalty_y_max()}};
