@@ -11,7 +11,8 @@ command::command()
       setpoint_(std::in_place_type<setpoint::velocity>, 0.0, 0.0,
                 setpoint::phantom::velocity{}),
       setpoint_rot_(std::in_place_type<setpoint::velangular>, 0.0,
-                    setpoint::phantom::velangular{}) {}
+                    setpoint::phantom::velangular{}),
+      motion_(nullptr) {}
 
 int command::dribble() const {
   return dribble_;

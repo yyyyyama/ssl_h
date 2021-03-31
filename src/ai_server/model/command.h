@@ -1,11 +1,13 @@
 #ifndef AI_SERVER_MODEL_COMMAND_H
 #define AI_SERVER_MODEL_COMMAND_H
+#include <memory>
 #include <tuple>
 #include <utility>
 #include <variant>
 
 #include <Eigen/Core>
 
+#include "ai_server/model/motion/base.h"
 #include "ai_server/model/setpoint/types.h"
 #include "ai_server/util/dependent_false.h"
 
@@ -98,12 +100,22 @@ public:
     return {setpoint_, setpoint_rot_};
   }
 
+  void set_motion(const std::shared_ptr<model::motion::base>& motion) {
+    motion_ = motion;
+  }
+
+  std::shared_ptr<model::motion::base> motion() {
+    return motion_;
+  }
+
 private:
   int dribble_;
   kick_flag_t kick_flag_;
 
   setpoint::position_or_velocity setpoint_;
   setpoint::angle_or_velangular setpoint_rot_;
+
+  std::shared_ptr<model::motion::base> motion_;
 };
 } // namespace model
 } // namespace ai_server
