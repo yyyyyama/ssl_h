@@ -9,12 +9,12 @@ BOOST_AUTO_TEST_SUITE(field_data)
 BOOST_AUTO_TEST_CASE(test001) {
   ai_server::model::field f{};
 
-  BOOST_TEST(f.length() == 12000);
-  BOOST_TEST(f.width() == 9000);
+  BOOST_TEST(f.length() == 4050);
+  BOOST_TEST(f.width() == 3025);
   BOOST_TEST(f.center_radius() == 500);
-  BOOST_TEST(f.goal_width() == 1800);
-  BOOST_TEST(f.penalty_length() == 1800);
-  BOOST_TEST(f.penalty_width() == 3600);
+  BOOST_TEST(f.goal_width() == 1000);
+  BOOST_TEST(f.penalty_length() == 600);
+  BOOST_TEST(f.penalty_width() == 1600);
 }
 BOOST_AUTO_TEST_CASE(test002) {
   ai_server::model::field f{};
@@ -83,9 +83,9 @@ BOOST_AUTO_TEST_CASE(test003, *boost::unit_test::tolerance(0.0000001)) {
   BOOST_TEST(f.front_right_corner().y == -45.0);
 
   /////////////////
-  BOOST_TEST(f.back_penalty_mark().x == 50.0 - 100.0 * 2.0 / 3.0);
+  BOOST_TEST(f.back_penalty_mark().x == 50.0 - 700.0);
   BOOST_TEST(f.back_penalty_mark().y == 0.0);
-  BOOST_TEST(f.front_penalty_mark().x == -50.0 + 100.0 * 2.0 / 3.0);
+  BOOST_TEST(f.front_penalty_mark().x == -50.0 + 700.0);
   BOOST_TEST(f.front_penalty_mark().y == 0.0);
 
   /////////////////
