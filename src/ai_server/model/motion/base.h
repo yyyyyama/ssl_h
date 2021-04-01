@@ -8,12 +8,17 @@ namespace ai_server::model::motion {
 
 class base {
 public:
-  base(const std::string& name);
+  base(const std::string& motion_id);
 
-  std::string name();
+  virtual ~base() = default;
 
-private:
-  std::string name_;
+  /// @brief 呼び出されたループでのロボットの命令を取得する
+  virtual std::tuple<double, double, double> execute() = 0;
+
+  std::string motion_id();
+
+protected:
+  std::string motion_id_;
 };
 
 } // namespace ai_server::model::motion

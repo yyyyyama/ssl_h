@@ -5,6 +5,7 @@
 #include <variant>
 #include <boost/format.hpp>
 
+#include "ai_server/model/motion/walk.h"
 #include "driver.h"
 
 namespace ai_server {
@@ -112,12 +113,27 @@ void driver::process(unsigned int id, metadata_type& metadata, const model::worl
     auto c = [&robot, &field, &c = *controller](auto&&... args) {
       return c.update(robot, field, std::forward<decltype(args)>(args)...);
     };
-    const auto [sp, sp_rot]    = command.setpoint_pair();
-    const auto [vx, vy, omega] = std::visit(c, sp, sp_rot);
+    auto [sp, sp_rot] = command.setpoint_pair();
+    if (command.motion()) {
+      const auto [mvx, mvy, momega] = command.motion()->execute();
+      const auto st                 = std::sin(robot.theta());
+      const auto ct                 = std::cos(robot.theta());
+      const auto vxf                = ct * mvx - st * mvy;
+      const auto vyf                = st * mvx + ct * mvy;
+      command.set_velocity(vxf, vyf, momega);
+    }
+    auto [vx, vy, omega] = std::visit(c, sp, sp_rot);
+    if (!command.motion()) {
+      command.set_motion(std::make_shared<model::motion::walk>());
+      const auto [mvx, mvy, momega] = command.motion()->execute();
+      vx                            = mvx;
+      vy                            = mvy;
+      omega                         = momega;
+    }
 
     // 命令の送信
-    if (std::is_base_of_v<radio::base::simulator,
-                          typename std::remove_reference_t<decltype(radio)>::element_type>) {
+    auto r = dynamic_pointer_cast<radio::base::simulator>(radio);
+    if (r) {
       radio->send(team_color_, id, command.kick_flag(), command.dribble(), vx, vy, omega);
     } else {
       radio->send(team_color_, id, command.motion());

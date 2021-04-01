@@ -69,7 +69,7 @@ public:
 
   void send([[maybe_unused]] model::team_color color, unsigned int id,
             std::shared_ptr<model::motion::base> motion) override {
-    if (motion) std::cout << id << ": " << motion->name() << std::endl;
+    if (motion) std::cout << id << ": " << motion->motion_id() << std::endl;
   }
 
 protected:
