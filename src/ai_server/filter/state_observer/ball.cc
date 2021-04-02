@@ -27,7 +27,8 @@ std::optional<model::ball> ball::update(std::optional<model::ball> ball,
   // 対象がロストしたらロストさせる
   // TODO: 任意フレーム補間させる...？
   if (!ball.has_value()) {
-    return std::nullopt;
+    // return std::nullopt;
+    ball = ball_;
   }
 
   Eigen::Matrix<double, 2, 2> A;

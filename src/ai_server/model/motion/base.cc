@@ -2,9 +2,9 @@
 
 namespace ai_server::model::motion {
 
-base::base(const std::string& motion_id) : motion_id_(motion_id) {}
+base::base(std::uint8_t motion_id) : motion_id_(motion_id) {}
 
-std::string base::motion_id() {
+std::uint8_t base::motion_id() {
   return motion_id_;
 }
 

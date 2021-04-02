@@ -5,6 +5,7 @@
 #include <variant>
 #include <boost/format.hpp>
 
+#include "ai_server/model/motion/stop.h"
 #include "ai_server/model/motion/walk.h"
 #include "driver.h"
 
@@ -124,11 +125,15 @@ void driver::process(unsigned int id, metadata_type& metadata, const model::worl
     }
     auto [vx, vy, omega] = std::visit(c, sp, sp_rot);
     if (!command.motion()) {
-      command.set_motion(std::make_shared<model::motion::walk>());
+      if (200.0 < vx) {
+        command.set_motion(std::make_shared<model::motion::walk>());
+      } else {
+        command.set_motion(std::make_shared<model::motion::stop>());
+      }
       const auto [mvx, mvy, momega] = command.motion()->execute();
-      vx                            = mvx;
-      vy                            = mvy;
-      omega                         = momega;
+      vx    = mvx;
+      vy    = mvy;
+      omega = momega;
     }
 
     // 命令の送信
