@@ -71,8 +71,6 @@ game_command_type convert_command(model::team_color team_color,
       return std::make_tuple(game_situation::timeout, false, false);
 
     case cmd::stop:
-    case cmd::goal_blue:
-    case cmd::goal_yellow:
       return std::make_tuple(game_situation::stop, false, false);
     default:
       return std::make_tuple(game_situation::stop, false, false);

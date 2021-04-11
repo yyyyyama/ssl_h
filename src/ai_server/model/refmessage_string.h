@@ -57,8 +57,6 @@ constexpr std::string_view game_command_to_string(model::refbox::game_command c)
     AI_SERVER_GAME_COMMAND_ITEM(indirect_free_blue)
     AI_SERVER_GAME_COMMAND_ITEM(timeout_yellow)
     AI_SERVER_GAME_COMMAND_ITEM(timeout_blue)
-    AI_SERVER_GAME_COMMAND_ITEM(goal_yellow)
-    AI_SERVER_GAME_COMMAND_ITEM(goal_blue)
     AI_SERVER_GAME_COMMAND_ITEM(ball_placement_yellow)
     AI_SERVER_GAME_COMMAND_ITEM(ball_placement_blue)
 

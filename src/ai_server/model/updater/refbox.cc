@@ -72,10 +72,6 @@ constexpr model::refbox::game_command to_game_command(ssl_protos::refbox::Refere
       return model::refbox::game_command::timeout_yellow;
     case ssl_protos::refbox::Referee_Command_TIMEOUT_BLUE:
       return model::refbox::game_command::timeout_blue;
-    case ssl_protos::refbox::Referee_Command_GOAL_YELLOW:
-      return model::refbox::game_command::goal_yellow;
-    case ssl_protos::refbox::Referee_Command_GOAL_BLUE:
-      return model::refbox::game_command::goal_blue;
     case ssl_protos::refbox::Referee_Command_BALL_PLACEMENT_YELLOW:
       return model::refbox::game_command::ball_placement_yellow;
     case ssl_protos::refbox::Referee_Command_BALL_PLACEMENT_BLUE:
