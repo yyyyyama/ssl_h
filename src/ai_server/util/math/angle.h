@@ -7,6 +7,7 @@
 #include <iterator>
 #include <numeric>
 
+#include "detail/direction.h"
 #include "detail/xyz.h"
 
 namespace ai_server {
@@ -41,20 +42,6 @@ T wrap_to_pi(T r) {
   return wrapped;
 }
 
-/// @brief  物理的な視点から，角度fromを基準にした角度toとの差分をとる
-/// @param    from 基準とする角度。値の範囲は問わない。
-/// @param    to   差分をとる対象の角度。値の範囲は問わない。
-/// @return  角度差。値の範囲は [-pi, pi]
-template <class T, std::enable_if_t<std::is_floating_point_v<T>, std::nullptr_t> = nullptr>
-inline auto delta_theta(T from, T to) {
-  // 内積: cos(to) * cos(from) + sin(to) * sin(from) = cos(to-from)
-  const auto dot = std::cos(to - from);
-  // 外積のz: sin(to) * cos(from) -  cos(to) * sin(from) = sin(to-from)
-  const auto rot_z = std::sin(to - from);
-  // 外積で角度差の符号を，内積で角度差の絶対値を導出し，atan2をとる。
-  return std::atan2(rot_z, dot);
-}
-
 /// @brief   2次元ベクトルの方向を返す
 /// @param v   2次元ベクトル
 /// @return  2次元ベクトルの方向。値の範囲は [-pi, pi]
@@ -72,6 +59,81 @@ inline auto direction(const T& v_end, const U& v_init)
     -> decltype(std::atan2(detail::y(v_end) - detail::y(v_init),
                            detail::x(v_end) - detail::x(v_init))) {
   return std::atan2(detail::y(v_end) - detail::y(v_init), detail::x(v_end) - detail::x(v_init));
+}
+
+/// @brief 基準との角度差をとる。
+/// @param    arg   角度
+/// @param    ref   基準の角度
+/// @return  wrap_to_pi(arg - ref)
+template <class T, std::enable_if_t<std::is_floating_point_v<T>, std::nullptr_t> = nullptr>
+inline auto direction_from(T arg, T ref) {
+  return wrap_to_pi(arg - ref);
+}
+
+/// @brief xy空間において、基準ベクトルとの角度差をとる。
+/// @param    v     ベクトル
+/// @param    ref   基準ベクトル
+/// @return  wrap_to_pi(direction(v) - direction(ref)) に等しい値
+template <class T, class U>
+inline auto direction_from(const T& v, const U& ref)
+    -> decltype(detail::direction_from(detail::x(v), detail::y(v), detail::x(ref),
+                                       detail::y(ref))) {
+  return detail::direction_from(detail::x(v), detail::y(v), detail::x(ref), detail::y(ref));
+}
+
+/// @brief xy空間において、基準ベクトルとの角度差をとる。
+/// @param    v_end      ベクトルの終点
+/// @param    v_init     ベクトルの始点
+/// @param    ref_end    基準ベクトルの終点
+/// @param    ref_init   基準ベクトルの始点
+/// @return  wrap_to_pi(direction(v_end, v_init) - direction(ref_end, ref_init)) に等しい値
+template <class T, class U, class V, class W>
+inline auto direction_from(const T& v_end, const U& v_init, const V& ref_end, const W& ref_init)
+    -> decltype(detail::direction_from(detail::x(v_end) - detail::x(v_init),
+                                       detail::y(v_end) - detail::y(v_init),
+                                       detail::x(ref_end) - detail::x(ref_init),
+                                       detail::y(ref_end) - detail::y(ref_init))) {
+  return detail::direction_from(
+      detail::x(v_end) - detail::x(v_init), detail::y(v_end) - detail::y(v_init),
+      detail::x(ref_end) - detail::x(ref_init), detail::y(ref_end) - detail::y(ref_init));
+}
+
+/// @brief xy空間において、小さい方の角度差をとり、その絶対値を返す
+/// @param    arg   角度
+/// @param    ref   基準の角度
+/// @return  abs(wrap_to_pi(arg - ref))
+template <class T, std::enable_if_t<std::is_floating_point_v<T>, std::nullptr_t> = nullptr>
+inline auto inferior_angle(T arg, T ref) {
+  return std::abs(wrap_to_pi(arg - ref));
+}
+
+/// @brief xy空間において、小さい方の角度差をとり、その絶対値を返す
+/// @param    v     ベクトル
+/// @param    ref   基準ベクトル
+/// @return  abs(wrap_to_pi(direction(v) - direction(ref))) に等しい値。
+template <class T, class U>
+inline auto inferior_angle(const T& v, const U& ref)
+    -> decltype(detail::direction_from(detail::x(v), detail::y(v), detail::x(ref),
+                                       detail::y(ref))) {
+  return std::abs(
+      detail::direction_from(detail::x(v), detail::y(v), detail::x(ref), detail::y(ref)));
+}
+
+/// @brief xy空間において、小さい方の角度差をとり、その絶対値を返す
+/// @param    v_end      ベクトルの終点
+/// @param    v_init     ベクトルの始点
+/// @param    ref_end    基準ベクトルの終点
+/// @param    ref_init   基準ベクトルの始点
+/// @return  abs(wrap_to_pi(direction(v_end, v_init) - direction(ref_end, ref_init))) に等しい値
+template <class T, class U, class V, class W>
+inline auto inferior_angle(const T& v_end, const U& v_init, const V& ref_end, const W& ref_init)
+    -> decltype(detail::direction_from(detail::x(v_end) - detail::x(v_init),
+                                       detail::y(v_end) - detail::y(v_init),
+                                       detail::x(ref_end) - detail::x(ref_init),
+                                       detail::y(ref_end) - detail::y(ref_init))) {
+  return std::abs(detail::direction_from(
+      detail::x(v_end) - detail::x(v_init), detail::y(v_end) - detail::y(v_init),
+      detail::x(ref_end) - detail::x(ref_init), detail::y(ref_end) - detail::y(ref_init)));
 }
 
 /// @brief 180度回転させた角度を返す
