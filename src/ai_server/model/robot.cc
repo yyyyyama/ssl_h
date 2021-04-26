@@ -15,16 +15,16 @@ double robot::y() const {
   return y_;
 }
 
+double robot::theta() const {
+  return theta_;
+}
+
 double robot::vx() const {
   return vx_;
 }
 
 double robot::vy() const {
   return vy_;
-}
-
-double robot::theta() const {
-  return theta_;
 }
 
 double robot::omega() const {
@@ -51,16 +51,16 @@ void robot::set_y(double y) {
   y_ = y;
 }
 
+void robot::set_theta(double theta) {
+  theta_ = theta;
+}
+
 void robot::set_vx(double vx) {
   vx_ = vx;
 }
 
 void robot::set_vy(double vy) {
   vy_ = vy;
-}
-
-void robot::set_theta(double theta) {
-  theta_ = theta;
 }
 
 void robot::set_omega(double omega) {
