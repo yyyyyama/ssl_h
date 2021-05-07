@@ -33,7 +33,9 @@ model::command with_planner::execute() {
 
     const auto planner = planner_->planner();
     const auto new_pos = planner(start, goal, obstacles_);
-    cmd.set_velocity(target_vel.norm() * (std::get<0>(new_pos) - start).normalized());
+    cmd.set_velocity(std::min(std::sqrt(2.0 * acc * (std::get<0>(new_pos) - start).norm()),
+                              target_vel.norm()) *
+                     (std::get<0>(new_pos) - start).normalized());
   }
 
   return cmd;
