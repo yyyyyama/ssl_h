@@ -3,7 +3,7 @@
 #include <boost/test/unit_test.hpp>
 
 #include "ai_server/model/updater/field.h"
-#include "ssl-protos/vision/geometry.pb.h"
+#include "ssl-protos/vision_geometry.pb.h"
 
 BOOST_AUTO_TEST_SUITE(updater_field)
 

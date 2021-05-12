@@ -1,4 +1,4 @@
-#include "ssl-protos/refbox/referee.pb.h"
+#include "ssl-protos/gc_referee_message.pb.h"
 
 #include "refbox.h"
 
@@ -59,7 +59,7 @@ std::chrono::system_clock::time_point refbox::last_updated() const {
 void refbox::handle_receive(const util::net::multicast::receiver::buffer_t& buffer,
                             std::size_t size, std::uint64_t total_messages,
                             std::chrono::system_clock::time_point time) {
-  ssl_protos::refbox::Referee packet;
+  ssl_protos::gc::Referee packet;
 
   if (packet.ParseFromArray(buffer.data(), size)) {
     {

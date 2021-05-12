@@ -1,7 +1,7 @@
 #include <cmath>
 
 #include "field.h"
-#include "ssl-protos/vision/geometry.pb.h"
+#include "ssl-protos/vision_geometry.pb.h"
 
 namespace ai_server {
 namespace model {

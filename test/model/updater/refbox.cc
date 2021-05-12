@@ -6,7 +6,7 @@
 
 #include "ai_server/model/updater/refbox.h"
 #include "ai_server/util/math/affine.h"
-#include "ssl-protos/refbox/referee.pb.h"
+#include "ssl-protos/gc_referee_message.pb.h"
 
 BOOST_TEST_DONT_PRINT_LOG_VALUE(ai_server::model::refbox::game_command)
 BOOST_TEST_DONT_PRINT_LOG_VALUE(ai_server::model::refbox::stage_name)
@@ -31,17 +31,17 @@ BOOST_AUTO_TEST_CASE(normal) {
     BOOST_TEST(r1.team_yellow().name() == r2.team_yellow().name());
   }
 
-  ssl_protos::refbox::Referee referee{};
+  ssl_protos::gc::Referee referee{};
   {
     referee.set_packet_timestamp(1513688793680551);
-    referee.set_stage(ssl_protos::refbox::Referee::Stage::Referee_Stage_NORMAL_FIRST_HALF_PRE);
+    referee.set_stage(ssl_protos::gc::Referee::Stage::Referee_Stage_NORMAL_FIRST_HALF_PRE);
     // stage_time_leftはoptionalなので送られてこない場合がある
     // referee.set_stage_time_left(2);
     referee.set_command_counter(3);
-    referee.set_command(ssl_protos::refbox::Referee::Command::Referee_Command_HALT);
+    referee.set_command(ssl_protos::gc::Referee::Command::Referee_Command_HALT);
     referee.set_command_timestamp(4);
 
-    ssl_protos::refbox::Referee_TeamInfo blue{};
+    ssl_protos::gc::Referee_TeamInfo blue{};
     blue.set_name("blue");
     blue.set_score(10);
     blue.set_goalkeeper(11);
@@ -55,7 +55,7 @@ BOOST_AUTO_TEST_CASE(normal) {
     blue.set_max_allowed_bots(17);
     referee.mutable_blue()->CopyFrom(blue);
 
-    ssl_protos::refbox::Referee_TeamInfo yellow{};
+    ssl_protos::gc::Referee_TeamInfo yellow{};
     yellow.set_name("yellow");
     yellow.set_score(21);
     yellow.set_goalkeeper(22);
@@ -118,16 +118,15 @@ BOOST_AUTO_TEST_CASE(normal) {
 }
 
 BOOST_AUTO_TEST_CASE(abp, *boost::unit_test::tolerance(0.0000001)) {
-  ssl_protos::refbox::Referee referee{};
+  ssl_protos::gc::Referee referee{};
   {
     referee.set_packet_timestamp(1513688793680551);
-    referee.set_stage(ssl_protos::refbox::Referee::Stage::Referee_Stage_NORMAL_FIRST_HALF_PRE);
+    referee.set_stage(ssl_protos::gc::Referee::Stage::Referee_Stage_NORMAL_FIRST_HALF_PRE);
     referee.set_command_counter(3);
-    referee.set_command(
-        ssl_protos::refbox::Referee::Command::Referee_Command_BALL_PLACEMENT_BLUE);
+    referee.set_command(ssl_protos::gc::Referee::Command::Referee_Command_BALL_PLACEMENT_BLUE);
     referee.set_command_timestamp(4);
 
-    ssl_protos::refbox::Referee_TeamInfo blue{};
+    ssl_protos::gc::Referee_TeamInfo blue{};
     blue.set_name("blue");
     blue.set_score(10);
     blue.set_goalkeeper(11);
@@ -138,7 +137,7 @@ BOOST_AUTO_TEST_CASE(abp, *boost::unit_test::tolerance(0.0000001)) {
     blue.set_max_allowed_bots(17);
     referee.mutable_blue()->CopyFrom(blue);
 
-    ssl_protos::refbox::Referee_TeamInfo yellow{};
+    ssl_protos::gc::Referee_TeamInfo yellow{};
     yellow.set_name("yellow");
     yellow.set_score(21);
     yellow.set_goalkeeper(22);
@@ -149,7 +148,7 @@ BOOST_AUTO_TEST_CASE(abp, *boost::unit_test::tolerance(0.0000001)) {
     yellow.set_max_allowed_bots(30);
     referee.mutable_yellow()->CopyFrom(yellow);
 
-    ssl_protos::refbox::Referee_Point point{};
+    ssl_protos::gc::Referee_Point point{};
     point.set_x(100);
     point.set_y(200);
     referee.mutable_designated_position()->CopyFrom(point);
@@ -181,11 +180,11 @@ BOOST_AUTO_TEST_CASE(abp, *boost::unit_test::tolerance(0.0000001)) {
 }
 
 BOOST_AUTO_TEST_CASE(bot_substitution) {
-  ssl_protos::refbox::Referee referee{};
+  ssl_protos::gc::Referee referee{};
   {
     referee.set_packet_timestamp(1513688793680551);
-    referee.set_stage(ssl_protos::refbox::Referee::Stage::Referee_Stage_NORMAL_FIRST_HALF_PRE);
-    referee.set_command(ssl_protos::refbox::Referee::Command::Referee_Command_HALT);
+    referee.set_stage(ssl_protos::gc::Referee::Stage::Referee_Stage_NORMAL_FIRST_HALF_PRE);
+    referee.set_command(ssl_protos::gc::Referee::Command::Referee_Command_HALT);
     referee.set_command_counter(3);
     referee.set_command_timestamp(4);
 
@@ -226,7 +225,7 @@ BOOST_AUTO_TEST_CASE(bot_substitution) {
     referee.clear_game_events();
 
     auto e = referee.add_game_events()->mutable_bot_substitution();
-    e->set_by_team(ssl_protos::refbox::YELLOW);
+    e->set_by_team(ssl_protos::gc::YELLOW);
 
     ru.update(referee);
 
@@ -239,7 +238,7 @@ BOOST_AUTO_TEST_CASE(bot_substitution) {
     referee.clear_game_events();
 
     auto e = referee.add_game_events()->mutable_bot_substitution();
-    e->set_by_team(ssl_protos::refbox::BLUE);
+    e->set_by_team(ssl_protos::gc::BLUE);
 
     ru.update(referee);
 
@@ -271,7 +270,7 @@ BOOST_AUTO_TEST_CASE(bot_substitution) {
     e2->set_time(4.56);
 
     auto e3 = referee.add_game_events()->mutable_bot_substitution();
-    e3->set_by_team(ssl_protos::refbox::BLUE);
+    e3->set_by_team(ssl_protos::gc::BLUE);
 
     ru.update(referee);
 
@@ -303,7 +302,7 @@ BOOST_AUTO_TEST_CASE(bot_substitution) {
     e1->set_time_taken(1.23);
 
     auto e2 = referee.add_game_events()->mutable_bot_substitution();
-    e2->set_by_team(ssl_protos::refbox::YELLOW);
+    e2->set_by_team(ssl_protos::gc::YELLOW);
 
     auto e3 = referee.add_game_events()->mutable_no_progress_in_game();
     e3->set_time(4.56);

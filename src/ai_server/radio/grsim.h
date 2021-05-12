@@ -8,7 +8,7 @@
 #include "base/base.h"
 #include "ai_server/util/kick/convert.h"
 
-#include "ssl-protos/grsim/packet.pb.h"
+#include "ssl-protos/grsim_packet.pb.h"
 
 namespace ai_server::radio {
 

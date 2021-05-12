@@ -8,7 +8,7 @@
 #include <boost/asio.hpp>
 #include <boost/test/unit_test.hpp>
 
-#include "ssl-protos/vision/wrapperpacket.pb.h"
+#include "ssl-protos/vision_wrapper.pb.h"
 
 #include "ai_server/logger/sink/ostream.h"
 #include "ai_server/receiver/vision.h"

@@ -9,7 +9,7 @@
 
 #include "ai_server/radio/grsim.h"
 
-#include "ssl-protos/grsim/packet.pb.h"
+#include "ssl-protos/grsim_packet.pb.h"
 
 namespace model = ai_server::model;
 namespace radio = ai_server::radio;
