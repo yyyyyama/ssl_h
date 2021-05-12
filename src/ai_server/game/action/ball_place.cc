@@ -19,7 +19,6 @@ ball_place::ball_place(context& ctx, unsigned int id, const Eigen::Vector2d& tar
       state_(running_state::move),
       finished_(false),
       wait_flag_(true),
-      ball_visible_(true),
       target_(target),
       abp_target_(target),
       kick_type_({model::command::kick_type_t::none, 0}) {}
@@ -54,13 +53,8 @@ model::command ball_place::execute() {
   const double dist_b_to_at = (ball_pos - abp_target_).norm();
   // ロボットと目標の距離
   const double dist_r_to_t = (robot_pos - target_).norm();
-  // ボールが見えているか?(ロスト時には座標が更新されない)
-  const bool ball_visible = !(
-      dist_b_to_r < 90.0 ||
-      ((!ball_visible_ || dist_b_to_r < 120.0) &&
-       std::abs(ball_pos.x() - first_ball_pos_.x()) < std::numeric_limits<double>::epsilon() &&
-       std::abs(ball_pos.y() - first_ball_pos_.y()) < std::numeric_limits<double>::epsilon()));
-  ball_visible_                  = ball_visible;
+  // ボールが見えているか?
+  const bool ball_visible        = !ball.is_lost();
   const auto& predicted_ball_pos = ball_visible ? ball_pos : face_pos;
   // b基準のaの符号
   auto sign = [](double a, double b) { return ((a > b) - (a < b)); };
@@ -130,12 +124,6 @@ model::command ball_place::execute() {
       if (wait_flag_) {
         begin_     = now;
         wait_flag_ = false;
-      }
-      if (dist_b_to_t > 2.0 * xy_allow &&
-          ((ball_visible && (now - begin_) > 2s && dist_r_to_t > 200.0) ||
-           dist_r_to_t > 300.0)) {
-        // ボールが目標からいくらか離れたら最初から
-        state_ = running_state::move;
       }
       if (dist_b_to_r > 650.0) {
         state_ = running_state::finished;
