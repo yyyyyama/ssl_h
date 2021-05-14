@@ -1,13 +1,13 @@
-#ifndef AI_SERVER_MODEL_MOTION_WALK_H
-#define AI_SERVER_MODEL_MOTION_WALK_H
+#ifndef AI_SERVER_MODEL_MOTION_TURN_RIGHT_H
+#define AI_SERVER_MODEL_MOTION_TURN_RIGHT_H
 
 #include "base.h"
 
 namespace ai_server::model::motion {
 
-class walk : public base {
+class turn_right : public base {
 public:
-  walk();
+  turn_right();
 
   std::tuple<double, double, double> execute() override;
 };
