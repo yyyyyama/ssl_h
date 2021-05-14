@@ -118,7 +118,10 @@ std::vector<std::shared_ptr<action::base>> all::execute() {
 
   ///////////////////////////////////////////
   // 役割の更新 /////////////////////////////
-  if (!visible_ids.empty()) {
+  if (visible_ids.empty()) {
+    chaser_ = keeper_id_;
+    waiters_.clear();
+  } else {
     auto tmp_ids = visible_ids;
     // chaser /////////////////////////////
     {

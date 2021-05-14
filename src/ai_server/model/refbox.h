@@ -46,8 +46,6 @@ public:
     indirect_free_blue,
     timeout_yellow,
     timeout_blue,
-    goal_yellow,
-    goal_blue,
     ball_placement_yellow,
     ball_placement_blue,
 

@@ -1,5 +1,5 @@
 diff --git a/CMakeLists.txt b/CMakeLists.txt
-index 3587b36e..d04b2b29 100644
+index 18883998..e0e59c5e 100644
 --- a/CMakeLists.txt
 +++ b/CMakeLists.txt
 @@ -12,7 +12,7 @@
@@ -105,7 +105,7 @@ index 3587b36e..d04b2b29 100644
      set(CMAKE_BUILD_TYPE "Release" CACHE STRING
        "Build type release is default on single-configuration build system like GNU make."
 @@ -205,13 +207,13 @@ if(BUILD_CPP_LIB)
-   nbla_warnings_disable(CMAKE_CXX_FLAGS -Wno-sign-compare -Wno-uninitialized /wd4099)
+   nbla_warnings_disable(CMAKE_CXX_FLAGS /wd4099)
  
    # Setting output directory naively
 -  set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
@@ -167,8 +167,8 @@ index 3587b36e..d04b2b29 100644
 +  set(NBLA_PYTHON_OUTPUT ${PROJECT_BINARY_DIR}/build)
    set(NBLA_PYTHON_OUTPUT_WHEEL ${NBLA_PYTHON_OUTPUT}/.timestamp.wheel)
    set(NBLA_WHEEL_DEPENDS ${NBLA_PYTHON_DEPS} ${NBLA_LIBRARY_NAME})
-   set(NNABLA_CONVERTER_COMMAND ${CMAKE_COMMAND} -E echo "Currently, The NNabla_converter does not support python3.8" )
-@@ -381,19 +383,19 @@ if(BUILD_PYTHON_PACKAGE)
+   # Wheel
+@@ -365,21 +367,21 @@ if(BUILD_PYTHON_PACKAGE)
      if(MAKE_MANYLINUX_WHEEL)
        add_custom_command(OUTPUT ${NBLA_PYTHON_OUTPUT_WHEEL}
          COMMAND ${CMAKE_COMMAND} -E remove -f ${NBLA_PYTHON_OUTPUT_CYTHON}
@@ -177,7 +177,9 @@ index 3587b36e..d04b2b29 100644
          COMMAND ${CMAKE_COMMAND} -E env
                  WHEEL_SUFFIX=${WHEEL_SUFFIX}
                  ${PYTHON_COMMAND} ${NBLA_PYTHON_SETUP} -q bdist_wheel
-         COMMAND ${NNABLA_CONVERTER_COMMAND}
+         COMMAND ${CMAKE_COMMAND} -E env
+                 WHEEL_SUFFIX=${WHEEL_SUFFIX}
+                 ${PYTHON_COMMAND} ${NNABLA_CONVERTER_SETUP} -q bdist_wheel
 -        COMMAND ${CMAKE_SOURCE_DIR}/build-tools/auditwheel-nnabla ${CMAKE_BINARY_DIR}/dist/*-linux_*.whl
 -        COMMAND ${CMAKE_COMMAND} -E remove -f ${CMAKE_BINARY_DIR}/dist/*-linux*.whl
 +        COMMAND ${PROJECT_SOURCE_DIR}/build-tools/auditwheel-nnabla ${PROJECT_BINARY_DIR}/dist/*-linux_*.whl
@@ -192,16 +194,16 @@ index 3587b36e..d04b2b29 100644
          COMMAND ${CMAKE_COMMAND} -E env
                  WHEEL_SUFFIX=${WHEEL_SUFFIX}
                  ${PYTHON_COMMAND} ${NBLA_PYTHON_SETUP} -q bdist_wheel
-@@ -404,7 +406,7 @@ if(BUILD_PYTHON_PACKAGE)
+@@ -392,7 +394,7 @@ if(BUILD_PYTHON_PACKAGE)
    else()
      add_custom_command(OUTPUT ${NBLA_PYTHON_OUTPUT_WHEEL}
        COMMAND ${CMAKE_COMMAND} -E remove -f ${NBLA_PYTHON_OUTPUT_CYTHON}
 -      COMMAND ${CMAKE_COMMAND} -E remove -f ${CMAKE_BINARY_DIR}/dist/*.whl
 +      COMMAND ${CMAKE_COMMAND} -E remove -f ${PROJECT_BINARY_DIR}/dist/*.whl
        COMMAND ${PYTHON_COMMAND} ${NBLA_PYTHON_SETUP} -q bdist_wheel
-       COMMAND ${NNABLA_CONVERTER_COMMAND}
+       COMMAND ${PYTHON_COMMAND} ${NNABLA_CONVERTER_SETUP} -q bdist_wheel
        COMMAND ${CMAKE_COMMAND} -E touch ${NBLA_PYTHON_OUTPUT_WHEEL}
-@@ -419,8 +421,8 @@ if(BUILD_PYTHON_PACKAGE)
+@@ -407,8 +409,8 @@ if(BUILD_PYTHON_PACKAGE)
    if(UNIX OR APPLE)
      add_custom_target(benchmark
        COMMAND cd ${CMAKE_CURRENT_SOURCE_DIR}/python/benchmark &&
@@ -212,7 +214,7 @@ index 3587b36e..d04b2b29 100644
        bash -c "py.test -x")
      add_dependencies(benchmark wheel)
    endif()
-@@ -430,26 +432,26 @@ if(BUILD_PYTHON_PACKAGE)
+@@ -418,26 +420,26 @@ if(BUILD_PYTHON_PACKAGE)
    #############################################################################
    if(UNIX OR APPLE)
      add_custom_target(doc
@@ -284,10 +286,10 @@ index 6440be6c..1443494d 100644
  target_file_name=$<TARGET_FILE_NAME:${NBLA_LIBRARY_NAME}>
  target_file=$<TARGET_FILE:${NBLA_LIBRARY_NAME}>
 diff --git a/src/nbla/CMakeLists.txt b/src/nbla/CMakeLists.txt
-index 31ea5e74..093f7c3d 100644
+index 3efd3a56..025827e0 100644
 --- a/src/nbla/CMakeLists.txt
 +++ b/src/nbla/CMakeLists.txt
-@@ -35,7 +35,7 @@ if (WIN32)
+@@ -36,7 +36,7 @@ if (WIN32)
  
    execute_process(
            COMMAND ${PYTHON_COMMAND}

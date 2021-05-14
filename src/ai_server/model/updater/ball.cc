@@ -51,7 +51,6 @@ void ball::update(const ssl_protos::vision::Frame& detection) {
       });
 
   if (reliable != raw_balls_.cend()) {
-    ball_.set_is_lost(false);
     // 選択された値のカメラIDとdetectionのカメラIDが一致していたらデータを更新する
     if (std::get<0>(*reliable) == camera_id) {
       const auto value = util::math::transform(affine_, [reliable] {
@@ -63,6 +62,9 @@ void ball::update(const ssl_protos::vision::Frame& detection) {
         // filter_same_が設定されていたらFilterを通した値を使う
         if (auto v = filter_same_->update(value, captured_time); v.has_value()) {
           ball_ = std::move(*v);
+          ball_.set_is_lost(false);
+        } else {
+          ball_.set_is_lost(true);
         }
       } else if (filter_manual_) {
         // filter_manual_が設定されていたら観測値を通知する
@@ -72,17 +74,22 @@ void ball::update(const ssl_protos::vision::Frame& detection) {
         ball_.set_x(value.x());
         ball_.set_y(value.y());
         ball_.set_z(value.z());
+        ball_.set_is_lost(false);
       }
     }
   } else {
-    ball_.set_is_lost(true);
     // Filter が設定されていたらロストしたことを通知する
     if (filter_same_) {
       if (auto v = filter_same_->update(std::nullopt, captured_time); v.has_value()) {
         ball_ = std::move(*v);
+        ball_.set_is_lost(false);
+      } else {
+        ball_.set_is_lost(true);
       }
     } else if (filter_manual_) {
       filter_manual_->set_raw_value(std::nullopt, captured_time);
+    } else {
+      ball_.set_is_lost(true);
     }
   }
 }

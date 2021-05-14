@@ -8,7 +8,7 @@
 #include <boost/asio.hpp>
 #include <boost/test/unit_test.hpp>
 
-#include "ssl-protos/refbox/referee.pb.h"
+#include "ssl-protos/gc_referee_message.pb.h"
 
 #include "ai_server/logger/sink/ostream.h"
 #include "ai_server/receiver/refbox.h"
@@ -53,10 +53,10 @@ BOOST_AUTO_TEST_CASE(receiver_error, *boost::unit_test::timeout(30)) {
 
 BOOST_AUTO_TEST_CASE(send_and_receive, *boost::unit_test::timeout(30)) {
   // ダミーパケットの作成
-  ssl_protos::refbox::Referee dummy_frame;
+  ssl_protos::gc::Referee dummy_frame;
 
-  ssl_protos::refbox::Referee_TeamInfo yellow;
-  ssl_protos::refbox::Referee_TeamInfo blue;
+  ssl_protos::gc::Referee_TeamInfo yellow;
+  ssl_protos::gc::Referee_TeamInfo blue;
 
   yellow.set_name("yellow");
   yellow.set_score(1);
@@ -76,11 +76,10 @@ BOOST_AUTO_TEST_CASE(send_and_receive, *boost::unit_test::timeout(30)) {
   blue.set_timeout_time(14);
 
   dummy_frame.set_packet_timestamp(1);
-  dummy_frame.set_stage(
-      ssl_protos::refbox::Referee::Stage::Referee_Stage_NORMAL_FIRST_HALF_PRE);
+  dummy_frame.set_stage(ssl_protos::gc::Referee::Stage::Referee_Stage_NORMAL_FIRST_HALF_PRE);
   dummy_frame.set_stage_time_left(2);
   dummy_frame.set_command_counter(3);
-  dummy_frame.set_command(ssl_protos::refbox::Referee::Command::Referee_Command_HALT);
+  dummy_frame.set_command(ssl_protos::gc::Referee::Command::Referee_Command_HALT);
   dummy_frame.set_command_timestamp(4);
   auto y = dummy_frame.mutable_yellow();
   y->CopyFrom(yellow);
@@ -107,7 +106,7 @@ BOOST_AUTO_TEST_CASE(send_and_receive, *boost::unit_test::timeout(30)) {
   auto t = run_io_context_in_new_thread(ctx);
 
   {
-    slot_testing_helper<ssl_protos::refbox::Referee> referee{&refbox::on_receive, r};
+    slot_testing_helper<ssl_protos::gc::Referee> referee{&refbox::on_receive, r};
 
     // ダミーパケットを送信
     boost::asio::streambuf buf;

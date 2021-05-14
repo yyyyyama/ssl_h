@@ -63,21 +63,6 @@ BOOST_AUTO_TEST_CASE(wrap_to_pi, *boost::unit_test::tolerance(0.0000001)) {
   BOOST_TEST(util::math::wrap_to_pi(-25 * two_pi + pi) == pi);
 }
 
-BOOST_AUTO_TEST_CASE(delta_theta, *boost::unit_test::tolerance(0.0000001)) {
-  using namespace boost::math::double_constants;
-
-  BOOST_TEST(util::math::delta_theta(0.0, pi / 4) == pi / 4);
-  BOOST_TEST(util::math::delta_theta(pi / 8, -pi / 8) == -pi / 4);
-  BOOST_TEST(util::math::delta_theta(pi / 4, -pi / 4) == -half_pi);
-  BOOST_TEST(util::math::delta_theta(pi / 3, -pi / 3) == -two_thirds_pi);
-  BOOST_TEST(util::math::delta_theta(-half_pi, half_pi) == pi);
-  BOOST_TEST(util::math::delta_theta(half_pi, -half_pi) == -pi);
-  BOOST_TEST(util::math::delta_theta(two_pi, 0.0) == 0.0);
-  BOOST_TEST(util::math::delta_theta(two_thirds_pi, 4.0 * third_pi) == third_pi * 2.0);
-  BOOST_TEST(util::math::delta_theta(two_pi * 10 + two_thirds_pi, 4.0 * third_pi) ==
-             third_pi * 2.0);
-}
-
 BOOST_AUTO_TEST_CASE(theta_ave, *boost::unit_test::tolerance(0.0000001)) {
   using namespace boost::math::double_constants;
   using vec_t = std::vector<double>;
@@ -126,6 +111,100 @@ BOOST_DATA_TEST_CASE(direction_vec,
   BOOST_TEST(util::math::direction(offset + r * unit_120deg, offset) == half_pi + sixth_pi);
   BOOST_TEST(util::math::direction(offset - r * unit_30deg, offset) == -pi + sixth_pi);
   BOOST_TEST(util::math::direction(offset - r * unit_120deg, offset) == -half_pi + sixth_pi);
+}
+
+BOOST_TEST_DECORATOR(*boost::unit_test::tolerance(0.0000001))
+BOOST_DATA_TEST_CASE(direction_from_arg,
+                     boost::unit_test::data::make({-5, 0, 5}) *
+                         boost::unit_test::data::make({-2, -1, 0, 2}),
+                     common_cycle, cycle) {
+  using namespace boost::math::double_constants;
+
+  const double from   = (common_cycle + cycle) * two_pi + sixth_pi;
+  const double offset = common_cycle * two_pi + third_pi;
+
+  BOOST_TEST(util::math::direction_from(offset, from) == sixth_pi);
+  BOOST_TEST(util::math::direction_from(offset + half_pi, from) == half_pi + sixth_pi);
+  BOOST_TEST(util::math::direction_from(offset + pi, from) == -pi + sixth_pi);
+  BOOST_TEST(util::math::direction_from(offset + pi + half_pi, from) == -half_pi + sixth_pi);
+}
+
+BOOST_TEST_DECORATOR(*boost::unit_test::tolerance(0.0000001))
+BOOST_DATA_TEST_CASE(direction_from_vec,
+                     boost::unit_test::data::make({0.01, 1.0, 100.0}) *
+                         boost::unit_test::data::make({-1.0, 2.0}) *
+                         boost::unit_test::data::make({-3.0, 4.0}),
+                     r, x, y) {
+  using namespace boost::math::double_constants;
+
+  // 単位方向ベクトル
+  const Eigen::Vector2d unit_30deg{0.5 * std::sqrt(3), 0.5};
+  const Eigen::Vector2d unit_60deg{0.5, 0.5 * std::sqrt(3)};
+  const Eigen::Vector2d unit_120deg{-0.5, 0.5 * std::sqrt(3)};
+
+  // ベクトル単体
+  BOOST_TEST(util::math::direction_from(r * unit_30deg, unit_60deg) == -sixth_pi);
+  BOOST_TEST(util::math::direction_from(r * unit_120deg, unit_60deg) == third_pi);
+  BOOST_TEST(util::math::direction_from(-r * unit_30deg, unit_60deg) == pi - sixth_pi);
+  BOOST_TEST(util::math::direction_from(-r * unit_120deg, unit_60deg) == -pi + third_pi);
+
+  // ベクトルの終点、始点
+  const Eigen::Vector2d offset{x, y};
+  BOOST_TEST(util::math::direction_from(offset + r * unit_30deg, offset, -offset + unit_60deg,
+                                        -offset) == -sixth_pi);
+  BOOST_TEST(util::math::direction_from(offset + r * unit_120deg, offset, -offset + unit_60deg,
+                                        -offset) == third_pi);
+  BOOST_TEST(util::math::direction_from(offset - r * unit_30deg, offset, -offset + unit_60deg,
+                                        -offset) == pi - sixth_pi);
+  BOOST_TEST(util::math::direction_from(offset - r * unit_120deg, offset, -offset + unit_60deg,
+                                        -offset) == -pi + third_pi);
+}
+
+BOOST_TEST_DECORATOR(*boost::unit_test::tolerance(0.0000001))
+BOOST_DATA_TEST_CASE(inferior_angle_arg,
+                     boost::unit_test::data::make({-5, 0, 5}) *
+                         boost::unit_test::data::make({-2, -1, 0, 2}),
+                     common_cycle, cycle) {
+  using namespace boost::math::double_constants;
+
+  const double from   = (common_cycle + cycle) * two_pi + sixth_pi;
+  const double offset = common_cycle * two_pi + third_pi;
+
+  BOOST_TEST(util::math::inferior_angle(offset, from) == sixth_pi);
+  BOOST_TEST(util::math::inferior_angle(offset + half_pi, from) == half_pi + sixth_pi);
+  BOOST_TEST(util::math::inferior_angle(offset + pi, from) == pi - sixth_pi);
+  BOOST_TEST(util::math::inferior_angle(offset + pi + half_pi, from) == half_pi - sixth_pi);
+}
+
+BOOST_TEST_DECORATOR(*boost::unit_test::tolerance(0.0000001))
+BOOST_DATA_TEST_CASE(inferior_angle_vec,
+                     boost::unit_test::data::make({0.01, 1.0, 100.0}) *
+                         boost::unit_test::data::make({-1.0, 2.0}) *
+                         boost::unit_test::data::make({-3.0, 4.0}),
+                     r, x, y) {
+  using namespace boost::math::double_constants;
+
+  // 単位方向ベクトル
+  const Eigen::Vector2d unit_30deg{0.5 * std::sqrt(3), 0.5};
+  const Eigen::Vector2d unit_60deg{0.5, 0.5 * std::sqrt(3)};
+  const Eigen::Vector2d unit_120deg{-0.5, 0.5 * std::sqrt(3)};
+
+  // ベクトル単体
+  BOOST_TEST(util::math::inferior_angle(r * unit_30deg, unit_60deg) == sixth_pi);
+  BOOST_TEST(util::math::inferior_angle(r * unit_120deg, unit_60deg) == third_pi);
+  BOOST_TEST(util::math::inferior_angle(-r * unit_30deg, unit_60deg) == pi - sixth_pi);
+  BOOST_TEST(util::math::inferior_angle(-r * unit_120deg, unit_60deg) == pi - third_pi);
+
+  // ベクトルの終点、始点
+  const Eigen::Vector2d offset{x, y};
+  BOOST_TEST(util::math::inferior_angle(offset + r * unit_30deg, offset, -offset + unit_60deg,
+                                        -offset) == sixth_pi);
+  BOOST_TEST(util::math::inferior_angle(offset + r * unit_120deg, offset, -offset + unit_60deg,
+                                        -offset) == third_pi);
+  BOOST_TEST(util::math::inferior_angle(offset - r * unit_30deg, offset, -offset + unit_60deg,
+                                        -offset) == pi - sixth_pi);
+  BOOST_TEST(util::math::inferior_angle(offset - r * unit_120deg, offset, -offset + unit_60deg,
+                                        -offset) == pi - third_pi);
 }
 
 BOOST_TEST_DECORATOR(*boost::unit_test::tolerance(0.0000001))

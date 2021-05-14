@@ -11,7 +11,7 @@
 
 #include "ai_server/filter/base.h"
 #include "ai_server/model/ball.h"
-#include "ssl-protos/vision/detection.pb.h"
+#include "ssl-protos/vision_detection.pb.h"
 
 namespace ai_server {
 namespace model {
@@ -70,11 +70,13 @@ public:
         mutex_,
         // 値を更新する関数オブジェクト
         [this](std::optional<model::ball> value) {
-          // 現時点ではボールが存在しない場合を想定していないので,
           // 値を持っていた場合のみ値の更新を行う
           if (value) {
             std::unique_lock lock(mutex_);
             ball_ = *value;
+            ball_.set_is_lost(false);
+          } else {
+            ball_.set_is_lost(true);
           }
         },
         // 残りの引数

@@ -9,7 +9,7 @@
 
 #include "ai_server/radio/grsim.h"
 
-#include "ssl-protos/grsim/packet.pb.h"
+#include "ssl-protos/grsim_packet.pb.h"
 
 namespace model = ai_server::model;
 namespace radio = ai_server::radio;
@@ -57,21 +57,23 @@ BOOST_AUTO_TEST_CASE(to_gr_command) {
 
   {
     const auto c = wrapper::convert2(123, {model::command::kick_type_t::line, 321}, 0, 4, 8, 9);
-    BOOST_TEST(c.kickspeedx() == 321);
+    BOOST_TEST(c.kickspeedx() == ai_server::util::kick::power_to_speed(321) / 1000);
     BOOST_TEST(c.kickspeedz() == 0);
   }
 
   {
     const auto c = wrapper::convert2(123, {model::command::kick_type_t::chip, 654}, 0, 4, 8, 9);
-    BOOST_TEST(c.kickspeedx() == 0);
-    BOOST_TEST(c.kickspeedz() == 654);
+    BOOST_TEST(c.kickspeedx() == 0.5 * ai_server::util::kick::power_to_speed(654) / 1000);
+    BOOST_TEST(c.kickspeedz() ==
+               0.5 * std::pow(3, 1 / 2) * ai_server::util::kick::power_to_speed(654) / 1000);
   }
 
   {
     const auto c =
         wrapper::convert2(123, {model::command::kick_type_t::backspin, 987}, 0, 4, 8, 9);
-    BOOST_TEST(c.kickspeedx() == 0);
-    BOOST_TEST(c.kickspeedz() == 987);
+    BOOST_TEST(c.kickspeedx() == 0.5 * ai_server::util::kick::power_to_speed(987) / 1000);
+    BOOST_TEST(c.kickspeedz() ==
+               0.5 * std::pow(3, 1 / 2) * ai_server::util::kick::power_to_speed(987) / 1000);
   }
 }
 

@@ -14,7 +14,7 @@
 
 // 前方宣言
 namespace ssl_protos {
-namespace refbox {
+namespace gc {
 class Referee;
 }
 } // namespace ssl_protos
@@ -27,7 +27,7 @@ class refbox {
 
 public:
   /// データ受信時に発火する signalの型
-  using receive_signal_type = boost::signals2::signal<void(const ssl_protos::refbox::Referee&)>;
+  using receive_signal_type = boost::signals2::signal<void(const ssl_protos::gc::Referee&)>;
   /// receive_signal_type に登録する slot の型
   using receive_slot_type          = typename receive_signal_type::slot_type;
   using receive_extended_slot_type = typename receive_signal_type::extended_slot_type;

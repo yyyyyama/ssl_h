@@ -223,6 +223,17 @@ void first::ball_placement(situation_type situation, bool situation_changed) {
   prev_abp_target_ = abp_target;
 }
 
+void first::ball_placement_enemy([[maybe_unused]] situation_type situation,
+                                 bool situation_changed) {
+  logger_.debug("ball_placement_enemy");
+  const auto abp_target(refbox().ball_placement_position());
+  if (!current_formation_ || situation_changed || abp_target != prev_abp_target_) {
+    current_formation_ = make_formation<formation::ball_placement>(
+        std::vector(ids_.cbegin(), ids_.cend()), abp_target, false);
+  }
+  prev_abp_target_ = abp_target;
+}
+
 void first::timeout([[maybe_unused]] situation_type situation,
                     [[maybe_unused]] bool situation_changed) {
   logger_.debug("timeout");

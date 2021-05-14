@@ -52,7 +52,7 @@ model::command move::execute() {
 
   //ロボットが指定位置に存在するか
   finished_ = (robot_p - target_).head<2>().norm() <= margin_.position &&
-              std::abs(util::math::delta_theta(robot_p.z(), target_.z())) <= margin_.theta;
+              util::math::inferior_angle(target_.z(), robot_p.z()) <= margin_.theta;
 
   if (!finished_) {
     command.set_position({target_.x(), target_.y(), target_.z()});

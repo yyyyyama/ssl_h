@@ -14,7 +14,7 @@
 #include "ai_server/model/updater/world.h"
 #include "ai_server/radio/base/base.h"
 
-#include "ssl-protos/vision/wrapperpacket.pb.h"
+#include "ssl-protos/vision_wrapper.pb.h"
 
 using namespace std::chrono_literals;
 namespace controller = ai_server::controller;

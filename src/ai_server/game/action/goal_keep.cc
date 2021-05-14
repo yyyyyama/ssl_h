@@ -63,7 +63,7 @@ model::command goal_keep::execute() {
   // ボールの直線
   auto f = [&enemy_robots, &goal_pos, &ball_vel, &ball_pos](double x) {
     // ボールの速度が出ていればボール軌道
-    if ((goal_pos - ball_pos).normalized().dot(ball_vel) > 500.0)
+    if ((goal_pos - ball_pos).normalized().dot(ball_vel) > 1000.0)
       return (ball_vel.y() / ball_vel.x()) * (x - ball_pos.x()) + ball_pos.y();
 
     // 敵が蹴りそうなら敵の向き
@@ -76,7 +76,6 @@ model::command goal_keep::execute() {
       const auto kicker_pos   = util::math::position(kicker_itr->second);
       const auto kicker_theta = kicker_itr->second.theta();
       if ((kicker_pos - ball_pos).norm() < 1000.0 &&
-          (kicker_pos - goal_pos).norm() > (ball_pos - goal_pos).norm() + 50 &&
           std::abs(std::atan2(ball_pos.y() - kicker_pos.y(), ball_pos.x() - kicker_pos.x()) -
                    kicker_theta) < pi<double>() / 3.0)
         return std::tan(kicker_theta) * (x - ball_pos.x()) + ball_pos.y();
@@ -86,9 +85,14 @@ model::command goal_keep::execute() {
     return ball_pos.y();
   };
 
-  const double x = wf.x_min() + robot_rad;
-  const double y = std::clamp(f(x + to_kicker_dist), -width / 2.0, width / 2.0);
-  command.set_position(x, y, 0.0);
+  const double x        = wf.x_min() + robot_rad;
+  const double y        = std::clamp(f(x + to_kicker_dist), -width / 2.0, width / 2.0);
+  const auto keeper_pos = util::math::position(our_robots.at(id_));
+  const double dist     = ball_pos.y() - keeper_pos.y();
+  double theta          = std::abs(dist) > 100.0 ? std::copysign(pi<double>() / 2, dist) : 0.0;
+  if ((Eigen::Vector2d(x, y) - keeper_pos).norm() < 50.0)
+    theta = util::math::direction(ball_pos, keeper_pos);
+  command.set_position(x, y, theta);
   return command;
 }
 

@@ -8,6 +8,7 @@
 #include <iostream>
 #include <memory>
 #include <mutex>
+#include <set>
 #include <stdexcept>
 #include <sstream>
 #include <thread>
@@ -33,7 +34,7 @@
 #include "ai_server/filter/state_observer/robot.h"
 #include "ai_server/filter/va_calculator.h"
 #include "ai_server/game/context.h"
-#include "ai_server/game/formation/first_formation.h"
+#include "ai_server/game/captain/first.h"
 #include "ai_server/game/nnabla.h"
 #include "ai_server/logger/formatter.h"
 #include "ai_server/logger/logger.h"
@@ -171,7 +172,7 @@ public:
         team_color_{model::team_color::yellow},
         updater_world_{world},
         updater_refbox_{refbox},
-        active_robots_{0u, 1u, 2u, 3u, 4u, 5u, 6u, 7u},
+        active_robots_{0u, 1u, 2u, 3u, 4u, 5u, 6u, 7u, 8u, 9u, 10u},
         driver_{driver},
         radio_{radio},
         l_{"game_runner"} {
@@ -279,7 +280,7 @@ private:
                                                 nnp_files(config_dir_));
 
     model::refbox refbox{};
-    std::unique_ptr<game::formation::base> formation{};
+    std::unique_ptr<game::captain::base> captain{};
 
     std::chrono::steady_clock::time_point prev_time{};
 
@@ -309,20 +310,18 @@ private:
           }
         }
 
-        if (!formation || need_reset_) {
-          formation =
-              std::make_unique<game::formation::first_formation>(ctx, refbox, active_robots_);
+        if (!captain || need_reset_) {
+          captain = std::make_unique<game::captain::first>(
+              ctx, refbox, std::set(active_robots_.cbegin(), active_robots_.cend()));
           need_reset_ = false;
-          l_.info("formation resetted");
+          l_.info("captain resetted");
         }
 
-        auto agents = formation->execute();
-        for (auto agent : agents) {
-          auto actions = agent->execute();
-          for (auto action : actions) {
-            auto command = action->execute();
-            driver_.update_command(action->id(), command);
-          }
+        auto formation = captain->execute();
+        auto actions   = formation->execute();
+        for (auto action : actions) {
+          auto command = action->execute();
+          driver_.update_command(action->id(), command);
         }
 
         prev_time = current_time;
@@ -394,7 +393,7 @@ private:
   std::condition_variable cv_;
   std::atomic<bool> running_;
 
-  // formation のリセットが必要か
+  // captain のリセットが必要か
   bool need_reset_;
 
   const std::filesystem::path& config_dir_;

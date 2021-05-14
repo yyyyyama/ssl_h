@@ -1,4 +1,4 @@
-#include "ssl-protos/vision/wrapperpacket.pb.h"
+#include "ssl-protos/vision_wrapper.pb.h"
 
 #include "vision.h"
 

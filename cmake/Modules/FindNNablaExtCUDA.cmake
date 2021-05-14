@@ -5,7 +5,7 @@ set(NNablaExtCUDA_FOUND 0)
 # https://docs.nvidia.com/deeplearning/sdk/cudnn-support-matrix/index.html
 # TODO: マルチ GPU 版に対応する or 任意のライブラリ名を渡せるようにする
 set(libnnabla_cuda_names nnabla_cuda)
-foreach(cuda_version IN ITEMS 110 102 101 100 92 90 80)
+foreach(cuda_version IN ITEMS 113 112 111 110 102 101 100 92 90 80)
   foreach(cudnn_version IN ITEMS 8 7)
     list(APPEND libnnabla_cuda_names "nnabla_cuda${cuda_version}_${cudnn_version}")
   endforeach()

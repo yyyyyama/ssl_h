@@ -5,7 +5,7 @@
 
 #include "ai_server/model/world.h"
 
-#include "ssl-protos/vision/detection.pb.h"
+#include "ssl-protos/vision_detection.pb.h"
 
 BOOST_AUTO_TEST_SUITE(world_model)
 

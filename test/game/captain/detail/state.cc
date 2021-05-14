@@ -29,14 +29,8 @@ BOOST_AUTO_TEST_CASE(basic) {
   BOOST_TEST((s.update({}, rcmd::force_start) == cd::situation::force_start));
   BOOST_TEST((s.current_situation() == cd::situation::force_start));
 
-  BOOST_TEST((s.update({}, rcmd::goal_yellow) == cd::situation::stop));
-  BOOST_TEST((s.current_situation() == cd::situation::stop));
-
   BOOST_TEST((s.update({}, rcmd::timeout_yellow) == cd::situation::timeout));
   BOOST_TEST((s.current_situation() == cd::situation::timeout));
-
-  BOOST_TEST((s.update({}, rcmd::goal_blue) == cd::situation::stop));
-  BOOST_TEST((s.current_situation() == cd::situation::stop));
 
   BOOST_TEST((s.update({}, rcmd::timeout_blue) == cd::situation::timeout));
   BOOST_TEST((s.current_situation() == cd::situation::timeout));

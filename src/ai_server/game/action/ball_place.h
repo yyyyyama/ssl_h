@@ -60,8 +60,6 @@ private:
   bool finished_;
   // ボールを止めている状態か
   bool wait_flag_;
-  // ボールが見えているか
-  bool ball_visible_;
   // 待機を開始した時刻
   std::chrono::steady_clock::time_point begin_;
   // 一時的な目標

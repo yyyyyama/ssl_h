@@ -67,6 +67,8 @@ private:
 
   void ball_placement(situation_type situation, bool situation_changed);
 
+  void ball_placement_enemy(situation_type situation, bool situation_changed);
+
   void timeout(situation_type situation, bool situation_changed);
 
   /// デバッグ用
@@ -123,6 +125,8 @@ private:
     on(situation_type::setplay_defense, false)        = &first::setplay_defense_to_steady;
     on(situation_type::ball_placement, true)          = &first::ball_placement;
     on(situation_type::ball_placement, false)         = &first::ball_placement;
+    on(situation_type::ball_placement_enemy, true)    = &first::ball_placement_enemy;
+    on(situation_type::ball_placement_enemy, false)   = &first::ball_placement_enemy;
     on(situation_type::timeout, true)                 = &first::timeout;
 
     return table;

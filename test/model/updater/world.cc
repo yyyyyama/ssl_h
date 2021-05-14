@@ -5,7 +5,7 @@
 #include <boost/test/unit_test.hpp>
 
 #include "ai_server/model/updater/world.h"
-#include "ssl-protos/vision/wrapperpacket.pb.h"
+#include "ssl-protos/vision_wrapper.pb.h"
 
 BOOST_AUTO_TEST_SUITE(updater_world)
 

@@ -6,8 +6,9 @@
 #include <boost/math/constants/constants.hpp>
 
 #include "base/base.h"
+#include "ai_server/util/kick/convert.h"
 
-#include "ssl-protos/grsim/packet.pb.h"
+#include "ssl-protos/grsim_packet.pb.h"
 
 namespace ai_server::radio {
 
@@ -74,14 +75,15 @@ protected:
 
     switch (const auto& [type, power] = kick_flag; type) {
       case model::command::kick_type_t::line:
-        gr_cmd.set_kickspeedx(power);
+        gr_cmd.set_kickspeedx(util::kick::power_to_speed(power) / 1000);
         gr_cmd.set_kickspeedz(0);
         break;
 
       case model::command::kick_type_t::chip:
       case model::command::kick_type_t::backspin:
-        gr_cmd.set_kickspeedx(0);
-        gr_cmd.set_kickspeedz(power);
+        gr_cmd.set_kickspeedx(0.5 * util::kick::power_to_speed(power) / 1000);
+        gr_cmd.set_kickspeedz(0.5 * std::pow(3, 1 / 2) * util::kick::power_to_speed(power) /
+                              1000);
         break;
 
       default:

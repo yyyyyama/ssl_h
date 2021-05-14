@@ -46,16 +46,16 @@ void field::set_penalty_width(int penalty_width) {
   penalty_width_ = penalty_width;
 }
 double field::x_max() const {
-  return (length_ / 2);
+  return 0.5 * length_;
 }
 double field::y_max() const {
-  return (width_ / 2);
+  return 0.5 * width_;
 }
 double field::x_min() const {
-  return (-length_ / 2);
+  return -0.5 * length_;
 }
 double field::y_min() const {
-  return (-width_ / 2);
+  return -0.5 * width_;
 }
 double field::back_penalty_x() const {
   return x_min() + penalty_length_;
@@ -64,16 +64,16 @@ double field::front_penalty_x() const {
   return x_max() - penalty_length_;
 }
 double field::penalty_y_max() const {
-  return (penalty_width_ / 2);
+  return 0.5 * penalty_width_;
 }
 double field::penalty_y_min() const {
-  return (-penalty_width_ / 2);
+  return -0.5 * penalty_width_;
 }
 double field::goal_y_max() const {
-  return (goal_width_ / 2);
+  return 0.5 * goal_width_;
 }
 double field::goal_y_min() const {
-  return (-goal_width_ / 2);
+  return -0.5 * goal_width_;
 }
 field::point field::back_goal_center() const {
   return point{x_min(), 0.0};

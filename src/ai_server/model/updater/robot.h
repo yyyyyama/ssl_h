@@ -13,7 +13,7 @@
 #include "ai_server/filter/base.h"
 #include "ai_server/model/robot.h"
 #include "ai_server/model/team_color.h"
-#include "ssl-protos/vision/detection.pb.h"
+#include "ssl-protos/vision_detection.pb.h"
 
 namespace ai_server {
 namespace model {

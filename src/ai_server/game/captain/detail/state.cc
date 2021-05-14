@@ -101,8 +101,6 @@ constexpr situation next_situation(situation prev_situation, stage_type stage,
       return situation::timeout;
 
     case command_type::stop:
-    case command_type::goal_yellow:
-    case command_type::goal_blue:
       return situation::stop;
 
     default:

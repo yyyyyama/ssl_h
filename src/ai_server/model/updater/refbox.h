@@ -7,7 +7,7 @@
 
 // 前方宣言
 namespace ssl_protos {
-namespace refbox {
+namespace gc {
 class Referee;
 }
 } // namespace ssl_protos
@@ -33,7 +33,7 @@ public:
 
   /// @brief          RefereeパケットでRefBoxの情報を更新する
   /// @param referee  SSL Referee BoxのRefereeパケット
-  void update(const ssl_protos::refbox::Referee& referee);
+  void update(const ssl_protos::gc::Referee& referee);
 
   /// @brief           updaterに変換行列を設定する
   /// @param matrix    変換行列
