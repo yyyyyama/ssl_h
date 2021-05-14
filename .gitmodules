@@ -9,4 +9,4 @@
 	url = https://github.com/fmtlib/fmt.git
 [submodule "config"]
 	path = config
-	url = https://github.com/kiksworks/ai-server-config.git
+	url = https://github.com/AHSTE-SSL-H/ai-server-ssl-h.git
