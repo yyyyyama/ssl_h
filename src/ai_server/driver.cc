@@ -6,7 +6,12 @@
 #include <boost/format.hpp>
 
 #include "ai_server/model/motion/stop.h"
-#include "ai_server/model/motion/walk.h"
+#include "ai_server/model/motion/turn_left.h"
+#include "ai_server/model/motion/turn_right.h"
+#include "ai_server/model/motion/walk_backward.h"
+#include "ai_server/model/motion/walk_forward.h"
+#include "ai_server/model/motion/walk_left.h"
+#include "ai_server/model/motion/walk_right.h"
 #include "driver.h"
 
 namespace ai_server {
@@ -125,15 +130,36 @@ void driver::process(unsigned int id, metadata_type& metadata, const model::worl
     }
     auto [vx, vy, omega] = std::visit(c, sp, sp_rot);
     if (!command.motion()) {
-      if (200.0 < vx) {
-        command.set_motion(std::make_shared<model::motion::walk>());
+      // 回転
+      constexpr double rot_th = 0.5;
+      if (rot_th < omega) {
+        command.set_motion(std::make_shared<model::motion::turn_left>());
+      } else if (omega < -rot_th) {
+        command.set_motion(std::make_shared<model::motion::turn_right>());
       } else {
         command.set_motion(std::make_shared<model::motion::stop>());
       }
+
+      // 移動
+      constexpr double move_th = 100.0;
+      if (std::abs(vy) < std::abs(vx)) {
+        if (move_th < vx) {
+          command.set_motion(std::make_shared<model::motion::walk_forward>());
+        } else if (vx < -move_th) {
+          command.set_motion(std::make_shared<model::motion::walk_backward>());
+        }
+      } else {
+        if (move_th < vy) {
+          command.set_motion(std::make_shared<model::motion::walk_right>());
+        } else if (vy < -move_th) {
+          command.set_motion(std::make_shared<model::motion::walk_left>());
+        }
+      }
+
       const auto [mvx, mvy, momega] = command.motion()->execute();
-      vx    = mvx;
-      vy    = mvy;
-      omega = momega;
+      vx                            = mvx;
+      vy                            = mvy;
+      omega                         = momega;
     }
 
     // 命令の送信
