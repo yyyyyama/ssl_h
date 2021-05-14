@@ -137,7 +137,7 @@ void driver::process(unsigned int id, metadata_type& metadata, const model::worl
     }
 
     // 命令の送信
-    auto r = dynamic_pointer_cast<radio::base::simulator>(radio);
+    auto r = std::dynamic_pointer_cast<radio::base::simulator>(radio);
     if (r) {
       radio->send(team_color_, id, command.kick_flag(), command.dribble(), vx, vy, omega);
     } else {
