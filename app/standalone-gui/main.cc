@@ -48,7 +48,7 @@
 #include "ai_server/radio/connection/serial.h"
 #include "ai_server/radio/connection/udp.h"
 #include "ai_server/radio/grsim.h"
-#include "ai_server/radio/kiks.h"
+#include "ai_server/radio/humanoid.h"
 #include "ai_server/receiver/refbox.h"
 #include "ai_server/receiver/robot.h"
 #include "ai_server/receiver/vision.h"
@@ -1390,12 +1390,12 @@ auto main(int argc, char** argv) -> int {
               driver_io, boost::asio::ip::udp::endpoint{
                              boost::asio::ip::make_address(robot_address), robot_port});
           l.info(fmt::format("radio: kiks ({}:{})", robot_address, robot_port));
-          return std::make_shared<radio::kiks<radio::connection::udp>>(std::move(con));
+          return std::make_shared<radio::humanoid<radio::connection::udp>>(std::move(con));
         } else {
           auto con = std::make_unique<radio::connection::serial>(
               driver_io, xbee_path, radio::connection::serial::baud_rate(57600));
           l.info(fmt::format("radio: kiks ({})", xbee_path));
-          return std::make_shared<radio::kiks<radio::connection::serial>>(std::move(con));
+          return std::make_shared<radio::humanoid<radio::connection::serial>>(std::move(con));
         }
       }
     }();
