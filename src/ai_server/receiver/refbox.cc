@@ -5,13 +5,28 @@
 namespace ai_server {
 namespace receiver {
 
-refbox::refbox(boost::asio::io_context& io_context, const std::string& listen_addr,
-               const std::string& multicast_addr, unsigned short port)
+refbox::refbox(boost::asio::io_context& io_context,
+               const boost::asio::ip::address& multicast_addr, unsigned short port)
     : total_messages_{},
       messages_per_second_{},
       parse_error_{},
       last_updated_{},
-      receiver_{io_context, listen_addr, multicast_addr, port} {
+      receiver_{io_context, multicast_addr, port} {
+  // multicast receiver のコールバック関数を登録する
+  receiver_.on_receive(
+      [&](auto&&... args) { handle_receive(std::forward<decltype(args)>(args)...); });
+  receiver_.on_status_updated([&](auto mps) { handle_status_updated(mps); });
+  receiver_.on_error([&](const auto& ec) { handle_error(ec); });
+}
+
+refbox::refbox(boost::asio::io_context& io_context,
+               const boost::asio::ip::address_v4& multicast_addr, unsigned short port,
+               const boost::asio::ip::address_v4& interface_addr)
+    : total_messages_{},
+      messages_per_second_{},
+      parse_error_{},
+      last_updated_{},
+      receiver_{io_context, multicast_addr, port, interface_addr} {
   // multicast receiver のコールバック関数を登録する
   receiver_.on_receive(
       [&](auto&&... args) { handle_receive(std::forward<decltype(args)>(args)...); });

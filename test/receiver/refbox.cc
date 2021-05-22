@@ -25,32 +25,6 @@ using namespace ai_server::util::net::multicast;
 
 BOOST_AUTO_TEST_SUITE(refbox_receiver)
 
-BOOST_AUTO_TEST_CASE(receiver_error, *boost::unit_test::timeout(30)) {
-  std::ostringstream s{};
-  sink::ostream o{s, "nyan"};
-
-  boost::asio::io_context ctx{};
-
-  // 第2引数がマルチキャストアドレスではなく、
-  // util::net::multicast::receiver 側でエラーが発生するケース
-  refbox r{ctx, "0.0.0.0", "10.0.0.0", 10008};
-
-  // まだエラーメッセージは出力されていない
-  BOOST_TEST(s.str() == "");
-
-  {
-    slot_testing_helper wrapper{&refbox::on_error, r};
-
-    auto t = run_io_context_in_new_thread(ctx);
-
-    // on_error に登録したハンドラが呼ばれる
-    BOOST_CHECK_NO_THROW(wrapper.result());
-
-    // エラーメッセージが出力される
-    BOOST_TEST(s.str() == "nyan\n");
-  }
-}
-
 BOOST_AUTO_TEST_CASE(send_and_receive, *boost::unit_test::timeout(30)) {
   // ダミーパケットの作成
   ssl_protos::gc::Referee dummy_frame;
@@ -90,7 +64,7 @@ BOOST_AUTO_TEST_CASE(send_and_receive, *boost::unit_test::timeout(30)) {
 
   // refbox受信クラスの初期化
   // listen_addr = 0.0.0.0, multicast_addr = 224.5.23.1, port = 10088
-  refbox r{ctx, "0.0.0.0", "224.5.23.1", 10088};
+  refbox r{ctx, boost::asio::ip::make_address("224.5.23.1"), 10088};
 
   // 初期値は0
   BOOST_TEST(r.total_messages() == 0);
@@ -159,7 +133,7 @@ BOOST_AUTO_TEST_CASE(non_protobuf_data, *boost::unit_test::timeout(30)) {
 
   // refbox受信クラスの初期化
   // listen_addr = 0.0.0.0, multicast_addr = 224.5.23.4, port = 10080
-  refbox r{ctx, "0.0.0.0", "224.5.23.4", 10080};
+  refbox r{ctx, boost::asio::ip::make_address("224.5.23.4"), 10080};
 
   // 送信クラスの初期化
   // multicast_addr = 224.5.23.4, port = 10080

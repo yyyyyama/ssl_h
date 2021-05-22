@@ -29,30 +29,10 @@ BOOST_AUTO_TEST_CASE(receiver_error, *boost::unit_test::timeout(30)) {
     boost::asio::io_context ctx{};
 
     // 文字列で渡したアドレスに不備があったら例外
-    BOOST_CHECK_THROW(receiver(ctx, "123.456.789.012", "224.5.23.2", 10000),
-                      boost::system::system_error);
-    BOOST_CHECK_THROW(receiver(ctx, "0.0.0.0", "123.456.789.012", 10000),
-                      boost::system::system_error);
-  }
+    BOOST_CHECK_THROW(receiver(ctx, "123.456.789.012", 10000), boost::system::system_error);
 
-  {
-    boost::asio::io_context ctx{};
-
-    // 第2引数がマルチキャストアドレスではない
-    receiver r{ctx, "0.0.0.0", "10.0.0.0", 10000};
-
-    std::promise<boost::system::error_code> promise{};
-    r.on_error([&promise](auto& error) { promise.set_value(error); });
-
-    auto future = promise.get_future();
-
-    // ソケットの細かな初期化はコルーチン内で行われるのでまだエラーは発生していない
-    BOOST_TEST((future.wait_for(50ms) == std::future_status::timeout));
-
-    auto t = run_io_context_in_new_thread(ctx);
-
-    // エラー発生
-    BOOST_TEST(future.get() == boost::asio::error::invalid_argument);
+    // 第2引数がマルチキャストアドレスではなかったら例外
+    BOOST_CHECK_THROW(receiver(ctx, "10.0.0.0", 10000), boost::system::system_error);
   }
 }
 
@@ -60,8 +40,8 @@ BOOST_AUTO_TEST_CASE(send_and_receive, *boost::unit_test::timeout(30)) {
   boost::asio::io_context ctx{};
 
   // 受信クラスの初期化
-  // listen_addr = 0.0.0.0, multicast_addr = 224.5.23.2, port = 10000
-  receiver r{ctx, "0.0.0.0", "224.5.23.2", 10000};
+  // multicast_addr = 224.5.23.2, port = 10000
+  receiver r{ctx, "224.5.23.2", 10000};
 
   // 送信クラスの初期化
   // multicast_addr = 224.5.23.2, port = 10000
@@ -132,8 +112,8 @@ BOOST_AUTO_TEST_CASE(random_data1, *boost::unit_test::timeout(30)) {
   boost::asio::io_context ctx{};
 
   // 受信クラスの初期化
-  // listen_addr = 0.0.0.0, multicast_addr = 224.5.23.2, port = 10001
-  receiver r{ctx, "0.0.0.0", "224.5.23.2", 10001};
+  // multicast_addr = 224.5.23.2, port = 10001
+  receiver r{ctx, "224.5.23.2", 10001};
 
   // 送信クラスの初期化
   // multicast_addr = 224.5.23.2, port = 10001
@@ -192,8 +172,8 @@ BOOST_AUTO_TEST_CASE(random_data2, *boost::unit_test::timeout(30)) {
   boost::asio::io_context ctx{};
 
   // 受信クラスの初期化
-  // listen_addr = 0.0.0.0, multicast_addr = 224.5.23.2, port = 10002
-  receiver r{ctx, "0.0.0.0", "224.5.23.2", 10002};
+  // multicast_addr = 224.5.23.2, port = 10002
+  receiver r{ctx, "224.5.23.2", 10002};
 
   // 送信クラスの初期化
   // multicast_addr = 224.5.23.2, port = 10002
@@ -252,8 +232,8 @@ BOOST_AUTO_TEST_CASE(messages_per_second, *boost::unit_test::timeout(30)) {
   boost::asio::io_context ctx{};
 
   // 受信クラスの初期化
-  // listen_addr = 0.0.0.0, multicast_addr = 224.5.23.2, port = 10003
-  receiver r{ctx, "0.0.0.0", "224.5.23.2", 10003};
+  // multicast_addr = 224.5.23.2, port = 10003
+  receiver r{ctx, "224.5.23.2", 10003};
 
   // 送信クラスの初期化
   // multicast_addr = 224.5.23.2, port = 10003

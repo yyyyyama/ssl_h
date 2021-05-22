@@ -40,22 +40,29 @@ public:
   using error_callback_type = std::function<void(const boost::system::error_code&)>;
 
   /// @brief                  コンストラクタ
-  /// @param listen_addr      通信に使うインターフェースのIPアドレス
   /// @param multicast_addr   マルチキャストアドレス
   /// @param port             ポート
   ///
-  /// \p listen_addr, \p multicast_addr は \p boost::asio::ip::make_address によって
+  /// \p multicast_addr は \p boost::asio::ip::make_address によって
   /// \p boost::asio::ip::address に変換される。
   /// 失敗した場合 \p boost::system::system_error 例外が発生する
-  receiver(boost::asio::io_context& io_context, const std::string& listen_addr,
-           const std::string& multicast_addr, unsigned short port);
+  receiver(boost::asio::io_context& io_context, const std::string& multicast_addr,
+           unsigned short port);
 
   /// @brief                  コンストラクタ
-  /// @param listen_addr      通信に使うインターフェースのIPアドレス
   /// @param multicast_addr   マルチキャストアドレス
   /// @param port             ポート
-  receiver(boost::asio::io_context& io_context, const boost::asio::ip::address& listen_addr,
-           const boost::asio::ip::address& multicast_addr, unsigned short port);
+  receiver(boost::asio::io_context& io_context, const boost::asio::ip::address& multicast_addr,
+           unsigned short port);
+
+  /// @brief                  コンストラクタ
+  /// @param multicast_addr   マルチキャストアドレス
+  /// @param port             ポート
+  /// @param interface_addr   通信に使うインターフェースのIPアドレス
+  receiver(
+      boost::asio::io_context& io_context, const boost::asio::ip::address_v4& multicast_addr,
+      unsigned short port,
+      const boost::asio::ip::address_v4& interface_addr = boost::asio::ip::address_v4::any());
 
   /// @brief データ受信時に呼ばれるコールバック関数を登録する
   inline void on_receive(receive_callback_type cb) {
@@ -73,10 +80,8 @@ public:
   }
 
 private:
-  /// @brief \p addr に接続してデータを受信する
-  void receive_data(boost::asio::yield_context yield,
-                    const boost::asio::ip::udp::endpoint& endpoint,
-                    const boost::asio::ip::address& addr);
+  /// @brief socket_ からデータを受信する
+  void receive_data(boost::asio::yield_context yield);
 
   /// @brief 1秒間に受信したメッセージを数える
   void count_messages_per_second(boost::asio::yield_context yield);

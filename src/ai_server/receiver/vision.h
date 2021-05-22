@@ -43,11 +43,19 @@ public:
   using error_extedned_slot_type = typename error_signal_type::extended_slot_type;
 
   /// @brief                  コンストラクタ
-  /// @param listen_addr      通信に使うインターフェースのIPアドレス
   /// @param multicast_addr   マルチキャストアドレス
   /// @param port             ポート
-  vision(boost::asio::io_context& io_context, const std::string& listen_addr,
-         const std::string& multicast_addr, unsigned short port);
+  vision(boost::asio::io_context& io_context, const boost::asio::ip::address& multicast_addr,
+         unsigned short port);
+
+  /// @brief                  コンストラクタ
+  /// @param multicast_addr   マルチキャストアドレス
+  /// @param port             ポート
+  /// @param interface_addr   通信に使うインターフェースのIPアドレス
+  vision(
+      boost::asio::io_context& io_context, const boost::asio::ip::address_v4& multicast_addr,
+      unsigned short port,
+      const boost::asio::ip::address_v4& interface_addr = boost::asio::ip::address_v4::any());
 
   /// @brief                  データ受信時に slot が呼ばれるようにする
   /// @param slot             データ受信時に呼びたい関数オブジェクト

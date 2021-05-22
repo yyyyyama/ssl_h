@@ -9,52 +9,51 @@ namespace util {
 namespace net {
 namespace multicast {
 
-receiver::receiver(boost::asio::io_context& io_context, const std::string& listen_addr,
-                   const std::string& multicast_addr, unsigned short port)
-    : receiver(io_context, boost::asio::ip::make_address(listen_addr),
-               boost::asio::ip::make_address(multicast_addr), port) {}
+receiver::receiver(boost::asio::io_context& io_context, const std::string& multicast_addr,
+                   unsigned short port)
+    : receiver(io_context, boost::asio::ip::make_address(multicast_addr), port) {}
 
 receiver::receiver(boost::asio::io_context& io_context,
-                   const boost::asio::ip::address& listen_addr,
                    const boost::asio::ip::address& multicast_addr, unsigned short port)
     : total_messages_{0}, socket_{io_context}, timer_{io_context} {
-  boost::asio::ip::udp::endpoint listen_endpoint{listen_addr, port};
+  boost::asio::ip::udp::endpoint listen_endpoint{
+      multicast_addr.is_v4() ? boost::asio::ip::udp::v4() : boost::asio::ip::udp::v6(), port};
+
+  // ソケットを開く
+  socket_.open(listen_endpoint.protocol());
+
+  // 既に使われているポートにも bind できるようにする
+  socket_.set_option(boost::asio::ip::udp::socket::reuse_address(true));
+
+  socket_.bind(listen_endpoint);
+
+  // multicast グループに join
+  socket_.set_option(boost::asio::ip::multicast::join_group(multicast_addr));
 
   // receive_data, count_messages_per_second を coroutine で動かす
-  // 渡した関数オブジェクトは後から実行されるため、必要な値は所有権を移しておく
-  boost::asio::spawn(socket_.get_executor(),
-                     [&, multicast_addr, endpoint = std::move(listen_endpoint)](auto yield) {
-                       receive_data(yield, endpoint, multicast_addr);
-                     });
+  boost::asio::spawn(socket_.get_executor(), [&](auto yield) { receive_data(yield); });
   boost::asio::spawn(timer_.get_executor(),
                      [&](auto yield) { count_messages_per_second(yield); });
 }
 
-void receiver::receive_data(boost::asio::yield_context yield,
-                            const boost::asio::ip::udp::endpoint& endpoint,
-                            const boost::asio::ip::address& addr) {
+receiver::receiver(boost::asio::io_context& io_context,
+                   const boost::asio::ip::address_v4& multicast_addr, unsigned short port,
+                   const boost::asio::ip::address_v4& interface_addr)
+    : total_messages_{0}, socket_{io_context}, timer_{io_context} {
+  boost::asio::ip::udp::endpoint listen_endpoint{boost::asio::ip::udp::v4(), port};
+
+  socket_.open(listen_endpoint.protocol());
+  socket_.set_option(boost::asio::ip::udp::socket::reuse_address(true));
+  socket_.bind(listen_endpoint);
+  socket_.set_option(boost::asio::ip::multicast::join_group(multicast_addr, interface_addr));
+
+  boost::asio::spawn(socket_.get_executor(), [&](auto yield) { receive_data(yield); });
+  boost::asio::spawn(timer_.get_executor(),
+                     [&](auto yield) { count_messages_per_second(yield); });
+}
+
+void receiver::receive_data(boost::asio::yield_context yield) {
   boost::system::error_code ec;
-
-  // ソケットを開く
-  if (socket_.open(endpoint.protocol(), ec); ec) {
-    call_error_callback(ec);
-    return;
-  }
-  // 既に使われているポートにも bind できるようにする
-  if (socket_.set_option(boost::asio::ip::udp::socket::reuse_address(true), ec); ec) {
-    call_error_callback(ec);
-    return;
-  }
-  if (socket_.bind(endpoint, ec); ec) {
-    call_error_callback(ec);
-    return;
-  }
-
-  // multicast グループに join
-  if (socket_.set_option(boost::asio::ip::multicast::join_group(addr), ec); ec) {
-    call_error_callback(ec);
-    return;
-  }
 
   for (;;) {
     buffer_t data;

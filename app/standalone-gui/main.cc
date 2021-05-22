@@ -1402,7 +1402,7 @@ auto main(int argc, char** argv) -> int {
 
     // Vision receiverの設定
     std::atomic<bool> vision_received{false};
-    receiver::vision vision{receiver_io, "0.0.0.0", vision_address, vision_port};
+    receiver::vision vision{receiver_io, vision_address, vision_port, vision_if_address};
     vision.on_receive([&updater_world, &vision_received, &l](auto&& p) {
       if (!vision_received) {
         // 最初に受信したときにメッセージを表示する
@@ -1416,7 +1416,7 @@ auto main(int argc, char** argv) -> int {
     // Refbox receiverの設定
     std::atomic<bool> refbox1_received{false};
     model::updater::refbox updater_refbox{};
-    receiver::refbox refbox{receiver_io, "0.0.0.0", refbox_address, refbox_port};
+    receiver::refbox refbox{receiver_io, refbox_address, refbox_port, refbox_if_address};
     refbox.on_receive([&updater_refbox, &refbox1_received, &l](auto&& p) {
       if (!refbox1_received) {
         // 最初に受信したときにメッセージを表示する
