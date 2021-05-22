@@ -78,6 +78,11 @@ public:
     connection(color).send(packet.SerializeAsString());
   }
 
+  void send([[maybe_unused]] model::team_color color, unsigned int id,
+            std::shared_ptr<model::motion::base> motion) override {
+    if (motion) std::cout << id << ": " << motion->motion_id() << std::endl;
+  }
+
 private:
   template <model::team_color Color>
   void recv() {

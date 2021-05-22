@@ -3,13 +3,13 @@
 namespace ai_server {
 namespace receiver {
 
-robot::robot(boost::asio::io_context& io_context, const std::string& listen_addr,
-             const std::string& multicast_addr, unsigned short port)
+robot::robot(boost::asio::io_context& io_context,
+               const boost::asio::ip::address& multicast_addr, unsigned short port)
     : total_messages_{},
       messages_per_second_{},
       parse_error_{},
       last_updated_{},
-      receiver_{io_context, listen_addr, multicast_addr, port} {
+      receiver_{io_context, multicast_addr, port} {
   // multicast receiver のコールバック関数を登録する
   receiver_.on_receive(
       [&](auto&&... args) { handle_receive(std::forward<decltype(args)>(args)...); });

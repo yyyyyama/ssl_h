@@ -1,7 +1,7 @@
 // 全体プログラム　歩行が通常歩行モードになっている。2号機（2022通常ロボット)は足に電池
 // おもりを乗せると倒れる事が少なく移動もスムースである。微小歩行の前進が著しく左旋回を
-//　行う。起き上がり作動はdriverプログラムに変更を加えたができない。get_ballにキックプログラムを
-//　を付加。右キック、左キックの判断はできるが、あまり蹴らない。
+// 　行う。起き上がり作動はdriverプログラムに変更を加えたができない。get_ballにキックプログラムを
+// 　を付加。右キック、左キックの判断はできるが、あまり蹴らない。
 // ボールが自分の影に隠れ止まる。ボール付近で前後左右の移動発振をしてボールにつっこまない
 // パラメータの調整が必要
 #include <algorithm>
@@ -306,8 +306,8 @@ private:
           }
         }
 
-       // mw 0829 // HALT中にロボットが脱力 mw
-       driver_.set_halt(current_cmd == model::refbox::game_command::halt);
+        // mw 0829 // HALT中にロボットが脱力 mw
+        driver_.set_halt(current_cmd == model::refbox::game_command::halt);
 
         if (!captain || need_reset_) {
           captain = std::make_unique<game::captain::first>(
@@ -1258,6 +1258,13 @@ auto main(int argc, char** argv) -> int {
       ("refbox-port",
        po::value<unsigned short>()->value_name("port")->default_value(10003))
 
+      ("robot-address",
+       po::value<std::string>()->value_name("ip")->default_value("224.5.23.2"))
+      ("robot-if-address",
+       po::value<std::string>()->value_name("ip"))
+      ("robot-port",
+       po::value<unsigned short>()->value_name("port")->default_value(10004))
+
       ("radio",
        po::value<std::string>()->value_name("type")->default_value("grsim"),
        "[ grsim | kiks-xbee | kiks-udp | kiks-xbee-udp | simproto | simproto-all ]")
@@ -1318,6 +1325,14 @@ auto main(int argc, char** argv) -> int {
           ? boost::asio::ip::make_address_v4(vm.at("refbox-if-address").as<std::string>())
           : boost::asio::ip::address_v4::any();
   const auto refbox_port = vm.at("refbox-port").as<unsigned short>();
+
+  const auto robot_address =
+      boost::asio::ip::make_address_v4(vm.at("robot-address").as<std::string>());
+  const auto robot_if_address =
+      vm.count("robot-if-address")
+          ? boost::asio::ip::make_address_v4(vm.at("robot-if-address").as<std::string>())
+          : boost::asio::ip::address_v4::any();
+  const auto robot_port = vm.at("robot-port").as<unsigned short>();
 
   const enum class radio_types {
     grsim,
@@ -1430,7 +1445,7 @@ auto main(int argc, char** argv) -> int {
 
     // Robot receiverの設定
     std::atomic<bool> robot_received{false};
-    receiver::robot robot{receiver_io, "0.0.0.0", robot_address, robot_port};
+    receiver::robot robot{receiver_io, robot_address, robot_port, robot_if_address};
     robot.on_receive([&robot_received, &l](auto&& p) {
       if (!robot_received) {
         // 最初に受信したときにメッセージを表示する

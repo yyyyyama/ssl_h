@@ -29,8 +29,13 @@ public:
   /// error_signal_type に登録する slot の型
   using error_slot_type = typename error_signal_type::slot_type;
 
-  robot(boost::asio::io_context& io_context, const std::string& listen_addr,
-        const std::string& multicast_addr, unsigned short port);
+  robot(boost::asio::io_context& io_context,
+               const boost::asio::ip::address& multicast_addr, unsigned short port);
+  
+  robot(
+      boost::asio::io_context& io_context, const boost::asio::ip::address_v4& multicast_addr,
+      unsigned short port,
+      const boost::asio::ip::address_v4& interface_addr = boost::asio::ip::address_v4::any());
 
   boost::signals2::connection on_receive(const receive_slot_type& slot);
   boost::signals2::connection on_error(const error_slot_type& slot);
