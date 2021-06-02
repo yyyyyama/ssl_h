@@ -1394,11 +1394,11 @@ auto main(int argc, char** argv) -> int {
     // Radioの設定
     auto radio = [&] {
       if constexpr (is_grsim) {
-        auto con = std::make_unique<radio::connection::udp>(
+        auto con = std::make_unique<radio::connection::udp_tx>(
             driver_io, boost::asio::ip::udp::endpoint{
                            boost::asio::ip::make_address(grsim_address), grsim_command_port});
         l.info(fmt::format("radio: grSim ({}:{})", grsim_address, grsim_command_port));
-        return std::make_shared<radio::grsim<radio::connection::udp>>(std::move(con));
+        return std::make_shared<radio::grsim<radio::connection::udp_tx>>(std::move(con));
       } else {
         if constexpr (use_udp) {
           auto con = std::make_unique<radio::connection::udp>(

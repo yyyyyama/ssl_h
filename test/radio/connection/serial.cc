@@ -2,9 +2,11 @@
 
 #include <array>
 #include <chrono>
+#include <future>
 #include <memory>
 #include <string>
 #include <thread>
+#include <tuple>
 #include <utility>
 #include <stdexcept>
 
@@ -109,6 +111,33 @@ BOOST_AUTO_TEST_CASE(send, *boost::unit_test::timeout(30)) {
   BOOST_TEST(tx.messages_per_second() == 0);
   std::this_thread::sleep_for(1s);
   BOOST_TEST(tx.messages_per_second() == 2);
+}
+
+using promise_type = std::promise<std::tuple<boost::system::error_code, std::size_t>>;
+
+BOOST_AUTO_TEST_CASE(recv, *boost::unit_test::timeout(30)) {
+  auto [master, slave] = pty::openpty();
+
+  boost::asio::io_context ctx1{};
+  radio::connection::serial rx{ctx1, slave.name()};
+  auto th = run_io_context_in_new_thread(ctx1);
+
+  boost::asio::io_context ctx2{};
+  boost::asio::posix::stream_descriptor tx{ctx2, master.fd()};
+
+  std::array<char, 4096> buf{};
+
+  {
+    promise_type p{};
+    rx.recv(buf,
+            [&p](auto&&... args) { p.set_value({std::forward<decltype(args)>(args)...}); });
+
+    tx.write_some(boost::asio::buffer("Hello"s));
+
+    const auto [ec, len] = p.get_future().get();
+    BOOST_TEST(!ec.failed());
+    BOOST_TEST((std::string{buf.cbegin(), buf.cbegin() + len}) == "Hello"s);
+  }
 }
 
 BOOST_AUTO_TEST_SUITE_END()

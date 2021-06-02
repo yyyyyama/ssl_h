@@ -53,6 +53,20 @@ public:
     });
   }
 
+  template <class Buffer, class Func>
+  auto recv(Buffer& buffer, Func func)
+      -> decltype(boost::asio::buffer(buffer), func(boost::system::error_code(), std::size_t()),
+                  void()) {
+    boost::asio::spawn(io_context_, [this, &buffer, func](auto yield) {
+      boost::system::error_code ec{};
+      const auto size = serial_.async_read_some(boost::asio::buffer(buffer), yield[ec]);
+      if (ec) {
+        logger_.error("recv() failed (" + device_ + "): " + ec.message());
+      }
+      func(ec, size);
+    });
+  }
+
   /// @brief 送信した総メッセージ数を取得する
   std::uint64_t total_messages() const {
     return detail::post_and_return_future(io_context_, [this] { return total_messages_; })
