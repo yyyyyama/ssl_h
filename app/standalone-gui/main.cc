@@ -22,6 +22,7 @@
 
 #include <boost/asio.hpp>
 #include <boost/math/constants/constants.hpp>
+#include <boost/program_options.hpp>
 
 #include <fmt/chrono.h>
 #include <fmt/format.h>
@@ -103,26 +104,7 @@ static constexpr auto use_robot_observer = false; // 自チームのロボット
 static constexpr auto lost_duration = 1s; // ロスト判定するまでの時間
 
 // Visionの設定
-static constexpr char vision_address[] = "224.5.23.2";
-// static constexpr short vision_port     = 10020;
-static constexpr short vision_port = 10006; // org
-static constexpr int num_cameras   = 8;
-
-// Refboxの設定
-static constexpr char refbox_address[] = "224.5.23.1";
-static constexpr short refbox_port     = 10003;
-
-// Robotの設定
-static constexpr char robot_address[] = "224.5.23.2";
-static constexpr short robot_port     = 10004;
-
-// Radioの設定
-// static constexpr bool is_grsim            = true;
-static constexpr bool is_grsim            = false; // org
-static constexpr bool use_udp             = true;
-static constexpr char xbee_path[]         = "/dev/ttyUSB0";
-static constexpr char grsim_address[]     = "127.0.0.1";
-static constexpr short grsim_command_port = 20011;
+static constexpr int num_cameras = 8;
 
 // 制御周期の設定
 static constexpr auto cycle =
@@ -1209,40 +1191,6 @@ struct status_tree::handler<T, std::void_t<decltype(std::declval<T>().total_mess
   Gtk::TreeRow r1, r2, r3, r4;
 };
 
-template <template <class> class T, class C>
-struct status_tree::handler<T<C>, std::void_t<decltype(std::declval<T<C>>().connection()),
-                                              decltype(std::declval<C>().total_messages()),
-                                              decltype(std::declval<C>().messages_per_second()),
-                                              decltype(std::declval<C>().total_errors()),
-                                              decltype(std::declval<C>().last_sent())>> {
-  static constexpr auto category_name = "Radio";
-
-  template <class F>
-  handler(const status_tree::model& m, F add_row)
-      : model{m}, r1{add_row()}, r2{add_row()}, r3{add_row()}, r4{add_row()} {
-    r1[model.name] = "Total sent messages";
-    r2[model.name] = "Messages per second";
-    r3[model.name] = "Total errors";
-    r4[model.name] = "Last sent time";
-  }
-
-  void update(const T<C>& radio) const {
-    const auto& c = radio.connection();
-    const auto lu = c.last_sent();
-    const auto tt = std::chrono::system_clock::to_time_t(lu);
-    const auto e  = lu.time_since_epoch();
-    const auto ms = (e - std::chrono::duration_cast<std::chrono::seconds>(e)) / 1ms;
-
-    r1[model.value] = fmt::format("{}", c.total_messages());
-    r2[model.value] = fmt::format("{}", c.messages_per_second());
-    r3[model.value] = fmt::format("{}", c.total_errors());
-    r4[model.value] = fmt::format("{:%T}.{:03d}", *std::localtime(&tt), ms);
-  }
-
-  const status_tree::model& model;
-  Gtk::TreeRow r1, r2, r3, r4;
-};
-
 template <class T>
 struct status_tree::handler<T, std::enable_if_t<std::is_same_v<
                                    decltype(std::declval<const T>().value()), model::refbox>>> {
@@ -1425,13 +1373,6 @@ auto main(int argc, char** argv) -> int {
                      nnabla_device_id()));
 
   try {
-    // 設定ファイルのパスを決める
-    // デフォルトは実行ファイルと同じディレクトリの config (<ai-server>/config への symlink)
-    // argv[1] が指定されていたらそれを使う
-    const auto config_dir =
-        (argc == 2)
-            ? std::filesystem::path{argv[1]}
-            : weakly_canonical(std::filesystem::canonical(argv[0]).parent_path() / "config");
     l.info(fmt::format("configuration directory: {}", config_dir.c_str()));
     if (!is_directory(config_dir)) {
       l.error(fmt::format("'{}' does not exist or is not a directory", config_dir.c_str()));
@@ -1587,19 +1528,14 @@ auto main(int argc, char** argv) -> int {
     va.signal_abp_target_changed().connect(sigc::mem_fun(rp, &refbox_panel::set_abp_target));
 
     // simulator の radio ならシグナル発火でボール, ロボット配置
-    // generic lambda は template 相当のもので実現されるので constexpr if が使える
-    [&va](auto& radio) {
-      if constexpr (std::is_base_of_v<
-                        radio::base::simulator,
-                        typename std::remove_reference_t<decltype(radio)>::element_type>) {
-        va.signal_ball_position_changed().connect(
-            [radio](auto x, auto y) { radio->set_ball_position(x, y); });
-        va.signal_robot_position_changed().connect(
-            [radio](auto color, auto id, auto x, auto y, auto theta) {
-              radio->set_robot_position(color, id, x, y, theta);
-            });
-      }
-    }(radio);
+    if (auto r = std::dynamic_pointer_cast<radio::base::simulator>(radio)) {
+      va.signal_ball_position_changed().connect(
+          [r](auto x, auto y) { r->set_ball_position(x, y); });
+      va.signal_robot_position_changed().connect(
+          [r](auto color, auto id, auto x, auto y, auto theta) {
+            r->set_robot_position(color, id, x, y, theta);
+          });
+    }
 
     // スイッチによって vision_area の表示/非表示を切り替え
     vp.signal_switch_changed().connect(sigc::mem_fun(va, &vision_area::set_visible));
@@ -1629,7 +1565,6 @@ auto main(int argc, char** argv) -> int {
     status_tree tree{};
     tree.add("Vision", vision);
     tree.add("RefBox", refbox);
-    tree.add(is_grsim ? "grSim" : "KIKS", *radio);
     tree.add("Global Refbox", rp.updater().global(), 250);
     tree.add("Local Refbox", rp.updater().local(), 250);
     tree.expand_all();

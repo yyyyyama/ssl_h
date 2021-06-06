@@ -1,3 +1,6 @@
+# Boost.Program_options が必要
+find_package(Boost COMPONENTS program_options REQUIRED)
+
 # gtkmm3 が必要
 find_package(PkgConfig REQUIRED)
 pkg_check_modules(Gtkmm3 REQUIRED IMPORTED_TARGET gtkmm-3.0)
@@ -7,6 +10,7 @@ add_executable(standalone-gui main.cc)
 target_link_libraries(standalone-gui
   ai-server-common-flags
   ai-server-lib
+  Boost::program_options
   PkgConfig::Gtkmm3
 )
 
