@@ -1234,6 +1234,22 @@ struct status_tree::handler<T, std::enable_if_t<std::is_same_v<
   Gtk::TreeRow r1, r2, r3, r4, r5, r6;
 };
 
+template <class C1, class C2>
+class dual_connection {
+  std::unique_ptr<C1> conn1_;
+  std::unique_ptr<C2> conn2_;
+
+public:
+  dual_connection(std::unique_ptr<C1> conn1, std::unique_ptr<C2> conn2)
+      : conn1_{std::move(conn1)}, conn2_{std::move(conn2)} {}
+
+  template <class Buffer>
+  void send(Buffer buffer) {
+    conn1_->send(buffer);
+    conn2_->send(buffer);
+  }
+};
+
 auto main(int argc, char** argv) -> int {
   namespace po = boost::program_options;
   po::options_description opts{};
