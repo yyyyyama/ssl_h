@@ -55,6 +55,8 @@
 #include "ai_server/radio/connection/udp.h"
 #include "ai_server/radio/grsim.h"
 #include "ai_server/radio/humanoid.h"
+#include "ai_server/radio/kiks.h"
+#include "ai_server/radio/ssl_simproto.h"
 #include "ai_server/receiver/refbox.h"
 #include "ai_server/receiver/robot.h"
 #include "ai_server/receiver/vision.h"
@@ -1285,7 +1287,126 @@ struct status_tree::handler<T, std::enable_if_t<std::is_same_v<
 };
 
 auto main(int argc, char** argv) -> int {
-  auto app = Gtk::Application::create(argc, argv);
+  namespace po = boost::program_options;
+  po::options_description opts{};
+  // clang-format off
+  opts.add_options()
+      ("help", "display this help and exit")
+
+      ("config",
+       po::value<std::string>()->value_name("path"))
+
+      ("vision-address",
+       po::value<std::string>()->value_name("ip")->default_value("224.5.23.2"))
+      ("vision-if-address",
+       po::value<std::string>()->value_name("ip"))
+      ("vision-port",
+       po::value<unsigned short>()->value_name("port")->default_value(10006))
+
+      ("refbox-address",
+       po::value<std::string>()->value_name("ip")->default_value("224.5.23.1"))
+      ("refbox-if-address",
+       po::value<std::string>()->value_name("ip"))
+      ("refbox-port",
+       po::value<unsigned short>()->value_name("port")->default_value(10003))
+
+      ("radio",
+       po::value<std::string>()->value_name("type")->default_value("grsim"),
+       "[ grsim | kiks-xbee | kiks-udp | kiks-xbee-udp | simproto | simproto-all ]")
+
+      ("grsim-address",
+       po::value<std::string>()->value_name("ip")->default_value("127.0.0.1"))
+      ("grsim-port",
+       po::value<unsigned short>()->value_name("port")->default_value(20011))
+
+      ("kiks-xbee-path",
+       po::value<std::string>()->value_name("path")->default_value("/dev/ttyUSB0"))
+      ("kiks-address",
+       po::value<std::string>()->value_name("ip")->default_value("224.4.23.4"))
+      ("kiks-if-address",
+       po::value<std::string>()->value_name("ip"))
+      ("kiks-port",
+       po::value<unsigned short>()->value_name("port")->default_value(10004))
+
+      ("simproto-address",
+       po::value<std::string>()->value_name("ip")->default_value("127.0.0.1"))
+      ("simproto-sim-port",
+       po::value<unsigned short>()->value_name("port")->default_value(10300))
+      ("simproto-blue-port",
+       po::value<unsigned short>()->value_name("port")->default_value(10301))
+      ("simproto-yellow-port",
+       po::value<unsigned short>()->value_name("port")->default_value(10302))
+  ;
+  // clang-format on
+
+  po::variables_map vm{};
+  po::store(po::parse_command_line(argc, argv, opts), vm);
+  po::notify(vm);
+
+  if (vm.count("help")) {
+    std::cout << opts;
+    return 0;
+  }
+
+  // 設定ファイルのパスを決める
+  // デフォルトは実行ファイルと同じディレクトリの config (<ai-server>/config への symlink)
+  const auto config_dir =
+      vm.count("config")
+          ? std::filesystem::path{vm.at("config").as<std::string>()}
+          : weakly_canonical(std::filesystem::canonical(argv[0]).parent_path() / "config");
+
+  const auto vision_address =
+      boost::asio::ip::make_address_v4(vm.at("vision-address").as<std::string>());
+  const auto vision_if_address =
+      vm.count("vision-if-address")
+          ? boost::asio::ip::make_address_v4(vm.at("vision-if-address").as<std::string>())
+          : boost::asio::ip::address_v4::any();
+  const auto vision_port = vm.at("vision-port").as<unsigned short>();
+
+  const auto refbox_address =
+      boost::asio::ip::make_address_v4(vm.at("refbox-address").as<std::string>());
+  const auto refbox_if_address =
+      vm.count("refbox-if-address")
+          ? boost::asio::ip::make_address_v4(vm.at("refbox-if-address").as<std::string>())
+          : boost::asio::ip::address_v4::any();
+  const auto refbox_port = vm.at("refbox-port").as<unsigned short>();
+
+  const enum class radio_types {
+    grsim,
+    kiks_xbee,
+    kiks_udp,
+    kiks_xbee_udp,
+    simproto,
+    simproto_all,
+  } radio_type = [](const std::string& s) {
+    if (s == "grsim") return radio_types::grsim;
+    if (s == "kiks-xbee") return radio_types::kiks_xbee;
+    if (s == "kiks-udp") return radio_types::kiks_udp;
+    if (s == "kiks-xbee-udp") return radio_types::kiks_xbee_udp;
+    if (s == "simproto") return radio_types::simproto;
+    if (s == "simproto-all") return radio_types::simproto_all;
+    std::cerr << "unknown radio types: " << s << std::endl;
+    std::exit(-1);
+  }(vm.at("radio").as<std::string>());
+
+  const auto grsim_address = vm.at("grsim-address").as<std::string>();
+  const auto grsim_port    = vm.at("grsim-port").as<unsigned short>();
+
+  const auto kiks_xbee_path = vm.at("kiks-xbee-path").as<std::string>();
+  const auto kiks_address =
+      boost::asio::ip::make_address_v4(vm.at("kiks-address").as<std::string>());
+  const auto kiks_if_address =
+      vm.count("kiks-if-address")
+          ? boost::asio::ip::make_address_v4(vm.at("kiks-if-address").as<std::string>())
+          : boost::asio::ip::address_v4::any();
+  const auto kiks_port = vm.at("kiks-port").as<unsigned short>();
+
+  const auto simproto_address     = vm.at("simproto-address").as<std::string>();
+  const auto simproto_sim_port    = vm.at("simproto-sim-port").as<unsigned short>();
+  const auto simproto_blue_port   = vm.at("simproto-blue-port").as<unsigned short>();
+  const auto simproto_yellow_port = vm.at("simproto-yellow-port").as<unsigned short>();
+
+  auto app = Gtk::Application::create();
 
   logger::sink::ostream sink(std::cout, "{elapsed} {level:<5} {zone}: {message}");
 
@@ -1392,28 +1513,55 @@ auto main(int argc, char** argv) -> int {
     boost::asio::io_context driver_io{1};
 
     // Radioの設定
-    auto radio = [&] {
-      if constexpr (is_grsim) {
-        auto con = std::make_unique<radio::connection::udp_tx>(
-            driver_io, boost::asio::ip::udp::endpoint{
-                           boost::asio::ip::make_address(grsim_address), grsim_command_port});
-        l.info(fmt::format("radio: grSim ({}:{})", grsim_address, grsim_command_port));
-        return std::make_shared<radio::grsim<radio::connection::udp_tx>>(std::move(con));
-      } else {
-        if constexpr (use_udp) {
-          auto con = std::make_unique<radio::connection::udp>(
-              driver_io, boost::asio::ip::udp::endpoint{
-                             boost::asio::ip::make_address(robot_address), robot_port});
-          l.info(fmt::format("radio: kiks ({}:{})", robot_address, robot_port));
-          return std::make_shared<radio::humanoid<radio::connection::udp>>(std::move(con));
-        } else {
-          auto con = std::make_unique<radio::connection::serial>(
-              driver_io, xbee_path, radio::connection::serial::baud_rate(57600));
-          l.info(fmt::format("radio: kiks ({})", xbee_path));
-          return std::make_shared<radio::humanoid<radio::connection::serial>>(std::move(con));
-        }
-      }
-    }();
+    std::shared_ptr<radio::base::command> radio;
+    if (radio_type == radio_types::grsim) {
+      auto con = std::make_unique<radio::connection::udp_tx>(
+          driver_io, boost::asio::ip::udp::endpoint{
+                         boost::asio::ip::make_address(grsim_address), grsim_port});
+      l.info(fmt::format("radio: grSim ({}:{})", grsim_address, grsim_port));
+      radio = std::make_shared<radio::grsim<radio::connection::udp_tx>>(std::move(con));
+    } else if (radio_type == radio_types::kiks_xbee) {
+      auto con = std::make_unique<radio::connection::serial>(
+          driver_io, kiks_xbee_path, radio::connection::serial::baud_rate(57600));
+      l.info(fmt::format("radio: kiks ({})", kiks_xbee_path));
+      radio = std::make_shared<radio::kiks<radio::connection::serial>>(std::move(con));
+    } else if (radio_type == radio_types::kiks_udp) {
+      auto con = std::make_unique<radio::connection::udp_tx>(
+          driver_io, boost::asio::ip::udp::endpoint{kiks_address, kiks_port}, kiks_if_address);
+      l.info(fmt::format("radio: kiks ({}:{})", kiks_address, kiks_port));
+      radio = std::make_shared<radio::kiks<radio::connection::udp_tx>>(std::move(con));
+    } else if (radio_type == radio_types::kiks_xbee_udp) {
+      auto con1 = std::make_unique<radio::connection::serial>(
+          driver_io, kiks_xbee_path, radio::connection::serial::baud_rate(57600));
+      l.info(fmt::format("radio: kiks-xbee ({})", kiks_xbee_path));
+      auto con2 = std::make_unique<radio::connection::udp_tx>(
+          driver_io, boost::asio::ip::udp::endpoint{kiks_address, kiks_port}, kiks_if_address);
+      l.info(fmt::format("radio: kiks-udp ({}:{})", kiks_address, kiks_port));
+      using con_type = dual_connection<radio::connection::serial, radio::connection::udp_tx>;
+      auto con       = std::make_unique<con_type>(std::move(con1), std::move(con2));
+      radio          = std::make_shared<radio::kiks<con_type>>(std::move(con));
+    } else if (radio_type == radio_types::simproto) {
+      auto con_blue   = std::make_unique<radio::connection::udp>(driver_io, simproto_address,
+                                                               simproto_blue_port);
+      auto con_yellow = std::make_unique<radio::connection::udp>(driver_io, simproto_address,
+                                                                 simproto_yellow_port);
+      l.info(fmt::format("radio: simproto @ {} (blue: {}, yellow: {})", simproto_address,
+                         simproto_blue_port, simproto_yellow_port));
+      radio = std::make_shared<radio::ssl_simproto::robot<radio::connection::udp>>(
+          std::move(con_blue), std::move(con_yellow));
+    } else if (radio_type == radio_types::simproto_all) {
+      auto con_sim    = std::make_unique<radio::connection::udp>(driver_io, simproto_address,
+                                                              simproto_sim_port);
+      auto con_blue   = std::make_unique<radio::connection::udp>(driver_io, simproto_address,
+                                                               simproto_blue_port);
+      auto con_yellow = std::make_unique<radio::connection::udp>(driver_io, simproto_address,
+                                                                 simproto_yellow_port);
+      l.info(fmt::format("radio: simproto @ {} (sim: {}, blue: {}, yellow: {})",
+                         simproto_address, simproto_sim_port, simproto_blue_port,
+                         simproto_yellow_port));
+      radio = std::make_shared<radio::ssl_simproto::all<radio::connection::udp>>(
+          std::move(con_sim), std::move(con_blue), std::move(con_yellow));
+    }
 
     // driver による命令の送信を別スレッドで開始
     ai_server::driver driver{driver_io, cycle, updater_world, model::team_color::yellow};
