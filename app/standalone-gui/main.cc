@@ -95,7 +95,7 @@ static constexpr auto lost_duration = 1s; // ロスト判定するまでの時�
 
 // Visionの設定
 static constexpr char vision_address[] = "224.5.23.2";
-static constexpr short vision_port     = 10006;
+static constexpr short vision_port     = 10024;
 static constexpr int num_cameras       = 8;
 
 // Refboxの設定
@@ -107,7 +107,7 @@ static constexpr char robot_address[] = "224.5.23.2";
 static constexpr short robot_port     = 10004;
 
 // Radioの設定
-static constexpr bool is_grsim            = false;
+static constexpr bool is_grsim            = true;
 static constexpr bool use_udp             = true;
 static constexpr char xbee_path[]         = "/dev/ttyUSB0";
 static constexpr char grsim_address[]     = "127.0.0.1";
@@ -327,7 +327,7 @@ private:
         }
         */
         if (!action || need_reset_) {
-        action      = std::make_unique<game::action::rooth>(ctx, 0);
+        action      = std::make_unique<game::action::clear>(ctx, 0);
         //action      = std::make_unique<game::action::get_ball>(ctx, 0);
           need_reset_ = false;
           l_.info("action resetted");

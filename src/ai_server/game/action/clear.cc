@@ -27,7 +27,7 @@ namespace ai_server {
 namespace game {
 namespace action {
 
-clear::clear(context& ctx, unsigned int id) : base(ctx, id) {}
+clear::clear(context& ctx, unsigned int id) : base(ctx, id),move_2walk_(ctx, id) {}
 bool clear::finished() const {
   return false;
 }
@@ -37,45 +37,76 @@ model::command clear::execute() {
 
   if (!our_robots.count(id_)) return command;
   const auto robot = our_robots.at(id_);
-
   const auto robot_pos = util::math::position(robot);
   const auto ball_pos  = util::math::position(world().ball());
-  const auto mergin1   = 15.0 + 90.0 + 15.0;
+  const auto mergin_r   = 60.0 + 90.0;
 
   const Eigen::Vector2d ene_goal_pos(world().field().x_max(), 0.0);
   double eg_theta = util::math::direction(ene_goal_pos, ball_pos);
   double pai      = 3.14;
 
   Eigen::Vector2d p1, p2;
-  std::tie(p1, p2) = util::math::calc_isosceles_vertexes(ene_goal_pos, ball_pos, mergin1);
-
+  std::tie(p1, p2) = util::math::calc_isosceles_vertexes(ene_goal_pos, ball_pos, mergin_r);
+  Eigen::Vector2d target0_pos = ball_pos + mergin_r * (ball_pos - ene_goal_pos).normalized();
+  
   auto bp_x = ball_pos.x();
   auto bp_y = ball_pos.y();
   auto rp_x = robot_pos.x();
   // auto rp_y = robot_pos.y();
 
   auto e_goal_x = ene_goal_pos.x();
+  auto e_goal_ball_x = abs(util::math::distance(ene_goal_pos, ball_pos)
+                              *cos(util::math::direction(ball_pos,ene_goal_pos)));
+  auto e_goal_robo_x = abs(util::math::distance(ene_goal_pos, robot_pos)
+                              *cos(util::math::direction(robot_pos,ene_goal_pos)));
   // auto e_goal_y = ene_goal_pos.y();
-  // auto target0.x() = bp_x-mergin1*cos(eg_theta);
-  // auto target0.y() = bp_y-mergin1*sin(eg_theta);
-  Eigen::Vector2d target0 = ball_pos + mergin1 * (ball_pos - ene_goal_pos).normalized();
-  double omega = util::math::direction_from(
+  // auto target0.x() = bp_x-mergin_r*cos(eg_theta);
+  // auto target0.y() = bp_y-mergin_r*sin(eg_theta);
+  Eigen::Vector2d target0 = ball_pos + mergin_r * (ball_pos - ene_goal_pos).normalized();
+  double omega = util::math::direction_from(util::math::direction(target0, robot_pos),robot.theta());
+  
+  std::cout << "omega " << omega << "\n";
+  std::cout << "e_goal_ball_x " << e_goal_ball_x << "\n";
+  std::cout << "e_goal_robo_x " << e_goal_robo_x << "\n";
+
+  /*double omega = util::math::direction_from(
       std::atan2(target0.y() - robot_pos.y(), target0.x() - robot_pos.x()), robot.theta());
+  */
   constexpr double rot_th = 0.5;
 
-  if ((e_goal_x - bp_x) > (e_goal_x - rp_x)) { // X　goal回り込み判断
+  if(e_goal_ball_x > e_goal_robo_x){  //何故敵ゴールは全て上なのか？
+  //if ((e_goal_x - bp_x) > (e_goal_x - rp_x)) { // X　goal回り込み判断
 
     //    if(0 > (ball_pos.y()-robot_pos.y()){　　//P1が上
-    if (0 < ((util::math::distance(p1, robot_pos)) - (util::math::distance(p2, robot_pos)))) {
+    if ((util::math::distance(p1, robot_pos)) < (util::math::distance(p2, robot_pos))) {
       target0 = p1;
     } else { // P2が下
       target0 = p2;
     }
+   
+   omega = util::math::direction_from(util::math::direction(target0, robot_pos),robot.theta());
+   //omega = util::math::inferior_angle(robot.theta(),util::math::direction(target0, robot_pos));
+   move_2walk_.set_omega(omega);
+   return move_2walk_.execute();
 
-    omega = util::math::direction_from(
+   /* omega = util::math::direction_from(
         std::atan2(target0.y() - robot_pos.y(), target0.x() - robot_pos.x()), robot.theta());
+  */
+  }
+  else{
+    target0 = ball_pos + mergin_r * (ball_pos - ene_goal_pos).normalized();
+    omega = util::math::direction_from(util::math::direction(target0, robot_pos),robot.theta());
 
-    command.set_motion(std::make_shared<model::motion::walk_forward>());
+     move_2walk_.set_omega(omega);
+     return move_2walk_.execute();
+  }
+
+    omega = util::math::direction_from(util::math::direction(ball_pos, robot_pos),robot.theta());
+
+     move_2walk_.set_omega(omega);
+     return move_2walk_.execute();
+  
+ /* command.set_motion(std::make_shared<model::motion::walk_forward>());
 
     if (rot_th < omega) {
       if (omega <= 2 * pai && omega >= pai) {
@@ -91,15 +122,19 @@ model::command clear::execute() {
       } else {
         command.set_motion(std::make_shared<model::motion::turn_right>());
       }
-    }
-  }
+    } */
 
-  target0.x() = bp_x - mergin1 * cos(eg_theta);
-  target0.y() = bp_y - mergin1 * sin(eg_theta);
+/*
+  target0.x() = bp_x - mergin_r * cos(eg_theta);
+  target0.y() = bp_y - mergin_r * sin(eg_theta);
   omega       = util::math::direction_from(
       std::atan2(target0.y() - robot_pos.y(), target0.x() - robot_pos.x()), robot.theta());
 
-  command.set_motion(std::make_shared<model::motion::walk_forward>());
+ move_2walk_.set_omega(omega);
+  return move_2walk_.execute();
+*/
+
+/*  command.set_motion(std::make_shared<model::motion::walk_forward>());
 
   if (rot_th < omega) {
     if (omega <= 2 * pai && omega >= pai) {
@@ -115,9 +150,9 @@ model::command clear::execute() {
     } else {
       command.set_motion(std::make_shared<model::motion::turn_right>());
     }
-  }
+  }*/
 
-  // omega表示のため
+  /*omega表示のため
 
   std::cout << "eg_theta" << eg_theta << "\n";
   std::cout << "ball_pos_x" << bp_x << "\n";
@@ -125,7 +160,7 @@ model::command clear::execute() {
 
   std::cout << "tgt0_x" << target0.x() << "\n";
   std::cout << "tgt0_y" << target0.y() << "\n";
-
+*/
   return command;
 }
 

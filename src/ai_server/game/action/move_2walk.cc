@@ -38,21 +38,26 @@ namespace ai_server::game::action {
             command.set_position(ball_pos, util::math::direction(ball_pos, robot_pos));
  
 
-            command.set_motion(std::make_shared<model::motion::walk_forward>());
+           // command.set_motion(std::make_shared<model::motion::walk_forward>());
             constexpr double rot_th = 0.5;
             const double pai =3.14;
 
-            if(rot_th < omega_){
-                if( omega_ <= 2*pai && omega_ >= pai){
-                    command.set_motion(std::make_shared<model::motion::turn_right>());}
-                else {command.set_motion(std::make_shared<model::motion::turn_left>());}
-            }  
+              if(-rot_th < omega_  &&  rot_th > omega_){
+                  command.set_motion(std::make_shared<model::motion::walk_forward>());}
 
-            if(omega_ < -rot_th){
-                if(omega_ >= -2*pai && omega_ <= -pai){
+              if(rot_th < omega_ ){
+                  command.set_motion(std::make_shared<model::motion::turn_left>());}
+              /*  if( omega_ <= 2*pai && omega_ >= pai){
+                    command.set_motion(std::make_shared<model::motion::turn_right>());}
+                else {command.set_motion(std::make_shared<model::motion::turn_left>());}*/
+            
+
+               if(omega_ < -rot_th){
+                  command.set_motion(std::make_shared<model::motion::turn_right>());}
+                 /*if(omega_ >= -2*pai && omega_ <= -pai){
                     command.set_motion(std::make_shared<model::motion::turn_left>());}
-                else{command.set_motion(std::make_shared<model::motion::turn_right>());}
-            } 
+                else{command.set_motion(std::make_shared<model::motion::turn_right>());}*/
+            
     
         return command;
     }   

@@ -3,6 +3,7 @@
 
 #include <Eigen/Core>
 #include "base.h"
+#include "ai_server/game/action/move_2walk.h"
 
 namespace ai_server::game::action{
 
@@ -11,6 +12,9 @@ class clear : public base {
      clear(context& ctx, unsigned int id);
     model::command execute() override;
     bool finished() const override;
+
+    private:
+    game::action::move_2walk move_2walk_;
 };
 
 }
