@@ -46,7 +46,7 @@ model::command rooth::execute() {
   const auto mergin_r = 15.0 + 90.0 + 15.0; //回り込みマージン
   const auto mergin_t = 180.0 + 90.0;       //回避マージン
 
-  Eigen::Vector2d ene_robot_pos(0, 0);
+    Eigen::Vector2d ene_robot_pos(0, 0);
   if (!enemy_robots.empty()) {
     const auto itr = std::min_element(enemy_robots.cbegin(), enemy_robots.cend(),
                                       [&ball_pos](const auto& a, const auto& b) {
@@ -60,6 +60,11 @@ model::command rooth::execute() {
   double eg_theta = util::math::direction(ene_goal_pos, ball_pos); //敵ゴール角度
   double pai      = 3.14;
 
+  auto e_goal_ball_x = abs(util::math::distance(ene_goal_pos, ball_pos)
+                              *cos(util::math::direction(ball_pos,ene_goal_pos)));
+  auto e_goal_robo_x = abs(util::math::distance(ene_goal_pos, robot_pos)
+                              *cos(util::math::direction(robot_pos,ene_goal_pos)));
+  
   Eigen::Vector2d p1, p2, leftP, rightP, target0;
 
   /// @brief ある直線の始点と終点が与えられたとき,終点から左右に任意の長さ分ずらした2点を返す
@@ -93,23 +98,37 @@ model::command rooth::execute() {
   double e_omega = util::math::direction_from(target0_pos, robot_pos, ene_robot_pos, robot_pos);
   constexpr double rot_th = 0.5;
 
-  if ((e_goal_x - bp_x) > (e_goal_x - rp_x)) { // X　goal回り込み判断
-
-    //    if(0 > (ball_pos.y()-robot_pos.y()){　　//P1が上
-    if (0 < ((util::math::distance(p1, ene_robot_pos)) -
-             (util::math::distance(p2, ene_robot_pos)))) {
-      // if(0 < ((util::math::distance(p1, robot_pos))-(util::math::distance(p2, robot_pos)))){
+   if(e_goal_ball_x >= e_goal_robo_x){  //回り込み判別　何故敵ゴールは全て上なのか？
+  　
+    if ((util::math::distance(p1, robot_pos)) <= (util::math::distance(p2, robot_pos))) {
+  
       target0 = p1;
     } else { // P2が下
       target0 = p2;
     }
 
-    omega = util::math::direction_from(
-        std::atan2(target0.y() - robot_pos.y(), target0.x() - robot_pos.x()), robot.theta());
-  } else {
-    omega = util::math::direction_from(
-        std::atan2(target0.y() - robot_pos.y(), target0.x() - robot_pos.x()), robot.theta());
-  }
+       omega = util::math::direction_from(util::math::direction(target0, robot_pos),robot.theta());
+       move_2walk_.set_omega(omega);
+       return move_2walk_.execute();
+    
+  } 
+  
+  else if(mergin_r <= util::math::distance(ball_pos, robot_pos)){  
+    //ボールとロボットの距離がマージンより大きい時のターゲットはボールよりマージン分大きい  
+    target0 = ball_pos + mergin_r * (ball_pos - ene_goal_pos).normalized();
+    omega = util::math::direction_from(util::math::direction(target0, robot_pos),robot.theta());
+
+    std::cout << "target0 " << target0 << "\n";    
+  
+     move_2walk_.set_omega(omega);
+     return move_2walk_.execute();
+
+
+  }else{omega = util::math::direction_from(util::math::direction(ball_pos, robot_pos),robot.theta());
+　　　　　　 //ボールとロボットの距離がマージンより小さい時のターゲットはボール 
+         move_2walk_.set_omega(omega);
+         return move_2walk_.execute();
+       }  
 
   if (mergin_t > util::math::distance(ene_robot_pos, robot_pos) *
                      sin(e_omega)) { //敵ロボットとの距離がマージン以内か
@@ -124,110 +143,17 @@ model::command rooth::execute() {
       // std::cout << "LeftP " << leftP << "\n";
       // std::cout << "rightP " << rightP << "\n";
 
-      omega = util::math::direction_from(
-          std::atan2(target0.y() - robot_pos.y(), target0.x() - robot_pos.x()), robot.theta());
+      omega = util::math::direction_from(util::math::direction(target0, robot_pos),robot.theta());
+
     }
-  }
 
   move_2walk_.set_omega(omega);
   return move_2walk_.execute();
 
-  /* command.set_motion(std::make_shared<model::motion::walk_forward>());
-
-          if(rot_th < omega){
-              if( omega <= 2*pai && omega >= pai){
-                  command.set_motion(std::make_shared<model::motion::turn_right>());}
-              else {command.set_motion(std::make_shared<model::motion::turn_left>());}
-          }
-
-           if(omega < -rot_th){
-              if(omega >= -2*pai && omega <= -pai){
-                  command.set_motion(std::make_shared<model::motion::turn_left>());}
-              else{command.set_motion(std::make_shared<model::motion::turn_right>());}
-          }
-  */
-  /*
-  if(mergin_t > util::math::distance(ene_robot_pos, robot_pos)*sin(e_omega)){
-  //敵ロボットとの距離がマージン以内か if(e_omega > -1.57 && e_omega < 1.57) { //前方にいるか
-        if((util::math::distance(leftP, robot_pos)) < (util::math::distance(rightP, robot_pos)))
-          {target0.y() = leftP.y(); target0.x() = leftP.x(); std::cout << "target0_left   " <<
-  target0 << "\n";} else{target0.y() =rightP.y(); target0.x() = rightP.x(); std::cout <<
-  "target0_right  " <<  target0 << "\n";}
-
-              //std::cout << "LeftP " << leftP << "\n";
-              //std::cout << "rightP " << rightP << "\n";
-
-          omega = util::math::direction_from(std::atan2(target0.y() - robot_pos.y(), target0.x()
-  - robot_pos.x()),robot.theta());
-
-          command.set_motion(std::make_shared<model::motion::walk_forward>());
-
-          if(rot_th < omega){
-              if( omega <= 2*pai && omega >= pai){
-                  command.set_motion(std::make_shared<model::motion::turn_right>());}
-              else {command.set_motion(std::make_shared<model::motion::turn_left>());}
-          }
-
-           if(omega < -rot_th){
-              if(omega >= -2*pai && omega <= -pai){
-                  command.set_motion(std::make_shared<model::motion::turn_left>());}
-              else{command.set_motion(std::make_shared<model::motion::turn_right>());}
-          }
-      }
   }
-
-  else{//clear プログラム
-
-  if((e_goal_x-bp_x) > (e_goal_x-rp_x) ){//X　goal回り込み判断
-
-                                    //    if(0 > (ball_pos.y()-robot_pos.y()){　　//P1が上
-      if(0 < ((util::math::distance(p1, robot_pos))-(util::math::distance(p2, robot_pos)))){
-          target0.y() = p1.y();
-          target0.x() = p1.x();}
-      else{           //P2が下
-          target0.y() = p2.y();
-          target0.x() = p2.x();}
-
-          omega = util::math::direction_from(std::atan2(target0.y() - robot_pos.y(), target0.x()
-  - robot_pos.x()),robot.theta());
-
-          command.set_motion(std::make_shared<model::motion::walk_forward>());
-
-          if(rot_th < omega){
-              if( omega <= 2*pai && omega >= pai){
-                  command.set_motion(std::make_shared<model::motion::turn_right>());}
-              else {command.set_motion(std::make_shared<model::motion::turn_left>());}
-          }
-
-           if(omega < -rot_th){
-              if(omega >= -2*pai && omega <= -pai){
-                  command.set_motion(std::make_shared<model::motion::turn_left>());}
-              else{command.set_motion(std::make_shared<model::motion::turn_right>());}
-          }
-      }
-  }
-
-          target0.x() = bp_x-mergin_r*cos(eg_theta);
-          target0.y() = bp_y-mergin_r*sin(eg_theta);
-          omega = util::math::direction_from(std::atan2(target0.y() - robot_pos.y(), target0.x()
-  - robot_pos.x()),robot.theta());
-
-           command.set_motion(std::make_shared<model::motion::walk_forward>());
-
-              if(rot_th < omega){
-                  if( omega <= 2*pai && omega >= pai){
-                      command.set_motion(std::make_shared<model::motion::turn_right>());}
-                  else {command.set_motion(std::make_shared<model::motion::turn_left>());}
-              }
-
-              if(omega < -rot_th){
-                  if(omega >= -2*pai && omega <= -pai){
-                      command.set_motion(std::make_shared<model::motion::turn_left>());}
-                  else{command.set_motion(std::make_shared<model::motion::turn_right>());}
-              }
 
                       //omega表示のため
-*/
+
   // std::cout << "eg_theta " <<  eg_theta << "\n";
   // std::cout << "robot_pos " <<  robot_pos  << "\n";
   // std::cout << "e_robot_y " <<  e_rp_y  << "\n";

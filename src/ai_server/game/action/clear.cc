@@ -39,11 +39,10 @@ model::command clear::execute() {
   const auto robot = our_robots.at(id_);
   const auto robot_pos = util::math::position(robot);
   const auto ball_pos  = util::math::position(world().ball());
-  const auto mergin_r   = 60.0 + 90.0;
+  const auto mergin_r   = 30.0 + 90.0;
 
   const Eigen::Vector2d ene_goal_pos(world().field().x_max(), 0.0);
   double eg_theta = util::math::direction(ene_goal_pos, ball_pos);
-  double pai      = 3.14;
 
   Eigen::Vector2d p1, p2;
   std::tie(p1, p2) = util::math::calc_isosceles_vertexes(ene_goal_pos, ball_pos, mergin_r);
@@ -65,92 +64,43 @@ model::command clear::execute() {
   Eigen::Vector2d target0 = ball_pos + mergin_r * (ball_pos - ene_goal_pos).normalized();
   double omega = util::math::direction_from(util::math::direction(target0, robot_pos),robot.theta());
   
-  std::cout << "omega " << omega << "\n";
-  std::cout << "e_goal_ball_x " << e_goal_ball_x << "\n";
-  std::cout << "e_goal_robo_x " << e_goal_robo_x << "\n";
+  //std::cout << "omega " << omega << "\n";
+  //std::cout << "e_goal_ball_x " << e_goal_ball_x << "\n";
+  //std::cout << "e_goal_robo_x " << e_goal_robo_x << "\n";
 
   /*double omega = util::math::direction_from(
       std::atan2(target0.y() - robot_pos.y(), target0.x() - robot_pos.x()), robot.theta());
   */
   constexpr double rot_th = 0.5;
 
-  if(e_goal_ball_x > e_goal_robo_x){  //何故敵ゴールは全て上なのか？
-  //if ((e_goal_x - bp_x) > (e_goal_x - rp_x)) { // X　goal回り込み判断
-
-    //    if(0 > (ball_pos.y()-robot_pos.y()){　　//P1が上
-    if ((util::math::distance(p1, robot_pos)) < (util::math::distance(p2, robot_pos))) {
-      target0 = p1;
-    } else { // P2が下
-      target0 = p2;
-    }
+  if(e_goal_ball_x >= e_goal_robo_x){  //回り込み判別　何故敵ゴールは全て上なのか？
+  　
+    if ((util::math::distance(p1, robot_pos)) <= (util::math::distance(p2, robot_pos))) {
+      target0 = p1;} //P1が上
+    else {
+      target0 = p2;} //P2が下
    
    omega = util::math::direction_from(util::math::direction(target0, robot_pos),robot.theta());
-   //omega = util::math::inferior_angle(robot.theta(),util::math::direction(target0, robot_pos));
+   
    move_2walk_.set_omega(omega);
    return move_2walk_.execute();
 
-   /* omega = util::math::direction_from(
-        std::atan2(target0.y() - robot_pos.y(), target0.x() - robot_pos.x()), robot.theta());
-  */
   }
-  else{
+  else if(mergin_r <= util::math::distance(ball_pos, robot_pos)){
     target0 = ball_pos + mergin_r * (ball_pos - ene_goal_pos).normalized();
     omega = util::math::direction_from(util::math::direction(target0, robot_pos),robot.theta());
 
-     move_2walk_.set_omega(omega);
-     return move_2walk_.execute();
-  }
-
-    omega = util::math::direction_from(util::math::direction(ball_pos, robot_pos),robot.theta());
-
-     move_2walk_.set_omega(omega);
-     return move_2walk_.execute();
+    std::cout << "target0 " << target0 << "\n";    
   
- /* command.set_motion(std::make_shared<model::motion::walk_forward>());
+     move_2walk_.set_omega(omega);
+     return move_2walk_.execute();
 
-    if (rot_th < omega) {
-      if (omega <= 2 * pai && omega >= pai) {
-        command.set_motion(std::make_shared<model::motion::turn_right>());
-      } else {
-        command.set_motion(std::make_shared<model::motion::turn_left>());
-      }
-    }
 
-    if (omega < -rot_th) {
-      if (omega >= -2 * pai && omega <= -pai) {
-        command.set_motion(std::make_shared<model::motion::turn_left>());
-      } else {
-        command.set_motion(std::make_shared<model::motion::turn_right>());
-      }
-    } */
+}else{omega = util::math::direction_from(util::math::direction(ball_pos, robot_pos),robot.theta());
 
-/*
-  target0.x() = bp_x - mergin_r * cos(eg_theta);
-  target0.y() = bp_y - mergin_r * sin(eg_theta);
-  omega       = util::math::direction_from(
-      std::atan2(target0.y() - robot_pos.y(), target0.x() - robot_pos.x()), robot.theta());
-
- move_2walk_.set_omega(omega);
-  return move_2walk_.execute();
-*/
-
-/*  command.set_motion(std::make_shared<model::motion::walk_forward>());
-
-  if (rot_th < omega) {
-    if (omega <= 2 * pai && omega >= pai) {
-      command.set_motion(std::make_shared<model::motion::turn_right>());
-    } else {
-      command.set_motion(std::make_shared<model::motion::turn_left>());
-    }
-  }
-
-  if (omega < -rot_th) {
-    if (omega >= -2 * pai && omega <= -pai) {
-      command.set_motion(std::make_shared<model::motion::turn_left>());
-    } else {
-      command.set_motion(std::make_shared<model::motion::turn_right>());
-    }
-  }*/
+       move_2walk_.set_omega(omega);
+       return move_2walk_.execute();
+     }  
 
   /*omega表示のため
 
