@@ -68,21 +68,25 @@ void get_ball::kick_automatically(int line_pow, int chip_pow) {
 }
 
 void get_ball::kick_manually() {
-  kick_manually_ = true;
+  // kick_manually_ = true;  // org
+       kick_manually_ = true;
 }
 
 void get_ball::kick_manually(int pow) {
-  kick_manually_                 = true;
+ // kick_manually_                 = true;  // org
+  kick_manually_                 = true; 
   std::get<1>(manual_kick_flag_) = pow;
 }
 
 void get_ball::kick_manually(model::command::kick_type_t type) {
-  kick_manually_                 = true;
+  // kick_manually_                 = true;  // org
+  kick_manually_                 = true; 
   std::get<0>(manual_kick_flag_) = type;
 }
 
 void get_ball::kick_manually(const model::command::kick_flag_t& kick) {
-  kick_manually_    = true;
+ //  kick_manually_    = true;              //org
+  kick_manually_    = true; 
   manual_kick_flag_ = kick;
 }
 
@@ -102,9 +106,10 @@ model::command get_ball::execute() {
   }
 
   // ロボットとボールが十分近づいたと判定する距離
-  constexpr double robot_rad = 125;
+  //constexpr double robot_rad = 125;  // m org
+  constexpr double robot_rad = 125;  
   // ドリブルバーの回転速度
-  constexpr int dribble_value = 5;
+  constexpr int dribble_value = 0;
   // ロボットとボールの距離
   const double dist_b_to_r = (robot_pos - ball_pos).norm();
   // ロボットと目標の距離
@@ -141,6 +146,7 @@ model::command get_ball::execute() {
               robot.theta() - std::atan2(ball_pos.y() - robot_pos.y(),
                                          ball_pos.x() - robot_pos.x()))) < 0.2 * pi<double>()
               ? 90.0
+              // ? 90.0  // org 
               : 150.0;
       Eigen::Vector2d pos = ball_pos + rad * (ball_pos - target_).normalized();
       if (std::abs(util::math::wrap_to_pi(
@@ -156,7 +162,7 @@ model::command get_ball::execute() {
       command.set_angle(theta);
     }
   }
-
+ /*
   // キック・ドリブル
   {
     const Eigen::Vector2d tmp = robot_pos + dist_r_to_t * (Eigen::Rotation2Dd(robot.theta()) *
@@ -166,7 +172,7 @@ model::command get_ball::execute() {
     if (dist_b_to_r < robot_rad && boost::geometry::distance(line, target_) < kick_margin_)
       kick(robot_pos, enemy_robots, command);
     if (dist_b_to_r < robot_rad) command.set_dribble(dribble_value);
-  }
+  } */
   return command;
 }
 
@@ -177,6 +183,8 @@ void get_ball::kick(const Eigen::Vector2d& robot_pos,
     command.set_kick_flag(manual_kick_flag_);
     return;
   }
+
+  /*
   // チップが有効そうな距離
   const double radius = std::min((robot_pos - target_).norm(), 1000.0);
   //自分からradiusの位置と自分で三角形を作り,間に敵が1つでもあったらチップにする
@@ -193,7 +201,7 @@ void get_ball::kick(const Eigen::Vector2d& robot_pos,
     command.set_kick_flag({model::command::kick_type_t::chip, std::get<1>(auto_kick_pow_)});
   } else {
     command.set_kick_flag({model::command::kick_type_t::line, std::get<0>(auto_kick_pow_)});
-  }
+  }   */
 }
 
 bool get_ball::finished() const {

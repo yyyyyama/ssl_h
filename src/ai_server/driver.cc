@@ -12,7 +12,10 @@
 #include "ai_server/model/motion/walk_forward.h"
 #include "ai_server/model/motion/walk_left.h"
 #include "ai_server/model/motion/walk_right.h"
+#include "ai_server/model/motion/getup.h"
 #include "driver.h"
+#include <iostream>  //omega表示のため
+using namespace std; // omega表示のため
 
 namespace ai_server {
 
@@ -115,6 +118,8 @@ void driver::process(unsigned int id, metadata_type& metadata, const model::worl
   if (const auto it = robots.find(id); it != robots.cend()) {
     const auto& robot = it->second;
 
+        //auto getup = 0;  // mw getup
+
     // 指令値を Controller に通して速度を得る
     auto c = [&robot, &field, &c = *controller](auto&&... args) {
       return c.update(robot, field, std::forward<decltype(args)>(args)...);
@@ -132,6 +137,9 @@ void driver::process(unsigned int id, metadata_type& metadata, const model::worl
     if (!command.motion()) {
       // 回転
       constexpr double rot_th = 0.5;
+
+    std::cout << "omega " <<  omega << "\n";
+
       if (rot_th < omega) {
         command.set_motion(std::make_shared<model::motion::turn_left>());
       } else if (omega < -rot_th) {
@@ -150,9 +158,9 @@ void driver::process(unsigned int id, metadata_type& metadata, const model::worl
         }
       } else {
         if (move_th < vy) {
-          command.set_motion(std::make_shared<model::motion::walk_right>());
-        } else if (vy < -move_th) {
           command.set_motion(std::make_shared<model::motion::walk_left>());
+        } else if (vy < -move_th) {
+          command.set_motion(std::make_shared<model::motion::walk_right>());
         }
       }
 
@@ -177,7 +185,9 @@ void driver::process(unsigned int id, metadata_type& metadata, const model::worl
     const auto vxf = ct * vx - st * vy;
     const auto vyf = st * vx + ct * vy;
     command_updated_(team_color_, id, command.kick_flag(), command.dribble(), vxf, vyf, omega);
-  }
-}
-
+  }else{  // mw getup
+   //for(int i=0 ; i < 5 ;++i)
+          command.set_motion(std::make_shared<model::motion::getup>());}
+     }  // mw
+//}
 } // namespace ai_server

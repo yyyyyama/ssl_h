@@ -1,4 +1,3 @@
-// testmousenewgit
 #include <algorithm>
 #include <atomic>
 #include <bitset>
@@ -34,8 +33,6 @@
 #include "ai_server/filter/state_observer/ball.h"
 #include "ai_server/filter/state_observer/robot.h"
 #include "ai_server/filter/va_calculator.h"
-#include "ai_server/game/action/clear.h"
-#include "ai_server/game/action/rooth.h"
 #include "ai_server/game/context.h"
 #include "ai_server/game/captain/first.h"
 #include "ai_server/game/nnabla.h"
@@ -59,8 +56,11 @@
 #include "ai_server/util/math/angle.h"
 #include "ai_server/util/thread.h"
 #include "ai_server/util/time.h"
+/*
+#include "ai_server/game/action/goal_keep.h"     //WM
 #include "ai_server/game/action/get_ball.h"     //WM
-
+#include "ai_server/game/action/clear.h"     //WM
+*/
 using namespace std::chrono_literals;
 using namespace std::string_literals;
 
@@ -96,7 +96,8 @@ static constexpr auto lost_duration = 1s; // ロスト判定するまでの時�
 
 // Visionの設定
 static constexpr char vision_address[] = "224.5.23.2";
-static constexpr short vision_port     = 10024;
+//static constexpr short vision_port     = 10020;
+static constexpr short vision_port     = 10006;  // org
 static constexpr int num_cameras       = 8;
 
 // Refboxの設定
@@ -108,7 +109,8 @@ static constexpr char robot_address[] = "224.5.23.2";
 static constexpr short robot_port     = 10004;
 
 // Radioの設定
-static constexpr bool is_grsim            = true;
+//static constexpr bool is_grsim            = true;
+static constexpr bool is_grsim            = false;    //org
 static constexpr bool use_udp             = true;
 static constexpr char xbee_path[]         = "/dev/ttyUSB0";
 static constexpr char grsim_address[]     = "127.0.0.1";
@@ -285,7 +287,6 @@ private:
 
     model::refbox refbox{};
     std::unique_ptr<game::captain::base> captain{};
-    std::unique_ptr<game::action::base> action{};
 
     std::chrono::steady_clock::time_point prev_time{};
 
@@ -315,10 +316,12 @@ private:
           }
         }
 
-        /*
         if (!captain || need_reset_) {
           captain = std::make_unique<game::captain::first>(
               ctx, refbox, std::set(active_robots_.cbegin(), active_robots_.cend()));
+          need_reset_ = false;
+          l_.info("captain resetted");
+        }
 
         auto formation = captain->execute();
         auto actions   = formation->execute();
@@ -326,16 +329,6 @@ private:
           auto command = action->execute();
           driver_.update_command(action->id(), command);
         }
-        */
-        if (!action || need_reset_) {
-        action      = std::make_unique<game::action::rooth>(ctx, 0);
-        //action      = std::make_unique<game::action::get_ball>(ctx, 0);
-          need_reset_ = false;
-          l_.info("action resetted");
-        }
-
-        auto command = action->execute();
-        driver_.update_command(action->id(), command);
 
         prev_time = current_time;
       } catch (const std::exception& e) {
