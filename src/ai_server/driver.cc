@@ -138,7 +138,7 @@ void driver::process(unsigned int id, metadata_type& metadata, const model::worl
       // 回転
       constexpr double rot_th = 0.5;
 
-    std::cout << "omega " <<  omega << "\n";
+   // std::cout << "omega " <<  omega << "\n";
 
       if (rot_th < omega) {
         command.set_motion(std::make_shared<model::motion::turn_left>());

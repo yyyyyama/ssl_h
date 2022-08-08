@@ -9,6 +9,8 @@
 #include "ai_server/util/math/to_vector.h"
 
 #include "get_ball.h"
+#include "ai_server/model/motion/kick_forward_l.h"
+#include <iostream>  //omega表示のため
 
 using boost::math::constants::pi;
 
@@ -24,7 +26,7 @@ get_ball::get_ball(context& ctx, unsigned int id, const Eigen::Vector2d& target)
       manual_kick_flag_({model::command::kick_type_t::line, 45}),
       auto_kick_pow_(45, 100),
       kick_manually_(true),
-      allow_(10) {}
+      allow_(10) {}    // org 10
 
 get_ball::get_ball(context& ctx, unsigned int id)
     : get_ball(ctx, id, Eigen::Vector2d(ctx.world.field().x_max(), 0.0)) {}
@@ -107,7 +109,7 @@ model::command get_ball::execute() {
 
   // ロボットとボールが十分近づいたと判定する距離
   //constexpr double robot_rad = 125;  // m org
-  constexpr double robot_rad = 125;  
+  constexpr double robot_rad = 100;  
   // ドリブルバーの回転速度
   constexpr int dribble_value = 0;
   // ロボットとボールの距離
@@ -120,7 +122,9 @@ model::command get_ball::execute() {
       dist_b_to_r < robot_rad &&
       std::abs(util::math::wrap_to_pi(
           robot.theta() - std::atan2(ball_pos.y() - robot_pos.y(),
-                                     ball_pos.x() - robot_pos.x()))) < pi<double>() / 6.0;
+                                     ball_pos.x() - robot_pos.x()))) < pi<double>() / 3.0;  // org 6.0
+  
+  std::cout << "have_ball " <<  have_ball << "\n";  //mw
 
   // ロボットの目標角度
   const double theta = std::atan2(target_.y() - robot_pos.y(), target_.x() - robot_pos.x());
@@ -139,14 +143,17 @@ model::command get_ball::execute() {
 
     // 移動
     default: {
-      if (have_ball) state_ = running_state::dribble;
-
+      if (have_ball){  //mw
+        state_ = running_state::dribble; 
+       command.set_motion(std::make_shared<model::motion::kick_forward_l>());
+      } 
+                 
       const double rad =
           std::abs(util::math::wrap_to_pi(
               robot.theta() - std::atan2(ball_pos.y() - robot_pos.y(),
                                          ball_pos.x() - robot_pos.x()))) < 0.2 * pi<double>()
-              ? 90.0
-              // ? 90.0  // org 
+              ? 120.0   // mw
+              // ? 90.0  // org 90 150
               : 150.0;
       Eigen::Vector2d pos = ball_pos + rad * (ball_pos - target_).normalized();
       if (std::abs(util::math::wrap_to_pi(
