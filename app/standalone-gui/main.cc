@@ -1,3 +1,9 @@
+// 全体プログラム　歩行が通常歩行モードになっている。2号機（2022通常ロボット)は足に電池
+// おもりを乗せると倒れる事が少なく移動もスムースである。微小歩行の前進が著しく左旋回を
+//　行う。起き上がり作動はdriverプログラムに変更を加えたができない。get_ballにキックプログラムを
+//　を付加。右キック、左キックの判断はできるが、あまり蹴らない。
+// ボールが自分の影に隠れ止まる。ボール付近で前後左右の移動発振をしてボールにつっこまない
+// パラメータの調整が必要
 #include <algorithm>
 #include <atomic>
 #include <bitset>
@@ -96,9 +102,9 @@ static constexpr auto lost_duration = 1s; // ロスト判定するまでの時�
 
 // Visionの設定
 static constexpr char vision_address[] = "224.5.23.2";
-//static constexpr short vision_port     = 10020;
-static constexpr short vision_port     = 10006;  // org
-static constexpr int num_cameras       = 8;
+// static constexpr short vision_port     = 10020;
+static constexpr short vision_port = 10006; // org
+static constexpr int num_cameras   = 8;
 
 // Refboxの設定
 static constexpr char refbox_address[] = "224.5.23.1";
@@ -109,8 +115,8 @@ static constexpr char robot_address[] = "224.5.23.2";
 static constexpr short robot_port     = 10004;
 
 // Radioの設定
-//static constexpr bool is_grsim            = true;
-static constexpr bool is_grsim            = false;    //org
+// static constexpr bool is_grsim            = true;
+static constexpr bool is_grsim            = false; // org
 static constexpr bool use_udp             = true;
 static constexpr char xbee_path[]         = "/dev/ttyUSB0";
 static constexpr char grsim_address[]     = "127.0.0.1";
@@ -122,6 +128,8 @@ static constexpr auto cycle =
 
 // stopgame時の速度制限
 static constexpr double velocity_limit_at_stopgame = 1400.0;
+
+static constexpr bool halt_flag = true;           // mw 0829
 
 // nnabla の設定
 std::vector<std::string> nnabla_backend() {
@@ -315,6 +323,21 @@ private:
             driver_.set_velocity_limit(std::numeric_limits<double>::max());
           }
         }
+
+// mw 0829 // HALT中にロボットが脱力 mw
+
+       driver_.set_halt(current_cmd == model::refbox::game_command::halt);
+        /*
+        if (current_cmd != prev_cmd || need_reset_) {
+          if (current_cmd == model::refbox::game_command::halt) {
+           // driver_.set_halt(halt_flag);
+           driver_.set_halt(current_cmd == model::refbox::game_command::halt);
+            }/*else{
+            driver_.set_halt(false); 
+            }
+        }  */
+
+// HALT中にロボットが脱力
 
         if (!captain || need_reset_) {
           captain = std::make_unique<game::captain::first>(

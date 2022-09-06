@@ -13,7 +13,7 @@ namespace action {
 move::move(context& ctx, unsigned int id)
     : base(ctx, id),
       target_(0.0, 0.0, 0.0),
-      margin_{10.0, pi<double>() / 180.0},
+      margin_{10.0, pi<double>() / 45.0},    // org 180.0
       finished_(false) {}
 
 void move::move_to(double x, double y, double theta) {

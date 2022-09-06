@@ -87,6 +87,11 @@ public:
     return std::unique_lock{mutex_, std::forward<Args>(args)...};
   }
 
+  /// @brief ロボットを止める       // mw 0829
+  /// @param ロボットを止めるか?    // mw 0829
+  void set_halt(bool halt_flag);    // mw 0829
+  bool halt_flag_;    // mw 0905
+
 private:
   /// @brief                  cycle_毎に呼ばれる制御部のメインループ
   void main_loop(const boost::system::error_code& error);

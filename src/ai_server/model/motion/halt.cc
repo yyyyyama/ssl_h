@@ -1,10 +1,10 @@
- #include "open_leg_right.h"
+#include "halt.h"
 
 namespace ai_server::model::motion {
 
-open_leg_right::open_leg_right() : base(35) {}
+halt::halt() : base(2) {}
 
-std::tuple<double, double, double> open_leg_right::execute() {
+std::tuple<double, double, double> halt::execute() {
   return std::make_tuple<double, double, double>(0.0, 0.0, 0.0);
 }
 

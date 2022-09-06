@@ -10,6 +10,7 @@
 
 #include "get_ball.h"
 #include "ai_server/model/motion/kick_forward_l.h"
+#include "ai_server/model/motion/kick_forward_r.h"
 #include <iostream>  //omega表示のため
 
 using boost::math::constants::pi;
@@ -26,7 +27,7 @@ get_ball::get_ball(context& ctx, unsigned int id, const Eigen::Vector2d& target)
       manual_kick_flag_({model::command::kick_type_t::line, 45}),
       auto_kick_pow_(45, 100),
       kick_manually_(true),
-      allow_(10) {}    // org 10
+      allow_(20) {}    // org 10
 
 get_ball::get_ball(context& ctx, unsigned int id)
     : get_ball(ctx, id, Eigen::Vector2d(ctx.world.field().x_max(), 0.0)) {}
@@ -109,7 +110,7 @@ model::command get_ball::execute() {
 
   // ロボットとボールが十分近づいたと判定する距離
   //constexpr double robot_rad = 125;  // m org
-  constexpr double robot_rad = 100;  
+  constexpr double robot_rad = 150;  
   // ドリブルバーの回転速度
   constexpr int dribble_value = 0;
   // ロボットとボールの距離
@@ -143,18 +144,23 @@ model::command get_ball::execute() {
 
     // 移動
     default: {
-      if (have_ball){  //mw
+      if (have_ball){  // mw 進行方向角度ーの場合左キック、＋の場合右キック
         state_ = running_state::dribble; 
-       command.set_motion(std::make_shared<model::motion::kick_forward_l>());
+        if(0 > (util::math::wrap_to_pi(
+          robot.theta() - std::atan2(ball_pos.y() - robot_pos.y(),
+                                     ball_pos.x() - robot_pos.x()))))
+             {command.set_motion(std::make_shared<model::motion::kick_forward_l>());}
+         else{command.set_motion(std::make_shared<model::motion::kick_forward_r>());}
+        //mw
       } 
                  
       const double rad =
           std::abs(util::math::wrap_to_pi(
               robot.theta() - std::atan2(ball_pos.y() - robot_pos.y(),
                                          ball_pos.x() - robot_pos.x()))) < 0.2 * pi<double>()
-              ? 120.0   // mw
+              ? 150.0   // mw
               // ? 90.0  // org 90 150
-              : 150.0;
+              : 180.0;
       Eigen::Vector2d pos = ball_pos + rad * (ball_pos - target_).normalized();
       if (std::abs(util::math::wrap_to_pi(
               std::atan2(robot_pos.y() - ball_pos.y(), robot_pos.x() - ball_pos.x()) -

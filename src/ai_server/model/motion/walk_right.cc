@@ -2,7 +2,7 @@
 
 namespace ai_server::model::motion {
 
-walk_right::walk_right() : base(19) {}
+walk_right::walk_right() : base(25) {}  //  org 19
 
 std::tuple<double, double, double> walk_right::execute() {
   return std::make_tuple<double, double, double>(0.0, -100.0, 0.0);
