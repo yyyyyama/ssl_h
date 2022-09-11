@@ -3,7 +3,6 @@
 #include <numeric>
 #include <Eigen/Geometry>
 #include <boost/math/constants/constants.hpp>
-#include <boost/random.hpp>
 
 #include "ai_server/util/math/angle.h"
 #include "ai_server/util/math/to_vector.h"
@@ -28,7 +27,7 @@ struct behavior {
 // 各スレッドで行うノード評価の処理および依存するデータを持つクラス
 class worker {
 private:
-  boost::random::mt19937 mt_; // スレッド毎に持つ
+  std::mt19937 mt_; // スレッド毎に持つ
   std::shared_ptr<nbla::utils::nnp::Executor> executor_;
 
   const model::field& field_;

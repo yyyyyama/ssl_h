@@ -1,6 +1,7 @@
 #ifndef AI_SERVER_MODEL_MOTION_BASE_H
 #define AI_SERVER_MODEL_MOTION_BASE_H
 
+#include <cstdint>
 #include <memory>
 
 namespace ai_server::model::motion {
