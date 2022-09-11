@@ -13,24 +13,25 @@
 #include "ai_server/model/motion/walk_left.h"
 #include "ai_server/model/motion/walk_right.h"
 #include "ai_server/model/motion/getup.h"
-#include "ai_server/model/motion/halt.h"  // 0905
+#include "ai_server/model/motion/halt.h" // 0905
 
 // mw 0829 #include "ai_server/model/updater/refbox.h" // halt
-#include "ai_server/receiver/refbox.h"      // halt
+#include "ai_server/receiver/refbox.h" // halt
 
 #include "driver.h"
 #include <iostream>  //omega表示のため
 using namespace std; // omega表示のため
 
-//std::vector<unsigned int> active_robots_;  // mw
+// std::vector<unsigned int> active_robots_;  // mw
 
 namespace ai_server {
 
 driver::driver(boost::asio::io_context& io_context, std::chrono::steady_clock::duration cycle,
                const model::updater::world& world, model::team_color color)
     //  :halt_flag_(false) {}   // mw 0905
-   // : timer_(io_context), cycle_(cycle), world_(world), team_color_(color),set_halt_(true){   // mw halt_flag_(true)
-      : timer_(io_context), cycle_(cycle), world_(world), team_color_(color){   // mw org
+    // : timer_(io_context), cycle_(cycle), world_(world), team_color_(color),set_halt_(true){
+    // // mw halt_flag_(true)
+    : timer_(io_context), cycle_(cycle), world_(world), team_color_(color) { // mw org
   // タイマが開始されたらdriver::main_loop()が呼び出されるように設定
   timer_.async_wait([this](auto&& error) { main_loop(std::forward<decltype(error)>(error)); });
 }
@@ -82,9 +83,9 @@ bool driver::registered(unsigned int id) const {
   return robots_metadata_.count(id);
 }
 
-//void driver::set_halt() {     // mw 0829
-void driver::set_halt(bool halt_flag) {     // mw 0905
-  halt_flag_ = halt_flag;                   // mw 0829
+// void driver::set_halt() {     // mw 0829
+void driver::set_halt(bool halt_flag) { // mw 0905
+  halt_flag_ = halt_flag;               // mw 0829
 }
 
 void driver::update_command(unsigned int id, const model::command& command) {
@@ -128,38 +129,38 @@ void driver::process(unsigned int id, metadata_type& metadata, const model::worl
 
   const auto field = world.field();
 
-  //int id1r,id2r,id0r;  // mw
- 
+  // int id1r,id2r,id0r;  // mw
+
+  // halt
+  if (halt_flag_) command.set_motion(std::make_shared<model::motion::halt>());
+
   // ロボットが検出されていないときは何もしない
   if (const auto it = robots.find(id); it != robots.cend()) {
-        const auto& robot = it->second;
-    // halt start
-    if( halt_flag_ == 1){ halt_flag_ = 0;
-        command.set_motion(std::make_shared<model::motion::halt>());}
+    const auto& robot = it->second;
     // halt end
-       // std::cout << "Noactiverobo " <<  != active_robots_ << "\n";  //mw
+    // std::cout << "Noactiverobo " <<  != active_robots_ << "\n";  //mw
 
-     /*  // mw 見えなくなると起き上がる
-    if(id == 1){id1r = 3;}
-      else{id1r = --id1r;
-        if (id1r == 0 ){ 
-                      id = 1;
-                      command.set_motion(std::make_shared<model::motion::getup>());}
-        }
+    /*  // mw 見えなくなると起き上がる
+   if(id == 1){id1r = 3;}
+     else{id1r = --id1r;
+       if (id1r == 0 ){
+                     id = 1;
+                     command.set_motion(std::make_shared<model::motion::getup>());}
+       }
 
-    if(id == 2){id2r = 3;}
-      else{id2r = --id2r;
-        if (id2r == 0 ){ std::cout << "id2r " <<  id2r << "\n";  //mw
-                      id = 2;
-                      command.set_motion(std::make_shared<model::motion::getup>());}
-        }
-    
-    if(id == 0){id0r = 3;}
-      else{id0r = --id0r;
-        if (id0r == 0 ){ 
-                      id = 0;
-                      command.set_motion(std::make_shared<model::motion::getup>());}
-        }
+   if(id == 2){id2r = 3;}
+     else{id2r = --id2r;
+       if (id2r == 0 ){ std::cout << "id2r " <<  id2r << "\n";  //mw
+                     id = 2;
+                     command.set_motion(std::make_shared<model::motion::getup>());}
+       }
+
+   if(id == 0){id0r = 3;}
+     else{id0r = --id0r;
+       if (id0r == 0 ){
+                     id = 0;
+                     command.set_motion(std::make_shared<model::motion::getup>());}
+       }
 */
 
     // 指令値を Controller に通して速度を得る
@@ -179,8 +180,8 @@ void driver::process(unsigned int id, metadata_type& metadata, const model::worl
     if (!command.motion()) {
       // 回転
       constexpr double rot_th = 0.5;
-    
-       //const double omega = target_theta; // mw
+
+      // const double omega = target_theta; // mw
 
       if (rot_th < omega) {
         command.set_motion(std::make_shared<model::motion::turn_left>());
@@ -227,11 +228,16 @@ void driver::process(unsigned int id, metadata_type& metadata, const model::worl
     const auto vxf = ct * vx - st * vy;
     const auto vyf = st * vx + ct * vy;
     command_updated_(team_color_, id, command.kick_flag(), command.dribble(), vxf, vyf, omega);
+  } else {
+    if (halt_flag_) {
+      command.set_motion(std::make_shared<model::motion::halt>());
+    } else {
+      command.set_motion(std::make_shared<model::motion::getup>());
+    }
+    // 命令の送信
+    radio->send(team_color_, id, command.motion());
+    command_updated_(team_color_, id, command.kick_flag(), command.dribble(), 0.0, 0.0, 0.0);
   }
-  /*else{  // mw getup
-   //for(int i=0 ; i < 5 ;++i)
-          // const auto& robot = 1;
-          command.set_motion(std::make_shared<model::motion::getup>());}*/
-     }  // mw
+} // mw
 //}
 } // namespace ai_server

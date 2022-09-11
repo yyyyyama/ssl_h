@@ -129,8 +129,6 @@ static constexpr auto cycle =
 // stopgame時の速度制限
 static constexpr double velocity_limit_at_stopgame = 1400.0;
 
-static constexpr bool halt_flag = true;           // mw 0829
-
 // nnabla の設定
 std::vector<std::string> nnabla_backend() {
 #ifdef AI_SERVER_HAS_NNABLA_EXT_CUDA
@@ -324,20 +322,8 @@ private:
           }
         }
 
-// mw 0829 // HALT中にロボットが脱力 mw
-
+       // mw 0829 // HALT中にロボットが脱力 mw
        driver_.set_halt(current_cmd == model::refbox::game_command::halt);
-        /*
-        if (current_cmd != prev_cmd || need_reset_) {
-          if (current_cmd == model::refbox::game_command::halt) {
-           // driver_.set_halt(halt_flag);
-           driver_.set_halt(current_cmd == model::refbox::game_command::halt);
-            }/*else{
-            driver_.set_halt(false); 
-            }
-        }  */
-
-// HALT中にロボットが脱力
 
         if (!captain || need_reset_) {
           captain = std::make_unique<game::captain::first>(
