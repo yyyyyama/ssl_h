@@ -1357,6 +1357,7 @@ auto main(int argc, char** argv) -> int {
     kiks_xbee_udp,
     simproto,
     simproto_all,
+    humanoid,
   } radio_type = [](const std::string& s) {
     if (s == "grsim") return radio_types::grsim;
     if (s == "kiks-xbee") return radio_types::kiks_xbee;
@@ -1364,6 +1365,7 @@ auto main(int argc, char** argv) -> int {
     if (s == "kiks-xbee-udp") return radio_types::kiks_xbee_udp;
     if (s == "simproto") return radio_types::simproto;
     if (s == "simproto-all") return radio_types::simproto_all;
+    if (s == "humanoid") return radio_types::humanoid;
     std::cerr << "unknown radio types: " << s << std::endl;
     std::exit(-1);
   }(vm.at("radio").as<std::string>());
@@ -1533,6 +1535,11 @@ auto main(int argc, char** argv) -> int {
                          simproto_yellow_port));
       radio = std::make_shared<radio::ssl_simproto::all<radio::connection::udp>>(
           std::move(con_sim), std::move(con_blue), std::move(con_yellow));
+    } else if (radio_type == radio_types::humanoid) {
+      auto con = std::make_unique<radio::connection::udp_tx>(
+          driver_io, boost::asio::ip::udp::endpoint{kiks_address, kiks_port}, kiks_if_address);
+      l.info(fmt::format("radio: kiks ({}:{})", kiks_address, kiks_port));
+      radio = std::make_shared<radio::humanoid<radio::connection::udp_tx>>(std::move(con));
     }
 
     // driver による命令の送信を別スレッドで開始
