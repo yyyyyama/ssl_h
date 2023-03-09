@@ -1,5 +1,5 @@
-#ifndef AI_SERVER_RECEIVER_robot_H
-#define AI_SERVER_RECEIVER_robot_H
+#ifndef AI_SERVER_RECEIVER_ROBOT_H
+#define AI_SERVER_RECEIVER_ROBOT_H
 
 #include <chrono>
 #include <cstdint>
