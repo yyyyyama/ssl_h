@@ -65,11 +65,10 @@
 #include "ai_server/util/math/angle.h"
 #include "ai_server/util/thread.h"
 #include "ai_server/util/time.h"
-/*
 #include "ai_server/game/action/goal_keep.h"     //WM
 #include "ai_server/game/action/get_ball.h"     //WM
 #include "ai_server/game/action/clear.h"     //WM
-*/
+
 using namespace std::chrono_literals;
 using namespace std::string_literals;
 
@@ -277,6 +276,7 @@ private:
 
     model::refbox refbox{};
     std::unique_ptr<game::captain::base> captain{};
+    std::unique_ptr<game::action::base> action{};          //mw
 
     std::chrono::steady_clock::time_point prev_time{};
 
@@ -309,7 +309,7 @@ private:
         // mw 0829 // HALT中にロボットが脱力 mw
         driver_.set_halt(current_cmd == model::refbox::game_command::halt);
 
-        if (!captain || need_reset_) {
+       /* if (!captain || need_reset_) {
           captain = std::make_unique<game::captain::first>(
               ctx, refbox, std::set(active_robots_.cbegin(), active_robots_.cend()));
           need_reset_ = false;
@@ -322,6 +322,19 @@ private:
           auto command = action->execute();
           driver_.update_command(action->id(), command);
         }
+       */
+          if (!action || need_reset_) {    // || OR
+       
+         //action      = std::make_unique<game::action::goal_keep>(ctx, 0);
+         //action      = std::make_unique<game::action::get_ball>(ctx, 1);
+         action      = std::make_unique<game::action::clear>(ctx, 0);
+
+          need_reset_ = false;
+          l_.info("action resetted");
+        }
+
+        auto command = action->execute();
+        driver_.update_command(action->id(), command);
 
         prev_time = current_time;
       } catch (const std::exception& e) {
