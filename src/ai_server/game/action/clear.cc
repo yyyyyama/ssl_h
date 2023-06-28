@@ -8,6 +8,11 @@
 #include <iostream> /*omega表示のため*/
 #include "ai_server/util/math/distance.h"/*distance表示のため*/ 
 #include "ai_server/util/math/detail/direction.h" /*direction表示のため*/
+//0628追加
+#include <boost/geometry/geometry.hpp>
+#include <boost/geometry/geometries/segment.hpp>
+#include <boost/math/constants/constants.hpp>
+#include "ai_server/util/math/geometry.h"
 
 
 double omega;
@@ -32,12 +37,18 @@ model::command clear::execute() {
  // 自分とボールの位置を取得
  const auto robot_pos = util::math::position(robot);
  const auto ball_pos = util::math::position(world().ball());
+ //敵ゴールの位置を取得
+ const Eigen::Vector2d ene_goal_pos (world().field().x_min(),0.0);
+ const auto target_0 = ene_goal_pos;
+ auto rad = -150;
  // 前進
  command.set_motion(std::make_shared<model::motion::walk_forward>());
- // 向きが合っていなければ回転(前進のモーションはキャンセルされる)aaaa
+ // 向きが合っていなければ回転(前進のモーションはキャンセルされる)
  constexpr double rot_th = 0.5;
+
+ Eigen:: Vector2d pos = ball_pos + rad * (ball_pos - target_0).normalized();
   //auto omega = util::math::direction_from(util::math::direction(target0,robot_pos),robot.theta());
- auto omega = util::math::direction_from(util::math::direction(ball_pos,robot_pos),robot.theta());
+ auto omega = util::math::direction_from(util::math::direction(pos,robot_pos),robot.theta());
   if (rot_th < omega ){
  command.set_motion(std::make_shared<model::motion::turn_left>());
  } else if (omega < -rot_th) {
@@ -50,6 +61,7 @@ model::command clear::execute() {
  std::cout << "distance: " << dis << "\n";/*distance test*/
  auto dir_from = util::math::direction_from(util::math::direction(ball_pos,robot_pos),robot.theta());
  std::cout << "direction_from: " << dir_from << "\n";/*direction_from test*/
+ std::cout << "pos: " << pos << "\n";/*pos表示*/
 return command;
 }
 
