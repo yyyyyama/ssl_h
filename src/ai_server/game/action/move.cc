@@ -3,10 +3,9 @@
 #include "move.h"
 #include "ai_server/util/math/angle.h"
 #include "ai_server/util/math/to_vector.h"
-#include <iostream> /*theta表示のため*/
 
 using boost::math::constants::pi;
-using namespace std;
+using namespace std;/*theat表示のため*/
 
 namespace ai_server {
 namespace game {
@@ -21,7 +20,7 @@ move::move(context& ctx, unsigned int id)
 void move::move_to(double x, double y, double theta) {
   target_ = {x, y, theta};
 }
-cout << "theta" << theta << "\n" ; /*0621書き込み*/
+
 void move::move_to(const Eigen::Vector2d& pos, double theta) {
   target_.head<2>() = pos;
   target_.z()       = theta;
