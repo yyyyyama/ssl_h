@@ -46,7 +46,9 @@ model::command clear::execute() {
  // 向きが合っていなければ回転(前進のモーションはキャンセルされる)
  constexpr double rot_th = 0.5;
 
- Eigen:: Vector2d pos = ball_pos + rad * (ball_pos - target_0).normalized();
+ auto r_b_dis = util::math::distance(robot_pos,ball_pos)
+
+ Eigen::Vector2d pos = ball_pos + rad * (ball_pos - target_0).normalized();
   //auto omega = util::math::direction_from(util::math::direction(target0,robot_pos),robot.theta());
  auto omega = util::math::direction_from(util::math::direction(pos,robot_pos),robot.theta());
   if (rot_th < omega ){
@@ -54,6 +56,11 @@ model::command clear::execute() {
  } else if (omega < -rot_th) {
  command.set_motion(std::make_shared<model::motion::turn_right>());
  }
+
+  if (util::math::distance(pos,ball_pos) > )
+    std::cout << "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\naaaaaaaaaaaaaaaaaaaaaaaaaaaaaa";
+  }
+
  std::cout << "omega: " << omega << "\n";/*omega出力*/
  auto dir = util::math::direction(ball_pos,robot_pos);
  std::cout << "direction: " << dir << "\n";/*direction test*/
