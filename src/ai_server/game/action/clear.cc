@@ -40,7 +40,7 @@ model::command clear::execute() {
  //敵ゴールの位置を取得
  const Eigen::Vector2d ene_goal_pos (world().field().x_min(),0.0);
  const auto target_0 = ene_goal_pos;
- auto rad = 125;
+ auto rad = 130;
  // 前進
  command.set_motion(std::make_shared<model::motion::walk_forward>());
  // 向きが合っていなければ回転(前進のモーションはキャンセルされる)
@@ -56,9 +56,16 @@ auto pos_b_dis = util::math::distance(ball_pos,pos);
 auto pos_b_deg = util::math::direction(ball_pos,pos);
 
 auto pos_r_dis = util::math::distance(robot_pos,pos);
+auto pos_r_deg = util::math::direction(robot_pos,pos);
+
+auto target_0_r_dis = util::math::distance(robot_pos,target_0);
+auto target_0_r_deg = util::math::direction(robot_pos,target_0);
+
+auto target_0_b_dis = util::math::distance(ball_pos,target_0);
+auto target_0_b_deg = util::math::direction(ball_pos,target_0);
 
 Eigen::Vector2d p1, p2, leftP, rightP, target0;
-const auto mergin_r = 110.0;
+const auto mergin_r = 150.0;
 std::tie(p1, p2) = util::math::calc_isosceles_vertexes(robot_pos, ball_pos, mergin_r);
 
   //auto omega = util::math::direction_from(util::math::direction(target0,robot_pos),robot.theta());
@@ -69,36 +76,44 @@ std::tie(p1, p2) = util::math::calc_isosceles_vertexes(robot_pos, ball_pos, merg
  command.set_motion(std::make_shared<model::motion::turn_right>());
  }
 
- if (pos_b_dis > r_b_dis && pos_r_dis < 3){
-    pos = ball_pos ;
-
- auto omega = util::math::direction_from(util::math::direction(pos,robot_pos),robot.theta());
-  if (rot_th < omega ){
- command.set_motion(std::make_shared<model::motion::turn_left>());
- } else if (omega < -rot_th) {
- command.set_motion(std::make_shared<model::motion::turn_right>());
+ if (pos_r_dis < 10){
+    pos = target_0 ;
+    omega = util::math::direction_from(util::math::direction(pos,robot_pos),robot.theta());
  }
 
- }
-  /*  rad * (ball_pos - target_0).normalized() ≒  robot_pos - ball_pos  */
-  /*  direction(target0 , ball_pos) ≒ direction(ball_pos , robot_pos)*/
+ if( target_0_r_dis < target_0_b_dis && r_b_deg == pos_r_deg ){
 
- std::cout << "omega: " << omega << "\n";/*omega出力*/
- auto dir = util::math::direction(ball_pos,robot_pos);
- std::cout << "direction: " << dir << "\n";/*direction test*/
- auto dis = util::math::distance(ball_pos,robot_pos);
- std::cout << "distance: " << dis << "\n";/*distance test*/
- auto dir_from = util::math::direction_from(util::math::direction(ball_pos,robot_pos),robot.theta());
- std::cout << "direction_from: " << dir_from << "\n";/*direction_from test*/
- std::cout << "r_b_dis: " << r_b_dis << "\n"; 
- std::cout << "r_b_deg: " << r_b_deg << "\n";
- std::cout << "pos_b_dis: " << pos_b_dis << "\n";
- std::cout << "pos_b_deg: " << pos_b_deg << "\n";
- std::cout << "ball_pos: " << ball_pos << "\n";
- std::cout << "pos: " << pos << "\n";/*pos表示*/
- std::cout << "pos_r_dis: " << pos_r_dis << "\n";
+    if(util::math::distance(pos,p1) < util::math::distance(pos,p2)){
+        pos= p1;
+    }else{
+        pos= p2;
+        }
+    
+    omega = util::math::direction_from(util::math::direction(pos,robot_pos),robot.theta());
+    
+    if(pos_r_dis < 3){
+        pos = ball_pos - rad * (ball_pos - target_0).normalized();
+    }omega = util::math::direction_from(util::math::direction(pos,robot_pos),robot.theta());
+ }
  
-return command;
+ //std::cout << "omega: " << omega << "\n";/*omega出力*/
+ //auto dir = util::math::direction(ball_pos,robot_pos);
+ //std::cout << "direction: " << dir << "\n";/*direction test*/
+ //auto dis = util::math::distance(ball_pos,robot_pos);
+ //std::cout << "distance: " << dis << "\n";/*distance test*/
+ //auto dir_from = util::math::direction_from(util::math::direction(ball_pos,robot_pos),robot.theta());
+ //std::cout << "direction_from: " << dir_from << "\n";/*direction_from test*/
+ //std::cout << "r_b_dis: " << r_b_dis << "\n"; 
+ //std::cout << "r_b_deg: " << r_b_deg << "\n";
+ //std::cout << "pos_b_dis: " << pos_b_dis << "\n";
+ //std::cout << "pos_b_deg: " << pos_b_deg << "\n";
+ //std::cout << "ball_pos: " << ball_pos << "\n";
+ std::cout << "pos: " << pos << "\n";/*pos表示*/
+ //std::cout << "pos_r_dis: " << pos_r_dis << "\n";
+ std::cout << "target_0: " << target_0 << "\n";
+ std::cout << "p1: " << p1 << "\n";
+ std::cout << "p2: " << p2 << "\n"; 
+ return command;
 }
 
 } // namespace ai_server::game::action
