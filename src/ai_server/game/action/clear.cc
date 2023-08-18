@@ -44,7 +44,7 @@ model::command clear::execute() {
  // 前進
  command.set_motion(std::make_shared<model::motion::walk_forward>());
  // 向きが合っていなければ回転(前進のモーションはキャンセルされる)
- constexpr double rot_th = 0.5;
+ constexpr double rot_th = 0.3;
 
 //robotとballの距離と角度
 auto r_b_dis = util::math::distance(ball_pos,robot_pos);
@@ -55,14 +55,18 @@ auto r_b_deg = util::math::direction(ball_pos,robot_pos);
 auto pos_b_dis = util::math::distance(ball_pos,pos);
 auto pos_b_deg = util::math::direction(ball_pos,pos);
 
-auto pos_r_dis = util::math::distance(robot_pos,pos);
+auto pos_r_dis = util::math::distance(pos,robot_pos);
 auto pos_r_deg = util::math::direction(robot_pos,pos);
 
 auto target_0_r_dis = util::math::distance(robot_pos,target_0);
 auto target_0_r_deg = util::math::direction(robot_pos,target_0);
 
+ if (rot_th < omega ){
 auto target_0_b_dis = util::math::distance(ball_pos,target_0);
 auto target_0_b_deg = util::math::direction(ball_pos,target_0);
+ command.set_motion(std::make_shared<model::motion::walk_forward>());
+ // 向きが合っていなければ回転(前進のモーションはキャンセルされる)
+ }
 
 Eigen::Vector2d p1, p2, leftP, rightP, target0;
 const auto mergin_r = 150.0;
@@ -76,10 +80,11 @@ std::tie(p1, p2) = util::math::calc_isosceles_vertexes(robot_pos, ball_pos, merg
  command.set_motion(std::make_shared<model::motion::turn_right>());
  }
 //中心のボール前到着
-if (pos_r_dis < 10){
- Eigen::Vector2d pos = target_0 - ball_pos;
+const auto aaa = 10.0;
+if (pos_r_dis < aaa){
+ Eigen::Vector2d pos = target_0 - ball_pos ;
  auto omega = util::math::direction_from(util::math::direction(pos,robot_pos),robot.theta());
- }
+}
 
  if (rot_th < omega ){
  command.set_motion(std::make_shared<model::motion::turn_left>());
@@ -115,14 +120,15 @@ if (pos_r_dis < 10){
  //std::cout << "pos_b_deg: " << pos_b_deg << "\n";
  //std::cout << "ball_pos: " << ball_pos << "\n";
  std::cout << "pos: " << pos << "\n";/*pos表示*/
- //std::cout << "pos_r_dis: " << pos_r_dis << "\n";
+ std::cout << "pos_r_dis: " << pos_r_dis << "\n";
  std::cout << "target_0: " << target_0 << "\n";
  std::cout << "p1: " << p1 << "\n";
  std::cout << "p2: " << p2 << "\n"; 
  return command;
 }
+}
 
-} // namespace ai_server::game::action
+// namespace ai_server::game::action
 
 
 
