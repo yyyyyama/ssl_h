@@ -75,13 +75,19 @@ std::tie(p1, p2) = util::math::calc_isosceles_vertexes(robot_pos, ball_pos, merg
  } else if (omega < -rot_th) {
  command.set_motion(std::make_shared<model::motion::turn_right>());
  }
-
- if (pos_r_dis < 10){
-    pos = target_0 ;
-    omega = util::math::direction_from(util::math::direction(pos,robot_pos),robot.theta());
+//中心のボール前到着
+if (pos_r_dis < 10){
+ Eigen::Vector2d pos = target_0 - ball_pos;
+ auto omega = util::math::direction_from(util::math::direction(pos,robot_pos),robot.theta());
  }
 
- if( target_0_r_dis < target_0_b_dis && r_b_deg == pos_r_deg ){
+ if (rot_th < omega ){
+ command.set_motion(std::make_shared<model::motion::turn_left>());
+ } else if (omega < -rot_th) {
+ command.set_motion(std::make_shared<model::motion::turn_right>());
+ }
+
+/* if( target_0_r_dis < target_0_b_dis && r_b_deg == pos_r_deg ){
 
     if(util::math::distance(pos,p1) < util::math::distance(pos,p2)){
         pos= p1;
@@ -94,7 +100,7 @@ std::tie(p1, p2) = util::math::calc_isosceles_vertexes(robot_pos, ball_pos, merg
     if(pos_r_dis < 3){
         pos = ball_pos - rad * (ball_pos - target_0).normalized();
     }omega = util::math::direction_from(util::math::direction(pos,robot_pos),robot.theta());
- }
+ }*/
  
  //std::cout << "omega: " << omega << "\n";/*omega出力*/
  //auto dir = util::math::direction(ball_pos,robot_pos);
