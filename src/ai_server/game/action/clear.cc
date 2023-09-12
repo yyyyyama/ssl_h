@@ -81,19 +81,16 @@ std::tie(p1, p2) = util::math::calc_isosceles_vertexes(robot_pos, ball_pos, merg
  command.set_motion(std::make_shared<model::motion::turn_right>());
  }
 //ボール前到着
-const auto aaa = 5.0;
-if (pos_r_dis < aaa){
-Eigen::Vector2d pos = - target_0 - ball_pos ;
-auto omega = util::math::direction_from(util::math::direction(pos,robot_pos),robot.theta());
-
-command.set_motion(std::make_shared<model::motion::walk_forward>());
-
- /*if (rot_th < omega ){
+ auto aaa = 5.00000;
+  if (pos_r_dis < aaa){
+ Eigen::Vector2d pos = - ball_pos - ene_goal_pos;
+ auto omega = util::math::direction_from(util::math::direction(pos,robot_pos),robot.theta());
+  if (rot_th < omega ){
  command.set_motion(std::make_shared<model::motion::turn_left>());
  } else if (omega < -rot_th) {
  command.set_motion(std::make_shared<model::motion::turn_right>());
- }*/
-}
+ }
+}// 9/12　ボール前へ行き、進行方向に向くことはできた。前へ進めることができればok
 /* if( target_0_r_dis < target_0_b_dis && r_b_deg == pos_r_deg ){
 
     if(util::math::distance(pos,p1) < util::math::distance(pos,p2)){
