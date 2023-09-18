@@ -14,9 +14,6 @@
 #include <boost/math/constants/constants.hpp>
 #include "ai_server/util/math/geometry.h"
 
-
-double omega;
-
 namespace ai_server::game::action{
     clear::clear(context& ctx,unsigned int id):base(ctx,id){}
     //IDはロボットの番号（IDを入れるとそのロボットだけ動く）
@@ -40,7 +37,7 @@ model::command clear::execute() {
  //敵ゴールの位置を取得
  const Eigen::Vector2d ene_goal_pos (world().field().x_min(),0.0);
  const auto target_0 = ene_goal_pos;
- auto rad = 130;
+ auto rad = 95;
  // 前進
  command.set_motion(std::make_shared<model::motion::walk_forward>());
  // 向きが合っていなければ回転(前進のモーションはキャンセルされる)
@@ -61,6 +58,8 @@ auto pos_r_deg = util::math::direction(robot_pos,pos);
 auto target_0_r_dis = util::math::distance(robot_pos,target_0);
 auto target_0_r_deg = util::math::direction(robot_pos,target_0);
 
+ auto omega = util::math::direction_from(util::math::direction(pos,robot_pos),robot.theta());
+
 if (rot_th < omega ){
 auto target_0_b_dis = util::math::distance(ball_pos,target_0);
 auto target_0_b_deg = util::math::direction(ball_pos,target_0);
@@ -73,60 +72,46 @@ const auto mergin_r = 150.0;
 std::tie(p1, p2) = util::math::calc_isosceles_vertexes(robot_pos, ball_pos, mergin_r);
 
   //auto omega = util::math::direction_from(util::math::direction(target0,robot_pos),robot.theta());
- auto omega = util::math::direction_from(util::math::direction(pos,robot_pos),robot.theta());
+
+//p1,p2を使った回り込みに使う
+auto r_p1_dis = util::math::distance(robot_pos,p1);
+auto r_p2_dis = util::math::distance(robot_pos,p2);
+//p1,p2を使った回り込み
+ if (r_b_dis < pos_r_dis){
+  if (r_p1_dis < r_p2_dis){
+    pos = ball_pos + p1;
+  }else{
+    pos = ball_pos + p2;
+  }
+    if (rot_th < omega ){
+ command.set_motion(std::make_shared<model::motion::turn_left>());
+ } else if (omega < -rot_th) {
+ command.set_motion(std::make_shared<model::motion::turn_right>());
+ }
+}
 
   if (rot_th < omega ){
  command.set_motion(std::make_shared<model::motion::turn_left>());
  } else if (omega < -rot_th) {
  command.set_motion(std::make_shared<model::motion::turn_right>());
  }
-//ボール前到着
- auto aaa = 5.00000;
-  if (pos_r_dis < aaa){
- Eigen::Vector2d pos = - ball_pos - ene_goal_pos;
- auto omega = util::math::direction_from(util::math::direction(pos,robot_pos),robot.theta());
-  if (rot_th < omega ){
- command.set_motion(std::make_shared<model::motion::turn_left>());
- } else if (omega < -rot_th) {
- command.set_motion(std::make_shared<model::motion::turn_right>());
- }
-}// 9/12　ボール前へ行き、進行方向に向くことはできた。前へ進めることができればok
-/* if( target_0_r_dis < target_0_b_dis && r_b_deg == pos_r_deg ){
 
-    if(util::math::distance(pos,p1) < util::math::distance(pos,p2)){
-        pos= p1;
-    }else{
-        pos= p2;
-        }
-    
-    omega = util::math::direction_from(util::math::direction(pos,robot_pos),robot.theta());
-    
-    if(pos_r_dis < 3){
-        pos = ball_pos - rad * (ball_pos - target_0).normalized();
-    }omega = util::math::direction_from(util::math::direction(pos,robot_pos),robot.theta());
- }*/
- 
  //std::cout << "omega: " << omega << "\n";/*omega出力*/
- //auto dir = util::math::direction(ball_pos,robot_pos);
- //std::cout << "direction: " << dir << "\n";/*direction test*/
- //auto dis = util::math::distance(ball_pos,robot_pos);
- //std::cout << "distance: " << dis << "\n";/*distance test*/
  //auto dir_from = util::math::direction_from(util::math::direction(ball_pos,robot_pos),robot.theta());
  //std::cout << "direction_from: " << dir_from << "\n";/*direction_from test*/
- //std::cout << "r_b_dis: " << r_b_dis << "\n"; 
+ std::cout << "r_b_dis: " << r_b_dis << "\n"; 
  //std::cout << "r_b_deg: " << r_b_deg << "\n";
  //std::cout << "pos_b_dis: " << pos_b_dis << "\n";
  //std::cout << "pos_b_deg: " << pos_b_deg << "\n";
- //std::cout << "ball_pos: " << ball_pos << "\n";
+ std::cout << "ball_pos: " << ball_pos << "\n";
  std::cout << "pos: " << pos << "\n";/*pos表示*/
  std::cout << "pos_r_dis: " << pos_r_dis << "\n";
- std::cout << "target_0: " << target_0 << "\n";
+ //std::cout << "target_0: " << target_0 << "\n";
  std::cout << "p1: " << p1 << "\n";
- std::cout << "p2: " << p2 << "\n"; 
- return command;
+ std::cout << "p2: " << p2 << "\n";
+return command;
 }
 }
-
 // namespace ai_server::game::action
 
 
