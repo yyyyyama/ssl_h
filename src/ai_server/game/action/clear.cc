@@ -37,7 +37,7 @@ model::command clear::execute() {
  //敵ゴールの位置を取得
  const Eigen::Vector2d ene_goal_pos (world().field().x_min(),0.0);
  const auto target_0 = ene_goal_pos;
- auto rad = 95;
+ auto rad = 90.0;
  // 前進
  command.set_motion(std::make_shared<model::motion::walk_forward>());
  // 向きが合っていなければ回転(前進のモーションはキャンセルされる)
@@ -68,8 +68,8 @@ auto target_0_b_deg = util::math::direction(ball_pos,target_0);
  }
 
 Eigen::Vector2d p1, p2, leftP, rightP, target0;
-const auto mergin_r = 150.0;
-std::tie(p1, p2) = util::math::calc_isosceles_vertexes(robot_pos, ball_pos, mergin_r);
+const auto mergin_r = 90.0;
+std::tie(p1, p2) = util::math::calc_isosceles_vertexes(robot_pos , ball_pos, mergin_r);
 
   //auto omega = util::math::direction_from(util::math::direction(target0,robot_pos),robot.theta());
 
@@ -77,31 +77,30 @@ std::tie(p1, p2) = util::math::calc_isosceles_vertexes(robot_pos, ball_pos, merg
 auto r_p1_dis = util::math::distance(robot_pos,p1);
 auto r_p2_dis = util::math::distance(robot_pos,p2);
 //p1,p2を使った回り込み
- if (r_b_dis < pos_r_dis){
+if (r_b_dis < pos_r_dis){
   if (r_p1_dis < r_p2_dis){
-    pos = ball_pos + p1;
+    pos = ball_pos + p1; 
   }else{
     pos = ball_pos + p2;
   }
-    if (rot_th < omega ){
- command.set_motion(std::make_shared<model::motion::turn_left>());
- } else if (omega < -rot_th) {
- command.set_motion(std::make_shared<model::motion::turn_right>());
  }
-}
-
   if (rot_th < omega ){
  command.set_motion(std::make_shared<model::motion::turn_left>());
  } else if (omega < -rot_th) {
  command.set_motion(std::make_shared<model::motion::turn_right>());
  }
 
+//９月１０日実験
+auto pos_p1_dis = util::math::distance(pos,p1);
+auto pos_p2_dis = util::math::distance(pos,p2);
+auto p1_p2_dis = util::math::distance(p1,p2);
+
  //std::cout << "omega: " << omega << "\n";/*omega出力*/
  //auto dir_from = util::math::direction_from(util::math::direction(ball_pos,robot_pos),robot.theta());
  //std::cout << "direction_from: " << dir_from << "\n";/*direction_from test*/
  std::cout << "r_b_dis: " << r_b_dis << "\n"; 
  //std::cout << "r_b_deg: " << r_b_deg << "\n";
- //std::cout << "pos_b_dis: " << pos_b_dis << "\n";
+ std::cout << "pos_b_dis: " << pos_b_dis << "\n";
  //std::cout << "pos_b_deg: " << pos_b_deg << "\n";
  std::cout << "ball_pos: " << ball_pos << "\n";
  std::cout << "pos: " << pos << "\n";/*pos表示*/
@@ -109,6 +108,9 @@ auto r_p2_dis = util::math::distance(robot_pos,p2);
  //std::cout << "target_0: " << target_0 << "\n";
  std::cout << "p1: " << p1 << "\n";
  std::cout << "p2: " << p2 << "\n";
+ std::cout << "pos_p1_dis: " << pos_p1_dis << "\n";
+ std::cout << "pos_p2_dis: " << pos_p2_dis << "\n";
+ std::cout << "p1_p2_dis: " << p1_p2_dis << "\n";
 return command;
 }
 }

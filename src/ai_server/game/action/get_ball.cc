@@ -162,7 +162,7 @@ model::command get_ball::execute() {
               ? 150.0   // mw　真
               // ? 90.0  // org 90 150
               : 180.0;//偽
-      Eigen::Vector2d pos = ball_pos + rad * (ball_pos - target_).normalized();
+      Eigen::Vector2d pos = ball_pos - rad * (ball_pos - target_).normalized();
       //説明３if
       if(std::abs(util::math::wrap_to_pi(
               std::atan2(robot_pos.y() - ball_pos.y(), robot_pos.x() - ball_pos.x()) -
