@@ -78,12 +78,13 @@ auto r_p1_dis = util::math::distance(robot_pos,p1);
 auto r_p2_dis = util::math::distance(robot_pos,p2);
 //p1,p2を使った回り込み
 if (r_b_dis < pos_r_dis){
-  if (r_p1_dis < r_p2_dis){
-    pos = ball_pos + p1; 
+    if (r_p1_dis < r_p2_dis){
+    pos = p1;
   }else{
-    pos = ball_pos + p2;
+    pos = p2;
   }
  }
+
   if (rot_th < omega ){
  command.set_motion(std::make_shared<model::motion::turn_left>());
  } else if (omega < -rot_th) {

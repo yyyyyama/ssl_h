@@ -168,7 +168,7 @@ model::command get_ball::execute() {
               std::atan2(robot_pos.y() - ball_pos.y(), robot_pos.x() - ball_pos.x()) -
               std::atan2(pos.y() - ball_pos.y(), pos.x() - ball_pos.x()))) >
           0.3 * pi<double>()){
-        const auto [p1, p2] = util::math::calc_isosceles_vertexes(robot_pos, ball_pos, rad);
+        const auto [p1, p2] = util::math::calc_isosceles_vertexes(robot_pos , ball_pos, rad);
         pos                 = ((p1 - pos).norm() < (p2 - pos).norm()) ? p1 : p2;
       }
       const Eigen::Vector2d vel =
