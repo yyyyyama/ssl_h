@@ -73,12 +73,17 @@ std::tie(p1, p2) = util::math::calc_isosceles_vertexes(robot_pos , ball_pos, mer
 
   //auto omega = util::math::direction_from(util::math::direction(target0,robot_pos),robot.theta());
 
+//９月１０日実験
+auto pos_p1_dis = util::math::distance(pos,p1);
+auto pos_p2_dis = util::math::distance(pos,p2);
+auto p1_p2_dis = util::math::distance(p1,p2);
+
 //p1,p2を使った回り込みに使う
 auto r_p1_dis = util::math::distance(robot_pos,p1);
 auto r_p2_dis = util::math::distance(robot_pos,p2);
-//p1,p2を使った回り込み
+//p1,p2を使った回り込み 夏休み課題
 if (r_b_dis < pos_r_dis){
-    if (r_p1_dis < r_p2_dis){
+    if (pos_p1_dis < pos_p2_dis){
     pos = p1;
   }else{
     pos = p2;
@@ -90,11 +95,6 @@ if (r_b_dis < pos_r_dis){
  } else if (omega < -rot_th) {
  command.set_motion(std::make_shared<model::motion::turn_right>());
  }
-
-//９月１０日実験
-auto pos_p1_dis = util::math::distance(pos,p1);
-auto pos_p2_dis = util::math::distance(pos,p2);
-auto p1_p2_dis = util::math::distance(p1,p2);
 
  //std::cout << "omega: " << omega << "\n";/*omega出力*/
  //auto dir_from = util::math::direction_from(util::math::direction(ball_pos,robot_pos),robot.theta());
