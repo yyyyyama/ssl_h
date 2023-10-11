@@ -12,6 +12,7 @@
 #include "ai_server/model/motion/kick_forward_l.h"
 #include "ai_server/model/motion/kick_forward_r.h"
 #include <iostream>  //omega表示のため
+#include "ai_server/util/math/distance.h"/*distance表示のため*/ 
 
 using boost::math::constants::pi; /*pi=3.14*/
 
@@ -119,8 +120,8 @@ model::command get_ball::execute() {
   const double dist_r_to_t = (robot_pos - target_).norm();
 
   // ボールを持っているか 説明１
-  const bool have_ball =
-      dist_b_to_r < robot_rad &&
+  const bool have_ball =         //bool型なので0 or 1(false or true)
+      dist_b_to_r < robot_rad && //ロボットとボールが十分に近づいているかどうか
       std::abs(util::math::wrap_to_pi(
           robot.theta() - std::atan2(ball_pos.y() - robot_pos.y(),
                                      ball_pos.x() - robot_pos.x()))) < pi<double>() / 3.0;  // org 6.0
@@ -129,13 +130,18 @@ model::command get_ball::execute() {
 
   // ロボットの目標角度
   const double theta = std::atan2(target_.y() - robot_pos.y(), target_.x() - robot_pos.x());//目標角度を正面(基準)にする
+  std::cout << "target_:" << target_ << "\n"; 
+
+  //test
+  auto r_b_dis = util::math::distance(ball_pos,robot_pos);
+  std::cout << "r_b_dis : " << r_b_dis << "\n";
 
   // 速度指令
   switch (state_) {
     // ボールを蹴る
     case running_state::dribble: {
-      if (!have_ball) state_ = running_state::move;
-
+      if (!have_ball) state_ = running_state::move;//have_ballがfalseという条件
+      std::cout << "state_ : " << state_ << "\n";
       const Eigen::Vector2d vel = 2.0 * (target_ - robot_pos);
       command.set_velocity(vel);
       command.set_angle(theta);
@@ -146,39 +152,42 @@ model::command get_ball::execute() {
         default: {
       if (have_ball){  // mw 進行方向角度ーの場合左キック、＋の場合右キック
         state_ = running_state::dribble; 
+        std::cout << "state_ : " << state_ << "\n";//test
         if(0 > (util::math::wrap_to_pi(
           robot.theta() - std::atan2(ball_pos.y() - robot_pos.y(),
                                      ball_pos.x() - robot_pos.x()))))
              {command.set_motion(std::make_shared<model::motion::kick_forward_l>());}
          else{command.set_motion(std::make_shared<model::motion::kick_forward_r>());}
+        
         //mw
       } 
                  
-      //説明２
+      //説明２ radとposを設定
       const double rad =
           std::abs(util::math::wrap_to_pi(//-180から180に正規化(絶対値)
               robot.theta() - std::atan2(ball_pos.y() - robot_pos.y(),
                                          ball_pos.x() - robot_pos.x()))) < 0.2 * pi<double>()
-              ? 150.0   // mw　真
-              // ? 90.0  // org 90 150
-              : 180.0;//偽
+              ? 90.0   // mw　真
+              // ? 90.0  // org 90 150 //10月11日 修正前 150 1801
+              : 150.0;//偽
       Eigen::Vector2d pos = ball_pos - rad * (ball_pos - target_).normalized();
-      //説明３if
+      std::cout << "pos : " << pos << "\n";
+      //説明３　p1,p2を使った回り込み
       if(std::abs(util::math::wrap_to_pi(
               std::atan2(robot_pos.y() - ball_pos.y(), robot_pos.x() - ball_pos.x()) -
               std::atan2(pos.y() - ball_pos.y(), pos.x() - ball_pos.x()))) >
           0.3 * pi<double>()){
         const auto [p1, p2] = util::math::calc_isosceles_vertexes(robot_pos , ball_pos, rad);
         pos                 = ((p1 - pos).norm() < (p2 - pos).norm()) ? p1 : p2;
-      }
+        }
       const Eigen::Vector2d vel =
           3.5 * (pos - robot_pos) + (have_ball ? Eigen::Vector2d::Zero() : ball_vel);
       command.set_velocity(vel);
       command.set_angle(theta);
     }
   }
- /*
-  // キック・ドリブル 説明4
+
+    // キック・ドリブル 説明4
   {
     const Eigen::Vector2d tmp = robot_pos + dist_r_to_t * (Eigen::Rotation2Dd(robot.theta()) *
                                                            Eigen::Vector2d::UnitX());
@@ -187,7 +196,7 @@ model::command get_ball::execute() {
     if (dist_b_to_r < robot_rad && boost::geometry::distance(line, target_) < kick_margin_)
       kick(robot_pos, enemy_robots, command);
     if (dist_b_to_r < robot_rad) command.set_dribble(dribble_value);
-  } */
+  } 
   return command;
 }
 

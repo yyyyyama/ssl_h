@@ -99,19 +99,19 @@ if (r_b_dis < pos_r_dis){
  //std::cout << "omega: " << omega << "\n";/*omega出力*/
  //auto dir_from = util::math::direction_from(util::math::direction(ball_pos,robot_pos),robot.theta());
  //std::cout << "direction_from: " << dir_from << "\n";/*direction_from test*/
- std::cout << "r_b_dis: " << r_b_dis << "\n"; 
+ //std::cout << "r_b_dis: " << r_b_dis << "\n"; 
  //std::cout << "r_b_deg: " << r_b_deg << "\n";
- std::cout << "pos_b_dis: " << pos_b_dis << "\n";
+ //std::cout << "pos_b_dis: " << pos_b_dis << "\n";
  //std::cout << "pos_b_deg: " << pos_b_deg << "\n";
- std::cout << "ball_pos: " << ball_pos << "\n";
- std::cout << "pos: " << pos << "\n";/*pos表示*/
- std::cout << "pos_r_dis: " << pos_r_dis << "\n";
- //std::cout << "target_0: " << target_0 << "\n";
- std::cout << "p1: " << p1 << "\n";
- std::cout << "p2: " << p2 << "\n";
- std::cout << "pos_p1_dis: " << pos_p1_dis << "\n";
- std::cout << "pos_p2_dis: " << pos_p2_dis << "\n";
- std::cout << "p1_p2_dis: " << p1_p2_dis << "\n";
+ //std::cout << "ball_pos: " << ball_pos << "\n";
+ //std::cout << "pos: " << pos << "\n";/*pos表示*/
+ //std::cout << "pos_r_dis: " << pos_r_dis << "\n";
+ std::cout << "target_0: " << target_0 << "\n";
+ //std::cout << "p1: " << p1 << "\n";
+ //std::cout << "p2: " << p2 << "\n";
+ //std::cout << "pos_p1_dis: " << pos_p1_dis << "\n";
+ //std::cout << "pos_p2_dis: " << pos_p2_dis << "\n";
+ //std::cout << "p1_p2_dis: " << p1_p2_dis << "\n";
 return command;
 }
 }

@@ -326,8 +326,8 @@ private:
           if (!action || need_reset_) {    // || OR
        
          //action      = std::make_unique<game::action::goal_keep>(ctx, 0);
-         //action      = std::make_unique<game::action::get_ball>(ctx, 0);
-         action      = std::make_unique<game::action::clear>(ctx, 0);
+         action      = std::make_unique<game::action::get_ball>(ctx, 0);
+         //action      = std::make_unique<game::action::clear>(ctx, 0);
 
           need_reset_ = false;
           l_.info("action resetted");
