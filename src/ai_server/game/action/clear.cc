@@ -104,9 +104,9 @@ if (r_b_dis < pos_r_dis){
  //std::cout << "pos_b_dis: " << pos_b_dis << "\n";
  //std::cout << "pos_b_deg: " << pos_b_deg << "\n";
  //std::cout << "ball_pos: " << ball_pos << "\n";
- //std::cout << "pos: " << pos << "\n";/*pos表示*/
+ std::cout << "pos: " << pos << "\n";/*pos表示*/
  //std::cout << "pos_r_dis: " << pos_r_dis << "\n";
- std::cout << "target_0: " << target_0 << "\n";
+ //std::cout << "target_0: " << target_0 << "\n";
  //std::cout << "p1: " << p1 << "\n";
  //std::cout << "p2: " << p2 << "\n";
  //std::cout << "pos_p1_dis: " << pos_p1_dis << "\n";
