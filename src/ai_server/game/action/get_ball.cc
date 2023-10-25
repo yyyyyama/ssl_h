@@ -12,7 +12,12 @@
 #include "ai_server/model/motion/kick_forward_l.h"
 #include "ai_server/model/motion/kick_forward_r.h"
 #include <iostream>  //omega表示のため
-#include "ai_server/util/math/distance.h"/*distance表示のため*/ 
+#include "ai_server/util/math/distance.h"/*distance表示のため*/
+//10/25追加 ロボットの向きを進行方向に向かせる
+#include "ai_server/util/math/detail/direction.h" 
+#include "ai_server/model/motion/turn_left.h"
+#include "ai_server/model/motion/turn_right.h"
+
 
 using boost::math::constants::pi; /*pi=3.14*/
 
@@ -119,6 +124,9 @@ model::command get_ball::execute() {
   // ロボットと目標の距離
   const double dist_r_to_t = (robot_pos - target_).norm();
 
+  //10/25追加 ロボットの向きを進行方向に向かせる
+  constexpr double rot_th = 0.2;
+
   // ボールを持っているか 説明１
   const bool have_ball =         //bool型なので0 or 1(false or true) org const型
       dist_b_to_r < robot_rad && //ロボットとボールが十分に近づいているかどうか
@@ -129,7 +137,7 @@ model::command get_ball::execute() {
   std::cout << "have_ball:" <<  (int)have_ball << "\n";  //mw
 
   // ロボットの目標角度
-  const double theta = std::atan2(target_.y() - robot_pos.y(), target_.x() - robot_pos.x());//目標角度を正面(基準)にする
+  const double theta = std::atan2(target_.y() - robot_pos.y(), target_.x() - robot_pos.x());//目標角度を正面(基準)にする ロボットからゴールへ
   std::cout << "target_:" << target_ << "\n"; 
   std::cout << "theta: " << theta << "\n";
 
@@ -157,8 +165,10 @@ model::command get_ball::execute() {
         if(0 > (util::math::wrap_to_pi(
           robot.theta() - std::atan2(ball_pos.y() - robot_pos.y(),
                                      ball_pos.x() - robot_pos.x()))))
-             {command.set_motion(std::make_shared<model::motion::kick_forward_l>());}//左足キック
-         else{command.set_motion(std::make_shared<model::motion::kick_forward_r>());}//右足キック
+             {command.set_motion(std::make_shared<model::motion::kick_forward_l>());
+             std::cout << "左足キック!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!";} //左足キック
+         else{command.set_motion(std::make_shared<model::motion::kick_forward_r>());
+             std::cout << "右足キック!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!";} //右足キック
         std::cout << "state_(dribble)"<< (int)state_ << "\n";
         //mw
       } 
@@ -169,13 +179,14 @@ model::command get_ball::execute() {
               robot.theta() - std::atan2(ball_pos.y() - robot_pos.y(),
                                          ball_pos.x() - robot_pos.x()))) < 0.2 * pi<double>()
               ? 150.0   // mw　真
-              // ? 90.0  // org 90 150 //10月11日 修正前 150 180
+              // ? 90.0  // org 90 150 //10月25日 修正前 150 180
               : 180.0;//偽
       Eigen::Vector2d pos = ball_pos - rad * (ball_pos - target_).normalized();
+
       std::cout << "pos : " << pos << "\n";
+      std::cout << "rad : " << rad << "\n";
       //説明３　p1,p2を使った回り込み
       if(std::abs(util::math::wrap_to_pi(
-
               std::atan2(robot_pos.y() - ball_pos.y(), robot_pos.x() - ball_pos.x()) -
               std::atan2(pos.y() - ball_pos.y(), pos.x() - ball_pos.x()))) >
           0.3 * pi<double>()){
@@ -189,18 +200,32 @@ model::command get_ball::execute() {
       command.set_angle(theta);
     }
   }//switch文ここまで
+
   std::cout << "state_ :" << (int)state_ << "\n";
   std::cout << "robot_pos :" << robot_pos << "\n";
+
     // キック・ドリブル 説明4
   {
+    //10/25追加 ロボットの向きを進行方向に向かせる
+    if(dist_b_to_r < 165.0){
+      auto omega = util::math::direction_from(util::math::direction(ball_pos,robot_pos),robot.theta());      
+      std::cout << ">>>>>>>>>>>>>>>>>>>回転中<<<<<<<<<<<<<<<<<" << "\n";
+      if (rot_th < omega ){
+      command.set_motion(std::make_shared<model::motion::turn_left>());
+      } else if (omega < -rot_th) {
+      command.set_motion(std::make_shared<model::motion::turn_right>());
+      }
+    }
     const Eigen::Vector2d tmp = robot_pos + dist_r_to_t * (Eigen::Rotation2Dd(robot.theta()) *
                                                            Eigen::Vector2d::UnitX());
     const boost::geometry::model::segment<Eigen::Vector2d> line =
         boost::geometry::model::segment(robot_pos, tmp);
-    if (dist_b_to_r < robot_rad && boost::geometry::distance(line, target_) < kick_margin_)
+    if (dist_b_to_r < robot_rad && boost::geometry::distance(line, target_) < kick_margin_){
       kick(robot_pos, enemy_robots, command);
+    }
     if (dist_b_to_r < robot_rad) command.set_dribble(dribble_value);
-  } 
+    std::cout << "dribble_value :" << dribble_value << "\n";
+  }
   return command;
 }
 
