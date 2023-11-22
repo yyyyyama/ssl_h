@@ -58,7 +58,7 @@ auto pos_r_deg = util::math::direction(robot_pos,pos);
 auto target_0_r_dis = util::math::distance(robot_pos,target_0);
 auto target_0_r_deg = util::math::direction(robot_pos,target_0);
 
- auto omega = util::math::direction_from(util::math::direction(pos,robot_pos),robot.theta());
+auto omega = util::math::direction_from(util::math::direction(pos,robot_pos),robot.theta());
 
 if (rot_th < omega ){
 auto target_0_b_dis = util::math::distance(ball_pos,target_0);
